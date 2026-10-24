@@ -1,0 +1,15 @@
+test_all_twelve_joints_move (test_gait.Tests.test_all_twelve_joints_move) ... ok
+test_bad_parameters_rejected (test_gait.Tests.test_bad_parameters_rejected) ... ok
+test_blocked_freezes_all_joints (test_gait.Tests.test_blocked_freezes_all_joints) ... ok
+test_duplicate_time_rejected (test_gait.Tests.test_duplicate_time_rejected) ... ok
+test_limits_and_ground (test_gait.Tests.test_limits_and_ground) ... ok
+test_middle_stop_returns_stance (test_gait.Tests.test_middle_stop_returns_stance) ... ok
+test_official_limits_verified (test_gait.Tests.test_official_limits_verified) ... ok
+test_original_metrics_retained (test_gait.Tests.test_original_metrics_retained) ... ok
+test_reproducible (test_gait.Tests.test_reproducible) ... ok
+test_trace_pose_not_replanned (test_gait.Tests.test_trace_pose_not_replanned) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 12.732s
+
+OK

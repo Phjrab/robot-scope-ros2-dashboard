@@ -1,0 +1,90 @@
+{
+  "gait_sha256": "ce266eeffa23238aa00553b28f3a933f0848111335adc4f9a23b339ae34a670b",
+  "type": "SYNTHETIC_UNIT_FIXTURES_NOT_MISSION",
+  "cases": {
+    "gradual_arc": {
+      "frames": 181,
+      "min_mesh_ground_clearance_m": 0.0009999999956201155,
+      "max_foot_ik_residual_m": 2.3479724158959924e-16,
+      "max_consecutive_stance_xy_slip_m": 0,
+      "articulated_local_bounds_m": [
+        [
+          -0.3994728708573633,
+          -0.16785307451392587,
+          -0.3330745600043799
+        ],
+        [
+          0.33068000000000003,
+          0.1711173667682626,
+          0.08883
+        ]
+      ],
+      "joint_limits_pass": true,
+      "physics": false,
+      "collision_requalification": "NOT_RUN: original static-footprint trace metrics do not certify this articulated envelope"
+    },
+    "sideways_forward": {
+      "frames": 181,
+      "min_mesh_ground_clearance_m": 0.000968029521264735,
+      "max_foot_ik_residual_m": 1.9784975643065767e-16,
+      "max_consecutive_stance_xy_slip_m": 0,
+      "articulated_local_bounds_m": [
+        [
+          -0.39438146392192475,
+          -0.194037172495593,
+          -0.3331065304787353
+        ],
+        [
+          0.33068000000000003,
+          0.2078848388826663,
+          0.08883
+        ]
+      ],
+      "joint_limits_pass": true,
+      "physics": false,
+      "collision_requalification": "NOT_RUN: original static-footprint trace metrics do not certify this articulated envelope"
+    },
+    "curve_pause_resume": {
+      "frames": 181,
+      "min_mesh_ground_clearance_m": 0.0009999999962845285,
+      "max_foot_ik_residual_m": 2.0122792321330962e-16,
+      "max_consecutive_stance_xy_slip_m": 0,
+      "articulated_local_bounds_m": [
+        [
+          -0.4006313435967103,
+          -0.16821004159729233,
+          -0.3330745600037155
+        ],
+        [
+          0.33068000000000003,
+          0.17192495270765148,
+          0.08883
+        ]
+      ],
+      "joint_limits_pass": true,
+      "physics": false,
+      "collision_requalification": "NOT_RUN: original static-footprint trace metrics do not certify this articulated envelope"
+    },
+    "turn_in_place": {
+      "frames": 181,
+      "min_mesh_ground_clearance_m": 0.0007807103896952938,
+      "max_foot_ik_residual_m": 2.368389951639684e-16,
+      "max_consecutive_stance_xy_slip_m": 0,
+      "articulated_local_bounds_m": [
+        [
+          -0.3930318436429421,
+          -0.2314261540431036,
+          -0.3332938496103047
+        ],
+        [
+          0.33068000000000003,
+          0.23237333248813155,
+          0.08883
+        ]
+      ],
+      "joint_limits_pass": true,
+      "physics": false,
+      "collision_requalification": "NOT_RUN: original static-footprint trace metrics do not certify this articulated envelope"
+    }
+  }
+}

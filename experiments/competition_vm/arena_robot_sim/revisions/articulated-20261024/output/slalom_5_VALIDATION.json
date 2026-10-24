@@ -1,0 +1,36 @@
+{
+  "slalom_5": {
+    "frames": 445,
+    "min_mesh_ground_clearance_m": 0.0009113376803507878,
+    "max_foot_ik_residual_m": 1.9141791241147513e-16,
+    "max_consecutive_stance_xy_slip_m": 0,
+    "articulated_local_bounds_m": [
+      [
+        -0.3962481518188933,
+        -0.22642389323274176,
+        -0.33316322231964923
+      ],
+      [
+        0.33068000000000003,
+        0.2627604838920249,
+        0.08883
+      ]
+    ],
+    "joint_limits_pass": true,
+    "physics": false,
+    "collision_requalification": "NOT_RUN: original static-footprint trace metrics do not certify this articulated envelope",
+    "animation_stride_m": 0.16,
+    "trace_sha256": "e0754856cecc8747b09cfb3f35de7a22482bfb9de9177db67da26bcdf99fca11",
+    "original_metrics": {
+      "outcome": "GOAL_REACHED",
+      "contacts": 0,
+      "sim_time_s": 29.7,
+      "path_length_m": 4.752000000000005,
+      "wall_time_s": 10.14619622300006,
+      "seed": 20261024,
+      "count": 5,
+      "x_min": 0.3500000000000001,
+      "x_max": 0.67
+    }
+  }
+}

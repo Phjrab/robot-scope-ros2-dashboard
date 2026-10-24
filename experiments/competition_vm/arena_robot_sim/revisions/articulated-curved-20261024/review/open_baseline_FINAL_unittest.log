@@ -1,0 +1,19 @@
+test_all_vertices_ground_and_plan_envelope (test_actual_curved_trace.ActualCurved.test_all_vertices_ground_and_plan_envelope) ... ok
+test_hash_identity (test_actual_curved_trace.ActualCurved.test_hash_identity) ... ok
+test_independent_foot_fk (test_actual_curved_trace.ActualCurved.test_independent_foot_fk) ... ok
+test_joint_limits (test_actual_curved_trace.ActualCurved.test_joint_limits) ... ok
+test_joint_speed_sampled (test_actual_curved_trace.ActualCurved.test_joint_speed_sampled) ... ok
+test_source_pose_interpolation (test_actual_curved_trace.ActualCurved.test_source_pose_interpolation) ... ok
+test_stance_no_xy_slip (test_actual_curved_trace.ActualCurved.test_stance_no_xy_slip) ... ok
+test_yaw_contract (test_actual_curved_trace.ActualCurved.test_yaw_contract) ... ok
+test_default_envelope_characterization (test_synthetic_curves.SyntheticCurves.test_default_envelope_characterization) ... ok
+test_ground_nonpenetration (test_synthetic_curves.SyntheticCurves.test_ground_nonpenetration) ... ok
+test_independent_fk_targets (test_synthetic_curves.SyntheticCurves.test_independent_fk_targets) ... ok
+test_joint_ranges (test_synthetic_curves.SyntheticCurves.test_joint_ranges) ... ok
+test_pause_all_stance_and_frozen (test_synthetic_curves.SyntheticCurves.test_pause_all_stance_and_frozen) ... ok
+test_stance_anchor_slip_zero (test_synthetic_curves.SyntheticCurves.test_stance_anchor_slip_zero) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 13.249s
+
+OK

@@ -1,0 +1,54 @@
+{
+  "open_normal": {
+    "source_sha256": "528b1705fc10c3bb1fef92f87f5b2a8f5c86a6d1852d535de6902ce01f8cbb72",
+    "frame_count": 775,
+    "source_t_range": [
+      0.0,
+      51.6
+    ],
+    "terminal_state": "GOAL_REACHED",
+    "state_mapping_verified": true,
+    "probe": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "width": 960,
+          "height": 770,
+          "r_frame_rate": "15/1",
+          "nb_frames": "775"
+        }
+      ],
+      "format": {
+        "duration": "51.666667"
+      }
+    },
+    "video_sha256": "7fd336f1661458ee3930ba64a5581fe00e88df6f2bf720fb1ecb4a1a6e288e36"
+  },
+  "open_baseline": {
+    "source_sha256": "bc54b20f098ca832f7be738b4d60db96d65ed85473974bbdffe8f75d78f0db21",
+    "frame_count": 399,
+    "source_t_range": [
+      0.0,
+      26.5
+    ],
+    "terminal_state": "GOAL_REACHED",
+    "state_mapping_verified": true,
+    "probe": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "width": 960,
+          "height": 770,
+          "r_frame_rate": "15/1",
+          "nb_frames": "399"
+        }
+      ],
+      "format": {
+        "duration": "26.600000"
+      }
+    },
+    "video_sha256": "8c1d0a6f565672f96df35e5d0052f478cccc0585619f5f54540755a4287984b3"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "checks": "PASS",
+  "ffprobe": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "width": 1280,
+        "height": 860,
+        "r_frame_rate": "12/1",
+        "nb_read_frames": "642"
+      }
+    ],
+    "format": {
+      "duration": "53.500000",
+      "size": "426251"
+    }
+  },
+  "frames_equal_timeline": true,
+  "parking_hold_5s_video": true,
+  "visual_inspection": "preview_out.png checked, content and labels legible"
+}

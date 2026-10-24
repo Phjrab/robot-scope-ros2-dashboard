@@ -1,0 +1,2669 @@
+{
+  "schema": "d0-demo-publication-subset.v1",
+  "base_commit": "6403aab3afef96efa778b5265afd7ce5b351265c",
+  "scope": "Offline simulation and replay evidence only. No hardware, deployment, main merge, or curved_progress revision.",
+  "included": [
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/.gitignore",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/.gitignore",
+      "source_bytes": 146,
+      "source_sha256": "c94f5aced59348e9c502e34f4a4c0a66382f75645da141a9ccdeab0d04f8aa4b",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 146,
+      "sha256": "c94f5aced59348e9c502e34f4a4c0a66382f75645da141a9ccdeab0d04f8aa4b"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/BASE_COMMIT.txt",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/BASE_COMMIT.txt",
+      "source_bytes": 41,
+      "source_sha256": "d9c70a5256d68c00a32522fa9abc1ad024a90c2c4508a615199fae91cd0c4b82",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 41,
+      "sha256": "d9c70a5256d68c00a32522fa9abc1ad024a90c2c4508a615199fae91cd0c4b82"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/HANDOFF.md",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/HANDOFF.md",
+      "source_bytes": 1382,
+      "source_sha256": "0d3cd909c21c2c83f3933e5e8f7d3597c69418e142e1bc8b6e7e1389bba8904b",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1382,
+      "sha256": "0d3cd909c21c2c83f3933e5e8f7d3597c69418e142e1bc8b6e7e1389bba8904b"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/README.md",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/README.md",
+      "source_bytes": 8021,
+      "source_sha256": "d3b42040e73ba8c905aa72b8d169e7347048f94c53639cd146ab6f1c8817b7c8",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 8021,
+      "sha256": "d3b42040e73ba8c905aa72b8d169e7347048f94c53639cd146ab6f1c8817b7c8"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/gait.py",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/gait.py",
+      "source_bytes": 7575,
+      "source_sha256": "ce266eeffa23238aa00553b28f3a933f0848111335adc4f9a23b339ae34a670b",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 7575,
+      "sha256": "ce266eeffa23238aa00553b28f3a933f0848111335adc4f9a23b339ae34a670b"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/go2_gait_final_tests.log",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/go2_gait_final_tests.log",
+      "source_bytes": 747,
+      "source_sha256": "ae7d3b4a26894aec0e5d9b9cbbb0065a7ae9f7c1421e57c9a704511cc784133f",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 747,
+      "sha256": "ae7d3b4a26894aec0e5d9b9cbbb0065a7ae9f7c1421e57c9a704511cc784133f"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/go2_gait_independent_tests.log",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/go2_gait_independent_tests.log",
+      "source_bytes": 904,
+      "source_sha256": "5190eb78af7f017065af5f464bfaf98c6ff1535a25e51fcac1932d3e8cdf6724",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 904,
+      "sha256": "5190eb78af7f017065af5f464bfaf98c6ff1535a25e51fcac1932d3e8cdf6724"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/label_frames.py",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/label_frames.py",
+      "source_bytes": 2550,
+      "source_sha256": "16be7d43b885a41d210ff051b4776a0ea65a620f6a86d697eac9bbf0d2bd6981",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 2550,
+      "sha256": "16be7d43b885a41d210ff051b4776a0ea65a620f6a86d697eac9bbf0d2bd6981"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/official_urdf_check.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/official_urdf_check.json",
+      "source_bytes": 1219,
+      "source_sha256": "9940d218e32bd50008943d3295d06c9dc3197fa320540da6ecd97a5941c991e5",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1219,
+      "sha256": "9940d218e32bd50008943d3295d06c9dc3197fa320540da6ecd97a5941c991e5"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/RENDER_VALIDATION.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/RENDER_VALIDATION.json",
+      "source_bytes": 1270,
+      "source_sha256": "6e24403c2338b9fdba5731a652dd6c5d160a06a0341a3cac3bffa16d18454d54",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1270,
+      "sha256": "6e24403c2338b9fdba5731a652dd6c5d160a06a0341a3cac3bffa16d18454d54"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/VALIDATION.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/VALIDATION.json",
+      "source_bytes": 2312,
+      "source_sha256": "4654d50ccbe6d7128be3ecfac699f2b1b12caa13907c231cd392a0f83d11685a",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 2312,
+      "sha256": "4654d50ccbe6d7128be3ecfac699f2b1b12caa13907c231cd392a0f83d11685a"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/articulated_preview.png",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/articulated_preview.png",
+      "source_bytes": 470595,
+      "source_sha256": "87f9d429c63408e42387fd855442861c3c0c3635e2f8eb60bd5d40474e32dda9",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 470595,
+      "sha256": "87f9d429c63408e42387fd855442861c3c0c3635e2f8eb60bd5d40474e32dda9"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/blocked/rendered_frame_indices.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/blocked/rendered_frame_indices.json",
+      "source_bytes": 8867,
+      "source_sha256": "b9efad0571c88f0db9277ee1ccc2bfa3d38d3bc3d32b920fb97ebed71eca0263",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 8867,
+      "sha256": "b9efad0571c88f0db9277ee1ccc2bfa3d38d3bc3d32b920fb97ebed71eca0263"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/blocked_5/rendered_frame_indices.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/blocked_5/rendered_frame_indices.json",
+      "source_bytes": 4480,
+      "source_sha256": "5b23d4d96580db383804c0e667d98eaf0faf9dd76f9ba85a4247070a356f8ff0",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 4480,
+      "sha256": "5b23d4d96580db383804c0e667d98eaf0faf9dd76f9ba85a4247070a356f8ff0"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/blocked_5_VALIDATION.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/blocked_5_VALIDATION.json",
+      "source_bytes": 980,
+      "source_sha256": "4a2db292e8f01fc738ff41096ae1f83f32216514a830b6842a16d72d48fdf5dc",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 980,
+      "sha256": "4a2db292e8f01fc738ff41096ae1f83f32216514a830b6842a16d72d48fdf5dc"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/blocked_5_joints.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/blocked_5_joints.json",
+      "source_bytes": 54846,
+      "source_sha256": "7ddb8d20ecf1411a9f0aec1f476dac63d156ff3ce481176949e2fc61bc658368",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 54846,
+      "sha256": "7ddb8d20ecf1411a9f0aec1f476dac63d156ff3ce481176949e2fc61bc658368"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/blocked_joints.json.gz",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/blocked_joints.json",
+      "source_bytes": 114689,
+      "source_sha256": "bbed49806303c78602eb838267b8004c6af55ed4efdfb36a825c3bfe8348ae2d",
+      "reason": "frozen selected source artifact",
+      "restored_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/blocked_joints.json",
+      "encoding": "gzip",
+      "bytes": 1894,
+      "sha256": "1c6ad72fe51c7d8d1992233c5fc39c1394fe5f7f8c73e4ba52590d253e61374d"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/concat.txt",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/concat.txt",
+      "source_bytes": 73,
+      "source_sha256": "0bc67793d7377dc8b2d5bd2d5c58701dc5fa2c8595b98130ecd1fb57e224f567",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 73,
+      "sha256": "0bc67793d7377dc8b2d5bd2d5c58701dc5fa2c8595b98130ecd1fb57e224f567"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/cone_detour/rendered_frame_indices.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/cone_detour/rendered_frame_indices.json",
+      "source_bytes": 27810,
+      "source_sha256": "7ff70f52bb3308f64bdc97118cab52c08d2125ea61a0ffb8880f2fce5758e5fd",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 27810,
+      "sha256": "7ff70f52bb3308f64bdc97118cab52c08d2125ea61a0ffb8880f2fce5758e5fd"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/cone_detour_joints.json.gz",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/cone_detour_joints.json",
+      "source_bytes": 379885,
+      "source_sha256": "10642eb1d3887f0eb50f4748535936c189b691fc71fa89914eb802677faecd1d",
+      "reason": "frozen selected source artifact",
+      "restored_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/cone_detour_joints.json",
+      "encoding": "gzip",
+      "bytes": 70645,
+      "sha256": "9887d4b400156b8a564264b995ea029a84ab9861fb63858422519d30dd80e96b"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/go2_articulated_slalom_and_blocked.mp4",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/go2_articulated_slalom_and_blocked.mp4",
+      "source_bytes": 2194045,
+      "source_sha256": "ba620b9a3f39678ed6d8b00015beba21b7bbf0905f810bb9d3b88099735339bb",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 2194045,
+      "sha256": "ba620b9a3f39678ed6d8b00015beba21b7bbf0905f810bb9d3b88099735339bb"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/slalom_5/rendered_frame_indices.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/slalom_5/rendered_frame_indices.json",
+      "source_bytes": 44396,
+      "source_sha256": "731e3601fd4630c7e5981fceebb02c37b4d5b156d62090725453cc5b241c6ec5",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 44396,
+      "sha256": "731e3601fd4630c7e5981fceebb02c37b4d5b156d62090725453cc5b241c6ec5"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/slalom_5_VALIDATION.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/slalom_5_VALIDATION.json",
+      "source_bytes": 1024,
+      "source_sha256": "da93d122a7a7098b075cb3f172eb25942ee19da41ba14a5d65a2cca23b605e08",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1024,
+      "sha256": "da93d122a7a7098b075cb3f172eb25942ee19da41ba14a5d65a2cca23b605e08"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/slalom_5_joints.json.gz",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/slalom_5_joints.json",
+      "source_bytes": 601842,
+      "source_sha256": "29687b8f860285c01c815680eab7ffee35ab6f8a87f042a01ec83fd86cd4e47b",
+      "reason": "frozen selected source artifact",
+      "restored_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/slalom_5_joints.json",
+      "encoding": "gzip",
+      "bytes": 90706,
+      "sha256": "ba8c7ba648665f3b82169e3dd8a44489a84d2810d84a2c1fbe1b873d0c101c6a"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/slalom_articulated_preview.png",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/slalom_articulated_preview.png",
+      "source_bytes": 408486,
+      "source_sha256": "6f4b10b6a7765dd6031c191592756d928f6d616230e4520811fef6f0913f3677",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 408486,
+      "sha256": "6f4b10b6a7765dd6031c191592756d928f6d616230e4520811fef6f0913f3677"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/render.py",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/render.py",
+      "source_bytes": 6780,
+      "source_sha256": "f561c5413c791b8af7468ba8dc0deb04e8c09b5f83737ad3a237bb7d77a804d9",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 6780,
+      "sha256": "f561c5413c791b8af7468ba8dc0deb04e8c09b5f83737ad3a237bb7d77a804d9"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/review/REVIEW.md",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/review/REVIEW.md",
+      "source_bytes": 3084,
+      "source_sha256": "5a6c8266c72c0961a396a79321b218a2392fcc2fe891dc9cfd17dbace448d893",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 3084,
+      "sha256": "5a6c8266c72c0961a396a79321b218a2392fcc2fe891dc9cfd17dbace448d893"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/review/SLALOM_REVIEW.md",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/review/SLALOM_REVIEW.md",
+      "source_bytes": 3932,
+      "source_sha256": "c081ffcdf5b3b0de4cbc0b316e9916c3d165f893e383e0699a4737c2c41d35ea",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 3932,
+      "sha256": "c081ffcdf5b3b0de4cbc0b316e9916c3d165f893e383e0699a4737c2c41d35ea"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/review/audit_projected_hull.py",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/review/audit_projected_hull.py",
+      "source_bytes": 3926,
+      "source_sha256": "2e9046e69eccddef90799bfe9b7854006c22efc964e9159b3eade9004a99e1a0",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 3926,
+      "sha256": "2e9046e69eccddef90799bfe9b7854006c22efc964e9159b3eade9004a99e1a0"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/review/audit_slalom_projected_hull.py",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/review/audit_slalom_projected_hull.py",
+      "source_bytes": 5227,
+      "source_sha256": "b144f36a533f7475b00cdd6bc968b558e58d226e283b056881b6c62f18e8d404",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 5227,
+      "sha256": "b144f36a533f7475b00cdd6bc968b558e58d226e283b056881b6c62f18e8d404"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/review/final_unittest.log",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/review/final_unittest.log",
+      "source_bytes": 1785,
+      "source_sha256": "e0d62b383a51a156a209196007021fac48f3771114ebd2bbec628ff10f0e5436",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1785,
+      "sha256": "e0d62b383a51a156a209196007021fac48f3771114ebd2bbec628ff10f0e5436"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/review/projected_hull_audit.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/review/projected_hull_audit.json",
+      "source_bytes": 1161,
+      "source_sha256": "8e8fbe6f8ebe4b13c517c17b8ba00e195f836bfaf1377436b3480f2ba1ce0cad",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1161,
+      "sha256": "8e8fbe6f8ebe4b13c517c17b8ba00e195f836bfaf1377436b3480f2ba1ce0cad"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/review/slalom_initial_0245_projected_hull_audit.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/review/slalom_initial_0245_projected_hull_audit.json",
+      "source_bytes": 1529,
+      "source_sha256": "f91ccd49b9f4989df13f831ba16dae8b5d3e580f8b39d225d162eca0a2b9b871",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1529,
+      "sha256": "f91ccd49b9f4989df13f831ba16dae8b5d3e580f8b39d225d162eca0a2b9b871"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/review/slalom_projected_hull_audit.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/review/slalom_projected_hull_audit.json",
+      "source_bytes": 2073,
+      "source_sha256": "c411fadab208a3fd86ca0b09797249529787bb7a0765f1be7f9e708b146ecef1",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 2073,
+      "sha256": "c411fadab208a3fd86ca0b09797249529787bb7a0765f1be7f9e708b146ecef1"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/review/slalom_stride016_envelope_failure.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/review/slalom_stride016_envelope_failure.json",
+      "source_bytes": 1405,
+      "source_sha256": "ae26d2587ada830e39c8d0574dd62e84632dd7d2905caaffa65505ff49343f88",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1405,
+      "sha256": "ae26d2587ada830e39c8d0574dd62e84632dd7d2905caaffa65505ff49343f88"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/review/test_independent_review.py",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/review/test_independent_review.py",
+      "source_bytes": 3619,
+      "source_sha256": "abf5a78549d117812f0395a64816468fbb3d8a85eb16c36d0b785d52458eeb42",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 3619,
+      "sha256": "abf5a78549d117812f0395a64816468fbb3d8a85eb16c36d0b785d52458eeb42"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/review/test_slalom_independent.py",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/review/test_slalom_independent.py",
+      "source_bytes": 2488,
+      "source_sha256": "ccd4e3f1a61da2b5a76ad94612f430c459c35c9d1f6e30d5033cf36617043205",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 2488,
+      "sha256": "ccd4e3f1a61da2b5a76ad94612f430c459c35c9d1f6e30d5033cf36617043205"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/review/unittest.log",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/review/unittest.log",
+      "source_bytes": 904,
+      "source_sha256": "4f9abbb4831ba2707ab13006e913f0e1d63db381e0764ba4bc0569ad01ff0f09",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 904,
+      "sha256": "4f9abbb4831ba2707ab13006e913f0e1d63db381e0764ba4bc0569ad01ff0f09"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/test_gait.py",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/test_gait.py",
+      "source_bytes": 2205,
+      "source_sha256": "61aec1136773f947b0ae52a41fda5a51c5278366c5e9fa24318effc378b9eb09",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 2205,
+      "sha256": "61aec1136773f947b0ae52a41fda5a51c5278366c5e9fa24318effc378b9eb09"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/verify_render.py",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/verify_render.py",
+      "source_bytes": 1713,
+      "source_sha256": "b88d1703ac188a4f2772f6a74aeaa4de9d130dce9c171d7a7c9b2a9431b9b7e0",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1713,
+      "sha256": "b88d1703ac188a4f2772f6a74aeaa4de9d130dce9c171d7a7c9b2a9431b9b7e0"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/CHANGED_FILES.txt",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/CHANGED_FILES.txt",
+      "source_bytes": 5002,
+      "source_sha256": "6f5ce4598dab1008b57e548ccdca1bab66b2b1ac1758bb9b9c7e5b0a5bf2e400",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 5002,
+      "sha256": "6f5ce4598dab1008b57e548ccdca1bab66b2b1ac1758bb9b9c7e5b0a5bf2e400"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/DELIVERABLE_FILES.txt",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/DELIVERABLE_FILES.txt",
+      "source_bytes": 1336,
+      "source_sha256": "8a9a03ea6df40c93d4e0a3926d1f9de02f75e3ccccd7c29dfa8b88842d9683ef",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1336,
+      "sha256": "8a9a03ea6df40c93d4e0a3926d1f9de02f75e3ccccd7c29dfa8b88842d9683ef"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/SHA256SUMS.txt",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/SHA256SUMS.txt",
+      "source_bytes": 4357,
+      "source_sha256": "e548e3f962b67366d029a72e29d271431af76d4b43ddab8b49e74ef1fbcc73cc",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 4357,
+      "sha256": "e548e3f962b67366d029a72e29d271431af76d4b43ddab8b49e74ef1fbcc73cc"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/.gitignore",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/.gitignore",
+      "source_bytes": 106,
+      "source_sha256": "5396e5bd465cde5e5df4b446e7ff5ff3892f1afa50b2d9b528fb05da817b2a2d",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 106,
+      "sha256": "5396e5bd465cde5e5df4b446e7ff5ff3892f1afa50b2d9b528fb05da817b2a2d"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/BASE_COMMIT.txt",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/BASE_COMMIT.txt",
+      "source_bytes": 41,
+      "source_sha256": "d9c70a5256d68c00a32522fa9abc1ad024a90c2c4508a615199fae91cd0c4b82",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 41,
+      "sha256": "d9c70a5256d68c00a32522fa9abc1ad024a90c2c4508a615199fae91cd0c4b82"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/HANDOFF.md",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/HANDOFF.md",
+      "source_bytes": 1439,
+      "source_sha256": "de87b90ff98695bf16af518581c38dd16b0dfd2ccea888fee41d5ed8a7668f5a",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1439,
+      "sha256": "de87b90ff98695bf16af518581c38dd16b0dfd2ccea888fee41d5ed8a7668f5a"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/README.md",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/README.md",
+      "source_bytes": 5416,
+      "source_sha256": "f6b2a6137f36d089c9e5e35508c85c1febed85e8aaa844674c556c923f439ac2",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 5416,
+      "sha256": "f6b2a6137f36d089c9e5e35508c85c1febed85e8aaa844674c556c923f439ac2"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/attempts/candidate07_pre_terminal_stop/STATUS.txt",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/attempts/candidate07_pre_terminal_stop/STATUS.txt",
+      "source_bytes": 116,
+      "source_sha256": "7d1f301844a2cfc206c2552470469be70b85724692cc56e7b985c8690a095a09",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 116,
+      "sha256": "7d1f301844a2cfc206c2552470469be70b85724692cc56e7b985c8690a095a09"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/attempts/candidate07_pre_terminal_stop/open_layout_5_DIAGNOSTIC_VALIDATION.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/attempts/candidate07_pre_terminal_stop/open_layout_5_DIAGNOSTIC_VALIDATION.json",
+      "source_bytes": 1089,
+      "source_sha256": "7fc32cef752247cefc07a33c67ce965f2528e37476399a3b9eeafa9ef056e804",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1089,
+      "sha256": "7fc32cef752247cefc07a33c67ce965f2528e37476399a3b9eeafa9ef056e804"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/attempts/candidate_01/STATUS.txt",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/attempts/candidate_01/STATUS.txt",
+      "source_bytes": 191,
+      "source_sha256": "906948350c55dd7acf2b19351963e60770397034c2930ad8169f84bf718a4624",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 191,
+      "sha256": "906948350c55dd7acf2b19351963e60770397034c2930ad8169f84bf718a4624"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/attempts/candidate_01/comparison.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/attempts/candidate_01/comparison.json",
+      "source_bytes": 1556,
+      "source_sha256": "4bd80c9dcb5c39cdf16c3f6da574c180454578b8ecc3ef347b739bf050b1f303",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1556,
+      "sha256": "4bd80c9dcb5c39cdf16c3f6da574c180454578b8ecc3ef347b739bf050b1f303"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/attempts/candidate_01/comparison.png",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/attempts/candidate_01/comparison.png",
+      "source_bytes": 35503,
+      "source_sha256": "24d903853e4e35d60658dc8aa07e77d86dc9ec600170ee278236dd4b3d43d5d8",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 35503,
+      "sha256": "24d903853e4e35d60658dc8aa07e77d86dc9ec600170ee278236dd4b3d43d5d8"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/attempts/candidate_01/render_slalom.log",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/attempts/candidate_01/render_slalom.log",
+      "source_bytes": 177322,
+      "source_sha256": "7ef56dbdc3312280e55a796f656eb9c3c1f6bb7b282be6872e9f3e3b8939ef80",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 177322,
+      "sha256": "7ef56dbdc3312280e55a796f656eb9c3c1f6bb7b282be6872e9f3e3b8939ef80"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/attempts/candidate_01/slalom_5_VALIDATION.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/attempts/candidate_01/slalom_5_VALIDATION.json",
+      "source_bytes": 1038,
+      "source_sha256": "c19b3006b32f65b49f24deb256c5fc66f6c8bbf36f318a07c1f6fdfebc241aeb",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1038,
+      "sha256": "c19b3006b32f65b49f24deb256c5fc66f6c8bbf36f318a07c1f6fdfebc241aeb"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/compare_traces.py",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/compare_traces.py",
+      "source_bytes": 3334,
+      "source_sha256": "29bc21d2e58b920776439fcf5db799c539479dae4eeb6a2aa729ac78cbdb43c7",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 3334,
+      "sha256": "29bc21d2e58b920776439fcf5db799c539479dae4eeb6a2aa729ac78cbdb43c7"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/encode_comparison.sh",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/encode_comparison.sh",
+      "source_bytes": 1518,
+      "source_sha256": "e3e02e38bfea48efbb5949afca5eef91bdb21c404f083658197e1d84d568e942",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1518,
+      "sha256": "e3e02e38bfea48efbb5949afca5eef91bdb21c404f083658197e1d84d568e942"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/gait.py",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/gait.py",
+      "source_bytes": 7575,
+      "source_sha256": "ce266eeffa23238aa00553b28f3a933f0848111335adc4f9a23b339ae34a670b",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 7575,
+      "sha256": "ce266eeffa23238aa00553b28f3a933f0848111335adc4f9a23b339ae34a670b"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/label_frames.py",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/label_frames.py",
+      "source_bytes": 2611,
+      "source_sha256": "62414aae487e6d3b189c6f23bd00ef8561c70f57ccca9058553dbafe824ba8ef",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 2611,
+      "sha256": "62414aae487e6d3b189c6f23bd00ef8561c70f57ccca9058553dbafe824ba8ef"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/official_urdf_check.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/official_urdf_check.json",
+      "source_bytes": 1219,
+      "source_sha256": "9940d218e32bd50008943d3295d06c9dc3197fa320540da6ecd97a5941c991e5",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1219,
+      "sha256": "9940d218e32bd50008943d3295d06c9dc3197fa320540da6ecd97a5941c991e5"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/COMPARISON_VIDEO_VALIDATION.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/COMPARISON_VIDEO_VALIDATION.json",
+      "source_bytes": 754,
+      "source_sha256": "392c64174d441046c9e8d14a4adb655007f8c48a4f6c57f67d6df8a4225c4a06",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 754,
+      "sha256": "392c64174d441046c9e8d14a4adb655007f8c48a4f6c57f67d6df8a4225c4a06"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/RENDER_VALIDATION.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/RENDER_VALIDATION.json",
+      "source_bytes": 1284,
+      "source_sha256": "a9b83ece6f1bd85777e93495e2d054440b6709046ebbeead4e405071e60e582d",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1284,
+      "sha256": "a9b83ece6f1bd85777e93495e2d054440b6709046ebbeead4e405071e60e582d"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/STATUS.txt",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/STATUS.txt",
+      "source_bytes": 470,
+      "source_sha256": "f7bacb3c535e8816a0460a119b192bb87af576e5372002947800e2467f6c5ce9",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 470,
+      "sha256": "f7bacb3c535e8816a0460a119b192bb87af576e5372002947800e2467f6c5ce9"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/before_after_preview.png",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/before_after_preview.png",
+      "source_bytes": 478831,
+      "source_sha256": "7fdc92ba343f4fb12c82163fb3610113f0a52406720e54f20616d343fa850d26",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 478831,
+      "sha256": "7fdc92ba343f4fb12c82163fb3610113f0a52406720e54f20616d343fa850d26"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/final_comparison/comparison.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/final_comparison/comparison.json",
+      "source_bytes": 1592,
+      "source_sha256": "9b848cbade088bc7e7ba14bf8e7021a9dbaf1fe77ca01501c70dc97a6394c369",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1592,
+      "sha256": "9b848cbade088bc7e7ba14bf8e7021a9dbaf1fe77ca01501c70dc97a6394c369"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/final_comparison/comparison.png",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/final_comparison/comparison.png",
+      "source_bytes": 34724,
+      "source_sha256": "2e91683b6fd9a4351c560b067941c43cb550b20dd99821cda6b54bc912786ae7",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 34724,
+      "sha256": "2e91683b6fd9a4351c560b067941c43cb550b20dd99821cda6b54bc912786ae7"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/go2_open_diagnostic_before_after.mp4",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/go2_open_diagnostic_before_after.mp4",
+      "source_bytes": 2798846,
+      "source_sha256": "74fb36529518550a789dc3825df3cb1d3835e80e1a286a14937c9f641177f3a9",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 2798846,
+      "sha256": "74fb36529518550a789dc3825df3cb1d3835e80e1a286a14937c9f641177f3a9"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/open_baseline/rendered_frame_indices.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/open_baseline/rendered_frame_indices.json",
+      "source_bytes": 41432,
+      "source_sha256": "bbf08194791ad2cf92ae07805c28a4d62abfa3d57801ae5307fca587d627b6e9",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 41432,
+      "sha256": "bbf08194791ad2cf92ae07805c28a4d62abfa3d57801ae5307fca587d627b6e9"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/open_baseline_VALIDATION.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/open_baseline_VALIDATION.json",
+      "source_bytes": 1030,
+      "source_sha256": "89fcde80eae4346f87b23d3a4b8865be81674e784845003c646a75a23e5bc6e4",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1030,
+      "sha256": "89fcde80eae4346f87b23d3a4b8865be81674e784845003c646a75a23e5bc6e4"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/open_baseline_joints.json.gz",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/open_baseline_joints.json",
+      "source_bytes": 533167,
+      "source_sha256": "8da569a7f22773a9a1c069a0deb85fb1bb9797d4de19fa862a35b846fd09292e",
+      "reason": "frozen selected source artifact",
+      "restored_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/open_baseline_joints.json",
+      "encoding": "gzip",
+      "bytes": 77069,
+      "sha256": "143d7f1731c01bd0a0698ee03dc2c9f1fdd67d16bf4cbbd512f918219ed9c77a"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/open_normal/rendered_frame_indices.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/open_normal/rendered_frame_indices.json",
+      "source_bytes": 77428,
+      "source_sha256": "7e346a52b276f4680f6f859bf0b84922dfa20e52b438e5561cbc1c5fe693f4a2",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 77428,
+      "sha256": "7e346a52b276f4680f6f859bf0b84922dfa20e52b438e5561cbc1c5fe693f4a2"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/open_normal_VALIDATION.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/open_normal_VALIDATION.json",
+      "source_bytes": 1076,
+      "source_sha256": "ad945de8a833910b2abbb2a22f9a31f812cd24ec3302fb125a46d8b31ff19013",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1076,
+      "sha256": "ad945de8a833910b2abbb2a22f9a31f812cd24ec3302fb125a46d8b31ff19013"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/open_normal_joints.json.gz",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/open_normal_joints.json",
+      "source_bytes": 1053969,
+      "source_sha256": "36e77373a6ff3b6e5a02f3657f21632630e8b2077e9e9a5bf89773eac013a1fd",
+      "reason": "frozen selected source artifact",
+      "restored_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/open_normal_joints.json",
+      "encoding": "gzip",
+      "bytes": 190157,
+      "sha256": "6fba0e404389a1207c01ca861ff186ec703d771c88f32227939101cb4f2e6cd5"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/render.py",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/render.py",
+      "source_bytes": 6780,
+      "source_sha256": "f561c5413c791b8af7468ba8dc0deb04e8c09b5f83737ad3a237bb7d77a804d9",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 6780,
+      "sha256": "f561c5413c791b8af7468ba8dc0deb04e8c09b5f83737ad3a237bb7d77a804d9"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/FINAL_REVIEW.md",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/FINAL_REVIEW.md",
+      "source_bytes": 5054,
+      "source_sha256": "7d5d9db86312abf3d78db580956d8957bf7c0af357fe715d9ce1ed4de866ff82",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 5054,
+      "sha256": "7d5d9db86312abf3d78db580956d8957bf7c0af357fe715d9ce1ed4de866ff82"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/attempt_01/README.md",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/attempt_01/README.md",
+      "source_bytes": 441,
+      "source_sha256": "1c6652d013a9dc0c54356074e663305a1936dd958b3c10af1f472fe4cc9f53cd",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 441,
+      "sha256": "1c6652d013a9dc0c54356074e663305a1936dd958b3c10af1f472fe4cc9f53cd"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/attempt_01/final_unittest.log",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/attempt_01/final_unittest.log",
+      "source_bytes": 1522,
+      "source_sha256": "7be7bae42c7dc2954c112fa96d56007be7e62d11c8e13dbd9025f0fd9ca42718",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1522,
+      "sha256": "7be7bae42c7dc2954c112fa96d56007be7e62d11c8e13dbd9025f0fd9ca42718"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/attempt_01/slalom_5_projected_hull_audit.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/attempt_01/slalom_5_projected_hull_audit.json",
+      "source_bytes": 1560,
+      "source_sha256": "0eb140f254199f18d6898ee7b765c53b4b9162da6e1449cb27d66d8071f4418a",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1560,
+      "sha256": "0eb140f254199f18d6898ee7b765c53b4b9162da6e1449cb27d66d8071f4418a"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/attempt_01/synthetic_curve_metrics.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/attempt_01/synthetic_curve_metrics.json",
+      "source_bytes": 2781,
+      "source_sha256": "acf26cfa1e8ac18e4733e939987faf9807301f7e607c3ccf0dfed9069371a519",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 2781,
+      "sha256": "acf26cfa1e8ac18e4733e939987faf9807301f7e607c3ccf0dfed9069371a519"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/audit_trace.py",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/audit_trace.py",
+      "source_bytes": 5546,
+      "source_sha256": "ea51700c08649e09768f36c2c7d9b90f222f42c85eed0f2bda9462b956408b09",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 5546,
+      "sha256": "ea51700c08649e09768f36c2c7d9b90f222f42c85eed0f2bda9462b956408b09"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/candidate07_pre_terminal_stop/open_layout_5_DIAGNOSTIC_audit.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/candidate07_pre_terminal_stop/open_layout_5_DIAGNOSTIC_audit.json",
+      "source_bytes": 1503,
+      "source_sha256": "58d8c749f58d8ab8e732d429f933b7dff27024f266fcf50f2335b894285530df",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1503,
+      "sha256": "58d8c749f58d8ab8e732d429f933b7dff27024f266fcf50f2335b894285530df"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/candidate07_pre_terminal_stop/open_layout_5_DIAGNOSTIC_unittest.log",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/candidate07_pre_terminal_stop/open_layout_5_DIAGNOSTIC_unittest.log",
+      "source_bytes": 1522,
+      "source_sha256": "180523e3a7c423a87a950bdf7583c76e5a323c4ef69dac241a2e0cf185cdae25",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1522,
+      "sha256": "180523e3a7c423a87a950bdf7583c76e5a323c4ef69dac241a2e0cf185cdae25"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/final_command_characterization.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/final_command_characterization.json",
+      "source_bytes": 640,
+      "source_sha256": "8b514c48c8257d2057db754d50ad33644f6895d5fcfe7a93ea90a501d8712536",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 640,
+      "sha256": "8b514c48c8257d2057db754d50ad33644f6895d5fcfe7a93ea90a501d8712536"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/open_baseline_FINAL_audit.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/open_baseline_FINAL_audit.json",
+      "source_bytes": 1337,
+      "source_sha256": "93e932d5be5269a11ef2ff2993a88c05c08c691dac3d4e93253af689215089c3",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1337,
+      "sha256": "93e932d5be5269a11ef2ff2993a88c05c08c691dac3d4e93253af689215089c3"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/open_baseline_FINAL_unittest.log",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/open_baseline_FINAL_unittest.log",
+      "source_bytes": 1510,
+      "source_sha256": "b22dcae3f434f1e28bc6123f2790816ca38a086b09289b18ae0cd990aa2202cc",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1510,
+      "sha256": "b22dcae3f434f1e28bc6123f2790816ca38a086b09289b18ae0cd990aa2202cc"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/open_normal_FINAL_audit.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/open_normal_FINAL_audit.json",
+      "source_bytes": 1320,
+      "source_sha256": "5ea32c3bafc023dab3f98d87b64a43b3d3129504805139cfe4025bcba7b1808e",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1320,
+      "sha256": "5ea32c3bafc023dab3f98d87b64a43b3d3129504805139cfe4025bcba7b1808e"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/open_normal_FINAL_unittest.log",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/open_normal_FINAL_unittest.log",
+      "source_bytes": 1510,
+      "source_sha256": "9cb66e00814c5b70bc1be9ebf2892996a8908b042c306bca5019b716fafbd57e",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1510,
+      "sha256": "9cb66e00814c5b70bc1be9ebf2892996a8908b042c306bca5019b716fafbd57e"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/review_helpers.py",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/review_helpers.py",
+      "source_bytes": 869,
+      "source_sha256": "a86eccdf6736791d55c0a12d1f92a9e417642f96f4e61d8b469ff7978314a0d2",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 869,
+      "sha256": "a86eccdf6736791d55c0a12d1f92a9e417642f96f4e61d8b469ff7978314a0d2"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/synthetic_curve_metrics.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/synthetic_curve_metrics.json",
+      "source_bytes": 2781,
+      "source_sha256": "acf26cfa1e8ac18e4733e939987faf9807301f7e607c3ccf0dfed9069371a519",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 2781,
+      "sha256": "acf26cfa1e8ac18e4733e939987faf9807301f7e607c3ccf0dfed9069371a519"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/synthetic_unittest.log",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/synthetic_unittest.log",
+      "source_bytes": 728,
+      "source_sha256": "103fbdab6804e11acc09b74a2dc25a257a381b9894fbefaf76b1e9e9bb0919a4",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 728,
+      "sha256": "103fbdab6804e11acc09b74a2dc25a257a381b9894fbefaf76b1e9e9bb0919a4"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/test_actual_curved_trace.py",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/test_actual_curved_trace.py",
+      "source_bytes": 2947,
+      "source_sha256": "95d675466d7fdf2c1790bbea133eda315c6f1deaf064fb1acdcbac3a2f129183",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 2947,
+      "sha256": "95d675466d7fdf2c1790bbea133eda315c6f1deaf064fb1acdcbac3a2f129183"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/test_synthetic_curves.py",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/test_synthetic_curves.py",
+      "source_bytes": 2703,
+      "source_sha256": "1930f0988c18cd63c6cfa1f81cd330eb997d73e523b2c00c03ea15a0ce23b0b1",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 2703,
+      "sha256": "1930f0988c18cd63c6cfa1f81cd330eb997d73e523b2c00c03ea15a0ce23b0b1"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/test_gait.log",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/test_gait.log",
+      "source_bytes": 914,
+      "source_sha256": "d38773bc19a2724af0f8b599ca1710e9b9b288ffe0ab906a651f1ff22bc04756",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 914,
+      "sha256": "d38773bc19a2724af0f8b599ca1710e9b9b288ffe0ab906a651f1ff22bc04756"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/test_gait.py",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/test_gait.py",
+      "source_bytes": 2205,
+      "source_sha256": "61aec1136773f947b0ae52a41fda5a51c5278366c5e9fa24318effc378b9eb09",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 2205,
+      "sha256": "61aec1136773f947b0ae52a41fda5a51c5278366c5e9fa24318effc378b9eb09"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/verify_render.py",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/verify_render.py",
+      "source_bytes": 1658,
+      "source_sha256": "3dc21bb629d912097b8ab27a056fce308cb0dc8c3b86ae3351b047de484fe391",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1658,
+      "sha256": "3dc21bb629d912097b8ab27a056fce308cb0dc8c3b86ae3351b047de484fe391"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/DELIVERABLE_FILES.txt",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/DELIVERABLE_FILES.txt",
+      "source_bytes": 1955,
+      "source_sha256": "55e649493fa92d6bdf4410f827a810c43e2f928c78b177a2b4c4415f29ddbddc",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1955,
+      "sha256": "55e649493fa92d6bdf4410f827a810c43e2f928c78b177a2b4c4415f29ddbddc"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/CHANGED_FILES.txt",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/CHANGED_FILES.txt",
+      "source_bytes": 1955,
+      "source_sha256": "55e649493fa92d6bdf4410f827a810c43e2f928c78b177a2b4c4415f29ddbddc",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1955,
+      "sha256": "55e649493fa92d6bdf4410f827a810c43e2f928c78b177a2b4c4415f29ddbddc"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/SHA256SUMS.txt",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/SHA256SUMS.txt",
+      "source_bytes": 5702,
+      "source_sha256": "a8e5789a5db4e6c8491afb35f6fb525601c046f8a5521c6a60c16c1bd6b647ae",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 5702,
+      "sha256": "a8e5789a5db4e6c8491afb35f6fb525601c046f8a5521c6a60c16c1bd6b647ae"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/README.md",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/README.md",
+      "source_bytes": 4754,
+      "source_sha256": "82a2064a7b226ae9de162e46c209ef497a58f1a90dfd4866e164758295ca19ac",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 4754,
+      "sha256": "82a2064a7b226ae9de162e46c209ef497a58f1a90dfd4866e164758295ca19ac"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/SHA256SUMS.txt",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/SHA256SUMS.txt",
+      "source_bytes": 1410,
+      "source_sha256": "3f39bc9d835b0617aa4d2b63820db2ce55b4778795f8c74cfb47e38d418a5da9",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1410,
+      "sha256": "3f39bc9d835b0617aa4d2b63820db2ce55b4778795f8c74cfb47e38d418a5da9"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/audit.py",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/audit.py",
+      "source_bytes": 2051,
+      "source_sha256": "59da10ea36c71a16d6159b6369d352888ef34af5b324613d3119e494bbcb840f",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 2051,
+      "sha256": "59da10ea36c71a16d6159b6369d352888ef34af5b324613d3119e494bbcb840f"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/reproduce.py",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/reproduce.py",
+      "source_bytes": 652,
+      "source_sha256": "00ee5d3b2230812e87251237e1e15b45c752982881c1184d100e50e932be93f4",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 652,
+      "sha256": "00ee5d3b2230812e87251237e1e15b45c752982881c1184d100e50e932be93f4"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/VALIDATION.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/VALIDATION.json",
+      "source_bytes": 4520,
+      "source_sha256": "b47c21acff4b7e423faf4c81af4a019566583eeb1c325c4e7fbaf424b86ddc5d",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 4520,
+      "sha256": "b47c21acff4b7e423faf4c81af4a019566583eeb1c325c4e7fbaf424b86ddc5d"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/audit.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/audit.json",
+      "source_bytes": 1857,
+      "source_sha256": "b6d1874166c4ac6c293c4337b72f78b4912ef8fe9bfc7608aef63c2e76d44beb",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1857,
+      "sha256": "b6d1874166c4ac6c293c4337b72f78b4912ef8fe9bfc7608aef63c2e76d44beb"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/blocked_5.json.gz",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/blocked_5.json",
+      "source_bytes": 616537,
+      "source_sha256": "5bb828969be6f82da2ed35abff262e467a3c31eadd948788590ba18b3529ee49",
+      "reason": "frozen selected source artifact",
+      "restored_path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/blocked_5.json",
+      "encoding": "gzip",
+      "bytes": 9684,
+      "sha256": "54d379cd4eda5588f469e3277a82defdf7f3809c2c0491074743466011e161a6"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/blocked_5_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/blocked_5_scene_mesh.json",
+      "source_bytes": 24697,
+      "source_sha256": "7efe3a3e2143260d72f55cd2b0acdb2a11773c941366556b2dd60859ccb52c01",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 24697,
+      "sha256": "7efe3a3e2143260d72f55cd2b0acdb2a11773c941366556b2dd60859ccb52c01"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/empty.json.gz",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/empty.json",
+      "source_bytes": 4909569,
+      "source_sha256": "9edea05bccc1710b81480c87459f6192b266ac8176c92c298e4ba1be4a36ffba",
+      "reason": "frozen selected source artifact",
+      "restored_path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/empty.json",
+      "encoding": "gzip",
+      "bytes": 369322,
+      "sha256": "957aafc23f44d990a26c7a038fbdc0b29850fdcc42fb61a5590044fe1e1c0986"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/empty_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/empty_scene_mesh.json",
+      "source_bytes": 3655,
+      "source_sha256": "da8a5178befe3e322c250323009a875729d2f3c0aa1108aa392f6226810ed784",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 3655,
+      "sha256": "da8a5178befe3e322c250323009a875729d2f3c0aa1108aa392f6226810ed784"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/reproducibility.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/reproducibility.json",
+      "source_bytes": 620,
+      "source_sha256": "4826535cb1aea8fefd0768437c1489223d022b84bbabfc3e1bf9ea3e4e826dfa",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 620,
+      "sha256": "4826535cb1aea8fefd0768437c1489223d022b84bbabfc3e1bf9ea3e4e826dfa"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/slalom_3.json.gz",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/slalom_3.json",
+      "source_bytes": 5993084,
+      "source_sha256": "cabf017a75c1536664a0079b1b217be4100bf6d002e58ef56fe605e08932b06a",
+      "reason": "frozen selected source artifact",
+      "restored_path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/slalom_3.json",
+      "encoding": "gzip",
+      "bytes": 543170,
+      "sha256": "de79faab8c424077b051b20b4427c6cc89303ecf1b038d90a0bce9e12b1e27bf"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/slalom_3_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/slalom_3_scene_mesh.json",
+      "source_bytes": 16769,
+      "source_sha256": "007640da36896865151d83787b05e6071fb53362617c8c995c44719fe7364509",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 16769,
+      "sha256": "007640da36896865151d83787b05e6071fb53362617c8c995c44719fe7364509"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/slalom_5.json.gz",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/slalom_5.json",
+      "source_bytes": 6285999,
+      "source_sha256": "e0754856cecc8747b09cfb3f35de7a22482bfb9de9177db67da26bcdf99fca11",
+      "reason": "frozen selected source artifact",
+      "restored_path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/slalom_5.json",
+      "encoding": "gzip",
+      "bytes": 587848,
+      "sha256": "a0cd54bf3d977eb4be615ced8c7c75aba6c969cfa513eb1aa6eaebc25d2a3283"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/slalom_5_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/slalom_5_scene_mesh.json",
+      "source_bytes": 25900,
+      "source_sha256": "1434836a18f125496cc4cb91d7fe27b86592cbebea74315f68b54445be7b35ef",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 25900,
+      "sha256": "1434836a18f125496cc4cb91d7fe27b86592cbebea74315f68b54445be7b35ef"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/test_output.txt",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/test_output.txt",
+      "source_bytes": 877,
+      "source_sha256": "480a1efdff73a9c6837bace881b81d90d1dbd25ae18d75df38e2c124cad75a19",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 877,
+      "sha256": "480a1efdff73a9c6837bace881b81d90d1dbd25ae18d75df38e2c124cad75a19"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/simulate_slalom.py",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/simulate_slalom.py",
+      "source_bytes": 5867,
+      "source_sha256": "7d231ab0cff90cb7b781ec8a1f7218173648fa0e954981d73c483ca17408817b",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 5867,
+      "sha256": "7d231ab0cff90cb7b781ec8a1f7218173648fa0e954981d73c483ca17408817b"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/test_slalom.py",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/test_slalom.py",
+      "source_bytes": 2419,
+      "source_sha256": "74e249f8c53c9b452d2b90f800bec4c6f0b5a73acdde2d441a862fd728a0cdfb",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 2419,
+      "sha256": "74e249f8c53c9b452d2b90f800bec4c6f0b5a73acdde2d441a862fd728a0cdfb"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/REAL_DRIVING_REFERENCE.md",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/REAL_DRIVING_REFERENCE.md",
+      "source_bytes": 7913,
+      "source_sha256": "de28f2c673f06fecea494b5770f39cd18b8ab265f098559b29cbdd4f4aa3866b",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 7913,
+      "sha256": "de28f2c673f06fecea494b5770f39cd18b8ab265f098559b29cbdd4f4aa3866b"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/SHA256SUMS.txt",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/SHA256SUMS.txt",
+      "source_bytes": 2492,
+      "source_sha256": "f4a8c5464b30f9fd245ea4f21d4ba8e1b82f36092748aec40a054fe0dbfb6936",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 2492,
+      "sha256": "f4a8c5464b30f9fd245ea4f21d4ba8e1b82f36092748aec40a054fe0dbfb6936"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/VALIDATION.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/VALIDATION.json",
+      "source_bytes": 7786,
+      "source_sha256": "6eaa97e46ef01cd4b030250c1496c00f00f41cd0eb3e9fa79cb67a95027cf432",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 7786,
+      "sha256": "6eaa97e46ef01cd4b030250c1496c00f00f41cd0eb3e9fa79cb67a95027cf432"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/analyze.py",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/analyze.py",
+      "source_bytes": 2620,
+      "source_sha256": "d6420ae140ea243d2a5adf31b832c2669593316fc72e27417b63631c9db6c228",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 2620,
+      "sha256": "d6420ae140ea243d2a5adf31b832c2669593316fc72e27417b63631c9db6c228"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/repeat_check.py",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/repeat_check.py",
+      "source_bytes": 662,
+      "source_sha256": "c638d59ff34756e19327ffc7c517e3a75f18e6fa63e4d4ee9b3b280bc48d90d2",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 662,
+      "sha256": "c638d59ff34756e19327ffc7c517e3a75f18e6fa63e4d4ee9b3b280bc48d90d2"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/reproduce_baseline.py",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/reproduce_baseline.py",
+      "source_bytes": 362,
+      "source_sha256": "535b6e7978ac5cb636e3f0c34600874f2da33983b07eee8751749488db56ddfb",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 362,
+      "sha256": "535b6e7978ac5cb636e3f0c34600874f2da33983b07eee8751749488db56ddfb"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate01_clearance_16mm/source_snapshot.py",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate01_clearance_16mm/source_snapshot.py",
+      "source_bytes": 7249,
+      "source_sha256": "75359a5fe34723564bc92279030b4c52b68eff030389e2bbdeba8f708d5bd005",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 7249,
+      "sha256": "75359a5fe34723564bc92279030b4c52b68eff030389e2bbdeba8f708d5bd005"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/COMPARISON.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/COMPARISON.json",
+      "source_bytes": 5837,
+      "source_sha256": "2cc29a9331c3af042493d16c62c8691d746f7e1aca069591e02d55ccafb430eb",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 5837,
+      "sha256": "2cc29a9331c3af042493d16c62c8691d746f7e1aca069591e02d55ccafb430eb"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/analysis_output.txt",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/analysis_output.txt",
+      "source_bytes": 5838,
+      "source_sha256": "84bfb36fb07c56e70840fd6f36812b1e7843ef0842a7a155efd9ab4ba8ac531c",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 5838,
+      "sha256": "84bfb36fb07c56e70840fd6f36812b1e7843ef0842a7a155efd9ab4ba8ac531c"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/blocked_5.json.gz",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/blocked_5.json",
+      "source_bytes": 619693,
+      "source_sha256": "3641298d57f88e8bf92a7c5b7ea89a47ccb1e5b53008717363998d09b04feec4",
+      "reason": "frozen selected source artifact",
+      "restored_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/blocked_5.json",
+      "encoding": "gzip",
+      "bytes": 10214,
+      "sha256": "6f5da41e51d3ed040539940b7bbb5b438263c5fb07eeb8205ce13fc3b435cb9a"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/blocked_5_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/blocked_5_scene_mesh.json",
+      "source_bytes": 24697,
+      "source_sha256": "7efe3a3e2143260d72f55cd2b0acdb2a11773c941366556b2dd60859ccb52c01",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 24697,
+      "sha256": "7efe3a3e2143260d72f55cd2b0acdb2a11773c941366556b2dd60859ccb52c01"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_baseline.json.gz",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_baseline.json",
+      "source_bytes": 5620442,
+      "source_sha256": "bc54b20f098ca832f7be738b4d60db96d65ed85473974bbdffe8f75d78f0db21",
+      "reason": "frozen selected source artifact",
+      "restored_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_baseline.json",
+      "encoding": "gzip",
+      "bytes": 504481,
+      "sha256": "ccbacbda0c0ab704a7f9b754c3cb568a1102210a8142d9e82a52286e5fc12aca"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_baseline_audit.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_baseline_audit.json",
+      "source_bytes": 432,
+      "source_sha256": "b2ba9399239917a7df851b5b6c82e2c6792e7a3bb7ba298a79874d9277bf4853",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 432,
+      "sha256": "b2ba9399239917a7df851b5b6c82e2c6792e7a3bb7ba298a79874d9277bf4853"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_baseline_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_baseline_scene_mesh.json",
+      "source_bytes": 25885,
+      "source_sha256": "ab3c76a66663da0f0163995522bc406ecffcc258e465c7d62ffaa49a77f85d7c",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 25885,
+      "sha256": "ab3c76a66663da0f0163995522bc406ecffcc258e465c7d62ffaa49a77f85d7c"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_delay.json.gz",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_delay.json",
+      "source_bytes": 2767833,
+      "source_sha256": "c5258140a12cd7eafd3500558cd9b1751cb6c2a41a15a64502bc883a8ef670c2",
+      "reason": "frozen selected source artifact",
+      "restored_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_delay.json",
+      "encoding": "gzip",
+      "bytes": 599082,
+      "sha256": "cfe70a1fdadb6cfb4a3a2140e06d1ecb6e8f6bc98472993f91f3b08639fbfa61"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_delay_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_delay_scene_mesh.json",
+      "source_bytes": 25885,
+      "source_sha256": "ab3c76a66663da0f0163995522bc406ecffcc258e465c7d62ffaa49a77f85d7c",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 25885,
+      "sha256": "ab3c76a66663da0f0163995522bc406ecffcc258e465c7d62ffaa49a77f85d7c"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_dropout.json.gz",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_dropout.json",
+      "source_bytes": 2767835,
+      "source_sha256": "66c23a9d52dbf8196c6b67de26dfa85132b342d3358427f766fea8154e180b7f",
+      "reason": "frozen selected source artifact",
+      "restored_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_dropout.json",
+      "encoding": "gzip",
+      "bytes": 599083,
+      "sha256": "ce37d67ed67cfbfaf4214f7671c03af4c6c761f2dda2bf99fbd53a8f3a45c729"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_dropout_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_dropout_scene_mesh.json",
+      "source_bytes": 25885,
+      "source_sha256": "ab3c76a66663da0f0163995522bc406ecffcc258e465c7d62ffaa49a77f85d7c",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 25885,
+      "sha256": "ab3c76a66663da0f0163995522bc406ecffcc258e465c7d62ffaa49a77f85d7c"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_layout_comparison.png",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_layout_comparison.png",
+      "source_bytes": 162519,
+      "source_sha256": "f9b1cd51bc38d10bed19eae65fa987d816993dde6852cd0138ca44761bea97f7",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 162519,
+      "sha256": "f9b1cd51bc38d10bed19eae65fa987d816993dde6852cd0138ca44761bea97f7"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_normal.json.gz",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_normal.json",
+      "source_bytes": 15083828,
+      "source_sha256": "528b1705fc10c3bb1fef92f87f5b2a8f5c86a6d1852d535de6902ce01f8cbb72",
+      "reason": "frozen selected source artifact",
+      "restored_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_normal.json",
+      "encoding": "gzip",
+      "bytes": 2054008,
+      "sha256": "f5e731cc6d29791c991ebe5fd3a35d13531979a0974de83e4c96ff5b12f8393c"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_normal_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/open_normal_scene_mesh.json",
+      "source_bytes": 25885,
+      "source_sha256": "ab3c76a66663da0f0163995522bc406ecffcc258e465c7d62ffaa49a77f85d7c",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 25885,
+      "sha256": "ab3c76a66663da0f0163995522bc406ecffcc258e465c7d62ffaa49a77f85d7c"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/reproducibility.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/reproducibility.json",
+      "source_bytes": 133,
+      "source_sha256": "9cfa1f874f4209945c97bd0264bb962750a1cd308fb25f641608eeee5e1a819b",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 133,
+      "sha256": "9cfa1f874f4209945c97bd0264bb962750a1cd308fb25f641608eeee5e1a819b"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/test_output.txt",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/test_output.txt",
+      "source_bytes": 1363,
+      "source_sha256": "b0b1a375e516e71e4985dc454349f62c5ad1eee4c16a394c9307c947374e99ec",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1363,
+      "sha256": "b0b1a375e516e71e4985dc454349f62c5ad1eee4c16a394c9307c947374e99ec"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/run_scenarios.py",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/run_scenarios.py",
+      "source_bytes": 693,
+      "source_sha256": "a9bcb342cabe4fd9257a00561d99d272b45d56dbefc90378f97a831e0d7fa6ce",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 693,
+      "sha256": "a9bcb342cabe4fd9257a00561d99d272b45d56dbefc90378f97a831e0d7fa6ce"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/simulate_curved.py",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/simulate_curved.py",
+      "source_bytes": 9060,
+      "source_sha256": "ae86df634512e7633fec3efde2b28fb5cb9ea44ea858c28f5e4f576bdd4eb362",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 9060,
+      "sha256": "ae86df634512e7633fec3efde2b28fb5cb9ea44ea858c28f5e4f576bdd4eb362"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/test_curved.py",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/test_curved.py",
+      "source_bytes": 2856,
+      "source_sha256": "404587a96f7a86354c53b3366d08e9824a1768e2738c007824900f027bbef3ab",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 2856,
+      "sha256": "404587a96f7a86354c53b3366d08e9824a1768e2738c007824900f027bbef3ab"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/BASE_COMMIT.txt",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/BASE_COMMIT.txt",
+      "source_bytes": 41,
+      "source_sha256": "dbf2f7b8ba74dc83529c968be6032cb7fa240fb70575fd1c33635b57fed453df",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 41,
+      "sha256": "dbf2f7b8ba74dc83529c968be6032cb7fa240fb70575fd1c33635b57fed453df"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/CHANGED_FILES.txt",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/CHANGED_FILES.txt",
+      "source_bytes": 617,
+      "source_sha256": "8f170a76c8c642ea5204dc8bbaa985f98bc2682f45a8c927981b3a7c1e41b065",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 617,
+      "sha256": "8f170a76c8c642ea5204dc8bbaa985f98bc2682f45a8c927981b3a7c1e41b065"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/README.md",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/README.md",
+      "source_bytes": 4267,
+      "source_sha256": "f38252dda0932bd28fb10e4e0519f58d1b5e2b44494ce0d9d31ccc1522310592",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 4267,
+      "sha256": "f38252dda0932bd28fb10e4e0519f58d1b5e2b44494ce0d9d31ccc1522310592"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/SHA256SUMS.txt",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/SHA256SUMS.txt",
+      "source_bytes": 2417,
+      "source_sha256": "953387e5f8227b730b367796f5104934ef2fc2a5f0f205ef9d256e1f98ed0dc4",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 2417,
+      "sha256": "953387e5f8227b730b367796f5104934ef2fc2a5f0f205ef9d256e1f98ed0dc4"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/DEMO_VALIDATION.json",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/DEMO_VALIDATION.json",
+      "source_bytes": 2868,
+      "source_sha256": "79ff2810a7837d2afa98f6607a5ace6f40080b868c18fe28b1dabc8975af9d8a",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 2868,
+      "sha256": "79ff2810a7837d2afa98f6607a5ace6f40080b868c18fe28b1dabc8975af9d8a"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/RENDER_VALIDATION.json",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/RENDER_VALIDATION.json",
+      "source_bytes": 457,
+      "source_sha256": "a712725361af9200111070bd88e2e7a8ebc1d74bd49450df02cc4ee8f93feaae",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 457,
+      "sha256": "a712725361af9200111070bd88e2e7a8ebc1d74bd49450df02cc4ee8f93feaae"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/REPRODUCIBILITY.json",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/REPRODUCIBILITY.json",
+      "source_bytes": 381,
+      "source_sha256": "9770d6ea64ce8d76abaf0b53885648be437087a8196ab47af108ce3269546a05",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 381,
+      "sha256": "9770d6ea64ce8d76abaf0b53885648be437087a8196ab47af108ce3269546a05"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/full_course_partial_closed_loop.mp4",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/full_course_partial_closed_loop.mp4",
+      "source_bytes": 426251,
+      "source_sha256": "de522dffb74410ac82f05dc823c947c592d8b18c3a0d01779d004c99819e4f58",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 426251,
+      "sha256": "de522dffb74410ac82f05dc823c947c592d8b18c3a0d01779d004c99819e4f58"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/in.json.gz",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/in.json",
+      "source_bytes": 155828,
+      "source_sha256": "6adbba7bc9cf71997878a57ccadee22211a6b2a861299fbaf1d5ade4353da261",
+      "reason": "frozen selected source artifact",
+      "restored_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/in.json",
+      "encoding": "gzip",
+      "bytes": 5398,
+      "sha256": "a65c691060332f793fc09dfa0d83b68918e41c388888a6d1bd57598c9d769a5d"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/out.json.gz",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/out.json",
+      "source_bytes": 3973273,
+      "source_sha256": "eb73af524fea1a0ccaf8b7b387e0a4e712e9e8632c8c0fbed910337d2a5e7ecc",
+      "reason": "frozen selected source artifact",
+      "restored_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/out.json",
+      "encoding": "gzip",
+      "bytes": 58629,
+      "sha256": "73fab3712a369d5779ca14b3bb6390dd795a787adf0d658294e0a180ab7dedba"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/out_closed.json",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/out_closed.json",
+      "source_bytes": 6466,
+      "source_sha256": "7c31e56ea0f17d8740f5487c44013e7e47bc25765952366ddcf1374203398eca",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 6466,
+      "sha256": "7c31e56ea0f17d8740f5487c44013e7e47bc25765952366ddcf1374203398eca"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/parking.json.gz",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/parking.json",
+      "source_bytes": 737921,
+      "source_sha256": "6bb9d610adcee9b642b911f02d41a3c50f5a24bf9684692f1da09a9c57c76683",
+      "reason": "frozen selected source artifact",
+      "restored_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/parking.json",
+      "encoding": "gzip",
+      "bytes": 16293,
+      "sha256": "01afd0134dfe2c2836edf7ba576647f549ee6d3839b81a1abd5f16f8b5eaf739"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/preview_in.png",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/preview_in.png",
+      "source_bytes": 60950,
+      "source_sha256": "3dba949d26f9cf90070322d8f17cb5e59f2a5dbc6cb204b6152e9471555c0d11",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 60950,
+      "sha256": "3dba949d26f9cf90070322d8f17cb5e59f2a5dbc6cb204b6152e9471555c0d11"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/preview_out.png",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/preview_out.png",
+      "source_bytes": 65626,
+      "source_sha256": "c53ec077720ddcea22dca7f9cce138a266d2e9d632fea5d6bc7e012316d2bc7d",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 65626,
+      "sha256": "c53ec077720ddcea22dca7f9cce138a266d2e9d632fea5d6bc7e012316d2bc7d"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/preview_overview.png",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/preview_overview.png",
+      "source_bytes": 61941,
+      "source_sha256": "fe31290c974962819831b5a5f3b64805742ffc439d90b1a58532d2dd28d60f18",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 61941,
+      "sha256": "fe31290c974962819831b5a5f3b64805742ffc439d90b1a58532d2dd28d60f18"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/preview_p_approach.png",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/preview_p_approach.png",
+      "source_bytes": 61567,
+      "source_sha256": "e1f177f225eb7c3696201d9791a1fac5b874d424ad8de25669446ea070e239d0",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 61567,
+      "sha256": "e1f177f225eb7c3696201d9791a1fac5b874d424ad8de25669446ea070e239d0"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/preview_p_hold.png",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/preview_p_hold.png",
+      "source_bytes": 66599,
+      "source_sha256": "1a6d22391795225b24f6c35bdaeb1394881a20baf64a367e872ada7a0bfc0ee5",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 66599,
+      "sha256": "1a6d22391795225b24f6c35bdaeb1394881a20baf64a367e872ada7a0bfc0ee5"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/preview_ramp_gap.png",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/preview_ramp_gap.png",
+      "source_bytes": 63482,
+      "source_sha256": "71b769f4f35ca6c83dc37f4862646b4fbb1927b19bf74f270fa04bf82f3479c3",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 63482,
+      "sha256": "71b769f4f35ca6c83dc37f4862646b4fbb1927b19bf74f270fa04bf82f3479c3"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/preview_slalom.png",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/preview_slalom.png",
+      "source_bytes": 63164,
+      "source_sha256": "096ee2e17de89bf9dba501b5e8f11bcf6ad5a721df6301f901936c52bffdeadd",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 63164,
+      "sha256": "096ee2e17de89bf9dba501b5e8f11bcf6ad5a721df6301f901936c52bffdeadd"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/preview_stair_gap.png",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/preview_stair_gap.png",
+      "source_bytes": 62930,
+      "source_sha256": "2c89b63104e88bb93a927981605b3fa04bd779ecb69eb1e5b929ceabac997a1d",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 62930,
+      "sha256": "2c89b63104e88bb93a927981605b3fa04bd779ecb69eb1e5b929ceabac997a1d"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/preview_summary.png",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/preview_summary.png",
+      "source_bytes": 61181,
+      "source_sha256": "8446f46ba43ed523a3593957253a4795dcfb22aa26d9ce619acfe4afb1206285",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 61181,
+      "sha256": "8446f46ba43ed523a3593957253a4795dcfb22aa26d9ce619acfe4afb1206285"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/test_results.txt",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/test_results.txt",
+      "source_bytes": 675,
+      "source_sha256": "8cf31d93a3f04523690829ce00bcdc83a41a0ddb18d6a104034461950c05cd2c",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 675,
+      "sha256": "8cf31d93a3f04523690829ce00bcdc83a41a0ddb18d6a104034461950c05cd2c"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/timeline.json",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/timeline.json",
+      "source_bytes": 2391,
+      "source_sha256": "05e8f2e134e20c2031f825a9f4add9a1e75938e9384d61a3e1312cfa7b20b8e2",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 2391,
+      "sha256": "05e8f2e134e20c2031f825a9f4add9a1e75938e9384d61a3e1312cfa7b20b8e2"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/render_segments.py",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/render_segments.py",
+      "source_bytes": 6915,
+      "source_sha256": "d1cbab0a42c3a94a0c27ebaf59f55d32620c4fdae02eeaa316a33a039fd56ed0",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 6915,
+      "sha256": "d1cbab0a42c3a94a0c27ebaf59f55d32620c4fdae02eeaa316a33a039fd56ed0"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/simulate_flat.py",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/simulate_flat.py",
+      "source_bytes": 6909,
+      "source_sha256": "5676455fb4c3f5654aee4a1e4a3c433ac2f4207ccf3b8e595ba1215da9f862d0",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 6909,
+      "sha256": "5676455fb4c3f5654aee4a1e4a3c433ac2f4207ccf3b8e595ba1215da9f862d0"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/test_flat.py",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/test_flat.py",
+      "source_bytes": 3140,
+      "source_sha256": "ea9dae2c9eda9cdc28c1922fb3d2ee6f01fde37a780985c77e9e5bf7bf9044a2",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 3140,
+      "sha256": "ea9dae2c9eda9cdc28c1922fb3d2ee6f01fde37a780985c77e9e5bf7bf9044a2"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_sequence_20261024/build_sequence.py",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "source_path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_sequence_20261024/build_sequence.py",
+      "source_bytes": 8375,
+      "source_sha256": "1cb1d43a581ff1e10c1bfc4015eeb3a2cc98b4201f569dcda643a36d401b773d",
+      "reason": "unchanged drawing helper dependency of partial-course renderer; no earlier sequence video published",
+      "encoding": "identity",
+      "bytes": 8375,
+      "sha256": "1cb1d43a581ff1e10c1bfc4015eeb3a2cc98b4201f569dcda643a36d401b773d"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/evidence/quadruped_navigation_research_20261024/RESEARCH.md",
+      "source_project": "quadruped_navigation_research_20261024",
+      "source_path": "RESEARCH.md",
+      "source_bytes": 12517,
+      "source_sha256": "ccca5a1a9234acca2a89f26b9d5e0abc1ee4dca70a0fba2cfe2f31565cc9c736",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 12517,
+      "sha256": "ccca5a1a9234acca2a89f26b9d5e0abc1ee4dca70a0fba2cfe2f31565cc9c736"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/evidence/quadruped_navigation_research_20261024/source_refs.json",
+      "source_project": "quadruped_navigation_research_20261024",
+      "source_path": "source_refs.json",
+      "source_bytes": 1878,
+      "source_sha256": "d63ba97a10e38f39fdc69cb55778c281d884a87e8b87731a4f5a373006e30c65",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 1878,
+      "sha256": "d63ba97a10e38f39fdc69cb55778c281d884a87e8b87731a4f5a373006e30c65"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/evidence/nav2_parameter_evidence_20261024/NAV2_PANEL_EVIDENCE.md",
+      "source_project": "nav2_parameter_evidence_20261024",
+      "source_path": "NAV2_PANEL_EVIDENCE.md",
+      "source_bytes": 13868,
+      "source_sha256": "cd355ee2f1011cbf59c5524d2f3e0c781d0a99e2ec03b13714d5e5528ef1102e",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 13868,
+      "sha256": "cd355ee2f1011cbf59c5524d2f3e0c781d0a99e2ec03b13714d5e5528ef1102e"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/evidence/nav2_parameter_evidence_20261024/parameter_inventory.json",
+      "source_project": "nav2_parameter_evidence_20261024",
+      "source_path": "parameter_inventory.json",
+      "source_bytes": 4284,
+      "source_sha256": "52eca1fddbaeeec734c48c5c82c8d183f07a28188504694a200d9f84c1a69258",
+      "reason": "frozen selected source artifact",
+      "encoding": "identity",
+      "bytes": 4284,
+      "sha256": "52eca1fddbaeeec734c48c5c82c8d183f07a28188504694a200d9f84c1a69258"
+    }
+  ],
+  "omitted": [
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/go2_articulated_blocked.mp4",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "bytes": 100949,
+      "sha256": "507e58798706fdfef11517c01aaa9aaf262572f04a750808a08ea00541e0c657",
+      "reason": "redundant per-case video; combined final comparison retained"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/go2_articulated_blocked_5.mp4",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "bytes": 85368,
+      "sha256": "eb4f02c09178fec2dbc0c0ee631e259371d7ac4c3b1a92329ad47a50327923aa",
+      "reason": "redundant per-case video; combined final comparison retained"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/go2_articulated_cone_detour.mp4",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "bytes": 1564464,
+      "sha256": "0ac1df9f0eceda4a46cced9f470cb488bf438cc8e38e433387c00364b4f96c32",
+      "reason": "redundant per-case video; combined final comparison retained"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/go2_articulated_slalom_5.mp4",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "bytes": 2109412,
+      "sha256": "82099b185d53d4484d307bea0ee01e902bf45bcaa07b5608e7f45c19a233ba9d",
+      "reason": "redundant per-case video; combined final comparison retained"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/attempts/candidate07_pre_terminal_stop/open_layout_5_DIAGNOSTIC_joints.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "bytes": 1029768,
+      "sha256": "362b7c9c6c0913e5d9177bacadb4aca0963f0fe4e1cc6fbeb76883756a9a20c3",
+      "reason": "rejected/pre-terminal intermediate raw joints; hash and validation summary retained"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/attempts/candidate_01/slalom_5_joints.json",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "bytes": 1061117,
+      "sha256": "9e6589b6641d6d39e9efd4b495ff632374417d481e77ea3efc2ac699d7c61d81",
+      "reason": "rejected/pre-terminal intermediate raw joints; hash and validation summary retained"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/go2_articulated_open_baseline.mp4",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "bytes": 1867526,
+      "sha256": "8c1d0a6f565672f96df35e5d0052f478cccc0585619f5f54540755a4287984b3",
+      "reason": "redundant per-case video; combined final comparison retained"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/go2_articulated_open_normal.mp4",
+      "source_project": "robot-scope-joint-animation-20261024",
+      "bytes": 3595385,
+      "sha256": "7fd336f1661458ee3930ba64a5581fe00e88df6f2bf720fb1ecb4a1a6e288e36",
+      "reason": "redundant per-case video; combined final comparison retained"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_01_point_candidate/blocked_5.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 601944,
+      "sha256": "ab37dada687956d56dba08b6f2c898fb39c2f34855a77e6f134bf41256824923",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_01_point_candidate/blocked_5_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 24966,
+      "sha256": "5bae78f969ce52e36e37accb8e0ac5b1f725e4a0aabb828dfcae48ff4d561a5e",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_01_point_candidate/empty.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 4863470,
+      "sha256": "168efd240bbd3d883cea0bbef9b895b75893a39f26000bd5ddaa44d56c29e7f2",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_01_point_candidate/empty_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 3655,
+      "sha256": "da8a5178befe3e322c250323009a875729d2f3c0aa1108aa392f6226810ed784",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_01_point_candidate/slalom_3.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 2423430,
+      "sha256": "49a328a9dd152fca8f59eebdea44ed285cdbe96603ce0cdd4d649680b61307a0",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_01_point_candidate/slalom_3_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 16367,
+      "sha256": "11ce528113a40c353f79bc803c40bf57c8ee3d0d8333cb17a80685f0b4da4f2c",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_01_point_candidate/slalom_5.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 748283,
+      "sha256": "5df848c7cc889d8265f28967b209fad91c36bba0b65359138df6b81ac4838d03",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_01_point_candidate/slalom_5_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 25439,
+      "sha256": "31e111ecf2844aaf0f960619b99f5abc8e1c5b775bad85fe309415713b782a42",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_02_tight_spacing/blocked_5.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 602120,
+      "sha256": "2ec41385c287f0fdc747556ced9926be5f0a88c20fce23440fa6eb2bc2ce267f",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_02_tight_spacing/blocked_5_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 24966,
+      "sha256": "5bae78f969ce52e36e37accb8e0ac5b1f725e4a0aabb828dfcae48ff4d561a5e",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_02_tight_spacing/empty.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 4872450,
+      "sha256": "e3ab766ec8945e17fa5e4815c1b39da7b8bd1b0d95c58cbf94da3719891f66ee",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_02_tight_spacing/empty_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 3655,
+      "sha256": "da8a5178befe3e322c250323009a875729d2f3c0aa1108aa392f6226810ed784",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_02_tight_spacing/slalom_3.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 5747557,
+      "sha256": "aec6a145535f283a9ef8ecd8d0e77dee13889c70e134998c05d53c5626b58db5",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_02_tight_spacing/slalom_3_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 16367,
+      "sha256": "11ce528113a40c353f79bc803c40bf57c8ee3d0d8333cb17a80685f0b4da4f2c",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_02_tight_spacing/slalom_5.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 600821,
+      "sha256": "f9842b1607fd5798602d922534c9a35de2861da67c5834370ce0afb02a646b6c",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_02_tight_spacing/slalom_5_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 25439,
+      "sha256": "31e111ecf2844aaf0f960619b99f5abc8e1c5b775bad85fe309415713b782a42",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_03_base_overlap_rejected/slalom_5.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 5976555,
+      "sha256": "46c5a40d3bca9b32f8194a5df2ca2a3d615e7dc4b8706cd55b0bbeac40e14fe6",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_03_base_overlap_rejected/slalom_5_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 25031,
+      "sha256": "e89679fc540a0f8532330c9dacfb082d3410798d2facf0793fa6272f617737cd",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_04_small_limb_envelope/blocked_5.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 615792,
+      "sha256": "c1f7302164dfd729f1d5d3b6218d3e880f483d5788dd6e22a6eb567b36fa5d79",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_04_small_limb_envelope/blocked_5_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 24966,
+      "sha256": "5bae78f969ce52e36e37accb8e0ac5b1f725e4a0aabb828dfcae48ff4d561a5e",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_04_small_limb_envelope/empty.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 4909563,
+      "sha256": "cbfb515165b720ac267dfcebded853e15ad5153577452c76784597028bce80fa",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_04_small_limb_envelope/empty_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 3655,
+      "sha256": "da8a5178befe3e322c250323009a875729d2f3c0aa1108aa392f6226810ed784",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_04_small_limb_envelope/slalom_3.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 5861429,
+      "sha256": "4eb1f8973248960187661f38ea7f025c3325a108ec3066ccdc39fdadad102852",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_04_small_limb_envelope/slalom_3_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 16367,
+      "sha256": "11ce528113a40c353f79bc803c40bf57c8ee3d0d8333cb17a80685f0b4da4f2c",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_04_small_limb_envelope/slalom_5.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 6025570,
+      "sha256": "2c3b5ef748e3bafebc78e2e8a1eb0f27717ad3330f5e3bc9d11d6ee201b422a3",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_04_small_limb_envelope/slalom_5_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 25297,
+      "sha256": "cd3dac06407f9a00c65196995a308b639057dafce4cd73a20d7f5d34ca47d0e3",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_05_blocked_base_overlap_rejected/blocked_5.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 615798,
+      "sha256": "9d1e3522a00745f6ae997612a78d0a15884803a5e4fc8cef238c4fdf441cb101",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_05_blocked_base_overlap_rejected/blocked_5_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 24966,
+      "sha256": "5bae78f969ce52e36e37accb8e0ac5b1f725e4a0aabb828dfcae48ff4d561a5e",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_06_limb_envelope_exceeded/audit.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 1858,
+      "sha256": "60a6ad85b8ede66dbe6983f5cd75bbaea352ea256af8fbce15ace975c313a9ab",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_06_limb_envelope_exceeded/blocked_5.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 616387,
+      "sha256": "0bbb70ad587b0430b3f45cf0ecd02e47c8cde9c1d048cf6745ddf1dffa218fb6",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_06_limb_envelope_exceeded/blocked_5_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 24496,
+      "sha256": "ffa3edbe2227bb39fc574a58d586dd7a92df282061039865b40e963074aa957a",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_06_limb_envelope_exceeded/empty.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 4909575,
+      "sha256": "002a47356224f8e81fb1fa74cf8d0b43890d4f2797c363be53d645e0a4210282",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_06_limb_envelope_exceeded/empty_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 3655,
+      "sha256": "da8a5178befe3e322c250323009a875729d2f3c0aa1108aa392f6226810ed784",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_06_limb_envelope_exceeded/reproducibility.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 620,
+      "sha256": "d4d45ca67184551dbe20fe2c5da67b4c8e7cf6d50a944b6248c9b89757305c9e",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_06_limb_envelope_exceeded/slalom_3.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 5975787,
+      "sha256": "2074761b006cc8147e9e39cc65cb52e92af758b40d5bc3ee9d5914b4c8bb9520",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_06_limb_envelope_exceeded/slalom_3_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 16367,
+      "sha256": "11ce528113a40c353f79bc803c40bf57c8ee3d0d8333cb17a80685f0b4da4f2c",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_06_limb_envelope_exceeded/slalom_5.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 6247560,
+      "sha256": "d8cf828fb1cd6da5248f682f2bee37c1fbe13dd64aa4c499613ea13748155d2a",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_06_limb_envelope_exceeded/slalom_5_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 25297,
+      "sha256": "cd3dac06407f9a00c65196995a308b639057dafce4cd73a20d7f5d34ca47d0e3",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/repeat_02/blocked_5.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 616536,
+      "sha256": "cdfde49513b6decdc30e48465f7e65bff08e08071860c3df595bdd08ce6d103a",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/repeat_02/blocked_5_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 24697,
+      "sha256": "7efe3a3e2143260d72f55cd2b0acdb2a11773c941366556b2dd60859ccb52c01",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/repeat_02/empty.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 4909569,
+      "sha256": "621a8def2bf609b59a716dde45a6b1c9ecb6f89202b6a35fd2018ad80195fbd8",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/repeat_02/empty_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 3655,
+      "sha256": "da8a5178befe3e322c250323009a875729d2f3c0aa1108aa392f6226810ed784",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/repeat_02/slalom_3.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 5993084,
+      "sha256": "961789499d6f441380b57ea37299a800ac6dc5d369c5439d72f84ae08241e59c",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/repeat_02/slalom_3_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 16769,
+      "sha256": "007640da36896865151d83787b05e6071fb53362617c8c995c44719fe7364509",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/repeat_02/slalom_5.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 6286000,
+      "sha256": "ca310013eb285dd9282223291f19b7dde57d109bb158840b2702cbe750dd1a68",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/repeat_02/slalom_5_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 25900,
+      "sha256": "1434836a18f125496cc4cb91d7fe27b86592cbebea74315f68b54445be7b35ef",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/attempt01_replan_start_quantization/slalom_5.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 4217400,
+      "sha256": "59d0ad510e4d9352c1de72c73646d6945ed573125c1b8a0c739358bba431abe4",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/attempt01_replan_start_quantization/slalom_5_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 25900,
+      "sha256": "1434836a18f125496cc4cb91d7fe27b86592cbebea74315f68b54445be7b35ef",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/attempt02_yaw_tracking_lag/slalom_5.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 4728013,
+      "sha256": "4126398d604208a2eee0e67483b2058efb4c1480feb13126a6019640e9d075ef",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/attempt02_yaw_tracking_lag/slalom_5_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 25900,
+      "sha256": "1434836a18f125496cc4cb91d7fe27b86592cbebea74315f68b54445be7b35ef",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/blocked_5.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 619523,
+      "sha256": "3285b838db8a670fad478443e9e64d54950cce7ae8331ec6f3bbb53895f5a00d",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/blocked_5_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 24697,
+      "sha256": "7efe3a3e2143260d72f55cd2b0acdb2a11773c941366556b2dd60859ccb52c01",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate01_clearance_16mm/slalom_5.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 13342336,
+      "sha256": "40880f322c057c6f4bda6e972d8f1a0af031af134ceaaf4b1294a46c786236b3",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate01_clearance_16mm/slalom_5_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 25900,
+      "sha256": "1434836a18f125496cc4cb91d7fe27b86592cbebea74315f68b54445be7b35ef",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate02_clearance_guard/slalom_5.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 615497,
+      "sha256": "0086017963f5229545ae72f875025b554d13aedcdd2f3aa231e2d646f1f55290",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate02_clearance_guard/slalom_5_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 25900,
+      "sha256": "1434836a18f125496cc4cb91d7fe27b86592cbebea74315f68b54445be7b35ef",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate03_exact_smoothing/slalom_5.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 615498,
+      "sha256": "58251777de49db8804c2d8766c437207ac8c27a9a3174a69287544c5046e4da9",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate03_exact_smoothing/slalom_5_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 25900,
+      "sha256": "1434836a18f125496cc4cb91d7fe27b86592cbebea74315f68b54445be7b35ef",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate04_exact_zero_heading/slalom_5.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 1662310,
+      "sha256": "0bdf7a0309e736d87b0bc9e779cda09b7a9c844ca5845988be401f99b14f5ae5",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate04_exact_zero_heading/slalom_5_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 25900,
+      "sha256": "1434836a18f125496cc4cb91d7fe27b86592cbebea74315f68b54445be7b35ef",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate05_safe_window/slalom_5.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 2752072,
+      "sha256": "918704969bb8ea302080875cf5766b558b4f10f2bc6be43f5895abae322d3a68",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate05_safe_window/slalom_5_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 25900,
+      "sha256": "1434836a18f125496cc4cb91d7fe27b86592cbebea74315f68b54445be7b35ef",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate06_fine_grid/slalom_5.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 2201524,
+      "sha256": "a9445d77e75d86e47a8b2f86505b821c725dc5d5601c77468117676373e05e7a",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate06_fine_grid/slalom_5_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 25900,
+      "sha256": "1434836a18f125496cc4cb91d7fe27b86592cbebea74315f68b54445be7b35ef",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate07_open_diagnostic/geometry_audit.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 432,
+      "sha256": "958d62e80691e9f34791c1076929f2355bf3ddaf987b5332e756198a1a3c7ff9",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate07_open_diagnostic/open_layout_5_DIAGNOSTIC.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 14843222,
+      "sha256": "4ca312c7fe15558ae94c1343798b819754c0fa48e768fcdfa2544665a6abeef4",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate07_open_diagnostic/open_layout_5_DIAGNOSTIC_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 25885,
+      "sha256": "ab3c76a66663da0f0163995522bc406ecffcc258e465c7d62ffaa49a77f85d7c",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate08_terminal_before_metadata_fix/open_normal.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 15083657,
+      "sha256": "58502eed0d6975e02f9d9d2833dc371054e86c5e5368e1bb76062bea386c6f35",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate08_terminal_before_metadata_fix/open_normal_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 25885,
+      "sha256": "ab3c76a66663da0f0163995522bc406ecffcc258e465c7d62ffaa49a77f85d7c",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/empty.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 10289219,
+      "sha256": "fb5e208397cc998b18b1aed18e93f9d8c4ae5955ab70aee2a58e6c2f12502007",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/empty_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 3655,
+      "sha256": "da8a5178befe3e322c250323009a875729d2f3c0aa1108aa392f6226810ed784",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/repeat_02/open_normal.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 15083827,
+      "sha256": "653e7da4ac57d6948bb943efa402e04a870340b6890cdfdd853d83bc95763fcf",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/repeat_02/open_normal_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 25885,
+      "sha256": "ab3c76a66663da0f0163995522bc406ecffcc258e465c7d62ffaa49a77f85d7c",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/slalom_5.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 13342336,
+      "sha256": "40880f322c057c6f4bda6e972d8f1a0af031af134ceaaf4b1294a46c786236b3",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/slalom_5_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 25900,
+      "sha256": "1434836a18f125496cc4cb91d7fe27b86592cbebea74315f68b54445be7b35ef",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/slalom_delay.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 2345387,
+      "sha256": "d224fdd47ddf32f804765c5f18489132f608cce2c2c0587c61ebb621a1510aee",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/slalom_delay_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 25900,
+      "sha256": "1434836a18f125496cc4cb91d7fe27b86592cbebea74315f68b54445be7b35ef",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/slalom_dropout.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 2345389,
+      "sha256": "7bac323a87ac19f85a5b22286b10ecfc04e648c0f822a9d3b31cb826b949b5e8",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/slalom_dropout_scene_mesh.json",
+      "source_project": "robot-scope-left-slalom-20261024",
+      "bytes": 25900,
+      "sha256": "1434836a18f125496cc4cb91d7fe27b86592cbebea74315f68b54445be7b35ef",
+      "reason": "non-final or repeated development artifact; source hash and metrics retained where present"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/attempt01/in.json",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "bytes": 5570,
+      "sha256": "02c828b98d3f1d3c728ac34134726170ec7d409fb41df8dabda684861c40b41c",
+      "reason": "failed preliminary flat-segment artifact; source hash and metrics retained"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/attempt01/parking.json",
+      "source_project": "robot-scope-full-course-demo-20261024",
+      "bytes": 727377,
+      "sha256": "e841ad39aee6ecaf7fd44e8cff7d8e171991debbd35f1f79f8c44239042189c9",
+      "reason": "failed preliminary flat-segment artifact; source hash and metrics retained"
+    }
+  ],
+  "generated": [
+    {
+      "path": "docs/parallel-review/20261024/D0/demo-publication/OMITTED_TRACE_SUMMARIES.json",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/demo-publication/PUBLICATION_FILES.txt",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/demo-publication/PUBLICATION_SHA256SUMS.txt",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/demo-publication/README.md",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/demo-publication/VERIFICATION.md",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/demo-publication/render_partial_course.py",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/demo-publication/restore_fixtures.py",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/demo-publication/validation/SUMMARY.json",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/demo-publication/validation/curved_controller.txt",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/demo-publication/validation/curved_gait.txt",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/demo-publication/validation/curved_review_open_baseline.txt",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/demo-publication/validation/curved_review_open_normal.txt",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/demo-publication/validation/included_artifact_secret_scan.json",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/demo-publication/validation/left_slalom.txt",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/demo-publication/validation/old_gait.txt",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/demo-publication/validation/old_independent_review.txt",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/demo-publication/validation/partial_course.txt",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/demo-publication/validation/repository_javascript.txt",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/demo-publication/validation/repository_python.txt",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/demo-publication/validation/repository_secret_scan.txt",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/demo-publication/validation/selected_videos.json",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/demo-publication/validation/synthetic_curve_metrics_open_baseline.json",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/demo-publication/validation/synthetic_curve_metrics_open_normal.json",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/demo-publication/verify_publication.py",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "docs/parallel-review/20261024/D0/demo-publication/verify_videos.py",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/.gitignore",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/.gitignore",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/final_regressions/.gitignore",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/.gitignore",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/.gitignore",
+      "reason": "Publication support, reproducible verification evidence or restored-fixture ignore rule; not a frozen author artifact"
+    }
+  ],
+  "raw_frame_policy": "Raw render frames, caches, temporary Blender files and non-deliverable renders are excluded. Source revision DELIVERABLE_FILES.txt defines the frozen articulated input set.",
+  "restore_command": "python3 docs/parallel-review/20261024/D0/demo-publication/restore_fixtures.py",
+  "source_files_changed": false,
+  "omitted_count": 89,
+  "included_count": 172,
+  "stored_source_bytes": 14331219
+}

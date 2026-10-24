@@ -1,0 +1,52 @@
+{
+  "before": {
+    "source_sha256": "bc54b20f098ca832f7be738b4d60db96d65ed85473974bbdffe8f75d78f0db21",
+    "stored_metrics": {
+      "outcome": "GOAL_REACHED",
+      "contacts": 0,
+      "sim_time_s": 26.6,
+      "path_length_m": 4.256000000000002,
+      "wall_time_s": 12.164831058000345,
+      "seed": 20261024,
+      "count": 5,
+      "x_min": 0.3500000000000001,
+      "x_max": 0.65
+    },
+    "stored_span_s": 26.5,
+    "path_length_m": 4.240000000000002,
+    "yaw_range_deg": [
+      90.0,
+      90.0
+    ],
+    "peak_yaw_rate_rad_s": 0.0,
+    "peak_planar_speed_m_s": 0.1600000000000056,
+    "peak_finite_difference_acceleration_m_s2": 1.0690360313586098
+  },
+  "after": {
+    "source_sha256": "528b1705fc10c3bb1fef92f87f5b2a8f5c86a6d1852d535de6902ce01f8cbb72",
+    "stored_metrics": {
+      "outcome": "GOAL_REACHED",
+      "contacts": 0,
+      "sim_time_s": 51.7,
+      "path_length_m": 4.24778012182941,
+      "emergency_slew_overrides": 0,
+      "rejected_delayed_samples": 0,
+      "wall_time_s": 56.799034523000046,
+      "yaw_min": 1.4516940632178128,
+      "yaw_max": 1.6907464496279965
+    },
+    "stored_span_s": 51.6,
+    "path_length_m": 4.2457801218294104,
+    "yaw_range_deg": [
+      83.17594296657839,
+      96.87263579041243
+    ],
+    "peak_yaw_rate_rad_s": 0.14000000000000015,
+    "peak_planar_speed_m_s": 0.0985341947658224,
+    "peak_finite_difference_acceleration_m_s2": 0.20000000000000845
+  },
+  "limits": [
+    "Finite differences of stored planar poses, not measured actuator response",
+    "No physics, balance, contact-force or hardware validation"
+  ]
+}

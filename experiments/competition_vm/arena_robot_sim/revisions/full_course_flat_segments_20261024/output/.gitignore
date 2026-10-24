@@ -1,0 +1,4 @@
+# Restored lossless fixtures; publish matching .gz artifacts instead.
+/in.json
+/out.json
+/parking.json

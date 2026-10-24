@@ -1,0 +1,13 @@
+test_fk_and_mesh_floor (test_independent_review.Review.test_fk_and_mesh_floor) ... ok
+test_joint_limits (test_independent_review.Review.test_joint_limits) ... ok
+test_mid_route_pause_ground_stance (test_independent_review.Review.test_mid_route_pause_ground_stance) ... ok
+test_moving_trace_actual_joint_change (test_independent_review.Review.test_moving_trace_actual_joint_change) ... ok
+test_no_unbounded_joint_jump (test_independent_review.Review.test_no_unbounded_joint_jump) ... ok
+test_saved_trace_pose_integrity (test_independent_review.Review.test_saved_trace_pose_integrity) ... ok
+test_stance_horizontal_no_slip (test_independent_review.Review.test_stance_horizontal_no_slip) ... ok
+test_static_blocked_trace_all_stance (test_independent_review.Review.test_static_blocked_trace_all_stance) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 2.728s
+
+OK

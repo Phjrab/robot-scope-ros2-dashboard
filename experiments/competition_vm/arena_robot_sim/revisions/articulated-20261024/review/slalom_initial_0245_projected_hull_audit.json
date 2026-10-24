@@ -1,0 +1,42 @@
+{
+  "results": [
+    {
+      "case": "slalom_5",
+      "poses": 4471,
+      "wall_or_cone_intersections": 0,
+      "floor_edge_sample_violations": 0,
+      "cone_containment": 0,
+      "min_planar_hull_to_boundary_clearance_m": 0.08150194152387469,
+      "min_mesh_ground_m": 0.0008849826282486262,
+      "interpolation_substeps": 10,
+      "floor_edge_sample_spacing_m": 0.005,
+      "clearance_sample_hz": 15,
+      "planned_envelope_violations": 33,
+      "max_local_abs_x_m": 0.394385832490852,
+      "max_local_abs_y_m": 0.2634341608811669,
+      "joint_limit_violations": 0
+    },
+    {
+      "case": "blocked_5",
+      "poses": 451,
+      "wall_or_cone_intersections": 0,
+      "floor_edge_sample_violations": 0,
+      "cone_containment": 0,
+      "min_planar_hull_to_boundary_clearance_m": 0.10064524572460154,
+      "min_mesh_ground_m": 0.0010000000203502918,
+      "interpolation_substeps": 10,
+      "floor_edge_sample_spacing_m": 0.005,
+      "clearance_sample_hz": 15,
+      "planned_envelope_violations": 0,
+      "max_local_abs_x_m": 0.3583547542753984,
+      "max_local_abs_y_m": 0.16142,
+      "joint_limit_violations": 0
+    }
+  ],
+  "limitations": [
+    "Sampling/interpolated geometric check, not continuous certified collision proof",
+    "Original static-footprint planner metrics remain distinct",
+    "Uses corrected-revision fences and strictly left-corridor allowed floor; no parking permission",
+    "No contact-force, self-collision, balance, gait controller, real sensor or hardware validation"
+  ]
+}

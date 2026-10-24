@@ -1,0 +1,258 @@
+{
+  "source_sha": "7ef47dc249e4dba83865e78dc283f40013ea92de",
+  "runtime_verified": false,
+  "parameters": [
+    {
+      "name": "use_rotate_to_heading",
+      "default": false,
+      "args": [
+        "bool"
+      ],
+      "locked": false
+    },
+    {
+      "name": "rotation_shim_enabled",
+      "default": true,
+      "args": [
+        "bool"
+      ],
+      "locked": true
+    },
+    {
+      "name": "rotate_to_goal_heading",
+      "default": true,
+      "args": [
+        "bool"
+      ],
+      "locked": true
+    },
+    {
+      "name": "desired_linear_vel",
+      "default": 0.25,
+      "args": [
+        "number",
+        0.05,
+        1.0
+      ],
+      "locked": null
+    },
+    {
+      "name": "controller_frequency",
+      "default": 10.0,
+      "args": [
+        "number",
+        10.0,
+        20.0
+      ],
+      "locked": null
+    },
+    {
+      "name": "lookahead_time",
+      "default": 0.8,
+      "args": [
+        "number",
+        0.2,
+        2.0
+      ],
+      "locked": null
+    },
+    {
+      "name": "min_lookahead_dist",
+      "default": 0.25,
+      "args": [
+        "number",
+        0.1,
+        0.6
+      ],
+      "locked": null
+    },
+    {
+      "name": "use_velocity_scaled_lookahead_dist",
+      "default": true,
+      "args": [
+        "bool"
+      ],
+      "locked": null
+    },
+    {
+      "name": "rotate_to_heading_angular_vel",
+      "default": 0.5,
+      "args": [
+        "number",
+        0.1,
+        0.5
+      ],
+      "locked": null
+    },
+    {
+      "name": "max_angular_accel",
+      "default": 1.2,
+      "args": [
+        "number",
+        0.1,
+        1.2
+      ],
+      "locked": null
+    },
+    {
+      "name": "transform_tolerance",
+      "default": 0.3,
+      "args": [
+        "number",
+        0.05,
+        1.0
+      ],
+      "locked": null
+    },
+    {
+      "name": "closed_loop",
+      "default": false,
+      "args": [
+        "bool"
+      ],
+      "locked": false
+    },
+    {
+      "name": "angular_dist_threshold",
+      "default": 0.785,
+      "args": [
+        "number",
+        0.1,
+        3.141592653589793
+      ],
+      "locked": null
+    },
+    {
+      "name": "robot_radius",
+      "default": 0.22,
+      "args": [
+        "number",
+        0.15,
+        0.4
+      ],
+      "locked": null
+    },
+    {
+      "name": "inflation_radius",
+      "default": 0.25,
+      "args": [
+        "number",
+        0.16,
+        1.0
+      ],
+      "locked": null
+    },
+    {
+      "name": "cost_scaling_factor",
+      "default": 5.0,
+      "args": [
+        "number",
+        1.0,
+        20.0
+      ],
+      "locked": null
+    },
+    {
+      "name": "min_obstacle_height",
+      "default": -0.5,
+      "args": [
+        "number",
+        -1.0,
+        1.0
+      ],
+      "locked": null
+    },
+    {
+      "name": "max_obstacle_height",
+      "default": 2.0,
+      "args": [
+        "number",
+        0.1,
+        3.0
+      ],
+      "locked": null
+    },
+    {
+      "name": "obstacle_max_range",
+      "default": 8.0,
+      "args": [
+        "number",
+        0.5,
+        12.0
+      ],
+      "locked": null
+    },
+    {
+      "name": "raytrace_max_range",
+      "default": 10.0,
+      "args": [
+        "number",
+        0.5,
+        15.0
+      ],
+      "locked": null
+    },
+    {
+      "name": "always_send_full_costmap",
+      "default": true,
+      "args": [
+        "bool"
+      ],
+      "locked": null
+    },
+    {
+      "name": "track_unknown_space",
+      "default": true,
+      "args": [
+        "bool"
+      ],
+      "locked": null
+    },
+    {
+      "name": "xy_goal_tolerance",
+      "default": 0.35,
+      "args": [
+        "number",
+        0.05,
+        1.0
+      ],
+      "locked": null
+    },
+    {
+      "name": "yaw_goal_tolerance",
+      "default": 0.45,
+      "args": [
+        "number",
+        0.05,
+        1.5707963267948966
+      ],
+      "locked": null
+    },
+    {
+      "name": "required_movement_radius",
+      "default": 0.2,
+      "args": [
+        "number",
+        0.05,
+        1.0
+      ],
+      "locked": null
+    },
+    {
+      "name": "use_astar",
+      "default": true,
+      "args": [
+        "bool"
+      ],
+      "locked": null
+    },
+    {
+      "name": "enable_stamped_cmd_vel",
+      "default": false,
+      "args": [
+        "bool"
+      ],
+      "locked": false
+    }
+  ]
+}

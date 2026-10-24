@@ -1,0 +1,5883 @@
+[
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/attempts/candidate07_pre_terminal_stop/open_layout_5_DIAGNOSTIC_joints.json",
+    "sha256": "362b7c9c6c0913e5d9177bacadb4aca0963f0fe4e1cc6fbeb76883756a9a20c3",
+    "retained_summary": {
+      "source_trace": "open_layout_5_DIAGNOSTIC.json",
+      "validation": {
+        "frames": 757,
+        "min_mesh_ground_clearance_m": 0.0009999999961191608,
+        "max_foot_ik_residual_m": 2.4912465244908755e-16,
+        "max_consecutive_stance_xy_slip_m": 0,
+        "articulated_local_bounds_m": [
+          [
+            -0.3967451064309697,
+            -0.19370070921721358,
+            -0.33307456000388086
+          ],
+          [
+            0.33068000000000003,
+            0.20554543770840913,
+            0.08883
+          ]
+        ],
+        "joint_limits_pass": true,
+        "physics": false,
+        "collision_requalification": "NOT_RUN: original static-footprint trace metrics do not certify this articulated envelope",
+        "animation_stride_m": 0.16,
+        "trace_sha256": "4ca312c7fe15558ae94c1343798b819754c0fa48e768fcdfa2544665a6abeef4",
+        "original_metrics": {
+          "outcome": "GOAL_REACHED",
+          "contacts": 0,
+          "sim_time_s": 50.5,
+          "path_length_m": 4.1946449208257,
+          "emergency_slew_overrides": 0,
+          "rejected_delayed_samples": 0,
+          "wall_time_s": 56.45679707800082,
+          "yaw_min": 1.4516940632178128,
+          "yaw_max": 1.6907464496279965
+        }
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/attempts/candidate_01/slalom_5_joints.json",
+    "sha256": "9e6589b6641d6d39e9efd4b495ff632374417d481e77ea3efc2ac699d7c61d81",
+    "retained_summary": {
+      "source_trace": "slalom_5.json",
+      "validation": {
+        "frames": 781,
+        "min_mesh_ground_clearance_m": 0.000903870960909714,
+        "max_foot_ik_residual_m": 3.1835838817813215e-16,
+        "max_consecutive_stance_xy_slip_m": 0,
+        "articulated_local_bounds_m": [
+          [
+            -0.39437073294265373,
+            -0.23069420409897765,
+            -0.3331706890390903
+          ],
+          [
+            0.33068000000000003,
+            0.25703252515820146,
+            0.08883
+          ]
+        ],
+        "joint_limits_pass": true,
+        "physics": false,
+        "collision_requalification": "NOT_RUN: original static-footprint trace metrics do not certify this articulated envelope",
+        "animation_stride_m": 0.16,
+        "trace_sha256": "40880f322c057c6f4bda6e972d8f1a0af031af134ceaaf4b1294a46c786236b3",
+        "original_metrics": {
+          "outcome": "GOAL_REACHED",
+          "contacts": 0,
+          "sim_time_s": 52.1,
+          "path_length_m": 4.528537372235628,
+          "emergency_slew_overrides": 0,
+          "wall_time_s": 21.364841184000397,
+          "yaw_min": 1.5307963730572784,
+          "yaw_max": 1.6107963092486515
+        }
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_01_point_candidate/blocked_5.json",
+    "sha256": "ab37dada687956d56dba08b6f2c898fb39c2f34855a77e6f134bf41256824923",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          1.0,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.0
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.15,
+              2.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.41,
+              2.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.67,
+              2.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.9,
+              2.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.22,
+              4.4
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            0.21
+          ],
+          [
+            -0.405,
+            0.21
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed-grid A* candidate path + fixed-yaw holonomic point follower, full rectangle swept guard",
+        "kinematics": "HOLONOMIC PLANAR, no dynamics or gait validation",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.225,
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.21 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY"
+      },
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "contacts": 0,
+        "sim_time_s": 3.1,
+        "path_length_m": 0.0,
+        "wall_time_s": 1.249941058999866,
+        "seed": 20261024,
+        "count": 5,
+        "x_min": 0.5,
+        "x_max": 0.5
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_01_point_candidate/empty.json",
+    "sha256": "168efd240bbd3d883cea0bbef9b895b75893a39f26000bd5ddaa44d56c29e7f2",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          1.0,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.0
+        ],
+        "cones": [],
+        "footprint": [
+          [
+            -0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            0.21
+          ],
+          [
+            -0.405,
+            0.21
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed-grid A* candidate path + fixed-yaw holonomic point follower, full rectangle swept guard",
+        "kinematics": "HOLONOMIC PLANAR, no dynamics or gait validation",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.225,
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.21 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY"
+      },
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "contacts": 0,
+        "sim_time_s": 24.7,
+        "path_length_m": 3.9520000000000017,
+        "wall_time_s": 7.567971842999668,
+        "seed": 20261024,
+        "count": 0,
+        "x_min": 0.5017669044171975,
+        "x_max": 0.5099999999999998
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_01_point_candidate/slalom_3.json",
+    "sha256": "49a328a9dd152fca8f59eebdea44ed285cdbe96603ce0cdd4d649680b61307a0",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          1.0,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.0
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.22,
+              1.8
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.78,
+              3.0
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.22,
+              4.2
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            0.21
+          ],
+          [
+            -0.405,
+            0.21
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed-grid A* candidate path + fixed-yaw holonomic point follower, full rectangle swept guard",
+        "kinematics": "HOLONOMIC PLANAR, no dynamics or gait validation",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.225,
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.21 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY"
+      },
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "contacts": 0,
+        "sim_time_s": 11.0,
+        "path_length_m": 1.2639999999999991,
+        "wall_time_s": 4.5714311720003025,
+        "seed": 20261024,
+        "count": 3,
+        "x_min": 0.5098230498162387,
+        "x_max": 0.5899999908483959
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_01_point_candidate/slalom_5.json",
+    "sha256": "5df848c7cc889d8265f28967b209fad91c36bba0b65359138df6b81ac4838d03",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          1.0,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.0
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.22,
+              1.6
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.22,
+              1.95
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.78,
+              3.05
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.78,
+              3.4
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.22,
+              4.6
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            0.21
+          ],
+          [
+            -0.405,
+            0.21
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed-grid A* candidate path + fixed-yaw holonomic point follower, full rectangle swept guard",
+        "kinematics": "HOLONOMIC PLANAR, no dynamics or gait validation",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.225,
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.21 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY"
+      },
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "contacts": 0,
+        "sim_time_s": 3.3,
+        "path_length_m": 0.03199999999999989,
+        "wall_time_s": 1.6415180260000852,
+        "seed": 20261024,
+        "count": 5,
+        "x_min": 0.5113137084989847,
+        "x_max": 0.5226274169979694
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_02_tight_spacing/blocked_5.json",
+    "sha256": "2ec41385c287f0fdc747556ced9926be5f0a88c20fce23440fa6eb2bc2ce267f",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          1.0,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.0
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.15,
+              2.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.41,
+              2.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.67,
+              2.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.9,
+              2.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.22,
+              4.4
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            0.21
+          ],
+          [
+            -0.405,
+            0.21
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed-grid A* candidate path + fixed-yaw holonomic point follower, full rectangle swept guard",
+        "kinematics": "HOLONOMIC PLANAR, no dynamics or gait validation",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          23
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.21 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY"
+      },
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "contacts": 0,
+        "sim_time_s": 3.1,
+        "path_length_m": 0.0,
+        "wall_time_s": 1.3409374630000457,
+        "seed": 20261024,
+        "count": 5,
+        "x_min": 0.5,
+        "x_max": 0.5
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_02_tight_spacing/empty.json",
+    "sha256": "e3ab766ec8945e17fa5e4815c1b39da7b8bd1b0d95c58cbf94da3719891f66ee",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          1.0,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.0
+        ],
+        "cones": [],
+        "footprint": [
+          [
+            -0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            0.21
+          ],
+          [
+            -0.405,
+            0.21
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed-grid A* candidate path + fixed-yaw holonomic point follower, full rectangle swept guard",
+        "kinematics": "HOLONOMIC PLANAR, no dynamics or gait validation",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          23
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.21 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY"
+      },
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "contacts": 0,
+        "sim_time_s": 24.7,
+        "path_length_m": 3.952000000000003,
+        "wall_time_s": 8.694410686000083,
+        "seed": 20261024,
+        "count": 0,
+        "x_min": 0.5031378581622109,
+        "x_max": 0.51
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_02_tight_spacing/slalom_3.json",
+    "sha256": "aec6a145535f283a9ef8ecd8d0e77dee13889c70e134998c05d53c5626b58db5",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          1.0,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.0
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.22,
+              1.8
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.78,
+              3.0
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.22,
+              4.2
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            0.21
+          ],
+          [
+            -0.405,
+            0.21
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed-grid A* candidate path + fixed-yaw holonomic point follower, full rectangle swept guard",
+        "kinematics": "HOLONOMIC PLANAR, no dynamics or gait validation",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          23
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.21 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY"
+      },
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "contacts": 0,
+        "sim_time_s": 27.9,
+        "path_length_m": 4.464000000000002,
+        "wall_time_s": 10.505313702999956,
+        "seed": 20261024,
+        "count": 3,
+        "x_min": 0.33000000000000157,
+        "x_max": 0.67
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_02_tight_spacing/slalom_5.json",
+    "sha256": "f9842b1607fd5798602d922534c9a35de2861da67c5834370ce0afb02a646b6c",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          1.0,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.0
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.22,
+              1.6
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.22,
+              1.95
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.78,
+              3.05
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.78,
+              3.4
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.22,
+              4.6
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            0.21
+          ],
+          [
+            -0.405,
+            0.21
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed-grid A* candidate path + fixed-yaw holonomic point follower, full rectangle swept guard",
+        "kinematics": "HOLONOMIC PLANAR, no dynamics or gait validation",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          23
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.21 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY"
+      },
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "contacts": 0,
+        "sim_time_s": 3.1,
+        "path_length_m": 0.0,
+        "wall_time_s": 1.3995093849998739,
+        "seed": 20261024,
+        "count": 5,
+        "x_min": 0.5,
+        "x_max": 0.5
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_03_base_overlap_rejected/slalom_5.json",
+    "sha256": "46c5a40d3bca9b32f8194a5df2ca2a3d615e7dc4b8706cd55b0bbeac40e14fe6",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.22,
+              1.55
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.22,
+              1.8
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.78,
+              3.0
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.78,
+              3.25
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.22,
+              4.45
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            0.21
+          ],
+          [
+            -0.405,
+            0.21
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed-grid A* candidate path + fixed-yaw holonomic point follower, full rectangle swept guard",
+        "kinematics": "HOLONOMIC PLANAR, no dynamics or gait validation",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          23
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.21 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY"
+      },
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "contacts": 0,
+        "sim_time_s": 28.8,
+        "path_length_m": 4.608000000000003,
+        "wall_time_s": 10.501614040999812,
+        "seed": 20261024,
+        "count": 5,
+        "x_min": 0.33000000000000007,
+        "x_max": 0.6699999999999999
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_04_small_limb_envelope/blocked_5.json",
+    "sha256": "c1f7302164dfd729f1d5d3b6218d3e880f483d5788dd6e22a6eb567b36fa5d79",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.15,
+              2.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.41,
+              2.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.67,
+              2.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.9,
+              2.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.22,
+              4.4
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            0.21
+          ],
+          [
+            -0.405,
+            0.21
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed-grid A* candidate path + fixed-yaw holonomic point follower, full rectangle swept guard",
+        "kinematics": "HOLONOMIC PLANAR, no dynamics or gait validation",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          23
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.21 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY"
+      },
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "contacts": 0,
+        "sim_time_s": 3.1,
+        "path_length_m": 0.0,
+        "wall_time_s": 1.180721192999954,
+        "seed": 20261024,
+        "count": 5,
+        "x_min": 0.5,
+        "x_max": 0.5
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_04_small_limb_envelope/empty.json",
+    "sha256": "cbfb515165b720ac267dfcebded853e15ad5153577452c76784597028bce80fa",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [],
+        "footprint": [
+          [
+            -0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            0.21
+          ],
+          [
+            -0.405,
+            0.21
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed-grid A* candidate path + fixed-yaw holonomic point follower, full rectangle swept guard",
+        "kinematics": "HOLONOMIC PLANAR, no dynamics or gait validation",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          23
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.21 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY"
+      },
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "contacts": 0,
+        "sim_time_s": 25.3,
+        "path_length_m": 4.048000000000004,
+        "wall_time_s": 8.375973746,
+        "seed": 20261024,
+        "count": 0,
+        "x_min": 0.5038805700005813,
+        "x_max": 0.5099999999999999
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_04_small_limb_envelope/slalom_3.json",
+    "sha256": "4eb1f8973248960187661f38ea7f025c3325a108ec3066ccdc39fdadad102852",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.22,
+              1.8
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.78,
+              3.0
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.22,
+              4.2
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            0.21
+          ],
+          [
+            -0.405,
+            0.21
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed-grid A* candidate path + fixed-yaw holonomic point follower, full rectangle swept guard",
+        "kinematics": "HOLONOMIC PLANAR, no dynamics or gait validation",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          23
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.21 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY"
+      },
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "contacts": 0,
+        "sim_time_s": 28.4,
+        "path_length_m": 4.5440000000000005,
+        "wall_time_s": 9.265108482999949,
+        "seed": 20261024,
+        "count": 3,
+        "x_min": 0.3300000000000001,
+        "x_max": 0.67
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_04_small_limb_envelope/slalom_5.json",
+    "sha256": "2c3b5ef748e3bafebc78e2e8a1eb0f27717ad3330f5e3bc9d11d6ee201b422a3",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.22,
+              1.55
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.22,
+              1.83
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.78,
+              3.0
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.78,
+              3.28
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.22,
+              4.45
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            -0.21
+          ],
+          [
+            0.405,
+            0.21
+          ],
+          [
+            -0.405,
+            0.21
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed-grid A* candidate path + fixed-yaw holonomic point follower, full rectangle swept guard",
+        "kinematics": "HOLONOMIC PLANAR, no dynamics or gait validation",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          23
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.21 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY"
+      },
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "contacts": 0,
+        "sim_time_s": 29.0,
+        "path_length_m": 4.640000000000001,
+        "wall_time_s": 10.90855213299983,
+        "seed": 20261024,
+        "count": 5,
+        "x_min": 0.33000000000000007,
+        "x_max": 0.6699999999999999
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_05_blocked_base_overlap_rejected/blocked_5.json",
+    "sha256": "9d1e3522a00745f6ae997612a78d0a15884803a5e4fc8cef238c4fdf441cb101",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.15,
+              2.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.41,
+              2.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.67,
+              2.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.9,
+              2.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.22,
+              4.4
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.245
+          ],
+          [
+            0.405,
+            -0.245
+          ],
+          [
+            0.405,
+            0.245
+          ],
+          [
+            -0.405,
+            0.245
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed-grid A* candidate path + fixed-yaw holonomic point follower, full rectangle swept guard",
+        "kinematics": "HOLONOMIC PLANAR, no dynamics or gait validation",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          27
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.245 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY"
+      },
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "contacts": 0,
+        "sim_time_s": 3.1,
+        "path_length_m": 0.0,
+        "wall_time_s": 1.1847246850002193,
+        "seed": 20261024,
+        "count": 5,
+        "x_min": 0.5,
+        "x_max": 0.5
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_06_limb_envelope_exceeded/blocked_5.json",
+    "sha256": "0bbb70ad587b0430b3f45cf0ecd02e47c8cde9c1d048cf6745ddf1dffa218fb6",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.15,
+              2.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.5,
+              2.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.85,
+              2.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.22,
+              3.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.78,
+              4.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.245
+          ],
+          [
+            0.405,
+            -0.245
+          ],
+          [
+            0.405,
+            0.245
+          ],
+          [
+            -0.405,
+            0.245
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed-grid A* candidate path + fixed-yaw holonomic point follower, full rectangle swept guard",
+        "kinematics": "HOLONOMIC PLANAR, no dynamics or gait validation",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          27
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.245 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY"
+      },
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "contacts": 0,
+        "sim_time_s": 3.1,
+        "path_length_m": 0.0,
+        "wall_time_s": 1.4609960459997637,
+        "seed": 20261024,
+        "count": 5,
+        "x_min": 0.5,
+        "x_max": 0.5
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_06_limb_envelope_exceeded/empty.json",
+    "sha256": "002a47356224f8e81fb1fa74cf8d0b43890d4f2797c363be53d645e0a4210282",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [],
+        "footprint": [
+          [
+            -0.405,
+            -0.245
+          ],
+          [
+            0.405,
+            -0.245
+          ],
+          [
+            0.405,
+            0.245
+          ],
+          [
+            -0.405,
+            0.245
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed-grid A* candidate path + fixed-yaw holonomic point follower, full rectangle swept guard",
+        "kinematics": "HOLONOMIC PLANAR, no dynamics or gait validation",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          27
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.245 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY"
+      },
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "contacts": 0,
+        "sim_time_s": 25.3,
+        "path_length_m": 4.048000000000004,
+        "wall_time_s": 7.7771418779998385,
+        "seed": 20261024,
+        "count": 0,
+        "x_min": 0.5038805700005813,
+        "x_max": 0.5099999999999999
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_06_limb_envelope_exceeded/slalom_3.json",
+    "sha256": "2074761b006cc8147e9e39cc65cb52e92af758b40d5bc3ee9d5914b4c8bb9520",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.22,
+              1.8
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.78,
+              3.0
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.22,
+              4.2
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.245
+          ],
+          [
+            0.405,
+            -0.245
+          ],
+          [
+            0.405,
+            0.245
+          ],
+          [
+            -0.405,
+            0.245
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed-grid A* candidate path + fixed-yaw holonomic point follower, full rectangle swept guard",
+        "kinematics": "HOLONOMIC PLANAR, no dynamics or gait validation",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          27
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.245 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY"
+      },
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "contacts": 0,
+        "sim_time_s": 28.9,
+        "path_length_m": 4.624000000000002,
+        "wall_time_s": 8.849647259999983,
+        "seed": 20261024,
+        "count": 3,
+        "x_min": 0.3300000000000001,
+        "x_max": 0.67
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/attempt_06_limb_envelope_exceeded/slalom_5.json",
+    "sha256": "d8cf828fb1cd6da5248f682f2bee37c1fbe13dd64aa4c499613ea13748155d2a",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.22,
+              1.55
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.22,
+              1.83
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.78,
+              3.0
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.78,
+              3.28
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.22,
+              4.45
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.245
+          ],
+          [
+            0.405,
+            -0.245
+          ],
+          [
+            0.405,
+            0.245
+          ],
+          [
+            -0.405,
+            0.245
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed-grid A* candidate path + fixed-yaw holonomic point follower, full rectangle swept guard",
+        "kinematics": "HOLONOMIC PLANAR, no dynamics or gait validation",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          27
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.245 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY"
+      },
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "contacts": 0,
+        "sim_time_s": 29.9,
+        "path_length_m": 4.784000000000003,
+        "wall_time_s": 10.123293644000114,
+        "seed": 20261024,
+        "count": 5,
+        "x_min": 0.33000000000000007,
+        "x_max": 0.67
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/repeat_02/blocked_5.json",
+    "sha256": "cdfde49513b6decdc30e48465f7e65bff08e08071860c3df595bdd08ce6d103a",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.15,
+              2.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.5,
+              2.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.85,
+              2.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.18,
+              3.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.82,
+              4.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            0.28
+          ],
+          [
+            -0.405,
+            0.28
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed-grid A* candidate path + fixed-yaw holonomic point follower, full rectangle swept guard",
+        "kinematics": "HOLONOMIC PLANAR, no dynamics or gait validation",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          31
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.28 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY"
+      },
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "contacts": 0,
+        "sim_time_s": 3.1,
+        "path_length_m": 0.0,
+        "wall_time_s": 1.121228758000143,
+        "seed": 20261024,
+        "count": 5,
+        "x_min": 0.5,
+        "x_max": 0.5
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/repeat_02/empty.json",
+    "sha256": "621a8def2bf609b59a716dde45a6b1c9ecb6f89202b6a35fd2018ad80195fbd8",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [],
+        "footprint": [
+          [
+            -0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            0.28
+          ],
+          [
+            -0.405,
+            0.28
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed-grid A* candidate path + fixed-yaw holonomic point follower, full rectangle swept guard",
+        "kinematics": "HOLONOMIC PLANAR, no dynamics or gait validation",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          31
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.28 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY"
+      },
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "contacts": 0,
+        "sim_time_s": 25.3,
+        "path_length_m": 4.048000000000004,
+        "wall_time_s": 7.668425940999896,
+        "seed": 20261024,
+        "count": 0,
+        "x_min": 0.5038805700005813,
+        "x_max": 0.5099999999999999
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/repeat_02/slalom_3.json",
+    "sha256": "961789499d6f441380b57ea37299a800ac6dc5d369c5439d72f84ae08241e59c",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.18,
+              1.8
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.82,
+              3.0
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.18,
+              4.2
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            0.28
+          ],
+          [
+            -0.405,
+            0.28
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed-grid A* candidate path + fixed-yaw holonomic point follower, full rectangle swept guard",
+        "kinematics": "HOLONOMIC PLANAR, no dynamics or gait validation",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          31
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.28 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY"
+      },
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "contacts": 0,
+        "sim_time_s": 28.6,
+        "path_length_m": 4.576000000000002,
+        "wall_time_s": 9.028173863999655,
+        "seed": 20261024,
+        "count": 3,
+        "x_min": 0.35000000000000003,
+        "x_max": 0.65
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/results/repeat_02/slalom_5.json",
+    "sha256": "ca310013eb285dd9282223291f19b7dde57d109bb158840b2702cbe750dd1a68",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.18,
+              1.55
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.18,
+              1.83
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.82,
+              3.0
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.82,
+              3.28
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.18,
+              4.45
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            0.28
+          ],
+          [
+            -0.405,
+            0.28
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed-grid A* candidate path + fixed-yaw holonomic point follower, full rectangle swept guard",
+        "kinematics": "HOLONOMIC PLANAR, no dynamics or gait validation",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          31
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.28 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY"
+      },
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "contacts": 0,
+        "sim_time_s": 29.7,
+        "path_length_m": 4.752000000000005,
+        "wall_time_s": 10.115379699000187,
+        "seed": 20261024,
+        "count": 5,
+        "x_min": 0.3500000000000001,
+        "x_max": 0.67
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/attempt01_replan_start_quantization/slalom_5.json",
+    "sha256": "59d0ad510e4d9352c1de72c73646d6945ed573125c1b8a0c739358bba431abe4",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.18,
+              1.55
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.18,
+              1.83
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.82,
+              3.0
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.82,
+              3.28
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.18,
+              4.45
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            0.28
+          ],
+          [
+            -0.405,
+            0.28
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed A* + collision-constrained Laplacian smoothing and orientation-gated bounded holonomic SE2 follower",
+        "kinematics": "HOLONOMIC PLANAR WITH YAW, NOT PHYSICAL GAIT",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          31
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.28 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY",
+        "parameters": {
+          "vmax": 0.16,
+          "amax": 0.2,
+          "wmax": 0.18,
+          "angular_accel_max": 0.35,
+          "lookahead": 0.08,
+          "yaw_offset_limit": 0.12
+        },
+        "sensor_mode": "normal"
+      },
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "contacts": 0,
+        "sim_time_s": 15.6,
+        "path_length_m": 1.5206281096623724,
+        "emergency_slew_overrides": 0,
+        "wall_time_s": 7.495305245999589,
+        "yaw_min": 1.4595317487050214,
+        "yaw_max": 1.686062658396961
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/attempt02_yaw_tracking_lag/slalom_5.json",
+    "sha256": "4126398d604208a2eee0e67483b2058efb4c1480feb13126a6019640e9d075ef",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.18,
+              1.55
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.18,
+              1.83
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.82,
+              3.0
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.82,
+              3.28
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.18,
+              4.45
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            0.28
+          ],
+          [
+            -0.405,
+            0.28
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed A* + collision-constrained Laplacian smoothing and orientation-gated bounded holonomic SE2 follower",
+        "kinematics": "HOLONOMIC PLANAR WITH YAW, NOT PHYSICAL GAIT",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          31
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.28 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY",
+        "parameters": {
+          "vmax": 0.16,
+          "amax": 0.2,
+          "wmax": 0.18,
+          "angular_accel_max": 0.35,
+          "lookahead": 0.08,
+          "yaw_offset_limit": 0.12
+        },
+        "sensor_mode": "normal"
+      },
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "contacts": 0,
+        "sim_time_s": 16.3,
+        "path_length_m": 1.5425989792266679,
+        "emergency_slew_overrides": 3,
+        "wall_time_s": 7.154200856999523,
+        "yaw_min": 1.4595317487050214,
+        "yaw_max": 1.689058018358244
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/blocked_5.json",
+    "sha256": "3285b838db8a670fad478443e9e64d54950cce7ae8331ec6f3bbb53895f5a00d",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.15,
+              2.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.5,
+              2.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.85,
+              2.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.18,
+              3.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.82,
+              4.5
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            0.28
+          ],
+          [
+            -0.405,
+            0.28
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed A* + collision-constrained Laplacian smoothing and orientation-gated bounded holonomic SE2 follower",
+        "kinematics": "HOLONOMIC PLANAR WITH YAW, NOT PHYSICAL GAIT",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          31
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.28 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY",
+        "parameters": {
+          "vmax": 0.16,
+          "amax": 0.2,
+          "wmax": 0.18,
+          "angular_accel_max": 0.35,
+          "lookahead": 0.05,
+          "yaw_offset_limit": 0.04
+        },
+        "sensor_mode": "normal"
+      },
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "contacts": 0,
+        "sim_time_s": 3.1,
+        "path_length_m": 0.0,
+        "emergency_slew_overrides": 0,
+        "rejected_delayed_samples": 0,
+        "wall_time_s": 1.8824039940000148,
+        "yaw_min": 1.5707963267948966,
+        "yaw_max": 1.5707963267948966
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate01_clearance_16mm/slalom_5.json",
+    "sha256": "40880f322c057c6f4bda6e972d8f1a0af031af134ceaaf4b1294a46c786236b3",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.18,
+              1.55
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.18,
+              1.83
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.82,
+              3.0
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.82,
+              3.28
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.18,
+              4.45
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            0.28
+          ],
+          [
+            -0.405,
+            0.28
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed A* + collision-constrained Laplacian smoothing and orientation-gated bounded holonomic SE2 follower",
+        "kinematics": "HOLONOMIC PLANAR WITH YAW, NOT PHYSICAL GAIT",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          31
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.28 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY",
+        "parameters": {
+          "vmax": 0.16,
+          "amax": 0.2,
+          "wmax": 0.18,
+          "angular_accel_max": 0.35,
+          "lookahead": 0.05,
+          "yaw_offset_limit": 0.04
+        },
+        "sensor_mode": "normal"
+      },
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "contacts": 0,
+        "sim_time_s": 52.1,
+        "path_length_m": 4.528537372235628,
+        "emergency_slew_overrides": 0,
+        "wall_time_s": 21.364841184000397,
+        "yaw_min": 1.5307963730572784,
+        "yaw_max": 1.6107963092486515
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate02_clearance_guard/slalom_5.json",
+    "sha256": "0086017963f5229545ae72f875025b554d13aedcdd2f3aa231e2d646f1f55290",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.18,
+              1.55
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.18,
+              1.83
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.82,
+              3.0
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.82,
+              3.28
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.18,
+              4.45
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            0.28
+          ],
+          [
+            -0.405,
+            0.28
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed A* + collision-constrained Laplacian smoothing and orientation-gated bounded holonomic SE2 follower",
+        "kinematics": "HOLONOMIC PLANAR WITH YAW, NOT PHYSICAL GAIT",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          31
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.28 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY",
+        "parameters": {
+          "vmax": 0.16,
+          "amax": 0.2,
+          "wmax": 0.18,
+          "angular_accel_max": 0.35,
+          "lookahead": 0.05,
+          "yaw_offset_limit": 0.04
+        },
+        "sensor_mode": "normal"
+      },
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "contacts": 0,
+        "sim_time_s": 3.1,
+        "path_length_m": 0.0,
+        "emergency_slew_overrides": 0,
+        "rejected_delayed_samples": 0,
+        "wall_time_s": 6.265985564999937,
+        "yaw_min": 1.5707963267948966,
+        "yaw_max": 1.5707963267948966
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate03_exact_smoothing/slalom_5.json",
+    "sha256": "58251777de49db8804c2d8766c437207ac8c27a9a3174a69287544c5046e4da9",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.18,
+              1.55
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.18,
+              1.83
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.82,
+              3.0
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.82,
+              3.28
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.18,
+              4.45
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            0.28
+          ],
+          [
+            -0.405,
+            0.28
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed A* + collision-constrained Laplacian smoothing and orientation-gated bounded holonomic SE2 follower",
+        "kinematics": "HOLONOMIC PLANAR WITH YAW, NOT PHYSICAL GAIT",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          31
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.28 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY",
+        "parameters": {
+          "vmax": 0.16,
+          "amax": 0.2,
+          "wmax": 0.18,
+          "angular_accel_max": 0.35,
+          "lookahead": 0.05,
+          "yaw_offset_limit": 0.04
+        },
+        "sensor_mode": "normal"
+      },
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "contacts": 0,
+        "sim_time_s": 3.1,
+        "path_length_m": 0.0,
+        "emergency_slew_overrides": 0,
+        "rejected_delayed_samples": 0,
+        "wall_time_s": 23.876298974999372,
+        "yaw_min": 1.5707963267948966,
+        "yaw_max": 1.5707963267948966
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate04_exact_zero_heading/slalom_5.json",
+    "sha256": "0bdf7a0309e736d87b0bc9e779cda09b7a9c844ca5845988be401f99b14f5ae5",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.18,
+              1.55
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.18,
+              1.83
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.82,
+              3.0
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.82,
+              3.28
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.18,
+              4.45
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            0.28
+          ],
+          [
+            -0.405,
+            0.28
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed A* + collision-constrained Laplacian smoothing and orientation-gated bounded holonomic SE2 follower",
+        "kinematics": "HOLONOMIC PLANAR WITH YAW, NOT PHYSICAL GAIT",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          31
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.28 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY",
+        "parameters": {
+          "vmax": 0.16,
+          "amax": 0.2,
+          "wmax": 0.18,
+          "angular_accel_max": 0.35,
+          "lookahead": 0.05,
+          "yaw_offset_limit": 0.04
+        },
+        "sensor_mode": "normal"
+      },
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "contacts": 0,
+        "sim_time_s": 5.3999999999999995,
+        "path_length_m": 0.0860654944696071,
+        "emergency_slew_overrides": 4,
+        "rejected_delayed_samples": 0,
+        "wall_time_s": 7.1917398630002936,
+        "yaw_min": 1.5453663707187122,
+        "yaw_max": 1.5672963267948965
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate05_safe_window/slalom_5.json",
+    "sha256": "918704969bb8ea302080875cf5766b558b4f10f2bc6be43f5895abae322d3a68",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.18,
+              1.55
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.18,
+              1.83
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.82,
+              3.0
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.82,
+              3.28
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.18,
+              4.45
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            0.28
+          ],
+          [
+            -0.405,
+            0.28
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed A* + collision-constrained Laplacian smoothing and orientation-gated bounded holonomic SE2 follower",
+        "kinematics": "HOLONOMIC PLANAR WITH YAW, NOT PHYSICAL GAIT",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          31
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.28 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY",
+        "parameters": {
+          "vmax": 0.16,
+          "amax": 0.2,
+          "wmax": 0.18,
+          "angular_accel_max": 0.35,
+          "lookahead": 0.05,
+          "yaw_offset_limit": 0.04
+        },
+        "sensor_mode": "normal"
+      },
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "contacts": 0,
+        "sim_time_s": 8.9,
+        "path_length_m": 0.2986709931007976,
+        "emergency_slew_overrides": 1,
+        "rejected_delayed_samples": 0,
+        "wall_time_s": 24.673019308999756,
+        "yaw_min": 1.5545659705448964,
+        "yaw_max": 2.2190384154980216
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate06_fine_grid/slalom_5.json",
+    "sha256": "a9445d77e75d86e47a8b2f86505b821c725dc5d5601c77468117676373e05e7a",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.18,
+              1.55
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.18,
+              1.83
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.82,
+              3.0
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.82,
+              3.28
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.18,
+              4.45
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            0.28
+          ],
+          [
+            -0.405,
+            0.28
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed A* + collision-constrained Laplacian smoothing and orientation-gated bounded holonomic SE2 follower",
+        "kinematics": "HOLONOMIC PLANAR WITH YAW, NOT PHYSICAL GAIT",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          31
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.28 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY",
+        "parameters": {
+          "vmax": 0.16,
+          "amax": 0.2,
+          "wmax": 0.18,
+          "angular_accel_max": 0.35,
+          "lookahead": 0.05,
+          "yaw_offset_limit": 0.015
+        },
+        "sensor_mode": "normal"
+      },
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "contacts": 0,
+        "sim_time_s": 5.1,
+        "path_length_m": 0.134193754989568,
+        "emergency_slew_overrides": 1,
+        "rejected_delayed_samples": 0,
+        "wall_time_s": 9.514236637000067,
+        "yaw_min": 1.5592705809891447,
+        "yaw_max": 1.5782993427591574
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate07_open_diagnostic/open_layout_5_DIAGNOSTIC.json",
+    "sha256": "4ca312c7fe15558ae94c1343798b819754c0fa48e768fcdfa2544665a6abeef4",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.18,
+              1.8
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.18,
+              2.08
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.18,
+              2.36
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.82,
+              4.05
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.82,
+              4.33
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            0.28
+          ],
+          [
+            -0.405,
+            0.28
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed A* + collision-constrained Laplacian smoothing and orientation-gated bounded holonomic SE2 follower",
+        "kinematics": "HOLONOMIC PLANAR WITH YAW, NOT PHYSICAL GAIT",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          31
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.28 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY",
+        "parameters": {
+          "vmax": 0.16,
+          "amax": 0.2,
+          "wmax": 0.18,
+          "angular_accel_max": 0.35,
+          "lookahead": 0.05,
+          "yaw_offset_limit": 0.12
+        },
+        "sensor_mode": "normal"
+      },
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "contacts": 0,
+        "sim_time_s": 50.5,
+        "path_length_m": 4.1946449208257,
+        "emergency_slew_overrides": 0,
+        "rejected_delayed_samples": 0,
+        "wall_time_s": 56.45679707800082,
+        "yaw_min": 1.4516940632178128,
+        "yaw_max": 1.6907464496279965
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/candidate08_terminal_before_metadata_fix/open_normal.json",
+    "sha256": "58502eed0d6975e02f9d9d2833dc371054e86c5e5368e1bb76062bea386c6f35",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.18,
+              1.8
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.18,
+              2.08
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.18,
+              2.36
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.82,
+              4.05
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.82,
+              4.33
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            0.28
+          ],
+          [
+            -0.405,
+            0.28
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed A* + collision-constrained Laplacian smoothing and orientation-gated bounded holonomic SE2 follower",
+        "kinematics": "HOLONOMIC PLANAR WITH YAW, NOT PHYSICAL GAIT",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          31
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.28 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY",
+        "parameters": {
+          "vmax": 0.16,
+          "amax": 0.2,
+          "wmax": 0.18,
+          "angular_accel_max": 0.35,
+          "lookahead": 0.05,
+          "yaw_offset_limit": 0.12
+        },
+        "sensor_mode": "normal"
+      },
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "contacts": 0,
+        "sim_time_s": 51.7,
+        "path_length_m": 4.24778012182941,
+        "emergency_slew_overrides": 0,
+        "rejected_delayed_samples": 0,
+        "wall_time_s": 66.69143706199975,
+        "yaw_min": 1.4516940632178128,
+        "yaw_max": 1.6907464496279965
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/empty.json",
+    "sha256": "fb5e208397cc998b18b1aed18e93f9d8c4ae5955ab70aee2a58e6c2f12502007",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [],
+        "footprint": [
+          [
+            -0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            0.28
+          ],
+          [
+            -0.405,
+            0.28
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed A* + collision-constrained Laplacian smoothing and orientation-gated bounded holonomic SE2 follower",
+        "kinematics": "HOLONOMIC PLANAR WITH YAW, NOT PHYSICAL GAIT",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          31
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.28 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY",
+        "parameters": {
+          "vmax": 0.16,
+          "amax": 0.2,
+          "wmax": 0.18,
+          "angular_accel_max": 0.35,
+          "lookahead": 0.05,
+          "yaw_offset_limit": 0.04
+        },
+        "sensor_mode": "normal"
+      },
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "contacts": 0,
+        "sim_time_s": 45.1,
+        "path_length_m": 4.04351401995319,
+        "emergency_slew_overrides": 0,
+        "rejected_delayed_samples": 0,
+        "wall_time_s": 17.630076432999886,
+        "yaw_min": 1.5392503453342334,
+        "yaw_max": 1.570796326794896
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/repeat_02/open_normal.json",
+    "sha256": "653e7da4ac57d6948bb943efa402e04a870340b6890cdfdd853d83bc95763fcf",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.18,
+              1.8
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.18,
+              2.08
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.18,
+              2.36
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.82,
+              4.05
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.82,
+              4.33
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            0.28
+          ],
+          [
+            -0.405,
+            0.28
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed A* + collision-constrained Laplacian smoothing and orientation-gated bounded holonomic SE2 follower",
+        "kinematics": "HOLONOMIC PLANAR WITH YAW, NOT PHYSICAL GAIT",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          87,
+          61
+        ],
+        "configuration_space_note": "fixed-reference heading candidate expansion; yaw checked with full padded rectangle; exact clearance audited independently",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.28 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY",
+        "grid_resolution_m": 0.01,
+        "collision_guard_footprint": [
+          [
+            -0.435,
+            -0.31
+          ],
+          [
+            0.435,
+            -0.31
+          ],
+          [
+            0.435,
+            0.31
+          ],
+          [
+            -0.435,
+            0.31
+          ]
+        ],
+        "minimum_clearance_constraint_m": 0.03,
+        "parameters": {
+          "vmax": 0.16,
+          "amax": 0.2,
+          "wmax": 0.18,
+          "angular_accel_max": 0.35,
+          "lookahead": 0.05,
+          "yaw_offset_limit": 0.12
+        },
+        "sensor_mode": "normal"
+      },
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "contacts": 0,
+        "sim_time_s": 51.7,
+        "path_length_m": 4.24778012182941,
+        "emergency_slew_overrides": 0,
+        "rejected_delayed_samples": 0,
+        "wall_time_s": 65.97553696199975,
+        "yaw_min": 1.4516940632178128,
+        "yaw_max": 1.6907464496279965
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/slalom_5.json",
+    "sha256": "40880f322c057c6f4bda6e972d8f1a0af031af134ceaaf4b1294a46c786236b3",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.18,
+              1.55
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.18,
+              1.83
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.82,
+              3.0
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.82,
+              3.28
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.18,
+              4.45
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            0.28
+          ],
+          [
+            -0.405,
+            0.28
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed A* + collision-constrained Laplacian smoothing and orientation-gated bounded holonomic SE2 follower",
+        "kinematics": "HOLONOMIC PLANAR WITH YAW, NOT PHYSICAL GAIT",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          31
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.28 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY",
+        "parameters": {
+          "vmax": 0.16,
+          "amax": 0.2,
+          "wmax": 0.18,
+          "angular_accel_max": 0.35,
+          "lookahead": 0.05,
+          "yaw_offset_limit": 0.04
+        },
+        "sensor_mode": "normal"
+      },
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "contacts": 0,
+        "sim_time_s": 52.1,
+        "path_length_m": 4.528537372235628,
+        "emergency_slew_overrides": 0,
+        "wall_time_s": 21.364841184000397,
+        "yaw_min": 1.5307963730572784,
+        "yaw_max": 1.6107963092486515
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/slalom_delay.json",
+    "sha256": "d224fdd47ddf32f804765c5f18489132f608cce2c2c0587c61ebb621a1510aee",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.18,
+              1.55
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.18,
+              1.83
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.82,
+              3.0
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.82,
+              3.28
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.18,
+              4.45
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            0.28
+          ],
+          [
+            -0.405,
+            0.28
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed A* + collision-constrained Laplacian smoothing and orientation-gated bounded holonomic SE2 follower",
+        "kinematics": "HOLONOMIC PLANAR WITH YAW, NOT PHYSICAL GAIT",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          31
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.28 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY",
+        "parameters": {
+          "vmax": 0.16,
+          "amax": 0.2,
+          "wmax": 0.18,
+          "angular_accel_max": 0.35,
+          "lookahead": 0.05,
+          "yaw_offset_limit": 0.04
+        },
+        "sensor_mode": "delay"
+      },
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "contacts": 0,
+        "sim_time_s": 7.199999999999999,
+        "path_length_m": 0.3460966499576089,
+        "emergency_slew_overrides": 1,
+        "rejected_delayed_samples": 14,
+        "wall_time_s": 4.181043096999929,
+        "yaw_min": 1.5308856147991645,
+        "yaw_max": 1.5672963267948965
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/curved_slalom_20261024/results/slalom_dropout.json",
+    "sha256": "7bac323a87ac19f85a5b22286b10ecfc04e648c0f822a9d3b31cb826b949b5e8",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "goal": [
+          0.5,
+          5.05
+        ],
+        "cones": [
+          {
+            "id": "cone_01",
+            "xy": [
+              0.18,
+              1.55
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_02",
+            "xy": [
+              0.18,
+              1.83
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_03",
+            "xy": [
+              0.82,
+              3.0
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_04",
+            "xy": [
+              0.82,
+              3.28
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          },
+          {
+            "id": "cone_05",
+            "xy": [
+              0.18,
+              4.45
+            ],
+            "radius_m": 0.12,
+            "height_m": 0.32,
+            "base_side_m": 0.26,
+            "base_height_m": 0.04
+          }
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            0.28
+          ],
+          [
+            -0.405,
+            0.28
+          ]
+        ],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "pose_source": "SIM_GT_NOT_SLAM",
+        "seed": 20261024,
+        "controller": "observed A* + collision-constrained Laplacian smoothing and orientation-gated bounded holonomic SE2 follower",
+        "kinematics": "HOLONOMIC PLANAR WITH YAW, NOT PHYSICAL GAIT",
+        "course_scope": "LEFT SLALOM ONLY; no terrain/parking/full-lap qualification",
+        "allowed_floor_polygons": {
+          "floor_left_straight": [
+            [
+              0,
+              0.491
+            ],
+            [
+              1.4,
+              0.491
+            ],
+            [
+              1.0,
+              1.6
+            ],
+            [
+              1.0,
+              4.4
+            ],
+            [
+              1.4,
+              5.509
+            ],
+            [
+              0,
+              5.509
+            ]
+          ]
+        },
+        "sensor": "ideal four-height first-hit virtual LiDAR",
+        "sensor_heights_m": [
+          0.025,
+          0.1,
+          0.2,
+          0.35
+        ],
+        "candidate_radius_m": 0.0,
+        "configuration_space_expansion_cells": [
+          43,
+          31
+        ],
+        "configuration_space_note": "fixed-yaw rectangular envelope Minkowski expansion plus A* cell margin; not circumscribed body radius",
+        "full_collision_footprint_source": "animated-joint worker proposed conservative .405 longitudinal/.28 transverse; final FK audit required",
+        "routing_permissions": "PROVISIONAL_VM_ONLY",
+        "parameters": {
+          "vmax": 0.16,
+          "amax": 0.2,
+          "wmax": 0.18,
+          "angular_accel_max": 0.35,
+          "lookahead": 0.05,
+          "yaw_offset_limit": 0.04
+        },
+        "sensor_mode": "dropout"
+      },
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "contacts": 0,
+        "sim_time_s": 7.199999999999999,
+        "path_length_m": 0.3460966499576089,
+        "emergency_slew_overrides": 1,
+        "rejected_delayed_samples": 0,
+        "wall_time_s": 3.8153619020004044,
+        "yaw_min": 1.5308856147991645,
+        "yaw_max": 1.5672963267948965
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/attempt01/in.json",
+    "sha256": "02c828b98d3f1d3c728ac34134726170ec7d409fb41df8dabda684861c40b41c",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          7.4,
+          5.49,
+          3.141592653589793
+        ],
+        "goal": [
+          5.95,
+          5.49
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            0.28
+          ],
+          [
+            -0.405,
+            0.28
+          ]
+        ],
+        "cones": [],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "rectangles": {
+          "floor_in_bay": [
+            5.6,
+            4.982,
+            8,
+            6
+          ],
+          "floor_out_bay": [
+            5.6,
+            0,
+            8,
+            1.018
+          ],
+          "floor_right_straight": [
+            5.482,
+            1.018,
+            6.5,
+            4.982
+          ],
+          "floor_parking_bay": [
+            6.5,
+            2.25,
+            8,
+            3.75
+          ]
+        },
+        "allowed_floor_polygons": {
+          "floor_in_bay": [
+            [
+              5.6,
+              4.982
+            ],
+            [
+              8,
+              4.982
+            ],
+            [
+              8,
+              6
+            ],
+            [
+              5.6,
+              6
+            ]
+          ],
+          "floor_out_bay": [
+            [
+              5.6,
+              0
+            ],
+            [
+              8,
+              0
+            ],
+            [
+              8,
+              1.018
+            ],
+            [
+              5.6,
+              1.018
+            ]
+          ],
+          "floor_right_straight": [
+            [
+              5.482,
+              1.018
+            ],
+            [
+              6.5,
+              1.018
+            ],
+            [
+              6.5,
+              4.982
+            ],
+            [
+              5.482,
+              4.982
+            ]
+          ],
+          "floor_parking_bay": [
+            [
+              6.5,
+              2.25
+            ],
+            [
+              8,
+              2.25
+            ],
+            [
+              8,
+              3.75
+            ],
+            [
+              6.5,
+              3.75
+            ]
+          ]
+        },
+        "controller": "existing VM A* + clearance constrained Laplacian smoothing + bounded holonomic follower",
+        "pose_source": "SIM_GT",
+        "sensing": "known static map, NO sensor validation",
+        "parameters": {
+          "vmax_m_s": 0.16,
+          "amax_m_s2": 0.2,
+          "dt_s": 0.1,
+          "lookahead_m": 0.1,
+          "yaw": "fixed per segment"
+        },
+        "terrain": "not executed",
+        "parking_sit": "not simulated",
+        "opening": null
+      },
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "sim_time_s": 3.1,
+        "path_length_m": 0.0,
+        "swept_checks": 93,
+        "violations": 0,
+        "max_uncovered_area_m2": 0,
+        "parking_full_body_contained": null,
+        "kinematic_zero_command_hold_s": null,
+        "physical_stopping_evidence": false,
+        "exit_body_rear_x": null,
+        "whole_body_beyond_proposed_exit_plane": null,
+        "full_course_success": false,
+        "max_velocity_slew_m_s2": 0
+      }
+    }
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/attempt01/parking.json",
+    "sha256": "e841ad39aee6ecaf7fd44e8cff7d8e171991debbd35f1f79f8c44239042189c9",
+    "retained_summary": {
+      "scene": {
+        "start": [
+          5.99,
+          2.0,
+          1.5707963267948966
+        ],
+        "goal": [
+          7.25,
+          3.0
+        ],
+        "footprint": [
+          [
+            -0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            -0.28
+          ],
+          [
+            0.405,
+            0.28
+          ],
+          [
+            -0.405,
+            0.28
+          ]
+        ],
+        "cones": [],
+        "arena_revision": "corridor-parallel-20261024-v1",
+        "rectangles": {
+          "floor_in_bay": [
+            5.6,
+            4.982,
+            8,
+            6
+          ],
+          "floor_out_bay": [
+            5.6,
+            0,
+            8,
+            1.018
+          ],
+          "floor_right_straight": [
+            5.482,
+            1.018,
+            6.5,
+            4.982
+          ],
+          "floor_parking_bay": [
+            6.5,
+            2.25,
+            8,
+            3.75
+          ]
+        },
+        "allowed_floor_polygons": {
+          "floor_in_bay": [
+            [
+              5.6,
+              4.982
+            ],
+            [
+              8,
+              4.982
+            ],
+            [
+              8,
+              6
+            ],
+            [
+              5.6,
+              6
+            ]
+          ],
+          "floor_out_bay": [
+            [
+              5.6,
+              0
+            ],
+            [
+              8,
+              0
+            ],
+            [
+              8,
+              1.018
+            ],
+            [
+              5.6,
+              1.018
+            ]
+          ],
+          "floor_right_straight": [
+            [
+              5.482,
+              1.018
+            ],
+            [
+              6.5,
+              1.018
+            ],
+            [
+              6.5,
+              4.982
+            ],
+            [
+              5.482,
+              4.982
+            ]
+          ],
+          "floor_parking_bay": [
+            [
+              6.5,
+              2.25
+            ],
+            [
+              8,
+              2.25
+            ],
+            [
+              8,
+              3.75
+            ],
+            [
+              6.5,
+              3.75
+            ]
+          ]
+        },
+        "controller": "existing VM A* + clearance constrained Laplacian smoothing + bounded holonomic follower",
+        "pose_source": "SIM_GT",
+        "sensing": "known static map, NO sensor validation",
+        "parameters": {
+          "vmax_m_s": 0.16,
+          "amax_m_s2": 0.2,
+          "dt_s": 0.1,
+          "lookahead_m": 0.1,
+          "yaw": "fixed per segment"
+        },
+        "terrain": "not executed",
+        "parking_sit": "not simulated",
+        "opening": null
+      },
+      "metrics": {
+        "outcome": "POSITION_AND_HOLD_COMPLETE",
+        "sim_time_s": 20.7,
+        "path_length_m": 1.8934858790331215,
+        "swept_checks": 2289,
+        "violations": 0,
+        "max_uncovered_area_m2": 0,
+        "parking_full_body_contained": true,
+        "kinematic_zero_command_hold_s": 5.0,
+        "physical_stopping_evidence": false,
+        "exit_body_rear_x": null,
+        "whole_body_beyond_proposed_exit_plane": null,
+        "full_course_success": false,
+        "max_velocity_slew_m_s2": 0.7280944828772281
+      }
+    }
+  }
+]

@@ -1,0 +1,278 @@
+[
+  {
+    "image": 0,
+    "trace_index": 0,
+    "t": 0.0,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 1,
+    "trace_index": 1,
+    "t": 0.06666666666666667,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 2,
+    "trace_index": 2,
+    "t": 0.13333333333333333,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 3,
+    "trace_index": 3,
+    "t": 0.2,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 4,
+    "trace_index": 4,
+    "t": 0.26666666666666666,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 5,
+    "trace_index": 5,
+    "t": 0.3333333333333333,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 6,
+    "trace_index": 6,
+    "t": 0.4,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 7,
+    "trace_index": 7,
+    "t": 0.4666666666666667,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 8,
+    "trace_index": 8,
+    "t": 0.5333333333333333,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 9,
+    "trace_index": 9,
+    "t": 0.6,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 10,
+    "trace_index": 10,
+    "t": 0.6666666666666666,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 11,
+    "trace_index": 11,
+    "t": 0.7333333333333333,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 12,
+    "trace_index": 12,
+    "t": 0.8,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 13,
+    "trace_index": 13,
+    "t": 0.8666666666666667,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 14,
+    "trace_index": 14,
+    "t": 0.9333333333333333,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 15,
+    "trace_index": 15,
+    "t": 1.0,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 16,
+    "trace_index": 16,
+    "t": 1.0666666666666667,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 17,
+    "trace_index": 17,
+    "t": 1.1333333333333333,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 18,
+    "trace_index": 18,
+    "t": 1.2,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 19,
+    "trace_index": 19,
+    "t": 1.2666666666666666,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 20,
+    "trace_index": 20,
+    "t": 1.3333333333333333,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 21,
+    "trace_index": 21,
+    "t": 1.4,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 22,
+    "trace_index": 22,
+    "t": 1.4666666666666666,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 23,
+    "trace_index": 23,
+    "t": 1.5333333333333332,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 24,
+    "trace_index": 24,
+    "t": 1.6,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 25,
+    "trace_index": 25,
+    "t": 1.6666666666666667,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 26,
+    "trace_index": 26,
+    "t": 1.7333333333333334,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 27,
+    "trace_index": 27,
+    "t": 1.8,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 28,
+    "trace_index": 28,
+    "t": 1.8666666666666667,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 29,
+    "trace_index": 29,
+    "t": 1.9333333333333333,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 30,
+    "trace_index": 30,
+    "t": 2.0,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 31,
+    "trace_index": 31,
+    "t": 2.0666666666666664,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 32,
+    "trace_index": 32,
+    "t": 2.1333333333333333,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 33,
+    "trace_index": 33,
+    "t": 2.2,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 34,
+    "trace_index": 34,
+    "t": 2.2666666666666666,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 35,
+    "trace_index": 35,
+    "t": 2.3333333333333335,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 36,
+    "trace_index": 36,
+    "t": 2.4,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 37,
+    "trace_index": 37,
+    "t": 2.466666666666667,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 38,
+    "trace_index": 38,
+    "t": 2.533333333333333,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 39,
+    "trace_index": 39,
+    "t": 2.6,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 40,
+    "trace_index": 40,
+    "t": 2.6666666666666665,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 41,
+    "trace_index": 41,
+    "t": 2.7333333333333334,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 42,
+    "trace_index": 42,
+    "t": 2.8,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 43,
+    "trace_index": 43,
+    "t": 2.8666666666666667,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 44,
+    "trace_index": 44,
+    "t": 2.933333333333333,
+    "state": "SAFE_WAIT"
+  },
+  {
+    "image": 45,
+    "trace_index": 45,
+    "t": 3.0,
+    "state": "SAFE_WAIT"
+  }
+]

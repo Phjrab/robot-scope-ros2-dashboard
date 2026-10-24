@@ -1,0 +1,41 @@
+{
+  "joint_record_sha256": "cee0711e1ff19c75328d76b2115a9769e7176124f7d819d70ceb8cd2ace5a924",
+  "validation": {
+    "frames": 448,
+    "min_mesh_ground_clearance_m": 0.0009113376803507878,
+    "max_foot_ik_residual_m": 2.3479724158959924e-16,
+    "max_consecutive_stance_xy_slip_m": 0,
+    "articulated_local_bounds_m": [
+      [
+        -0.39438583249085235,
+        -0.2356658078345846,
+        -0.33316322231964923
+      ],
+      [
+        0.33068000000000003,
+        0.2634341608811669,
+        0.08883
+      ]
+    ],
+    "joint_limits_pass": true,
+    "physics": false,
+    "collision_requalification": "NOT_RUN: original static-footprint trace metrics do not certify this articulated envelope",
+    "animation_stride_m": 0.16,
+    "trace_sha256": "d8cf828fb1cd6da5248f682f2bee37c1fbe13dd64aa4c499613ea13748155d2a",
+    "original_metrics": {
+      "outcome": "GOAL_REACHED",
+      "contacts": 0,
+      "sim_time_s": 29.9,
+      "path_length_m": 4.784000000000003,
+      "wall_time_s": 10.123293644000114,
+      "seed": 20261024,
+      "count": 5,
+      "x_min": 0.33000000000000007,
+      "x_max": 0.67
+    }
+  },
+  "planned_transverse_halfwidth_m": 0.245,
+  "observed_transverse_max_m": 0.2634341608811669,
+  "result": "FAIL_ARTICULATED_ENVELOPE_FIT",
+  "diagnosis": "Default 0.16 m gait stride extends lateral feet outside proposed planar footprint; not robot scaling; preserve failed evidence"
+}

@@ -1,0 +1,18 @@
+{
+  "empty": {
+    "identical_excluding_wall_time": true,
+    "canonical_sha256": "f5933fc0debbbbd6d630f3bb6ef3d7e7e54fa548310c6e692d91c6d660cfc291"
+  },
+  "slalom_3": {
+    "identical_excluding_wall_time": true,
+    "canonical_sha256": "b9a66068f8305d533be2228a696c6ae3efff4442a674a065d4a61213261dc676"
+  },
+  "slalom_5": {
+    "identical_excluding_wall_time": true,
+    "canonical_sha256": "3a3fd6dbbdfb922b90c0c2f460d1c3d04fbceeea516d182a2c3856dcaf583a89"
+  },
+  "blocked_5": {
+    "identical_excluding_wall_time": true,
+    "canonical_sha256": "76b920751854faeff00088a0e1ab8bdc92d23a2f33621dbb571e9f5d9c1b883b"
+  }
+}

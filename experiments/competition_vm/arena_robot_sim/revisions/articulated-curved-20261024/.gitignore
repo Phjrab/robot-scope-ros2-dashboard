@@ -1,0 +1,7 @@
+__pycache__/
+output/*/frames/
+output/*/labeled/
+output/**/*.blend
+output/**/*.blend1
+
+attempts/**/render/

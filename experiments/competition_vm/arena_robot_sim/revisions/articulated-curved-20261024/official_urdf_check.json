@@ -1,0 +1,55 @@
+{
+  "url": "https://raw.githubusercontent.com/unitreerobotics/unitree_ros/f3772ce54c56ef2d34c6aee8100bc768896c7d19/robots/go2_description/urdf/go2_description.urdf",
+  "sha256": "7d19fe48e2e689ee1a032ab99f2a4a8b671d87e73de48d3e65811682a5b48b9e",
+  "checked_joint_limits": {
+    "FL_hip_joint": {
+      "lower": -1.0472,
+      "upper": 1.0472
+    },
+    "FL_thigh_joint": {
+      "lower": -1.5708,
+      "upper": 3.4907
+    },
+    "FL_calf_joint": {
+      "lower": -2.7227,
+      "upper": -0.83776
+    },
+    "FR_hip_joint": {
+      "lower": -1.0472,
+      "upper": 1.0472
+    },
+    "FR_thigh_joint": {
+      "lower": -1.5708,
+      "upper": 3.4907
+    },
+    "FR_calf_joint": {
+      "lower": -2.7227,
+      "upper": -0.83776
+    },
+    "RL_hip_joint": {
+      "lower": -1.0472,
+      "upper": 1.0472
+    },
+    "RL_thigh_joint": {
+      "lower": -0.5236,
+      "upper": 4.5379
+    },
+    "RL_calf_joint": {
+      "lower": -2.7227,
+      "upper": -0.83776
+    },
+    "RR_hip_joint": {
+      "lower": -1.0472,
+      "upper": 1.0472
+    },
+    "RR_thigh_joint": {
+      "lower": -0.5236,
+      "upper": 4.5379
+    },
+    "RR_calf_joint": {
+      "lower": -2.7227,
+      "upper": -0.83776
+    }
+  },
+  "all_match": true
+}

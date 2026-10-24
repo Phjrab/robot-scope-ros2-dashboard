@@ -1,0 +1,2353 @@
+EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
+Failed to create /home/agent/.cache/mesa_shader_cache for shader cache (Read-only file system)---disabling.
+Failed to create /home/agent/.cache/mesa_shader_cache_db for shader cache (Read-only file system)---disabling.
+EGL Error (0x3009): EGL_BAD_MATCH: Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).
+Blender 4.3.2
+Read blend: "/workspace/scratch/b09eacf6919d/robot-scope-left-slalom-20261024/assets/competition-arena/revisions/corridor-parallel-20261024/arena.blend"
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0000.png'
+Time: 00:02.10 (Saving: 00:00.15)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0001.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0002.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0003.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0004.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0005.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0006.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0007.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0008.png'
+Time: 00:00.22 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0009.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0010.png'
+Time: 00:00.18 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0011.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0012.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0013.png'
+Time: 00:00.20 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0014.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0015.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0016.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0017.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0018.png'
+Time: 00:00.22 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0019.png'
+Time: 00:00.28 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0020.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0021.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0022.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0023.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0024.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0025.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0026.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0027.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0028.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0029.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0030.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0031.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0032.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0033.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0034.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0035.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0036.png'
+Time: 00:00.23 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0037.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0038.png'
+Time: 00:00.20 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0039.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0040.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0041.png'
+Time: 00:00.18 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0042.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0043.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0044.png'
+Time: 00:00.21 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0045.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0046.png'
+Time: 00:00.18 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0047.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0048.png'
+Time: 00:00.18 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0049.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0050.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0051.png'
+Time: 00:00.18 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0052.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0053.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0054.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0055.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0056.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0057.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0058.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0059.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0060.png'
+Time: 00:00.23 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0061.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0062.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0063.png'
+Time: 00:00.23 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0064.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0065.png'
+Time: 00:00.18 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0066.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0067.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0068.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0069.png'
+Time: 00:00.23 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0070.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0071.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0072.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0073.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0074.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0075.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0076.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0077.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0078.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0079.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0080.png'
+Time: 00:00.20 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0081.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0082.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0083.png'
+Time: 00:00.22 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0084.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0085.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0086.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0087.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0088.png'
+Time: 00:00.18 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0089.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0090.png'
+Time: 00:00.30 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0091.png'
+Time: 00:00.29 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0092.png'
+Time: 00:00.24 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0093.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0094.png'
+Time: 00:00.25 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0095.png'
+Time: 00:00.22 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0096.png'
+Time: 00:00.24 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0097.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0098.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0099.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0100.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0101.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0102.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0103.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0104.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0105.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0106.png'
+Time: 00:00.24 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0107.png'
+Time: 00:00.23 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0108.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0109.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0110.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0111.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0112.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0113.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0114.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0115.png'
+Time: 00:00.27 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0116.png'
+Time: 00:00.24 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0117.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0118.png'
+Time: 00:00.22 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0119.png'
+Time: 00:00.26 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0120.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0121.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0122.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0123.png'
+Time: 00:00.23 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0124.png'
+Time: 00:00.23 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0125.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0126.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0127.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0128.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0129.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0130.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0131.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0132.png'
+Time: 00:00.22 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0133.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0134.png'
+Time: 00:00.23 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0135.png'
+Time: 00:00.23 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0136.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0137.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0138.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0139.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0140.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0141.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0142.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0143.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0144.png'
+Time: 00:00.24 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0145.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0146.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0147.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0148.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0149.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0150.png'
+Time: 00:00.24 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0151.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0152.png'
+Time: 00:00.23 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0153.png'
+Time: 00:00.21 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0154.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0155.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0156.png'
+Time: 00:00.33 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0157.png'
+Time: 00:00.24 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0158.png'
+Time: 00:00.22 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0159.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0160.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0161.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0162.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0163.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0164.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0165.png'
+Time: 00:00.22 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0166.png'
+Time: 00:00.22 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0167.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0168.png'
+Time: 00:00.26 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0169.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0170.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0171.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0172.png'
+Time: 00:00.24 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0173.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0174.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0175.png'
+Time: 00:00.24 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0176.png'
+Time: 00:00.27 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0177.png'
+Time: 00:00.26 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0178.png'
+Time: 00:00.27 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0179.png'
+Time: 00:00.26 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0180.png'
+Time: 00:00.25 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0181.png'
+Time: 00:00.26 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0182.png'
+Time: 00:00.27 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0183.png'
+Time: 00:00.27 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0184.png'
+Time: 00:00.26 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0185.png'
+Time: 00:00.33 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0186.png'
+Time: 00:00.36 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0187.png'
+Time: 00:00.26 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0188.png'
+Time: 00:00.25 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0189.png'
+Time: 00:00.28 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0190.png'
+Time: 00:00.27 (Saving: 00:00.09)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0191.png'
+Time: 00:00.34 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0192.png'
+Time: 00:00.31 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0193.png'
+Time: 00:00.30 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0194.png'
+Time: 00:00.26 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0195.png'
+Time: 00:00.24 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0196.png'
+Time: 00:00.24 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0197.png'
+Time: 00:00.25 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0198.png'
+Time: 00:00.28 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0199.png'
+Time: 00:00.26 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0200.png'
+Time: 00:00.26 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0201.png'
+Time: 00:00.29 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0202.png'
+Time: 00:00.31 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0203.png'
+Time: 00:00.25 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0204.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0205.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0206.png'
+Time: 00:00.23 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0207.png'
+Time: 00:00.28 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0208.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0209.png'
+Time: 00:00.22 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0210.png'
+Time: 00:00.24 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0211.png'
+Time: 00:00.24 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0212.png'
+Time: 00:00.25 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0213.png'
+Time: 00:00.26 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0214.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0215.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0216.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0217.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0218.png'
+Time: 00:00.23 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0219.png'
+Time: 00:00.26 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0220.png'
+Time: 00:00.25 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0221.png'
+Time: 00:00.24 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0222.png'
+Time: 00:00.23 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0223.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0224.png'
+Time: 00:00.24 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0225.png'
+Time: 00:00.24 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0226.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0227.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0228.png'
+Time: 00:00.23 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0229.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0230.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0231.png'
+Time: 00:00.23 (Saving: 00:00.09)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0232.png'
+Time: 00:00.27 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0233.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0234.png'
+Time: 00:00.22 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0235.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0236.png'
+Time: 00:00.26 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0237.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0238.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0239.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0240.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0241.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0242.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0243.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0244.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0245.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0246.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0247.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0248.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0249.png'
+Time: 00:00.22 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0250.png'
+Time: 00:00.24 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0251.png'
+Time: 00:00.22 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0252.png'
+Time: 00:00.24 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0253.png'
+Time: 00:00.23 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0254.png'
+Time: 00:00.27 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0255.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0256.png'
+Time: 00:00.21 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0257.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0258.png'
+Time: 00:00.21 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0259.png'
+Time: 00:00.22 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0260.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0261.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0262.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0263.png'
+Time: 00:00.22 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0264.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0265.png'
+Time: 00:00.24 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0266.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0267.png'
+Time: 00:00.27 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0268.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0269.png'
+Time: 00:00.18 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0270.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0271.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0272.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0273.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0274.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0275.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0276.png'
+Time: 00:00.20 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0277.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0278.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0279.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0280.png'
+Time: 00:00.21 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0281.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0282.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0283.png'
+Time: 00:00.20 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0284.png'
+Time: 00:00.20 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0285.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0286.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0287.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0288.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0289.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0290.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0291.png'
+Time: 00:00.24 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0292.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0293.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0294.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0295.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0296.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0297.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0298.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0299.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0300.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0301.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0302.png'
+Time: 00:00.21 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0303.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0304.png'
+Time: 00:00.22 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0305.png'
+Time: 00:00.25 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0306.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0307.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0308.png'
+Time: 00:00.23 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0309.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0310.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0311.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0312.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0313.png'
+Time: 00:00.24 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0314.png'
+Time: 00:00.25 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0315.png'
+Time: 00:00.23 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0316.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0317.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0318.png'
+Time: 00:00.22 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0319.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0320.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0321.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0322.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0323.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0324.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0325.png'
+Time: 00:00.29 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0326.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0327.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0328.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0329.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0330.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0331.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0332.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0333.png'
+Time: 00:00.18 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0334.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0335.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0336.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0337.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0338.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0339.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0340.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0341.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0342.png'
+Time: 00:00.21 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0343.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0344.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0345.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0346.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0347.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0348.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0349.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0350.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0351.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0352.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0353.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0354.png'
+Time: 00:00.23 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0355.png'
+Time: 00:00.23 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0356.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0357.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0358.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0359.png'
+Time: 00:00.22 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0360.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0361.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0362.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0363.png'
+Time: 00:00.36 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0364.png'
+Time: 00:00.28 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0365.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0366.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0367.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0368.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0369.png'
+Time: 00:00.22 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0370.png'
+Time: 00:00.20 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0371.png'
+Time: 00:00.21 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0372.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0373.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0374.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0375.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0376.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0377.png'
+Time: 00:00.18 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0378.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0379.png'
+Time: 00:00.21 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0380.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0381.png'
+Time: 00:00.18 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0382.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0383.png'
+Time: 00:00.24 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0384.png'
+Time: 00:00.18 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0385.png'
+Time: 00:00.20 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0386.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0387.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0388.png'
+Time: 00:00.18 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0389.png'
+Time: 00:00.18 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0390.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0391.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0392.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0393.png'
+Time: 00:00.23 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0394.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0395.png'
+Time: 00:00.23 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0396.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0397.png'
+Time: 00:00.22 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0398.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0399.png'
+Time: 00:00.26 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0400.png'
+Time: 00:00.27 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0401.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0402.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0403.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0404.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0405.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0406.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0407.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0408.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0409.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0410.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0411.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0412.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0413.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0414.png'
+Time: 00:00.21 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0415.png'
+Time: 00:00.18 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0416.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0417.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0418.png'
+Time: 00:00.23 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0419.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0420.png'
+Time: 00:00.24 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0421.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0422.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0423.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0424.png'
+Time: 00:00.21 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0425.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0426.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0427.png'
+Time: 00:00.22 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0428.png'
+Time: 00:00.27 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0429.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0430.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0431.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0432.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0433.png'
+Time: 00:00.21 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0434.png'
+Time: 00:00.20 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0435.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0436.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0437.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0438.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0439.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0440.png'
+Time: 00:00.21 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0441.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0442.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0443.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0444.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0445.png'
+Time: 00:00.21 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0446.png'
+Time: 00:00.25 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0447.png'
+Time: 00:00.27 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0448.png'
+Time: 00:00.21 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0449.png'
+Time: 00:00.24 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0450.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0451.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0452.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0453.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0454.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0455.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0456.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0457.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0458.png'
+Time: 00:00.18 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0459.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0460.png'
+Time: 00:00.18 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0461.png'
+Time: 00:00.20 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0462.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0463.png'
+Time: 00:00.28 (Saving: 00:00.11)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0464.png'
+Time: 00:00.24 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0465.png'
+Time: 00:00.27 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0466.png'
+Time: 00:00.25 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0467.png'
+Time: 00:00.21 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0468.png'
+Time: 00:00.25 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0469.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0470.png'
+Time: 00:00.21 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0471.png'
+Time: 00:00.21 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0472.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0473.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0474.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0475.png'
+Time: 00:00.22 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0476.png'
+Time: 00:00.18 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0477.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0478.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0479.png'
+Time: 00:00.20 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0480.png'
+Time: 00:00.23 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0481.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0482.png'
+Time: 00:00.20 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0483.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0484.png'
+Time: 00:00.22 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0485.png'
+Time: 00:00.31 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0486.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0487.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0488.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0489.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0490.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0491.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0492.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0493.png'
+Time: 00:00.18 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0494.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0495.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0496.png'
+Time: 00:00.18 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0497.png'
+Time: 00:00.18 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0498.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0499.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0500.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0501.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0502.png'
+Time: 00:00.18 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0503.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0504.png'
+Time: 00:00.18 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0505.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0506.png'
+Time: 00:00.18 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0507.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0508.png'
+Time: 00:00.18 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0509.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0510.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0511.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0512.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0513.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0514.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0515.png'
+Time: 00:00.20 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0516.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0517.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0518.png'
+Time: 00:00.21 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0519.png'
+Time: 00:00.26 (Saving: 00:00.09)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0520.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0521.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0522.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0523.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0524.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0525.png'
+Time: 00:00.23 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0526.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0527.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0528.png'
+Time: 00:00.27 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0529.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0530.png'
+Time: 00:00.25 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0531.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0532.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0533.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0534.png'
+Time: 00:00.24 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0535.png'
+Time: 00:00.30 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0536.png'
+Time: 00:00.24 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0537.png'
+Time: 00:00.25 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0538.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0539.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0540.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0541.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0542.png'
+Time: 00:00.23 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0543.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0544.png'
+Time: 00:00.22 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0545.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0546.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0547.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0548.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0549.png'
+Time: 00:00.21 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0550.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0551.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0552.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0553.png'
+Time: 00:00.20 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0554.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0555.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0556.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0557.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0558.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0559.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0560.png'
+Time: 00:00.20 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0561.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0562.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0563.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0564.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0565.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0566.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0567.png'
+Time: 00:00.24 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0568.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0569.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0570.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0571.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0572.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0573.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0574.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0575.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0576.png'
+Time: 00:00.22 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0577.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0578.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0579.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0580.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0581.png'
+Time: 00:00.22 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0582.png'
+Time: 00:00.22 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0583.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0584.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0585.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0586.png'
+Time: 00:00.20 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0587.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0588.png'
+Time: 00:00.21 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0589.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0590.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0591.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0592.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0593.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0594.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0595.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0596.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0597.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0598.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0599.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0600.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0601.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0602.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0603.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0604.png'
+Time: 00:00.18 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0605.png'
+Time: 00:00.20 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0606.png'
+Time: 00:00.18 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0607.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0608.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0609.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0610.png'
+Time: 00:00.20 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0611.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0612.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0613.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0614.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0615.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0616.png'
+Time: 00:00.21 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0617.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0618.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0619.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0620.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0621.png'
+Time: 00:00.20 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0622.png'
+Time: 00:00.20 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0623.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0624.png'
+Time: 00:00.20 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0625.png'
+Time: 00:00.20 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0626.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0627.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0628.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0629.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0630.png'
+Time: 00:00.18 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0631.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0632.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0633.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0634.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0635.png'
+Time: 00:00.18 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0636.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0637.png'
+Time: 00:00.18 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0638.png'
+Time: 00:00.18 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0639.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0640.png'
+Time: 00:00.18 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0641.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0642.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0643.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0644.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0645.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0646.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0647.png'
+Time: 00:00.18 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0648.png'
+Time: 00:00.18 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0649.png'
+Time: 00:00.18 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0650.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0651.png'
+Time: 00:00.17 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0652.png'
+Time: 00:00.18 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0653.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0654.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0655.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0656.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0657.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0658.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0659.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0660.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0661.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0662.png'
+Time: 00:00.22 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0663.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0664.png'
+Time: 00:00.26 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0665.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0666.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0667.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0668.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0669.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0670.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0671.png'
+Time: 00:00.27 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0672.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0673.png'
+Time: 00:00.20 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0674.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0675.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0676.png'
+Time: 00:00.25 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0677.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0678.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0679.png'
+Time: 00:00.21 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0680.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0681.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0682.png'
+Time: 00:00.18 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0683.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0684.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0685.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0686.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0687.png'
+Time: 00:00.18 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0688.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0689.png'
+Time: 00:00.29 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0690.png'
+Time: 00:00.24 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0691.png'
+Time: 00:00.21 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0692.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0693.png'
+Time: 00:00.21 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0694.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0695.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0696.png'
+Time: 00:00.23 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0697.png'
+Time: 00:00.20 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0698.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0699.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0700.png'
+Time: 00:00.20 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0701.png'
+Time: 00:00.20 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0702.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0703.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0704.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0705.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0706.png'
+Time: 00:00.23 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0707.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0708.png'
+Time: 00:00.18 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0709.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0710.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0711.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0712.png'
+Time: 00:00.25 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0713.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0714.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0715.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0716.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0717.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0718.png'
+Time: 00:00.21 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0719.png'
+Time: 00:00.21 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0720.png'
+Time: 00:00.49 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0721.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0722.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0723.png'
+Time: 00:00.21 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0724.png'
+Time: 00:00.24 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0725.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0726.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0727.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0728.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0729.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0730.png'
+Time: 00:00.20 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0731.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0732.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0733.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0734.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0735.png'
+Time: 00:00.23 (Saving: 00:00.08)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0736.png'
+Time: 00:00.31 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0737.png'
+Time: 00:00.23 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0738.png'
+Time: 00:00.26 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0739.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0740.png'
+Time: 00:00.23 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0741.png'
+Time: 00:00.26 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0742.png'
+Time: 00:00.23 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0743.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0744.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0745.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0746.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0747.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0748.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0749.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0750.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0751.png'
+Time: 00:00.21 (Saving: 00:00.07)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0752.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0753.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0754.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0755.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0756.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0757.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0758.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0759.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0760.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0761.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0762.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0763.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0764.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0765.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0766.png'
+Time: 00:00.19 (Saving: 00:00.05)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0767.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0768.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0769.png'
+Time: 00:00.19 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0770.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0771.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0772.png'
+Time: 00:00.33 (Saving: 00:00.10)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0773.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0774.png'
+Time: 00:00.22 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0775.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0776.png'
+Time: 00:00.20 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0777.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0778.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0779.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Saved: '/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/slalom_5/frames/0780.png'
+Time: 00:00.21 (Saving: 00:00.06)
+
+Info: Saved "articulated_scene.blend"
+Failed to open dir (No such file or directory): /home/agent/.cache/blender/gl-shader-cache/
+
+Blender quit

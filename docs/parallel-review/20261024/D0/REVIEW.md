@@ -174,3 +174,23 @@ A	experiments/competition_vm/traffic_signals/tests/test_lifecycle_d0.py
 ### 원격 main 재확인 (2026-10-24 12:33 UTC)
 
 브랜치 제출 직전 원격 main은 `b38ffad1ec262d0a6e3bdade2a834085b66ae224`로 전진해 있었다. D0는 그 변경을 만들거나 합치지 않았으며 실제 작업 기준7f2a707을 그대로 유지했다. 새로운 main과의 호환성/충돌은 C1의 후속 검토 대상이다. 이번 작업이 main을 변경하지 않았다는 말은 D0의 쓰기 행위가 없다는 뜻이지, 다른 작업에 의한 원격 main 변경이 없다는 뜻이 아니다.
+
+## G. 후속 승인: 완료된 관절·슬라럼·부분 코스 및 근거 자료 게시
+
+2026-10-24 사용자 지시로 결과 파일은 채팅 첨부 대신 이 D0 검토 브랜치에 게시한다. 앞의 최초 D0 제출 HEAD는 `6403aab3afef96efa778b5265afd7ce5b351265c`이며 최초 CI run40094503100은 두 환경 모두2691검사 중1manifest failure/2skip/0error로 실패했다. 아래 추가분은 별도 실험의 완료된 결과만 포함하고 기존 D0 소스·원래 경기장·생산 설정은 수정하지 않는다. 최종 원격 HEAD와 그 CI는 게시 후 응답에서 확인한다.
+
+### 포함 결과와 해석
+
+- `articulated-20261024`: 기존 고정 yaw 슬라럼 및 막힌 경로를 저장 trace와 Go2 관절 IK로 재생. `articulated-curved-20261024`: 별도의 OPEN DIAGNOSTIC 배치에서 같은 콘·start/goal·body·seed의 fixed/variable yaw 비교. 3D 메시의 출처 및 기존 Unitree BSD-3-Clause 고지는 그대로 유지한다. 실제 관절 telemetry, 힘/접촉/마찰/균형 또는 보행 제어기를 검증한 결과가 아니다.
+- `left_slalom_20261024`, `curved_slalom_20261024`: 원래 좁은5콘 배치의 곡선 후보는 **NOT_ADOPTED**. 넓힌 별도 OPEN DIAGNOSTIC의 결과를 원래 배치 성공으로 바꾸지 않는다. 같은 진단 배치에서 기록된 명령 가속도 최대치는1.069→0.200m/s²이고 새 기록에만 명시적인 terminal zero가 있다. 물리 가속도 측정이 아니다. visual hull clearance는0.116168→0.102134m로 감소했으므로 안전 여유가 향상됐다고 주장하지 않는다.
+- `full_course_flat_segments_20261024`: 실제 평면 closed-loop IN9.8초, P접근·5초 hold 포함21.0초, P→가정된 OUT45.5초, 닫힌 OUT 대조군 SAFE_WAIT. 경사·계단은 실행하지 않은 전환으로 표시한다. OUT 개구부는 시나리오 가정이며 공식 개구부 확인이 아니다. 전 코스 완주/실제 앉기/물리 정지 검증이 아닌 **PARTIAL** 결과다. 렌더링에 필요한 이전 sequence helper 소스만 의존성으로 보존한다.
+- `evidence/quadruped_navigation_research_20261024`: 공식 SDK/Nav2/물리 시뮬레이터 자료를 근거로 다음 검증 단계를 제안한다. 외부 코드나 모델 가중치를 새로 도입하지 않았다.
+- `evidence/nav2_parameter_evidence_20261024`: 원격 main `7ef47dc249e4dba83865e78dc283f40013ea92de`를 읽어 조사한 패널 근거다. 이 D0 기준에 그 main 변경을 병합하지 않았다. 저장소 기본값과 로봇 runtime 값을 구분하며 UI/설정/서비스를 변경하지 않았다.
+
+### 게시 subset과 재현 검증
+
+`demo-publication/`의 manifest·복원 도구·검증 기록이 이번 게시 subset의 기준이다. 원본 source/test와 선택한 결과 파일은 그대로 복사했고 큰 최종 trace/joint JSON17개는 lossless gzip으로 저장했다. 복원된 원본 bytes의 SHA256과 크기를 확인한 뒤 테스트했다. 큰 실패/반복 raw·프레임·중간 blend·중복 영상은 로컬에 보존하고 제외 목록에 hash와 compact metrics를 기록했다. 기존 원본 SHA256SUMS 목록에는 제외 파일도 있으므로 이를 원격 subset 목록으로 오인하지 않는다.
+
+새 fresh copy에서 관련 검사95 PASS(기본 gait10+10, slalom10, curved14, flat7, 기존 독립16, 새 독립14+14), JavaScript660 PASS, 저장소 및 gzip 확장 내용 secret scan PASS, 영상3개의 hash/ffprobe frame·크기·시간 검사 PASS. 두 새 독립14검사에는 공통6 synthetic fixture가 반복되므로95를95개 고유 물리 시나리오로 해석하면 안 된다. 전체 Python2691검사는1manifest failure/25socket PermissionErrors/1skip로 실패했다. 이는 이번 fresh 실행 traceback에 따른 결과이며 원격 CI에서도25errors가 난다고 주장하지 않는다. 최초 D0230검사는 소스 변경이 없어 이번 추가분에서 재실행하지 않았다.
+
+`curved_progress_20261024` 및 이후 개선 후보는 이 게시에 포함하지 않는다. main/PR/merge/기기 접속/운영 설정 변경은 수행하지 않는다. 기존 C1 revision evidence 연결 차단은 여전히 해결되지 않았으며, 이 결과 게시를 통합 승인으로 간주하지 않는다.

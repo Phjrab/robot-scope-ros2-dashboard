@@ -1,0 +1,11 @@
+test_default_envelope_characterization (test_synthetic_curves.SyntheticCurves.test_default_envelope_characterization) ... ok
+test_ground_nonpenetration (test_synthetic_curves.SyntheticCurves.test_ground_nonpenetration) ... ok
+test_independent_fk_targets (test_synthetic_curves.SyntheticCurves.test_independent_fk_targets) ... ok
+test_joint_ranges (test_synthetic_curves.SyntheticCurves.test_joint_ranges) ... ok
+test_pause_all_stance_and_frozen (test_synthetic_curves.SyntheticCurves.test_pause_all_stance_and_frozen) ... ok
+test_stance_anchor_slip_zero (test_synthetic_curves.SyntheticCurves.test_stance_anchor_slip_zero) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 9.965s
+
+OK

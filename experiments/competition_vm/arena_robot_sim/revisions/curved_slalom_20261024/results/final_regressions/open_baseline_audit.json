@@ -1,0 +1,10 @@
+{
+  "trace_sha256": "bc54b20f098ca832f7be738b4d60db96d65ed85473974bbdffe8f75d78f0db21",
+  "poses_audited": 2926,
+  "polygon_floor_or_cone_violations": 0,
+  "min_polygon_clearance_m": 0.053603568629332854,
+  "straight_reference_contact_samples": 726,
+  "static_floor_scope": "whole robot inside left slalom polygon",
+  "pose_interpolation": "11samples every0.1s, maximum1.6mm translation betweenauditposes",
+  "pass_geometry": true
+}

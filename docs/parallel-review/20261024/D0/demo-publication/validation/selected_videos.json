@@ -1,0 +1,68 @@
+{
+  "scope": "File integrity and decoded frame/timing checks; not new physical validation",
+  "results": [
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-20261024/output/go2_articulated_slalom_and_blocked.mp4",
+      "sha256": "ba620b9a3f39678ed6d8b00015beba21b7bbf0905f810bb9d3b88099735339bb",
+      "status": "PASS",
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "width": 960,
+            "height": 770,
+            "r_frame_rate": "15/1",
+            "nb_read_frames": "491"
+          }
+        ],
+        "format": {
+          "duration": "32.733333",
+          "size": "2194045"
+        }
+      }
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/output/go2_open_diagnostic_before_after.mp4",
+      "sha256": "74fb36529518550a789dc3825df3cb1d3835e80e1a286a14937c9f641177f3a9",
+      "status": "PASS",
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "width": 1280,
+            "height": 570,
+            "r_frame_rate": "15/1",
+            "nb_read_frames": "775"
+          }
+        ],
+        "format": {
+          "duration": "51.666667",
+          "size": "2798846"
+        }
+      }
+    },
+    {
+      "path": "experiments/competition_vm/arena_robot_sim/revisions/full_course_flat_segments_20261024/output/full_course_partial_closed_loop.mp4",
+      "sha256": "de522dffb74410ac82f05dc823c947c592d8b18c3a0d01779d004c99819e4f58",
+      "status": "PASS",
+      "probe": {
+        "programs": [],
+        "stream_groups": [],
+        "streams": [
+          {
+            "width": 1280,
+            "height": 860,
+            "r_frame_rate": "12/1",
+            "nb_read_frames": "642"
+          }
+        ],
+        "format": {
+          "duration": "53.500000",
+          "size": "426251"
+        }
+      }
+    }
+  ]
+}

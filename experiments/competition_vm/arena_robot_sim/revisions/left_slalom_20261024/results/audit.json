@@ -1,0 +1,42 @@
+{
+  "empty": {
+    "trace_sha256": "9edea05bccc1710b81480c87459f6192b266ac8176c92c298e4ba1be4a36ffba",
+    "poses_audited": 2783,
+    "polygon_floor_or_cone_violations": 0,
+    "min_polygon_clearance_m": 0.05399999999999994,
+    "straight_reference_contact_samples": 0,
+    "static_floor_scope": "whole robot inside left slalom polygon",
+    "pose_interpolation": "11samples every0.1s, maximum1.6mm translation betweenauditposes",
+    "pass_geometry": true
+  },
+  "slalom_3": {
+    "trace_sha256": "cabf017a75c1536664a0079b1b217be4100bf6d002e58ef56fe605e08932b06a",
+    "poses_audited": 3146,
+    "polygon_floor_or_cone_violations": 0,
+    "min_polygon_clearance_m": 0.04555846225718243,
+    "straight_reference_contact_samples": 782,
+    "static_floor_scope": "whole robot inside left slalom polygon",
+    "pose_interpolation": "11samples every0.1s, maximum1.6mm translation betweenauditposes",
+    "pass_geometry": true
+  },
+  "slalom_5": {
+    "trace_sha256": "e0754856cecc8747b09cfb3f35de7a22482bfb9de9177db67da26bcdf99fca11",
+    "poses_audited": 3267,
+    "polygon_floor_or_cone_violations": 0,
+    "min_polygon_clearance_m": 0.03505012850666922,
+    "straight_reference_contact_samples": 919,
+    "static_floor_scope": "whole robot inside left slalom polygon",
+    "pose_interpolation": "11samples every0.1s, maximum1.6mm translation betweenauditposes",
+    "pass_geometry": true
+  },
+  "blocked_5": {
+    "trace_sha256": "5bb828969be6f82da2ed35abff262e467a3c31eadd948788590ba18b3529ee49",
+    "poses_audited": 341,
+    "polygon_floor_or_cone_violations": 0,
+    "min_polygon_clearance_m": 0.05399999999999994,
+    "straight_reference_contact_samples": 748,
+    "static_floor_scope": "whole robot inside left slalom polygon",
+    "pose_interpolation": "11samples every0.1s, maximum1.6mm translation betweenauditposes",
+    "pass_geometry": true
+  }
+}

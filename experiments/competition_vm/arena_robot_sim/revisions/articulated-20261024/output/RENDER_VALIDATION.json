@@ -1,0 +1,54 @@
+{
+  "slalom_5": {
+    "source_sha256": "e0754856cecc8747b09cfb3f35de7a22482bfb9de9177db67da26bcdf99fca11",
+    "frame_count": 445,
+    "source_t_range": [
+      0.0,
+      29.6
+    ],
+    "terminal_state": "GOAL_REACHED",
+    "state_mapping_verified": true,
+    "probe": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "width": 960,
+          "height": 770,
+          "r_frame_rate": "15/1",
+          "nb_frames": "445"
+        }
+      ],
+      "format": {
+        "duration": "29.666667"
+      }
+    },
+    "video_sha256": "82099b185d53d4484d307bea0ee01e902bf45bcaa07b5608e7f45c19a233ba9d"
+  },
+  "blocked_5": {
+    "source_sha256": "5bb828969be6f82da2ed35abff262e467a3c31eadd948788590ba18b3529ee49",
+    "frame_count": 46,
+    "source_t_range": [
+      0.0,
+      3.0
+    ],
+    "terminal_state": "SAFE_WAIT",
+    "state_mapping_verified": true,
+    "probe": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "width": 960,
+          "height": 770,
+          "r_frame_rate": "15/1",
+          "nb_frames": "46"
+        }
+      ],
+      "format": {
+        "duration": "3.066667"
+      }
+    },
+    "video_sha256": "eb4f02c09178fec2dbc0c0ee631e259371d7ac4c3b1a92329ad47a50327923aa"
+  }
+}

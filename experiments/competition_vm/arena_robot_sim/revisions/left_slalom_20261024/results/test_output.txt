@@ -1,0 +1,15 @@
+test_cones_full_bases_inside_floor (__main__.SlalomTests.test_cones_full_bases_inside_floor) ... ok
+test_cones_nonoverlapping (__main__.SlalomTests.test_cones_nonoverlapping) ... ok
+test_count_bound (__main__.SlalomTests.test_count_bound) ... ok
+test_dense_polygon_audit (__main__.SlalomTests.test_dense_polygon_audit) ... ok
+test_envelope_not_shrunk (__main__.SlalomTests.test_envelope_not_shrunk) ... ok
+test_kinematic_speed (__main__.SlalomTests.test_kinematic_speed) ... ok
+test_outcomes (__main__.SlalomTests.test_outcomes) ... ok
+test_real_weaving_required (__main__.SlalomTests.test_real_weaving_required) ... ok
+test_repeat (__main__.SlalomTests.test_repeat) ... ok
+test_sweep_stops_mid_segment_contact (__main__.SlalomTests.test_sweep_stops_mid_segment_contact) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.729s
+
+OK

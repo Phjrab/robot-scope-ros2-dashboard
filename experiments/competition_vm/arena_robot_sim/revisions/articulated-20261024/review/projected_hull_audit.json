@@ -1,0 +1,34 @@
+{
+  "results": [
+    {
+      "case": "cone_detour",
+      "poses": 2791,
+      "wall_or_cone_intersections": 0,
+      "floor_edge_sample_violations": 0,
+      "cone_containment": 0,
+      "min_planar_hull_to_boundary_clearance_m": 0.15666078381629892,
+      "min_mesh_ground_m": 0.0008988846923422902,
+      "interpolation_substeps": 10,
+      "floor_edge_sample_spacing_m": 0.005,
+      "clearance_sample_hz": 15
+    },
+    {
+      "case": "blocked",
+      "poses": 901,
+      "wall_or_cone_intersections": 0,
+      "floor_edge_sample_violations": 0,
+      "cone_containment": 0,
+      "min_planar_hull_to_boundary_clearance_m": 0.28932,
+      "min_mesh_ground_m": 0.0010000000203503022,
+      "interpolation_substeps": 10,
+      "floor_edge_sample_spacing_m": 0.005,
+      "clearance_sample_hz": 15
+    }
+  ],
+  "limitations": [
+    "Sampling/interpolated geometric check, not continuous certified collision proof",
+    "Original static-footprint planner metrics remain distinct",
+    "Uses original provisional floor with parking extension permitted",
+    "No contact-force, self-collision, balance, gait controller, real sensor or hardware validation"
+  ]
+}

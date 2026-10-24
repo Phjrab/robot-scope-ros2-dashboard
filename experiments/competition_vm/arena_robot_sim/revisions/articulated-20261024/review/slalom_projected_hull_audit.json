@@ -1,0 +1,54 @@
+{
+  "results": [
+    {
+      "case": "slalom_5",
+      "poses": 4441,
+      "wall_or_cone_intersections": 0,
+      "floor_edge_sample_violations": 0,
+      "cone_containment": 0,
+      "min_planar_hull_to_boundary_clearance_m": 0.08410081429587057,
+      "min_mesh_ground_m": 0.0008848783462433174,
+      "interpolation_substeps": 10,
+      "floor_edge_sample_spacing_m": 0.005,
+      "clearance_sample_hz": 15,
+      "planned_envelope_violations": 0,
+      "max_local_abs_x_m": 0.39624815181889295,
+      "max_local_abs_y_m": 0.26276048389202483,
+      "joint_limit_violations": 0,
+      "planned_local_half_extents_m": [
+        0.405,
+        0.28
+      ],
+      "source_trace_sha256": "e0754856cecc8747b09cfb3f35de7a22482bfb9de9177db67da26bcdf99fca11",
+      "joint_record_sha256": "29687b8f860285c01c815680eab7ffee35ab6f8a87f042a01ec83fd86cd4e47b"
+    },
+    {
+      "case": "blocked_5",
+      "poses": 451,
+      "wall_or_cone_intersections": 0,
+      "floor_edge_sample_violations": 0,
+      "cone_containment": 0,
+      "min_planar_hull_to_boundary_clearance_m": 0.10064524572460154,
+      "min_mesh_ground_m": 0.0010000000203502918,
+      "interpolation_substeps": 10,
+      "floor_edge_sample_spacing_m": 0.005,
+      "clearance_sample_hz": 15,
+      "planned_envelope_violations": 0,
+      "max_local_abs_x_m": 0.3583547542753984,
+      "max_local_abs_y_m": 0.16142,
+      "joint_limit_violations": 0,
+      "planned_local_half_extents_m": [
+        0.405,
+        0.28
+      ],
+      "source_trace_sha256": "5bb828969be6f82da2ed35abff262e467a3c31eadd948788590ba18b3529ee49",
+      "joint_record_sha256": "7ddb8d20ecf1411a9f0aec1f476dac63d156ff3ce481176949e2fc61bc658368"
+    }
+  ],
+  "limitations": [
+    "Sampling/interpolated geometric check, not continuous certified collision proof",
+    "Original static-footprint planner metrics remain distinct",
+    "Uses corrected-revision fences and strictly left-corridor allowed floor; no parking permission",
+    "No contact-force, self-collision, balance, gait controller, real sensor or hardware validation"
+  ]
+}

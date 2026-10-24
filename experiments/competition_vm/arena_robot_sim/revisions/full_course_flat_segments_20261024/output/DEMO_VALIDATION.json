@@ -1,0 +1,80 @@
+{
+  "full_course_pass": false,
+  "physical_gait_validated": false,
+  "source_controller_note": "flat segments reuse VM A*/smoothing/bounded velocity family; slalom is prior fixed-yaw baseline, NOT new tight-layout curved success",
+  "inputs": {
+    "in": {
+      "sha256": "6adbba7bc9cf71997878a57ccadee22211a6b2a861299fbaf1d5ade4353da261",
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "sim_time_s": 9.8,
+        "path_length_m": 1.2518295081908137,
+        "swept_checks": 1413,
+        "violations": 0,
+        "max_uncovered_area_m2": 0,
+        "parking_full_body_contained": null,
+        "kinematic_zero_command_hold_s": 0.0,
+        "physical_stopping_evidence": false,
+        "exit_body_rear_x": null,
+        "whole_body_beyond_proposed_exit_plane": null,
+        "full_course_success": false,
+        "max_velocity_slew_m_s2": 0.20000000000000018
+      }
+    },
+    "parking": {
+      "sha256": "6bb9d610adcee9b642b911f02d41a3c50f5a24bf9684692f1da09a9c57c76683",
+      "metrics": {
+        "outcome": "POSITION_AND_HOLD_COMPLETE",
+        "sim_time_s": 21.0,
+        "path_length_m": 1.9033287135194388,
+        "swept_checks": 2304,
+        "violations": 0,
+        "max_uncovered_area_m2": 0,
+        "parking_full_body_contained": true,
+        "kinematic_zero_command_hold_s": 5.0,
+        "physical_stopping_evidence": false,
+        "exit_body_rear_x": null,
+        "whole_body_beyond_proposed_exit_plane": null,
+        "full_course_success": false,
+        "max_velocity_slew_m_s2": 0.20000000000000007
+      }
+    },
+    "out": {
+      "sha256": "eb73af524fea1a0ccaf8b7b387e0a4e712e9e8632c8c0fbed910337d2a5e7ecc",
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "sim_time_s": 45.5,
+        "path_length_m": 5.751776802392119,
+        "swept_checks": 6471,
+        "violations": 0,
+        "max_uncovered_area_m2": 8.881784197001252e-16,
+        "parking_full_body_contained": null,
+        "kinematic_zero_command_hold_s": 0.0,
+        "physical_stopping_evidence": false,
+        "exit_body_rear_x": 8.280770085218233,
+        "whole_body_beyond_proposed_exit_plane": true,
+        "full_course_success": false,
+        "max_velocity_slew_m_s2": 0.20000000000000018
+      }
+    },
+    "slalom": {
+      "sha256": "e0754856cecc8747b09cfb3f35de7a22482bfb9de9177db67da26bcdf99fca11",
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "contacts": 0,
+        "sim_time_s": 29.7,
+        "path_length_m": 4.752000000000005,
+        "wall_time_s": 10.14619622300006,
+        "seed": 20261024,
+        "count": 5,
+        "x_min": 0.3500000000000001,
+        "x_max": 0.67
+      }
+    }
+  },
+  "terrain_and_signal_gaps": "not executed",
+  "parking_physics": "not validated, planar position+zero command only",
+  "exit": "assumed opening and apron, original asset untouched",
+  "video_frames": 642,
+  "fps": 12
+}

@@ -1,0 +1,36 @@
+{
+  "open_layout_5_DIAGNOSTIC": {
+    "frames": 757,
+    "min_mesh_ground_clearance_m": 0.0009999999961191608,
+    "max_foot_ik_residual_m": 2.4912465244908755e-16,
+    "max_consecutive_stance_xy_slip_m": 0,
+    "articulated_local_bounds_m": [
+      [
+        -0.3967451064309697,
+        -0.19370070921721358,
+        -0.33307456000388086
+      ],
+      [
+        0.33068000000000003,
+        0.20554543770840913,
+        0.08883
+      ]
+    ],
+    "joint_limits_pass": true,
+    "physics": false,
+    "collision_requalification": "NOT_RUN: original static-footprint trace metrics do not certify this articulated envelope",
+    "animation_stride_m": 0.16,
+    "trace_sha256": "4ca312c7fe15558ae94c1343798b819754c0fa48e768fcdfa2544665a6abeef4",
+    "original_metrics": {
+      "outcome": "GOAL_REACHED",
+      "contacts": 0,
+      "sim_time_s": 50.5,
+      "path_length_m": 4.1946449208257,
+      "emergency_slew_overrides": 0,
+      "rejected_delayed_samples": 0,
+      "wall_time_s": 56.45679707800082,
+      "yaw_min": 1.4516940632178128,
+      "yaw_max": 1.6907464496279965
+    }
+  }
+}

@@ -1,0 +1,12 @@
+test_closed_exit_no_apron (test_flat.FlatTests.test_closed_exit_no_apron) ... ok
+test_contiguous_parking_out_start (test_flat.FlatTests.test_contiguous_parking_out_start) ... ok
+test_exit_is_proposed (test_flat.FlatTests.test_exit_is_proposed) ... ok
+test_outcomes (test_flat.FlatTests.test_outcomes) ... ok
+test_parking_hold_and_containment (test_flat.FlatTests.test_parking_hold_and_containment) ... ok
+test_speed_and_acceleration (test_flat.FlatTests.test_speed_and_acceleration) ... ok
+test_swept_floor_independent (test_flat.FlatTests.test_swept_floor_independent) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.598s
+
+OK

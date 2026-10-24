@@ -1,0 +1,3 @@
+FINAL SELECTED: open_normal and matching open_baseline, OPEN DIAGNOSTIC LAYOUT ONLY.
+These are different cone positions from the original tight-layout experiment. The original-layout curved planner is NOT ADOPTED. Old slalom_5 and comparison files are candidate01 diagnostics and not selected; see attempts/candidate_01/STATUS.txt.
+Full independent geometry audits pass for final pair; video verification is separately recorded in RENDER_VALIDATION.json after encoding.

@@ -1,0 +1,3 @@
+# Restored lossless fixtures; publish matching .gz artifacts instead.
+/open_baseline_joints.json
+/open_normal_joints.json

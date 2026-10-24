@@ -1,0 +1,72 @@
+{
+  "cone_detour": {
+    "frames": 280,
+    "min_mesh_ground_clearance_m": 0.0009008081768671072,
+    "max_foot_ik_residual_m": 2.42861286636753e-16,
+    "max_consecutive_stance_xy_slip_m": 0,
+    "articulated_local_bounds_m": [
+      [
+        -0.39993825153135265,
+        -0.20057787407741987,
+        -0.3331737518231329
+      ],
+      [
+        0.33068000000000003,
+        0.2030691266498504,
+        0.08883
+      ]
+    ],
+    "joint_limits_pass": true,
+    "physics": false,
+    "collision_requalification": "NOT_RUN: original static-footprint trace metrics do not certify this articulated envelope",
+    "trace_sha256": "cb5b2f31994815c2e61f909931d72442fcf26b8b86f194b446ffcdc669f2518e",
+    "original_metrics": {
+      "straight_reference_contact_samples": 76,
+      "outcome": "GOAL_REACHED",
+      "contacts": 0,
+      "sim_time_s": 18.6,
+      "path_length_m": 2.7858597410995922,
+      "min_grid_circumscribed_clearance_proxy_m": 0.03225799882150321,
+      "min_sampled_planar_envelope_edge_clearance_m": 0.12696577996627556,
+      "clearance_sample_hz": 5,
+      "wall_time_s": 4.180562257766724,
+      "expected": "GOAL_REACHED",
+      "pass": true
+    }
+  },
+  "blocked": {
+    "frames": 91,
+    "min_mesh_ground_clearance_m": 0.0010000000203503334,
+    "max_foot_ik_residual_m": 2.0816681711721685e-17,
+    "max_consecutive_stance_xy_slip_m": 0,
+    "articulated_local_bounds_m": [
+      [
+        -0.35835475427539826,
+        -0.1613800000000003,
+        -0.3330745599796497
+      ],
+      [
+        0.33068000000000003,
+        0.16142000000000029,
+        0.08883
+      ]
+    ],
+    "joint_limits_pass": true,
+    "physics": false,
+    "collision_requalification": "NOT_RUN: original static-footprint trace metrics do not certify this articulated envelope",
+    "trace_sha256": "eb6548174a7df1fa1a2d08fcc72e7a1fd3ce07ade8387f18b195f34c0f8e17fc",
+    "original_metrics": {
+      "straight_reference_contact_samples": 76,
+      "outcome": "SAFE_WAIT",
+      "contacts": 0,
+      "sim_time_s": 6.0,
+      "path_length_m": 0.0,
+      "min_grid_circumscribed_clearance_proxy_m": 0.08705216631211721,
+      "min_sampled_planar_envelope_edge_clearance_m": 0.262,
+      "clearance_sample_hz": 5,
+      "wall_time_s": 1.4790406227111816,
+      "expected": "SAFE_WAIT",
+      "pass": true
+    }
+  }
+}

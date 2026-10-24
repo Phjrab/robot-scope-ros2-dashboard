@@ -1,0 +1,26 @@
+{
+  "probe": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "width": 1280,
+        "height": 570,
+        "r_frame_rate": "15/1",
+        "nb_frames": "775"
+      }
+    ],
+    "format": {
+      "duration": "51.666667"
+    }
+  },
+  "sha256": "74fb36529518550a789dc3825df3cb1d3835e80e1a286a14937c9f641177f3a9",
+  "same_cones_verified": true,
+  "same_footprint_verified": true,
+  "baseline_terminal_hold_labeled": true,
+  "source_normal_sha256": "528b1705fc10c3bb1fef92f87f5b2a8f5c86a6d1852d535de6902ce01f8cbb72",
+  "source_baseline_sha256": "bc54b20f098ca832f7be738b4d60db96d65ed85473974bbdffe8f75d78f0db21",
+  "pixel_preview_inspected": "before_after_preview.png",
+  "not_original_tight_layout": true,
+  "physics": false
+}

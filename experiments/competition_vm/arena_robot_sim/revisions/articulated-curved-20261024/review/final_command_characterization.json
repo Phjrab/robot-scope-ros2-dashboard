@@ -1,0 +1,19 @@
+{
+  "cases": {
+    "open_normal": {
+      "max_recorded_command_acceleration_m_s2": 0.2000000000000007,
+      "terminal_zero_command": true,
+      "last_record_t_s": 51.6,
+      "last_record_pose_t_s": 51.7,
+      "metric_sim_duration_s": 51.7
+    },
+    "open_baseline": {
+      "max_recorded_command_acceleration_m_s2": 1.0690360313586071,
+      "terminal_zero_command": false,
+      "last_record_t_s": 26.5,
+      "last_record_pose_t_s": 26.6,
+      "metric_sim_duration_s": 26.6
+    }
+  },
+  "limits": "Finite difference of recorded world XY commands; not measured physical acceleration. No implicit zero appended to legacy baseline."
+}

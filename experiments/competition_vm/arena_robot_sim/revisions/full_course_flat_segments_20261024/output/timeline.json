@@ -1,0 +1,101 @@
+[
+  {
+    "phase": "OVERVIEW",
+    "first_frame": 0,
+    "frame_count": 36,
+    "video_duration_s": 3.0,
+    "source_time_start": null,
+    "source_time_end": null,
+    "playback_speed": null,
+    "mode": "unexecuted schematic",
+    "reset_before": false
+  },
+  {
+    "phase": "IN",
+    "first_frame": 36,
+    "frame_count": 58,
+    "video_duration_s": 4.833333333333333,
+    "source_time_start": 0.1,
+    "source_time_end": 9.8,
+    "playback_speed": 2,
+    "mode": "recorded planar simulation",
+    "reset_before": false
+  },
+  {
+    "phase": "RAMP_GAP",
+    "first_frame": 94,
+    "frame_count": 60,
+    "video_duration_s": 5.0,
+    "source_time_start": null,
+    "source_time_end": null,
+    "playback_speed": null,
+    "mode": "unexecuted schematic",
+    "reset_before": false
+  },
+  {
+    "phase": "SLALOM",
+    "first_frame": 154,
+    "frame_count": 89,
+    "video_duration_s": 7.416666666666667,
+    "source_time_start": 0.1,
+    "source_time_end": 29.7,
+    "playback_speed": 4,
+    "mode": "recorded planar simulation",
+    "reset_before": true
+  },
+  {
+    "phase": "STAIR_GAP",
+    "first_frame": 243,
+    "frame_count": 60,
+    "video_duration_s": 5.0,
+    "source_time_start": null,
+    "source_time_end": null,
+    "playback_speed": null,
+    "mode": "unexecuted schematic",
+    "reset_before": false
+  },
+  {
+    "phase": "P_APPROACH",
+    "first_frame": 303,
+    "frame_count": 95,
+    "video_duration_s": 7.916666666666667,
+    "source_time_start": 0.1,
+    "source_time_end": 16.0,
+    "playback_speed": 2,
+    "mode": "recorded planar simulation",
+    "reset_before": true
+  },
+  {
+    "phase": "P_HOLD",
+    "first_frame": 398,
+    "frame_count": 60,
+    "video_duration_s": 5.0,
+    "source_time_start": 16.0,
+    "source_time_end": 21.0,
+    "playback_speed": 1,
+    "mode": "recorded planar simulation",
+    "reset_before": false
+  },
+  {
+    "phase": "OUT",
+    "first_frame": 458,
+    "frame_count": 136,
+    "video_duration_s": 11.333333333333334,
+    "source_time_start": 0.1,
+    "source_time_end": 45.5,
+    "playback_speed": 4,
+    "mode": "recorded planar simulation",
+    "reset_before": false
+  },
+  {
+    "phase": "SUMMARY",
+    "first_frame": 594,
+    "frame_count": 48,
+    "video_duration_s": 4.0,
+    "source_time_start": null,
+    "source_time_end": null,
+    "playback_speed": null,
+    "mode": "unexecuted schematic",
+    "reset_before": false
+  }
+]

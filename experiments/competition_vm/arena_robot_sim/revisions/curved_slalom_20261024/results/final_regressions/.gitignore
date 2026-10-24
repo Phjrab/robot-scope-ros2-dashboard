@@ -1,0 +1,6 @@
+# Restored lossless fixtures; publish matching .gz artifacts instead.
+/blocked_5.json
+/open_baseline.json
+/open_delay.json
+/open_dropout.json
+/open_normal.json

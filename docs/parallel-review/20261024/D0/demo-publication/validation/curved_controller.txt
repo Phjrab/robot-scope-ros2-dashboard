@@ -1,0 +1,19 @@
+test_blocked_safe_wait (test_curved.Regression.test_blocked_safe_wait) ... ok
+test_delayed_input_rejected (test_curved.Regression.test_delayed_input_rejected) ... ok
+test_dropout_stops (test_curved.Regression.test_dropout_stops) ... ok
+test_footprint_not_reduced (test_curved.Regression.test_footprint_not_reduced) ... ok
+test_goal_and_pose_timestamps_monotonic (test_curved.Regression.test_goal_and_pose_timestamps_monotonic) ... ok
+test_metrics_do_not_claim_native (test_curved.Regression.test_metrics_do_not_claim_native) ... ok
+test_no_collision_any_case (test_curved.Regression.test_no_collision_any_case) ... ok
+test_no_emergency_override_normal (test_curved.Regression.test_no_emergency_override_normal) ... ok
+test_normal_slew_limits (test_curved.Regression.test_normal_slew_limits) ... ok
+test_open_goal_stopped (test_curved.Regression.test_open_goal_stopped) ... ok
+test_qualification_and_clearance (test_curved.Regression.test_qualification_and_clearance) ... ok
+test_receiver_and_source_age_separate (test_curved.Regression.test_receiver_and_source_age_separate) ... ok
+test_shared_open_fixture (test_curved.Regression.test_shared_open_fixture) ... ok
+test_velocity_and_yaw_rate_limits (test_curved.Regression.test_velocity_and_yaw_rate_limits) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 2.649s
+
+OK

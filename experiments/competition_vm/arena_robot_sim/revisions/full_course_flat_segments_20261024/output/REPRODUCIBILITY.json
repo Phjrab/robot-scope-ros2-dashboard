@@ -1,0 +1,9 @@
+{
+  "two_run_identical": true,
+  "trace_sha256": {
+    "in": "6adbba7bc9cf71997878a57ccadee22211a6b2a861299fbaf1d5ade4353da261",
+    "parking": "6bb9d610adcee9b642b911f02d41a3c50f5a24bf9684692f1da09a9c57c76683",
+    "out": "eb73af524fea1a0ccaf8b7b387e0a4e712e9e8632c8c0fbed910337d2a5e7ecc",
+    "out_closed": "7c31e56ea0f17d8740f5487c44013e7e47bc25765952366ddcf1374203398eca"
+  }
+}

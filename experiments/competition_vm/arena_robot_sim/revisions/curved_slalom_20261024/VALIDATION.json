@@ -1,0 +1,199 @@
+{
+  "scope": "VM synthetic holonomic planar only; no hardware, native Nav2, contact physics, commit or publication",
+  "qualification": {
+    "original_tight_5_cones": "NOT_ADOPTED: first curved success failed 3cm clearance; stricter candidates SAFE_WAIT. Not an impossibility proof.",
+    "open_diagnostic_layout": "ADOPTED_FOR_VM_DIAGNOSTIC_ONLY"
+  },
+  "tests": {
+    "count": 14,
+    "status": "PASS",
+    "log": "results/final_regressions/test_output.txt"
+  },
+  "repeat": {
+    "identical_excluding_wall_time": true,
+    "canonical_sha256": "21900242cda00bba5a4817ce77cb977b47651fe13c9ac6c4fc67d1bac7cb584f"
+  },
+  "comparison": {
+    "open_baseline": {
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "contacts": 0,
+        "sim_time_s": 26.6,
+        "path_length_m": 4.256000000000002,
+        "wall_time_s": 12.164831058000345,
+        "seed": 20261024,
+        "count": 5,
+        "x_min": 0.3500000000000001,
+        "x_max": 0.65
+      },
+      "motion": {
+        "max_recorded_linear_accel_m_s2": 1.069036031358607,
+        "max_linear_accel_including_assumed_initial_rest_m_s2": 1.5999999999999996,
+        "lateral_only_s": 0.0,
+        "simultaneous_forward_lateral_s": 7.1000000000000005,
+        "moving_s": 26.6,
+        "yaw_excursion_deg": 0.0,
+        "terminal_zero": false
+      },
+      "geometry": {
+        "trace_sha256": "bc54b20f098ca832f7be738b4d60db96d65ed85473974bbdffe8f75d78f0db21",
+        "poses_audited": 2926,
+        "polygon_floor_or_cone_violations": 0,
+        "min_polygon_clearance_m": 0.053603568629332854,
+        "straight_reference_contact_samples": 726,
+        "static_floor_scope": "whole robot inside left slalom polygon",
+        "pose_interpolation": "11samples every0.1s, maximum1.6mm translation betweenauditposes",
+        "pass_geometry": true
+      }
+    },
+    "open_normal": {
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "contacts": 0,
+        "sim_time_s": 51.7,
+        "path_length_m": 4.24778012182941,
+        "emergency_slew_overrides": 0,
+        "rejected_delayed_samples": 0,
+        "wall_time_s": 56.799034523000046,
+        "yaw_min": 1.4516940632178128,
+        "yaw_max": 1.6907464496279965
+      },
+      "motion": {
+        "max_recorded_linear_accel_m_s2": 0.2000000000000001,
+        "max_linear_accel_including_assumed_initial_rest_m_s2": 0.2000000000000001,
+        "lateral_only_s": 0.0,
+        "simultaneous_forward_lateral_s": 17.1,
+        "moving_s": 51.6,
+        "yaw_excursion_deg": 13.696692823834042,
+        "terminal_zero": true
+      },
+      "geometry": {
+        "trace_sha256": "528b1705fc10c3bb1fef92f87f5b2a8f5c86a6d1852d535de6902ce01f8cbb72",
+        "poses_audited": 5687,
+        "polygon_floor_or_cone_violations": 0,
+        "min_polygon_clearance_m": 0.045303660146111646,
+        "straight_reference_contact_samples": 726,
+        "static_floor_scope": "whole robot inside left slalom polygon",
+        "pose_interpolation": "11samples every0.1s, maximum1.6mm translation betweenauditposes",
+        "pass_geometry": true
+      }
+    },
+    "open_dropout": {
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "contacts": 0,
+        "sim_time_s": 7.199999999999999,
+        "path_length_m": 0.32513921060105194,
+        "emergency_slew_overrides": 1,
+        "rejected_delayed_samples": 0,
+        "wall_time_s": 11.836299466999662,
+        "yaw_min": 1.4516940632178128,
+        "yaw_max": 1.5672963267948965
+      },
+      "motion": {
+        "max_recorded_linear_accel_m_s2": 0.7734205946416718,
+        "max_linear_accel_including_assumed_initial_rest_m_s2": 0.7734205946416718,
+        "lateral_only_s": 0.0,
+        "simultaneous_forward_lateral_s": 4.0,
+        "moving_s": 4.1000000000000005,
+        "yaw_excursion_deg": 6.623521805125815,
+        "terminal_zero": true
+      },
+      "geometry": {
+        "trace_sha256": "66c23a9d52dbf8196c6b67de26dfa85132b342d3358427f766fea8154e180b7f",
+        "poses_audited": 792,
+        "polygon_floor_or_cone_violations": 0,
+        "min_polygon_clearance_m": 0.04933981585141067,
+        "straight_reference_contact_samples": 726,
+        "static_floor_scope": "whole robot inside left slalom polygon",
+        "pose_interpolation": "11samples every0.1s, maximum1.6mm translation betweenauditposes",
+        "pass_geometry": true
+      }
+    },
+    "open_delay": {
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "contacts": 0,
+        "sim_time_s": 7.199999999999999,
+        "path_length_m": 0.32513921060105194,
+        "emergency_slew_overrides": 1,
+        "rejected_delayed_samples": 14,
+        "wall_time_s": 11.24799217600048,
+        "yaw_min": 1.4516940632178128,
+        "yaw_max": 1.5672963267948965
+      },
+      "motion": {
+        "max_recorded_linear_accel_m_s2": 0.7734205946416718,
+        "max_linear_accel_including_assumed_initial_rest_m_s2": 0.7734205946416718,
+        "lateral_only_s": 0.0,
+        "simultaneous_forward_lateral_s": 4.0,
+        "moving_s": 4.1000000000000005,
+        "yaw_excursion_deg": 6.623521805125815,
+        "terminal_zero": true
+      },
+      "geometry": {
+        "trace_sha256": "c5258140a12cd7eafd3500558cd9b1751cb6c2a41a15a64502bc883a8ef670c2",
+        "poses_audited": 792,
+        "polygon_floor_or_cone_violations": 0,
+        "min_polygon_clearance_m": 0.04933981585141067,
+        "straight_reference_contact_samples": 726,
+        "static_floor_scope": "whole robot inside left slalom polygon",
+        "pose_interpolation": "11samples every0.1s, maximum1.6mm translation betweenauditposes",
+        "pass_geometry": true
+      }
+    },
+    "blocked_5": {
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "contacts": 0,
+        "sim_time_s": 3.1,
+        "path_length_m": 0.0,
+        "emergency_slew_overrides": 0,
+        "rejected_delayed_samples": 0,
+        "wall_time_s": 4.3167437929996595,
+        "yaw_min": 1.5707963267948966,
+        "yaw_max": 1.5707963267948966
+      },
+      "motion": {
+        "max_recorded_linear_accel_m_s2": 0.0,
+        "max_linear_accel_including_assumed_initial_rest_m_s2": 0.0,
+        "lateral_only_s": 0.0,
+        "simultaneous_forward_lateral_s": 0.0,
+        "moving_s": 0.0,
+        "yaw_excursion_deg": 0.0,
+        "terminal_zero": true
+      },
+      "geometry": {
+        "trace_sha256": "3641298d57f88e8bf92a7c5b7ea89a47ccb1e5b53008717363998d09b04feec4",
+        "poses_audited": 341,
+        "polygon_floor_or_cone_violations": 0,
+        "min_polygon_clearance_m": 0.05399999999999994,
+        "straight_reference_contact_samples": 748,
+        "static_floor_scope": "whole robot inside left slalom polygon",
+        "pose_interpolation": "11samples every0.1s, maximum1.6mm translation betweenauditposes",
+        "pass_geometry": true
+      }
+    }
+  },
+  "source_sha256": "ae86df634512e7633fec3efde2b28fb5cb9ea44ea858c28f5e4f576bdd4eb362",
+  "render_input_frozen": true,
+  "articulated_audit": {
+    "status": "PASS",
+    "scope": "FK animation and projected geometry; not contact physics",
+    "independent_reports": [
+      "/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/open_normal_FINAL_audit.json",
+      "/workspace/scratch/b09eacf6919d/robot-scope-joint-animation-20261024/experiments/competition_vm/arena_robot_sim/revisions/articulated-curved-20261024/review/open_baseline_FINAL_audit.json"
+    ],
+    "interpolated_poses": 11722,
+    "wall_cone_floor_envelope_limits_violations": 0,
+    "new_mesh_clearance_m": 0.10213,
+    "baseline_mesh_clearance_m": 0.11617
+  },
+  "not_run": [
+    "real robot",
+    "native ROS/Nav2",
+    "contact-dynamics simulation",
+    "terrain traversability",
+    "sensor noise robustness"
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "unitree_sdk2": {
+    "url": "https://github.com/unitreerobotics/unitree_sdk2.git",
+    "ref": "refs/heads/main",
+    "result": "d1abf001220d3e5f59e00a0c4aaa595e00089a4a\trefs/heads/main",
+    "returncode": 0,
+    "error": ""
+  },
+  "unitree_sdk2_python": {
+    "url": "https://github.com/unitreerobotics/unitree_sdk2_python.git",
+    "ref": "refs/heads/master",
+    "result": "814556d15970dd2ecf1c9984e845ca02ab07e206\trefs/heads/master",
+    "returncode": 0,
+    "error": ""
+  },
+  "unitree_mujoco": {
+    "url": "https://github.com/unitreerobotics/unitree_mujoco.git",
+    "ref": "refs/heads/main",
+    "result": "1eb6642e3f3fdfb7fb13a9794fd6a2dd93ea0e7d\trefs/heads/main",
+    "returncode": 0,
+    "error": ""
+  },
+  "unitree_rl_lab": {
+    "url": "https://github.com/unitreerobotics/unitree_rl_lab.git",
+    "ref": "refs/heads/main",
+    "result": "4960b84732b0c2ec593dccbfe963fda1bcd7b1e3\trefs/heads/main",
+    "returncode": 0,
+    "error": ""
+  },
+  "elevation_mapping_cupy": {
+    "url": "https://github.com/leggedrobotics/elevation_mapping_cupy.git",
+    "ref": "refs/tags/v2.0.0",
+    "result": "daf83fb5cc61448e641b445504dc965c1978e69a\trefs/tags/v2.0.0",
+    "returncode": 0,
+    "error": ""
+  },
+  "nav2_humble": {
+    "url": "https://github.com/ros-navigation/navigation2.git",
+    "ref": "refs/heads/humble",
+    "result": "3c3db59d6969d8ecee8e68468693d006397f4a0c\trefs/heads/humble",
+    "returncode": 0,
+    "error": ""
+  },
+  "ocs2": {
+    "url": "https://github.com/leggedrobotics/ocs2.git",
+    "ref": "refs/heads/main",
+    "result": "26386754b8bf31ab78b503971d0cbf4fdbcd7cb4\trefs/heads/main",
+    "returncode": 0,
+    "error": ""
+  },
+  "fdm": {
+    "url": "https://github.com/leggedrobotics/fdm.git",
+    "ref": "refs/heads/main",
+    "result": "06f5d8033bafed4f6838662af99ba31cbd4f5ce0\trefs/heads/main",
+    "returncode": 0,
+    "error": ""
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "evidence": "SYNTHETIC_HOLONOMIC_PLANAR",
+  "base_commit": "70091a007624f8afd45fdb7ca60f550fdb03ac05",
+  "arena_revision": "corridor-parallel-20261024-v1",
+  "tests": {
+    "unit_regression": 10,
+    "status": "PASS"
+  },
+  "geometric_audit": {
+    "empty": {
+      "trace_sha256": "9edea05bccc1710b81480c87459f6192b266ac8176c92c298e4ba1be4a36ffba",
+      "poses_audited": 2783,
+      "polygon_floor_or_cone_violations": 0,
+      "min_polygon_clearance_m": 0.05399999999999994,
+      "straight_reference_contact_samples": 0,
+      "static_floor_scope": "whole robot inside left slalom polygon",
+      "pose_interpolation": "11samples every0.1s, maximum1.6mm translation betweenauditposes",
+      "pass_geometry": true
+    },
+    "slalom_3": {
+      "trace_sha256": "cabf017a75c1536664a0079b1b217be4100bf6d002e58ef56fe605e08932b06a",
+      "poses_audited": 3146,
+      "polygon_floor_or_cone_violations": 0,
+      "min_polygon_clearance_m": 0.04555846225718243,
+      "straight_reference_contact_samples": 782,
+      "static_floor_scope": "whole robot inside left slalom polygon",
+      "pose_interpolation": "11samples every0.1s, maximum1.6mm translation betweenauditposes",
+      "pass_geometry": true
+    },
+    "slalom_5": {
+      "trace_sha256": "e0754856cecc8747b09cfb3f35de7a22482bfb9de9177db67da26bcdf99fca11",
+      "poses_audited": 3267,
+      "polygon_floor_or_cone_violations": 0,
+      "min_polygon_clearance_m": 0.03505012850666922,
+      "straight_reference_contact_samples": 919,
+      "static_floor_scope": "whole robot inside left slalom polygon",
+      "pose_interpolation": "11samples every0.1s, maximum1.6mm translation betweenauditposes",
+      "pass_geometry": true
+    },
+    "blocked_5": {
+      "trace_sha256": "5bb828969be6f82da2ed35abff262e467a3c31eadd948788590ba18b3529ee49",
+      "poses_audited": 341,
+      "polygon_floor_or_cone_violations": 0,
+      "min_polygon_clearance_m": 0.05399999999999994,
+      "straight_reference_contact_samples": 748,
+      "static_floor_scope": "whole robot inside left slalom polygon",
+      "pose_interpolation": "11samples every0.1s, maximum1.6mm translation betweenauditposes",
+      "pass_geometry": true
+    }
+  },
+  "reproducibility": {
+    "empty": {
+      "identical_excluding_wall_time": true,
+      "canonical_sha256": "f5933fc0debbbbd6d630f3bb6ef3d7e7e54fa548310c6e692d91c6d660cfc291"
+    },
+    "slalom_3": {
+      "identical_excluding_wall_time": true,
+      "canonical_sha256": "b9a66068f8305d533be2228a696c6ae3efff4442a674a065d4a61213261dc676"
+    },
+    "slalom_5": {
+      "identical_excluding_wall_time": true,
+      "canonical_sha256": "3a3fd6dbbdfb922b90c0c2f460d1c3d04fbceeea516d182a2c3856dcaf583a89"
+    },
+    "blocked_5": {
+      "identical_excluding_wall_time": true,
+      "canonical_sha256": "76b920751854faeff00088a0e1ab8bdc92d23a2f33621dbb571e9f5d9c1b883b"
+    }
+  },
+  "metrics": {
+    "empty": {
+      "outcome": "GOAL_REACHED",
+      "contacts": 0,
+      "sim_time_s": 25.3,
+      "path_length_m": 4.048000000000004,
+      "wall_time_s": 7.619938856000317,
+      "seed": 20261024,
+      "count": 0,
+      "x_min": 0.5038805700005813,
+      "x_max": 0.5099999999999999
+    },
+    "slalom_3": {
+      "outcome": "GOAL_REACHED",
+      "contacts": 0,
+      "sim_time_s": 28.6,
+      "path_length_m": 4.576000000000002,
+      "wall_time_s": 8.770572912999796,
+      "seed": 20261024,
+      "count": 3,
+      "x_min": 0.35000000000000003,
+      "x_max": 0.65
+    },
+    "slalom_5": {
+      "outcome": "GOAL_REACHED",
+      "contacts": 0,
+      "sim_time_s": 29.7,
+      "path_length_m": 4.752000000000005,
+      "wall_time_s": 10.14619622300006,
+      "seed": 20261024,
+      "count": 5,
+      "x_min": 0.3500000000000001,
+      "x_max": 0.67
+    },
+    "blocked_5": {
+      "outcome": "SAFE_WAIT",
+      "contacts": 0,
+      "sim_time_s": 3.1,
+      "path_length_m": 0.0,
+      "wall_time_s": 1.1663703969998096,
+      "seed": 20261024,
+      "count": 5,
+      "x_min": 0.5,
+      "x_max": 0.5
+    }
+  },
+  "articulated_mesh_audit": "PENDING_SEPARATE_RENDERER",
+  "no_hardware": true,
+  "published": false,
+  "sources": {
+    "experiments/competition_vm/arena_robot_sim/simulate.py": "231b99c3b58d4d61bb1813abb655f849a70e073415682c84e4fb23000bb10947",
+    "experiments/competition_vm/avoidance/core.py": "73b4861f1e984611c75dc9ad548434558882d0f92972865967d2e1b3c89e5e5d",
+    "assets/competition-arena/revisions/corridor-parallel-20261024/geometry.py": "2f190a554c9ce891d0b997f0ba67648c81e3a6a77e44d25533fb7e476c21856d"
+  }
+}

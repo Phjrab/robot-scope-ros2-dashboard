@@ -1,0 +1,1 @@
+PRE-TERMINAL-STOP DIAGNOSTIC, NOT FINAL. Final selected source is open_normal with explicit zero-command goal stop.

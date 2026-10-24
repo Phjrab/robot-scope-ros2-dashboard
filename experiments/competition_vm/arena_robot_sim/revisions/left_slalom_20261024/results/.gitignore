@@ -1,0 +1,5 @@
+# Restored lossless fixtures; publish matching .gz artifacts instead.
+/blocked_5.json
+/empty.json
+/slalom_3.json
+/slalom_5.json

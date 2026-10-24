@@ -1,0 +1,32 @@
+{
+  "result": {
+    "case": "open_normal",
+    "poses": 7741,
+    "wall_or_cone_intersections": 0,
+    "floor_edge_sample_violations": 0,
+    "cone_containment": 0,
+    "min_planar_hull_to_boundary_clearance_m": 0.10213387838074006,
+    "min_mesh_ground_m": 0.000971912423512352,
+    "interpolation_substeps": 10,
+    "floor_edge_sample_spacing_m": 0.005,
+    "clearance_sample_hz": 15.0,
+    "planned_envelope_violations": 0,
+    "max_local_abs_x_m": 0.396905759784005,
+    "max_local_abs_y_m": 0.20640373745207677,
+    "joint_limit_violations": 0,
+    "max_interpolated_stance_xy_error_m": 1.5008056526305132e-05,
+    "planned_local_half_extents_m": [
+      0.405,
+      0.28
+    ],
+    "source_trace_sha256": "528b1705fc10c3bb1fef92f87f5b2a8f5c86a6d1852d535de6902ce01f8cbb72",
+    "joint_record_sha256": "36e77373a6ff3b6e5a02f3657f21632630e8b2077e9e9a5bf89773eac013a1fd",
+    "fences_sha256": "6c8a3a21712e0daff0f7c4d2d93ee59aeab19d69caf077980d5df5877e776b37",
+    "gait_sha256": "ce266eeffa23238aa00553b28f3a933f0848111335adc4f9a23b339ae34a670b"
+  },
+  "limitations": [
+    "Sampled independent projected mesh hull, not continuous formal safety or contact physics",
+    "Uses trace-specific allowed floor and exact supplied fence file",
+    "No real robot, terrain gait, stability or self-collision validation"
+  ]
+}

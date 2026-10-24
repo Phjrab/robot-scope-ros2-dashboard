@@ -1,0 +1,1 @@
+NOT ADOPTED: conservative planner footprint clearance 1.63 cm, below preserved 3 cm target. Actual visual mesh hull collision check passes but does not replace planner clearance requirement.
