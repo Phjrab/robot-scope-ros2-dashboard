@@ -1,0 +1,30 @@
+{
+  "schema_version": "traffic-input-config.v0.1",
+  "model": {
+    "sha256": "f59b3d833e2ff32e194b5bb8e08d211dc7c5bdf144b90d2c8412c47ccfc83b36",
+    "provenance": "Direct user-supplied local yolov8n.pt; static pickle globals and class metadata inspected; no external weights downloaded",
+    "family": "ultralytics",
+    "package_version": "8.3.203",
+    "trusted_pickle": false
+  },
+  "class_map": {
+    "9": "traffic light"
+  },
+  "min_confidence": 0.25,
+  "association": {
+    "signal_id": "offline-v3-signal",
+    "crossing_id": "offline-v3-crossing",
+    "binding_id": "offline-v3-go2-manual-roi",
+    "native_image_size": [
+      1280,
+      720
+    ],
+    "expected_roi_native": [
+      540,
+      45,
+      640,
+      155
+    ],
+    "verified": false
+  }
+}

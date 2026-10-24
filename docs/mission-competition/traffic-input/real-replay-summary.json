@@ -1,0 +1,45 @@
+{
+  "status": "PASS",
+  "missing_inputs": [],
+  "real_model_inference": "RUN",
+  "real_rgb_decode": "PASS",
+  "real_rgb_detection_replay": "RUN",
+  "robot_observation": "NOT_RUN",
+  "traffic_accuracy": null,
+  "exposure_problem_resolved": false,
+  "input_files": 255,
+  "frames": 255,
+  "decode_errors": 0,
+  "quality_flags": {
+    "DETECTOR_MISSING": 241,
+    "ASSOCIATION_UNVERIFIED": 255,
+    "FRAME_RECEIPT_GAP": 2,
+    "ASSOCIATION_UNCERTAIN": 2
+  },
+  "stable_states": {
+    "UNKNOWN": 255
+  },
+  "complete_mission_evidence": false,
+  "wall_seconds": 15.524389730999246,
+  "session_id": "20260911T061550Z_f1becd2e93b4420ca4e97af7dee09403",
+  "source": "go2_front",
+  "capture_duration_s": 51.8,
+  "detected_frames": 88,
+  "selected_roi_frames": 12,
+  "raw_states": {
+    "UNKNOWN": 249,
+    "RED": 5,
+    "AMBIGUOUS": 1
+  },
+  "evaluation_labels": "none for traffic state; crosswalk labels not used",
+  "roi_policy": "manually inspected fixed diagnostic ROI, unverified; camera motion can leave it",
+  "source_acquisition": "read-only dashboard GET; user approved exception; no SSH/camera acquisition",
+  "model_sha256": "f59b3d833e2ff32e194b5bb8e08d211dc7c5bdf144b90d2c8412c47ccfc83b36",
+  "model_class_map": {
+    "9": "traffic light"
+  },
+  "model_class_count": 80,
+  "model_checkpoint_version": "8.0.0.dev0",
+  "loader_version_tested": "8.3.203",
+  "raw_images_uploaded": false
+}
