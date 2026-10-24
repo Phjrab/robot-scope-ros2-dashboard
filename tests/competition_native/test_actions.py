@@ -156,8 +156,10 @@ class ActionTests(unittest.IsolatedAsyncioTestCase):
             r = Rig()
             await r.hold()
             await r.dwell()
-            await r.tick(2.03, extras=Extras(departure_observed=True), body_motion_status="MOVING")
-            await r.tick(2.04, extras=extras)
+            await r.tick(2.03)
+            await r.tick(2.04, extras=Extras(departure_observed=True), body_motion_status="MOVING")
+            self.assertTrue(r.adapter.state.departed)
+            await r.tick(2.05, extras=extras)
             self.assertEqual(r.adapter.state.phase, "FAILED")
             self.assertEqual(r.ports.calls[-1], ("cancel", 2))
 

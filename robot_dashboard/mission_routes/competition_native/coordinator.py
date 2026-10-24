@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
 
-from .contracts import GoalReceipt
+from .contracts import ContinuationRequest, ExitAuthorization, GoalReceipt
 
 
 @dataclass(frozen=True)
@@ -20,7 +20,7 @@ class LegBinding:
 
 class CoordinatorNavigationPort:
     def __init__(self, coordinator, navigation, *, mission_id, admission, legs,
-                 canceled_approach_continuation=None):
+                 canceled_approach_continuation=None, successful_approach_continuation=None):
         if coordinator._coordination_lock is not navigation.coordination_lock:
             raise ValueError("EXACT_SHARED_COORDINATION_LOCK_REQUIRED")
         if admission is None or admission is not coordinator._managed_admission:
@@ -30,6 +30,9 @@ class CoordinatorNavigationPort:
         self.coordinator, self.navigation = coordinator, navigation
         self.mission_id, self.admission, self.legs = mission_id, admission, dict(legs)
         self.canceled_approach_continuation = canceled_approach_continuation
+        self.successful_approach_continuation = successful_approach_continuation
+        self._exit_authorization = None
+        self._cancel_receipts = {}
         self._lock = asyncio.Lock()
         self._requests, self._owned = {}, {}
         self._last_scope = None
@@ -65,21 +68,8 @@ class CoordinatorNavigationPort:
                 # start -> _claim takes the shared admission lock; send_goal also
                 # takes it. Do not wrap this call in the same non-reentrant lock.
                 response = await self.coordinator.start(self.mission_id, admission=self.admission)
-            elif mission["state"] == "paused" and mission["phase"] == "after_arrival_confirmation":
-                next_index = mission["current_index"] + 1
-                if (next_index >= len(mission["waypoints"])
-                        or mission["waypoints"][next_index]["visit_id"] != binding.visit_id):
-                    raise ValueError("NEXT_VISIT_OWNER_MISMATCH")
-                # Internal server continuation, with exact token. No remote skip.
-                response = await self.coordinator.resume(self.mission_id,
-                    confirmation_token=mission["confirmation_token"], admission=self.admission)
-            elif (mission["state"] == "paused" and leg == "exit"
-                  and self.canceled_approach_continuation is not None):
-                # Absent in base coordinator. C1 owns this explicit atomic hook;
-                # fake-port completion does not pretend this API already exists.
-                response = await self.canceled_approach_continuation(
-                    mission_id=self.mission_id, previous_scope=self._last_scope,
-                    next_visit_id=binding.visit_id, admission=self.admission)
+            elif leg == "exit" and mission["state"] == "paused":
+                response = await self._continue(mission, scope, binding, request_id)
             else:
                 raise ValueError("COORDINATOR_CONTINUATION_HOOK_REQUIRED")
             current = response["mission"]
@@ -88,9 +78,9 @@ class CoordinatorNavigationPort:
             nav_goal = self.navigation.view().get("goal", {})
             if (not current["ownership_active"] or waypoint.get("visit_id") != binding.visit_id
                     or not isinstance(actual_id, str) or nav_goal.get("goal_id") != actual_id
-                    or nav_goal.get("state") not in {"pending", "active", "canceling"}):
+                    or nav_goal.get("state") not in {"pending", "active"}):
                 raise ValueError("COORDINATOR_GOAL_OWNERSHIP_UNCERTAIN")
-            receipt = GoalReceipt(scope, actual_id)
+            receipt = GoalReceipt(scope, actual_id, acknowledged=nav_goal.get("state") == "active")
             self._owned[scope.goal_generation] = receipt
             self._last_scope = scope
             self._requests[request_id] = (payload, receipt)
@@ -129,6 +119,56 @@ class CoordinatorNavigationPort:
                 raise ValueError("EXACT_CANCEL_TERMINAL_ACK_REQUIRED")
 
             self._requests[request_id] = (payload, True)
+            if receipt and terminal.get("state") == "canceled":
+                self._cancel_receipts[scope.goal_generation] = request_id
+
+    def prepare_exit(self, authorization: ExitAuthorization):
+        """Pure binding of the NEW generation's acknowledged HOLD, no dispatch."""
+        if (not isinstance(authorization, ExitAuthorization)
+                or authorization.previous_scope != self._last_scope
+                or authorization.next_scope != authorization.hold_request.scope
+                or authorization.hold_request.mode != "HOLD"
+                or not authorization.hold_ack.matches(authorization.hold_request)):
+            raise ValueError("EXIT_HOLD_AUTHORIZATION_MISMATCH")
+        old, new = authorization.previous_scope, authorization.next_scope
+        if (new.goal_generation != old.goal_generation + 1 or new.goal_id == old.goal_id
+                or any(getattr(old, key) != getattr(new, key)
+                       for key in ("owner_id", "mission_run_id", "step_id", "config_hash"))):
+            raise ValueError("EXIT_SCOPE_NOT_SUCCESSOR")
+        self._exit_authorization = authorization
+
+    async def _continue(self, mission, scope, binding, request_id):
+        # NEVER turn the ordinary operator after-arrival confirmation into a
+        # native barrier. C1 owns a distinct native_action_barrier in the owner.
+        if mission["phase"] != "native_action_barrier":
+            raise ValueError("NATIVE_BARRIER_REQUIRED:COORDINATOR_CONTINUATION_HOOK_REQUIRED")
+        authorization = self._exit_authorization
+        previous = self._last_scope
+        receipt = self._owned.get(previous.goal_generation) if previous else None
+        barrier = mission.get("native_barrier") or {}
+        goal = self.navigation.view().get("goal", {})
+        status = {"succeeded": "SUCCEEDED", "canceled": "CANCELED"}.get(goal.get("state"))
+        index = mission["current_index"] + 1
+        if (authorization is None or authorization.next_scope != scope or receipt is None
+                or not mission["ownership_active"] or mission["id"] != self.mission_id
+                or goal.get("goal_id") != receipt.actual_goal_id
+                or barrier.get("scope") != vars(previous)
+                or barrier.get("actual_goal_id") != receipt.actual_goal_id
+                or status is None or barrier.get("terminal_status") != status
+                or not isinstance(barrier.get("token"), str) or not barrier["token"]
+                or index >= len(mission["waypoints"])
+                or mission["waypoints"][index]["visit_id"] != binding.visit_id):
+            raise ValueError("NATIVE_BARRIER_OWNERSHIP_MISMATCH")
+        cancel_id = self._cancel_receipts.get(previous.goal_generation) if status == "CANCELED" else None
+        callback = (self.canceled_approach_continuation if status == "CANCELED"
+                    else self.successful_approach_continuation)
+        if callback is None or (status == "CANCELED" and cancel_id is None):
+            raise ValueError("COORDINATOR_CONTINUATION_HOOK_REQUIRED")
+        request = ContinuationRequest(authorization, receipt.actual_goal_id, binding.visit_id,
+                                      status, barrier["token"], cancel_id, request_id)
+        # Callback atomically revalidates this snapshot under coordinator's own
+        # operation lock. This port does not acquire it or call skip/resume.
+        return await callback(request=request, admission=self.admission)
 
     def goal_observation(self, scope):
         """Translate exact Nav2 ID to v0.1 logical ID only after ownership check.

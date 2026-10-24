@@ -81,6 +81,7 @@ class GoalReceipt:
     scope: Scope
     actual_goal_id: str
     accepted: bool = True
+    acknowledged: bool = True
 
 
 @dataclass(frozen=True)
@@ -130,3 +131,51 @@ class TerrainPort(Protocol):
 
 class ObservationPort(Protocol):
     def sample(self, scope: Scope) -> Any: ...
+
+
+@dataclass(frozen=True)
+class ActionEvent:
+    """Trusted local ACK, not a sensor observation or public message."""
+    kind: str
+    scope: Scope
+    actual_goal_id: str
+    request_id: str
+    producer_id: str
+    epoch: str
+    sequence: int
+    first_received_s: float
+    source_age_s: float
+    receiver_clock_id: str
+    receiver_session_id: str
+    status: str
+    cancel_ack: bool = False
+
+
+@dataclass(frozen=True)
+class EventBinding:
+    producer_id: str
+    epoch: str
+
+    def __post_init__(self):
+        if any(not isinstance(v, str) or not v for v in (self.producer_id, self.epoch)):
+            raise ValueError("INVALID_EVENT_BINDING")
+
+
+@dataclass(frozen=True)
+class ExitAuthorization:
+    previous_scope: Scope
+    next_scope: Scope
+    hold_request: ConstraintRequest
+    hold_ack: ConstraintAck
+
+
+@dataclass(frozen=True)
+class ContinuationRequest:
+    """C1 callback must recheck every field inside the EXISTING owner lock."""
+    authorization: ExitAuthorization
+    actual_approach_goal_id: str
+    next_visit_id: str
+    terminal_status: str
+    native_barrier_token: str
+    cancel_request_id: str | None
+    request_id: str

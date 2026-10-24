@@ -95,3 +95,69 @@ class CommandBoundary:
                 return zero, "INVALID_TERRAIN_CAP"
             return tuple(max(-cap, min(v, cap)) for v, cap in zip(command.velocity, terrain_caps)), "TERRAIN_CAP"
         return command.velocity, "TRACKING"
+
+
+@dataclass(frozen=True)
+class ConsumerReceipt:
+    """Issued ONLY after the existing final consumer installs this exact request."""
+    consumer_id: str
+    request: object
+    installed: bool
+
+
+class FinalConsumerConstraintPort:
+    """ACK plumbing, not a command consumer and not proof of live qualification.
+
+    install(request) is C1's async callback at the EXISTING final consumer. It
+    must atomically fence sequence/generation there, including after awaited IO.
+    Enqueueing a message returns None; a later consumer receipt is acknowledged
+    with acknowledge(). ack() is read-only and never refreshes any timestamp.
+    """
+    def __init__(self, *, consumer_id, install):
+        if not isinstance(consumer_id, str) or not consumer_id or not callable(install):
+            raise ValueError("FINAL_CONSUMER_CALLBACK_REQUIRED")
+        self.consumer_id, self.install = consumer_id, install
+        self.current = None
+        self.receipt = None
+        self.requests = {}
+
+    async def apply(self, request):
+        from .contracts import ConstraintRequest
+        if (not isinstance(request, ConstraintRequest) or request.mode not in {"HOLD", "RELEASE"}
+                or type(request.sequence) is not int or request.sequence < 1
+                or not request.request_id or not finite(request.command_ttl_s)
+                or not 0 < request.command_ttl_s <= .25):
+            raise ValueError("INVALID_CONSUMER_REQUEST")
+        if request.request_id in self.requests:
+            if self.requests[request.request_id] != request:
+                raise ValueError("CONSUMER_REQUEST_REUSED")
+            return self.ack(request)
+        if self.current is not None:
+            old, new = self.current.scope, request.scope
+            if (request.sequence <= self.current.sequence
+                    or any(getattr(old, k) != getattr(new, k)
+                           for k in ("owner_id", "mission_run_id", "step_id", "config_hash"))
+                    or new.goal_generation < old.goal_generation
+                    or (new.goal_generation == old.goal_generation and new != old)
+                    or (new.goal_generation > old.goal_generation and request.mode != "HOLD")):
+                raise ValueError("CONSUMER_REQUEST_RETIRED_OR_FOREIGN")
+        if len(self.requests) >= 128:
+            raise ValueError("CONSUMER_REQUEST_LEDGER_FULL")
+        self.requests[request.request_id] = request
+        self.current, self.receipt = request, None
+        receipt = await self.install(request)
+        if receipt is not None:
+            self.acknowledge(receipt)
+        return self.ack(request)
+
+    def acknowledge(self, receipt):
+        if (not isinstance(receipt, ConsumerReceipt) or receipt.installed is not True
+                or receipt.consumer_id != self.consumer_id or receipt.request != self.current):
+            raise ValueError("FINAL_CONSUMER_ACK_MISMATCH")
+        self.receipt = receipt
+
+    def ack(self, request):
+        from .contracts import ConstraintAck
+        if self.receipt is not None and self.current == request:
+            return ConstraintAck(request.scope, request.request_id, request.mode, True)
+        return None

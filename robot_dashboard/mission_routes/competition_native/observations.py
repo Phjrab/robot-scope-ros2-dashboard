@@ -57,6 +57,9 @@ class ComponentStamp:
     source_stamp_ns: str
     source_age_s: float
     source_clock: str
+    first_received_s: float | None = None
+    receiver_clock_id: str | None = None
+    validity_s: float | None = None
 
 
 @dataclass(frozen=True)
@@ -95,27 +98,39 @@ class Frame:
     now: float
     policy: TimingPolicy
 
+    def supported_end(self, *names):
+        """Conservative acquisition bound in receiver time, never remote monotonic."""
+        return min(self.components[name].receipt_s - self.components[name].stamp.source_age_s
+                   for name in names)
+
+    def acquired_after(self, boundary, *names):
+        return boundary is not None and self.fresh(*names) and self.supported_end(*names) > boundary
+
     def fresh(self, *names):
         for name in names:
-            if (name == "path" and self.evidence.observation_age_s is not None
-                    and self.evidence.observation_age_s > self.policy.source_max_age_s):
-                return False
             received = self.components.get(name)
             if received is None:
                 return False
             elapsed = self.now - received.receipt_s
-            if not 0 <= elapsed <= self.policy.receiver_ttl_s:
+            bound = received.stamp.validity_s
+            receipt_ttl = min(self.policy.receiver_ttl_s, bound) if bound is not None else self.policy.receiver_ttl_s
+            source_ttl = min(self.policy.source_max_age_s, bound) if bound is not None else self.policy.source_max_age_s
+            if not 0 <= elapsed <= receipt_ttl:
                 return False
-            if received.stamp.source_age_s + elapsed > self.policy.source_max_age_s:
+            source_age = received.stamp.source_age_s
+            if name == "path" and self.evidence.observation_age_s is not None:
+                source_age = max(source_age, self.evidence.observation_age_s)
+            if source_age + elapsed > source_ttl:
                 return False
         return True
 
 
 class Normalizer:
     def __init__(self, scope: Scope, policy: TimingPolicy, bindings: Mapping[str, ClockBinding],
-                 *, synthetic=False, receiver_session_id=None):
+                 *, synthetic=False, receiver_session_id=None, receiver_clock_id=None):
         policy.validate()
         self.receiver_session_id = receiver_session_id or secrets.token_hex(16)
+        self.receiver_clock_id = receiver_clock_id or self.receiver_session_id
         self.scope, self.policy = scope, policy
         self.bindings, self.synthetic = dict(bindings), synthetic
         self.received = {}
@@ -196,6 +211,9 @@ class Normalizer:
                     or not stamp.source_stamp_ns.isascii() or not stamp.source_stamp_ns.isdigit()
                     or not 1 <= len(stamp.source_stamp_ns) <= 24):
                 raise ObservationRejected("INVALID_COMPONENT_STAMP")
+            if stamp.validity_s is not None and (type(stamp.validity_s) not in (int, float)
+                    or not math.isfinite(stamp.validity_s) or not 0 < stamp.validity_s <= 0.25):
+                raise ObservationRejected("INVALID_COMPONENT_VALIDITY")
             payload = {key: values[key] for key in FIELDS[name]}
             extra_fields = {"departure": ("departure_observed",),
                             "posture": ("posture_verified", "validation_reference"),
@@ -213,7 +231,11 @@ class Normalizer:
             elif stamp.sequence <= last_seq or int(stamp.source_stamp_ns) <= last_source:
                 raise ObservationRejected("COMPONENT_REPLAY")
             else:
-                staged[name] = Received(stamp, now, fingerprint)
+                receipt = now if stamp.first_received_s is None else stamp.first_received_s
+                if (type(receipt) not in (int, float) or not math.isfinite(receipt) or receipt > now
+                        or (stamp.first_received_s is not None and stamp.receiver_clock_id != self.receiver_clock_id)):
+                    raise ObservationRejected("FOREIGN_OR_INVALID_RECEIVER_ARRIVAL")
+                staged[name] = Received(stamp, receipt, fingerprint)
                 highwater[name] = (stamp.sequence, int(stamp.source_stamp_ns))
         self.received, self.highwater = staged, highwater
         self.envelope_sequence = evidence.sequence

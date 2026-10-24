@@ -2,20 +2,21 @@
 from __future__ import annotations
 
 import asyncio
-from dataclasses import replace
+from dataclasses import asdict, replace
 import math
 import secrets
 import time
 
 from ..models import CompetitionAction, Pose
-from .contracts import Activation, ConstraintRequest, GoalReceipt, Scope
+from .contracts import ActionEvent, Activation, ConstraintAck, ConstraintRequest, ExitAuthorization, GoalReceipt, Scope
 from .observations import Normalizer, ObservationRejected
 from .state import ActionState, TERMINAL, decide
 
 
 class NativeActionAdapter:
     def __init__(self, *, action, scope: Scope, navigation, constraints, policy, bindings,
-                 activation=Activation(), posture=None, terrain=None, clock=time.monotonic):
+                 activation=Activation(), posture=None, terrain=None, clock=time.monotonic,
+                 event_binding=None, receiver_clock_id=None):
         self.action = CompetitionAction.model_validate(action)
         if self.action.step_id != scope.step_id:
             raise ValueError("ACTION_STEP_MISMATCH")
@@ -24,6 +25,18 @@ class NativeActionAdapter:
         self.activation, self.policy, self.clock = activation, policy, clock
         self.bindings = dict(bindings)
         self.receiver_session_id = secrets.token_hex(16)
+        self.receiver_clock_id = receiver_clock_id or self.receiver_session_id
+        self.event_binding = event_binding
+        self._event_sequence = -1
+        self._events = {}
+        self._exit_previous_scope = None
+        self._goal_request_id = None
+        self._goal_requested_s = None
+        self._goal_ack_s = None
+        self._constraint_ack_s = None
+        self._constraint_requested_s = None
+        self._cancel_request_id = None
+        self._cancel_requested_s = None
         self.normalizer = None
         self.state = ActionState()
         self._lock = asyncio.Lock()
@@ -44,7 +57,15 @@ class NativeActionAdapter:
         return {"state": dict(vars(self.state)), "scope": dict(vars(self.scope)),
                 "capabilities": self.activation.report(self.action),
                 "actual_goal_id": self._goal.actual_goal_id if self._goal else None,
-                "receiver_session_id": self.receiver_session_id}
+                "receiver_session_id": self.receiver_session_id,
+                "receiver_clock_id": self.receiver_clock_id,
+                "pending": {"goal_request_id": self._goal_request_id,
+                            "goal_requested_s": self._goal_requested_s, "goal_ack_s": self._goal_ack_s,
+                            "cancel_request_id": self._cancel_request_id,
+                            "cancel_requested_s": self._cancel_requested_s,
+                            "constraint_requested_s": self._constraint_requested_s,
+                            "constraint_ack_s": self._constraint_ack_s,
+                            "constraint": asdict(self._constraint) if self._constraint else None}}
 
     def _now(self):
         now = self.clock()
@@ -54,6 +75,14 @@ class NativeActionAdapter:
             raise ValueError("RECEIVER_CLOCK_ROLLBACK")
         self._last_now = now
         return now
+
+    def _cleanup_time(self):
+        # Clock failure must not prevent HOLD/cancel. This timestamp can never
+        # authorize RELEASE: the active operation fails and retires the action.
+        try:
+            return self._now()
+        except ValueError:
+            return self._last_now if self._last_now is not None else 0.0
 
     def _request(self, request_id, operation):
         if not isinstance(request_id, str) or not 16 <= len(request_id) <= 64:
@@ -85,7 +114,7 @@ class NativeActionAdapter:
             if self.action.type == "TRAVERSE_TERRAIN" and self.terrain is None:
                 raise ValueError("TERRAIN_PORT_UNCONNECTED")
             self.normalizer = Normalizer(self.scope, self.policy, self.bindings,
-                                         synthetic=self.activation.synthetic, receiver_session_id=self.receiver_session_id)
+                                         synthetic=self.activation.synthetic, receiver_session_id=self.receiver_session_id, receiver_clock_id=self.receiver_clock_id)
             self.state = ActionState(phase="APPROACH", reason="APPROACH_DISPATCH",
                                      started_s=self._now())
             try:
@@ -101,12 +130,17 @@ class NativeActionAdapter:
         if key in self._effects:
             return
         self._effects.add(key)
+        self._goal_request_id = secrets.token_hex(16)
+        self._goal_requested_s = self._now()
+        self._goal_ack_s = None
         receipt = await self.navigation.dispatch(self.scope, leg=leg, pose=pose,
-                                                  request_id=secrets.token_hex(16))
+                                                  request_id=self._goal_request_id)
         if (not isinstance(receipt, GoalReceipt) or receipt.scope != self.scope
                 or receipt.accepted is not True or not receipt.actual_goal_id):
             raise ValueError("GOAL_RECEIPT_SCOPE_MISMATCH")
         self._goal = receipt
+        if receipt.acknowledged is True:
+            self._goal_ack_s = self._now()
         if self._stop_requested:
             raise ValueError("STOP_REQUESTED_DURING_DISPATCH")
 
@@ -119,6 +153,8 @@ class NativeActionAdapter:
         request = ConstraintRequest(self.scope, secrets.token_hex(16), mode, reason,
                                     self.policy.command_ttl_s, self._constraint_sequence)
         self._constraint, self._constraint_ack = request, None
+        self._constraint_ack_s = None
+        self._constraint_requested_s = self._cleanup_time() if mode == "HOLD" else self._now()
         self._constraint_error = False
         try:
             ack = await self.constraints.apply(request)
@@ -129,11 +165,13 @@ class NativeActionAdapter:
         if self._constraint is not request:
             raise ValueError("CONSTRAINT_SUPERSEDED_BY_STOP")
         self._constraint_ack = ack
-        if mode == "RELEASE" and not self._valid_ack():
+        if self._valid_ack():
+            self._constraint_ack_s = self._cleanup_time() if mode == "HOLD" else self._now()
+        if mode == "RELEASE" and ack is not None and not self._valid_ack():
             raise ValueError("RELEASE_ACK_MISMATCH")
 
     def _valid_ack(self):
-        return (self._constraint is not None and self._constraint_ack is not None
+        return (self._constraint is not None and isinstance(self._constraint_ack, ConstraintAck)
                 and self._constraint_ack.matches(self._constraint))
 
     async def _cancel(self):
@@ -143,6 +181,8 @@ class NativeActionAdapter:
             return
         self._cancelled_generations.add(self.scope.goal_generation)
         # Port retains exact actual goal ownership, including uncertain dispatch.
+        self._cancel_request_id = secrets.token_hex(16)
+        self._cancel_requested_s = self._cleanup_time()
         ports = [self.navigation]
         if (self.scope.goal_generation, "TERRAIN") in self._effects:
             ports.append(self.terrain)
@@ -151,7 +191,7 @@ class NativeActionAdapter:
         failures = []
         for port in ports:
             try:
-                await port.cancel(self.scope, request_id=secrets.token_hex(16))
+                await port.cancel(self.scope, request_id=self._cancel_request_id)
             except BaseException as exc:
                 failures.append(exc)
         if failures:
@@ -169,6 +209,8 @@ class NativeActionAdapter:
                 await operation()
             except BaseException as exc:
                 errors.append(type(exc).__name__)
+        if not self._valid_ack() or self._constraint.mode != "HOLD":
+            errors.append("HOLD_ACK_UNCONFIRMED")
         if errors:
             self.state = replace(self.state, reason=reason + ":CLEANUP_UNCONFIRMED:" + ",".join(errors))
 
@@ -180,13 +222,26 @@ class NativeActionAdapter:
                 return self.snapshot()
             try:
                 now = self._now()
+                if self._constraint is not None:
+                    polled_ack = self.constraints.ack(self._constraint)
+                    if polled_ack is not None:
+                        self._constraint_ack = polled_ack
+                        if self._valid_ack() and self._constraint_ack_s is None:
+                            self._constraint_ack_s = now
+                if self.state.phase == "EXIT_PREPARE":
+                    if self._valid_ack():
+                        await self._finish_exit()
+                    elif now - self._constraint_requested_s > self.policy.command_ttl_s:
+                        await self._fail("EXIT_HOLD_ACK_TIMEOUT")
+                    return self.snapshot()
                 frame = (self.normalizer.receive(packet, now) if packet is not None
                          else self.normalizer.current(now))
-                if self._constraint is not None:
-                    self._constraint_ack = self.constraints.ack(self._constraint)
                 decision = decide(self.state, self.action, frame, now=now,
                                   hold_ack=self._valid_ack() and self._constraint.mode == "HOLD",
-                                  synthetic=self.activation.synthetic)
+                                  synthetic=self.activation.synthetic, hold_ack_s=self._constraint_ack_s,
+                                  exit_ack_s=self._goal_ack_s,
+                                  release_ack_s=(self._constraint_ack_s if self._valid_ack()
+                                                 and self._constraint.mode == "RELEASE" else None))
                 self.state = decision.state
                 for effect in decision.effects:
                     await self._effect(effect)
@@ -221,6 +276,7 @@ class NativeActionAdapter:
                 raise ValueError("RELEASE_SIGNAL_EXPIRED")
             await self._constrain("RELEASE", self.state.reason)
         elif effect == "EXIT":
+            self._exit_previous_scope = self.scope
             self.scope = replace(self.scope, goal_id=secrets.token_hex(16),
                                  goal_generation=self.scope.goal_generation + 1)
             self.normalizer.change_scope(self.scope)
@@ -228,9 +284,9 @@ class NativeActionAdapter:
             # Hold the NEW generation before dispatch; release on new-generation
             # observations on a later tick. Old GREEN/goal/commands cannot carry over.
             await self._constrain("HOLD", "EXIT_GENERATION_BARRIER")
-            if not self._valid_ack():
-                raise ValueError("EXIT_HOLD_ACK_REQUIRED")
-            await self._dispatch("exit", self.action.exit_pose.model_dump())
+            self.state = replace(self.state, phase="EXIT_PREPARE", reason="EXIT_HOLD_ACK_REQUIRED")
+            if self._valid_ack():
+                await self._finish_exit()
         elif effect in {"SIT", "STAND", "TERRAIN"}:
             key = (self.scope.goal_generation, effect)
             if key in self._effects:
@@ -241,6 +297,101 @@ class NativeActionAdapter:
                                          profile=self.action.gait_profile, request_id=secrets.token_hex(16))
             else:
                 await self.posture.request(self.scope, posture=effect, request_id=secrets.token_hex(16))
+
+    async def _finish_exit(self):
+        prepare = getattr(self.navigation, "prepare_exit", None)
+        if prepare is not None:
+            prepare(ExitAuthorization(self._exit_previous_scope, self.scope,
+                                      self._constraint, self._constraint_ack))
+        await self._dispatch("exit", self.action.exit_pose.model_dump())
+        self.state = replace(self.state, phase="EXIT_PENDING", reason="EXIT_GOAL_DISPATCHED")
+
+    async def tick(self):
+        """Call from the existing owner loop; no new receipt or sequence."""
+        return await self.observe()
+
+    async def event_ack(self, event: ActionEvent):
+        """Correlated ACK ingress. A duplicate is inert, never renewed freshness."""
+        async with self._lock:
+            if self.state.phase in TERMINAL or self.state.phase == "NEW":
+                return {"accepted": False, "reason": "ACTION_INACTIVE", "snapshot": self.snapshot()}
+            if (isinstance(event, ActionEvent) and type(event.sequence) is int
+                    and event == self._events.get(event.sequence)):
+                return {"accepted": False, "reason": "DUPLICATE_ACK", "snapshot": self.snapshot()}
+            try:
+                now = self._now()
+                binding = self.event_binding
+                if not isinstance(event, ActionEvent) or binding is None:
+                    raise ValueError("EVENT_BINDING_REQUIRED")
+                expected_goal = self._goal.actual_goal_id if self._goal else ""
+                if (event.scope != self.scope or event.actual_goal_id != expected_goal
+                        or event.producer_id != binding.producer_id or event.epoch != binding.epoch
+                        or event.receiver_session_id != self.receiver_session_id
+                        or event.receiver_clock_id != self.receiver_clock_id):
+                    raise ValueError("EVENT_OWNER_EPOCH_OR_GENERATION_MISMATCH")
+                if len(self._events) >= 128:
+                    raise ValueError("EVENT_LEDGER_FULL_NEW_ACTION_REQUIRED")
+                if (type(event.sequence) is not int or event.sequence <= self._event_sequence
+                        or type(event.cancel_ack) is not bool
+                        or any(type(v) not in (int, float) or not math.isfinite(v)
+                               for v in (event.first_received_s, event.source_age_s))
+                        or event.source_age_s < 0
+                        or not 0 <= now - event.first_received_s <= self.policy.command_ttl_s
+                        or not 0 <= event.source_age_s + now - event.first_received_s <= self.policy.command_ttl_s):
+                    raise ValueError("EVENT_REPEATED_OR_EXPIRED")
+                supported = event.first_received_s - event.source_age_s
+                if event.kind == "APPROACH_TERMINAL":
+                    if self.state.phase not in {"APPROACH", "WAIT_CANCEL"}:
+                        raise ValueError("APPROACH_EVENT_PHASE_MISMATCH")
+                    cancel = event.status == "CANCELED"
+                    expected_id = self._cancel_request_id if cancel else self._goal_request_id
+                    requested = self._cancel_requested_s if cancel else self._goal_requested_s
+                    if (event.status not in {"SUCCEEDED", "CANCELED", "FAILED"}
+                            or expected_id is None or event.request_id != expected_id
+                            or requested is None or supported <= requested):
+                        raise ValueError("APPROACH_REQUEST_ACK_MISMATCH")
+                    if cancel and not event.cancel_ack:
+                        self._event_sequence = event.sequence
+                        self._events[event.sequence] = event
+                        return {"accepted": False, "reason": "CANCEL_ACK_PENDING", "snapshot": self.snapshot()}
+                    if event.status == "FAILED":
+                        await self._fail("NAVIGATION_PROGRESS_FAILED")
+                    elif self.action.type in {"TRAFFIC_STOP_AND_GO", "PARK_SIT_HOLD"}:
+                        self.state = replace(self.state, phase="HOLD_ACK", reason="APPROACH_TERMINAL_EVENT")
+                        await self._constrain("HOLD", self.state.reason)
+                    else:
+                        raise ValueError("TERMINAL_EVENT_REQUIRES_TRAFFIC_OR_PARK_ACTION")
+                elif event.kind == "EXIT_ACK":
+                    if (self.state.phase not in {"EXIT_PENDING", "DEPARTING"}
+                            or event.request_id != self._goal_request_id or event.status != "ACTIVE"
+                            or supported <= self._goal_requested_s):
+                        raise ValueError("EXIT_REQUEST_ACK_MISMATCH")
+                    if self._goal_ack_s is None:
+                        self._goal_ack_s = event.first_received_s
+                elif event.kind in {"HOLD_ACK", "RELEASE_ACK"}:
+                    mode = event.kind.removesuffix("_ACK")
+                    request = self._constraint
+                    if (request is None or request.mode != mode or event.request_id != request.request_id
+                            or event.status != "ACKNOWLEDGED" or supported <= self._constraint_requested_s):
+                        raise ValueError("CONSTRAINT_REQUEST_ACK_MISMATCH")
+                    self._constraint_ack = ConstraintAck(self.scope, event.request_id, mode, True)
+                    if self._constraint_ack_s is None:
+                        self._constraint_ack_s = event.first_received_s
+                else:
+                    raise ValueError("UNSUPPORTED_ACTION_EVENT")
+                self._event_sequence = event.sequence
+                self._events[event.sequence] = event
+                return {"accepted": True, "reason": "ACK_ACCEPTED", "snapshot": self.snapshot()}
+            except (ValueError, TypeError, AttributeError) as exc:
+                await self._fail("ACK_REJECTED:" + str(exc))
+                return {"accepted": False, "reason": str(exc), "snapshot": self.snapshot()}
+            except BaseException:
+                await self._fail("ACK_PORT_FAILURE")
+                raise
+
+    async def close(self, request_id):
+        """Explicit shutdown; pending/uncertain cleanup cannot auto-resume."""
+        return await self.stop(request_id, restart=True)
 
     async def stop(self, request_id, *, restart=False):
         # Fence intent immediately, before waiting behind an in-flight dispatch.
