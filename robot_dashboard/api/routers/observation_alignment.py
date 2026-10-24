@@ -65,6 +65,10 @@ async def estimate_observation(request: Request, body: ObservationRequest) -> JS
             response = await run_in_threadpool(JSONResponse, payload, status_code=status)
         else:
             response = JSONResponse(payload, status_code=status)
+    # Relative to the server's monotonic limiter, computed after serialization.
+    # Receiving clients wait this duration; never compare cross-host clocks.
+    retry = getattr(runtime.observation_aligner, "retry_after_ms", lambda: 1000)()
+    response.headers["X-Observation-Retry-After-Ms"] = str(retry)
     # Fixed-size aggregate only; no inputs, coordinates, tokens or source identifiers.
     LOGGER.info("observation_timing %s", json.dumps(dict(trace.summary(), http_status=status)))
     return response

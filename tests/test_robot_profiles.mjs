@@ -187,3 +187,28 @@ test('official Go2 projected geometry stays metre-scaled across zoom and applies
   const tilted = points[0]; points = []; pose = { ...pose, roll: 0, pitch: 0 }; scene._drawRobot();
   assert.ok(Math.hypot(...points[0].map((v, i) => v - tilted[i])) > .001);
 });
+
+
+test('approximate URDF layer uses measured sitting joints and pure z motion independently of robotPose', async () => {
+  const asset = JSON.parse(readFileSync(new URL('../robot_dashboard/static/assets/go2/go2-official-lite.json', import.meta.url), 'utf8'));
+  let vertices = [], now = 0;
+  class Scene {
+    constructor() { this.options = {}; this.width=640; this.height=360; this.ctx=new Proxy({}, {get:()=>()=>{}}); this.robotPose=null; }
+    _drawRobot() {} _drawRobotLabel() {} render() {}
+    _effectiveRobotPose() { throw new Error('approximate layer must not read operational pose'); }
+    _project(p) { vertices.push(Array.from(p)); return {x:320+p[0],y:180+p[1],depth:2}; }
+  }
+  const sandbox={RobotScene3D:Scene, performance:{now:()=>now},fetch:async()=>({ok:true,json:async()=>asset})};
+  sandbox.window=sandbox; sandbox.globalThis=sandbox; runInNewContext(rendererSource,sandbox);
+  const scene=new Scene(); await scene.loadOfficialRobotModel();
+  const joints=Object.fromEntries(['FR','FL','RR','RL'].flatMap(leg=>[['hip',0],['thigh',1.4],['calf',-2.7]].map(([joint,angle])=>[`${leg}_${joint}_joint`,angle])));
+  const value={reference:'FASTLIO_IMU',body_extrinsic_verified:false,pose:{x:0,y:0,z:-.1,roll:.1,pitch:.2,yaw:.3},joints,expires_at:1000};
+  assert.equal(scene.setObservedRobotModel(value),true); scene._drawObservedRobotModel(); const lower=vertices; assert.ok(lower.length>1000);
+  vertices=[]; scene.setObservedRobotModel({...value,pose:{...value.pose,z:.1}}); scene._drawObservedRobotModel();
+  vertices.forEach((p,i)=>{assert.ok(Math.abs(p[0]-lower[i][0])<1e-9);assert.ok(Math.abs(p[1]-lower[i][1])<1e-9);assert.ok(Math.abs(p[2]-lower[i][2]-.2)<1e-9);});
+  vertices=[]; scene.setObservedRobotModel({...value,joints:{...joints,FR_thigh_joint:.7}}); scene._drawObservedRobotModel();
+  assert.ok(vertices.some((p,i)=>Math.hypot(...p.map((v,k)=>v-lower[i][k]))>.01));
+  assert.equal(scene.robotPose,null); assert.equal(scene._go2OfficialPendingJoints,undefined);
+  now=1001; vertices=[]; scene._drawObservedRobotModel(); assert.equal(vertices.length,0);
+  assert.equal(scene.setObservedRobotModel({...value,joints:{}}),false); assert.equal(scene.observedRobotModel,null);
+});

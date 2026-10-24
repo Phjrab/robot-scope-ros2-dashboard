@@ -355,3 +355,36 @@ base는 앞서 적은 d7807de8과 선택적 설치로 구분한다.
 
 실제 입력·원시 기록·스크린샷·백업/복구 리허설·검사 로그는 Git 밖의 private
 `resume-20261024/`에 있다. 원본 지도·PCD·인증정보는 저장소에 추가하지 않는다.
+
+
+## 후속 후보: 서버 시간·관절 모델·상대 높이 (장비 미적용)
+
+서버가 monotonic rate limit의 남은 시간을 응답 헤더로 반환한다. 브라우저는
+응답 수신 이후 그 기간을 기다린다. 서로 다른 호스트의 절대시각을 비교하지
+않으며 원본 센서 stamp pairing, 1 Hz 제한, 신선도와 계산 예산은 유지한다.
+기록된 FAST-LIO callback 순서를 재현해 cloud가 먼저 도착하면 동일 stamp
+pose를 기존 150 ms 수신 범위와 600 ms deadline 안에서만 기다리도록 했다.
+
+공식 Go2 URDF에서 생성한 기존 링크·관절·mesh를 별도 근사 관측 레이어로
+연결했다. `/lowstate`의 명명된 12관절을 사용하고 같은 seq는 신선도를 연장하지
+않는다. 서버 age와 로컬 경과시간이 1.2초를 넘으면 모델을 숨긴다. pose·점군은
+기존 1초 제한과 세대 검사를 유지한다. 관절 수신에는 유효한 센서 timestamp가
+없어 pose와 정확히 동기화됐다고 표시하지 않는다. IMU→URDF base 보정은
+아직 미확인이므로 같은 원점·방향을 가정한 모델이라고 표시하며 body_pose는
+계속 null이다. 높이는 현재 지도 IMU Z와 기준점 이후 odometry ΔZ를 구분한다.
+정합 보정으로 변환이 바뀌어도 ΔZ 기준은 바뀌지 않으며 새 기준점은 초기화한다.
+
+전체 Python 2,649개(4 skip), JS 654개, 합성 관측 브라우저 12개와 변경 Python
+Ruff 검사가 통과했다. 최초 전체 Python 25개 오류는 sandbox의 Unix socket
+생성 제한(PermissionError)이며 허용된 로컬 환경의 전체 재실행이 통과했다.
+추가 대상 mypy 검사는 기존 mypy 1.13/NumPy stub의 Python 버전·placeholder
+오류로 완료되지 않았으며 통과로 집계하지 않는다. 실제 관절 입력은 read-only로
+확인했지만 앉기·상하 움직임 실험은 하지 않았다.
+
+15:08:16 KST 설치 읽기에서 Python 2개와 static 7개의 원본이 main의 기존
+소스와 일치하고 새 static 1개가 없음을 확인했다. 관측/관절 입력은 fresh,
+bridge inactive, ownership clear였다. private `joints-time-bundle`에 10파일,
+원본 9파일 사본, SHA manifest와 실패 시 원복 절차를 준비했고 로컬 disposable
+checkout에서 check/install/restore/check를 통과했다. 아직 장비에 쓰지 않았다.
+기존 관측의 15:13:51 종료 시각을 연장하지 않는다. 추가 적용·재시작 1회와
+이전 관측 종료 후 최대 30분 실행은 원래 요청 7항의 추가 승인 대상이다.

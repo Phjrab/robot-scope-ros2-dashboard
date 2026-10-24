@@ -8,6 +8,7 @@ provisional residual policy; all other input and numerical gates remain in place
 from __future__ import annotations
 
 import itertools
+import math
 import re
 import threading
 import time
@@ -281,6 +282,54 @@ def solve_prepared(reference, grid, target_frame, points, frame, stamp_ns, seed,
     return result, transform
 
 
+def paired_pose(agent, cloud, body, deadline):
+    """Wait only for a not-yet-received FAST-LIO exact stamp, inside existing limits.
+
+    Independent callbacks may expose a registered cloud before its IMU pose.
+    Keep that cloud unchanged; never substitute another stamp or extend the
+    150 ms receipt-pair window or the request's absolute computation deadline.
+    The worker sleeps without holding any telemetry lock.
+    """
+    mode = body.get("provenance_mode", "native_publisher")
+    observation = cloud.get("observation") or {}
+    started = time.monotonic()
+    attempts = 0
+    try:
+        while True:
+            attempts += 1
+            pose = (agent.observation_pose_near(observation, provenance_mode=mode)
+                    if mode == "subscription_observation" else agent.observation_pose_near(observation))
+            if pose is not None:
+                return pose
+            if (cloud.get("topic"), cloud.get("pipeline_stage"), cloud.get("frame_id")) != (
+                    "/cloud_registered", "registered", "camera_init"):
+                return None
+            now = time.monotonic()
+            current = agent.pose_snapshot()
+            if (current.get("topic"), current.get("frame_id"), current.get("child_frame_id"), current.get("state")) != (
+                    "/Odometry", "camera_init", "body", "ok"):
+                return None
+            if (observed_key(cloud, provenance_mode=mode, now=now) != (body.get("observer_id"), body.get("cloud_epoch"))
+                    or observed_key(current, provenance_mode=mode, now=now) != (body.get("observer_id"), body.get("pose_epoch"))):
+                raise ObservationAlignmentError("SOURCE_CHANGED")
+            latest_cloud = agent.pointcloud_binary_snapshot()
+            if observed_key(latest_cloud, provenance_mode=mode, now=now) != observed_key(cloud, provenance_mode=mode, now=now):
+                raise ObservationAlignmentError("SOURCE_CHANGED")
+            # A newer pose means the exact sample was missed, not merely pending.
+            if int(current["observation"]["source_stamp_ns"]) >= int(observation["source_stamp_ns"]):
+                return None
+            received = observation.get("received_monotonic_s")
+            if type(received) not in {int, float} or not math.isfinite(received) or now < received:
+                return None
+            remaining = min(deadline, received + .15) - now
+            if remaining <= 0:
+                return None
+            time.sleep(min(.01, remaining))
+    finally:
+        note("pose_pair_attempts", attempts)
+        note("pose_pair_wait_ms", (time.monotonic() - started) * 1000)
+
+
 class ObservationAligner:
     def __init__(self, *, isolated: bool = False) -> None:
         self.lock = threading.Lock()
@@ -291,6 +340,10 @@ class ObservationAligner:
         if isolated:
             from .observation_worker import RegistrationWorker
             self.worker = RegistrationWorker()
+
+    def retry_after_ms(self) -> int:
+        """Server monotonic cooldown; clients need no synchronized clock."""
+        return math.ceil(max(0.0, min(1.0, self.last_started + 1.0 - time.monotonic())) * 1000)
 
     def close(self) -> None:
         with self.lock:
@@ -323,9 +376,7 @@ class ObservationAligner:
                 raise ObservationAlignmentError("COMPUTE_BUDGET_EXCEEDED")
             with measure("input_snapshot_and_validation"):
                 cloud = agent.pointcloud_binary_snapshot()
-                pose = (agent.observation_pose_near(cloud.get("observation") or {}, provenance_mode=provenance_mode)
-                        if provenance_mode == "subscription_observation"
-                        else agent.observation_pose_near(cloud.get("observation") or {}))
+                pose = paired_pose(agent, cloud, body, deadline)
                 if pose is None:
                     raise ObservationAlignmentError("NO_PAIRED_POSE")
                 points, frame, provenance = project_query(cloud, pose, time.monotonic(), provenance_mode=provenance_mode)

@@ -1,5 +1,23 @@
 # Saved 3D map observation and editor integration — 2026-10-18
 
+**Latest local candidate (2026-10-24; not deployed):** live alignment responses
+return `X-Observation-Retry-After-Ms`, computed from the server monotonic limiter
+after serialization. The browser waits the returned duration after receipt;
+wall clocks are never compared. Missing headers or network errors use a one-second
+fallback. FAST-LIO cloud-first callbacks can wait for the exact pose stamp only
+within the existing 150 ms receipt window and 600 ms request deadline.
+
+The same Maps view now offers the official URDF-derived Go2 model, measured
+`/lowstate` joint angles, map IMU Z and relative odometry ΔZ since the anchor.
+The model assumes URDF base equals IMU origin/orientation and labels this as
+approximate. It is a separate display layer, with `body_pose: null` and no body
+calibration or joint/pose clock-sync claim. Missing/stale joints hide this model;
+fresh IMU observations remain independent. Full XYZ/RPY and metric geometry
+are preserved; there is no stand-height or ground clamp. The ΔZ reference survives
+map correction, and resets on explicit reanchor/new source. Synthetic sitting,
+vertical movement, stale input and source replacement pass; physical validation
+and deployment still require the next approved observation session.
+
 **Latest hardware evidence (2026-10-24):** the conditional coarse-to-full seed
 implementation in `cc83ee0` was deployed as three Python overlays, followed by
 one approved dashboard restart. A new observation-only FAST-LIO session started

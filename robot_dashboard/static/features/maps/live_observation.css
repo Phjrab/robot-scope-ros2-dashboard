@@ -36,6 +36,12 @@
 .saved-live-observation :is(#savedLiveAvailability, #savedLiveProvenanceNote) { padding: 10px 12px; border-left: 3px solid var(--amber); background: var(--bg-soft); }
 .saved-live-observation :is(#savedLiveMetrics, #savedLiveMap, #savedLiveSource) { color: var(--muted); font: var(--type-secondary)/var(--leading-body) var(--font-mono); overflow-wrap: anywhere; }
 .saved-live-observation #savedLiveMetrics:empty { display: none; }
+.saved-live-observation #savedLiveHeight { color: var(--amber); overflow-wrap: anywhere; }
+.saved-live-observation #savedLiveHeight:empty { display: none; }
+.saved-live-joint-table { overflow-x: auto; }
+.saved-live-joint-table table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.saved-live-joint-table :is(th, td) { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: right; }
+.saved-live-joint-table th:first-child { text-align: left; }
 @media (max-width: 900px) { .saved-live-anchor { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 480px) {
   .saved-live-observation { padding: 12px; }

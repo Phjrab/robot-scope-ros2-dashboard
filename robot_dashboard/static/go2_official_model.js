@@ -210,9 +210,9 @@
     return { ...defaults, ...current };
   }
 
-  function linkTransforms(scene, runtime, root) {
+  function linkTransforms(scene, runtime, root, jointPositions = null) {
     const transforms = { [runtime.asset.skeleton.root]: root };
-    const positions = configuredJointPositions(scene, runtime);
+    const positions = jointPositions || configuredJointPositions(scene, runtime);
     runtime.asset.skeleton.joints.forEach((joint) => {
       const parent = transforms[joint.parent];
       if (!parent) return;
@@ -249,18 +249,18 @@
     );
   }
 
-  function drawOfficialRobot(scene, runtime) {
-    const pose = scene._effectiveRobotPose();
+  function drawOfficialRobot(scene, runtime, observation = null) {
+    const pose = observation?.pose || scene._effectiveRobotPose();
     if (!pose) return;
     const asset = runtime.asset;
     const config = scene._go2OfficialConfig;
     // World geometry must not grow as the camera zooms out. Labels remain screen-sized.
-    const scale = clamp(finite(config.scale, 1), 0.05, 20);
-    const groundAnchored = config.poseOrigin !== 'base';
+    const scale = observation ? 1 : clamp(finite(config.scale, 1), 0.05, 20);
+    const groundAnchored = !observation && config.poseOrigin !== 'base';
     const baseHeight = finite(config.baseHeight, finite(asset.model?.base_height_m, 0.32));
     const baseZ = pose.z + (groundAnchored ? baseHeight * scale : 0);
     const root = rootMatrix(pose, baseZ, scale);
-    const transforms = linkTransforms(scene, runtime, root);
+    const transforms = linkTransforms(scene, runtime, root, observation?.joints);
     const faces = [];
     const alpha = pose.preview || pose.frameMismatch ? 0.91 : 0.98;
     const light = [0.36, -0.48, 0.80];
@@ -426,6 +426,31 @@
     };
 
     prototype.setRobotJointState = prototype.setRobotJointPositions;
+
+    // Separate, explicitly approximate layer. Never writes robotPose, TF or
+    // the operational joint state, and never falls back to standing joints.
+    prototype.setObservedRobotModel = function setObservedRobotModel(value) {
+      const valid = value?.reference === 'FASTLIO_IMU' && value.body_extrinsic_verified === false
+        && ['x', 'y', 'z', 'roll', 'pitch', 'yaw'].every(k => Number.isFinite(value.pose?.[k]))
+        && ['FR', 'FL', 'RR', 'RL'].every(leg => ['hip', 'thigh', 'calf'].every(joint =>
+          Number.isFinite(value.joints?.[`${leg}_${joint}_joint`]))) && Number.isFinite(value.expires_at);
+      this.observedRobotModel = valid ? { ...value, pose: { ...value.pose, preview: true, observationModel: true }, joints: { ...value.joints } } : null;
+      this.render();
+      return valid;
+    };
+
+    prototype._drawObservedRobotModel = function drawObservedRobotModel() {
+      const value = this.observedRobotModel;
+      if (!value || performance.now() > value.expires_at) return;
+      const config = this._ensureGo2OfficialConfig();
+      if (!config.enabled || config.assetUrl !== DEFAULT_ASSET_URL) return;
+      if (this._go2OfficialRuntime && this._go2OfficialLoadedUrl === DEFAULT_ASSET_URL) {
+        return drawOfficialRobot(this, this._go2OfficialRuntime, value);
+      }
+      if (!this._go2OfficialPromise && this._go2OfficialState !== 'error') {
+        this.loadOfficialRobotModel(DEFAULT_ASSET_URL).catch(() => {});
+      }
+    };
 
     prototype.resetRobotJointPositions = function resetRobotJointPositions() {
       this._go2OfficialPendingJoints = null;

@@ -25,6 +25,7 @@ export function initializeSavedMapObservations(options) {
       return sensorActive || liveVisible;
     },
     ingestPose: value => live?.ingestPose(value),
+    ingestJoints: value => live?.ingestJoints(value),
     ingestCloud: value => { global?.ingestCloud(value); return live?.ingestCloud(value); },
     reset: reason => { global?.reset(reason); sensor?.reset(reason); live?.reset(reason); },
     destroy: () => { sensor?.destroy(); global?.destroy(); live?.destroy(); },

@@ -1,6 +1,7 @@
 // Synthetic input/registration fixtures; never connects to robot hardware.
 import { expect, test } from '@playwright/test';
 import { installDashboardBackend } from './dashboard_backend.mjs';
+import { GO2_JOINT_NAMES } from '../../robot_dashboard/static/features/maps/observed_joints.js';
 
 test.use({ viewport: { width: 1600, height: 2200 } });
 
@@ -27,10 +28,10 @@ function binary(seq, observation, frameId='odom') {
   frame.writeUInt32LE(points.length/3,8); frame.writeUInt32LE(points.length*4,12); metadata.copy(frame,16);
   points.forEach((v,i)=>frame.writeFloatLE(v,offset+i*4)); return frame;
 }
-async function fixture(page, {identityUnavailable=false,subscriptionEvidence=false,provisional=false,imu=false,httpFallback=false}={}) {
+async function fixture(page, {identityUnavailable=false,subscriptionEvidence=false,provisional=false,imu=false,httpFallback=false,joints=false}={}) {
   const state={ streaming:true, rejected:false, epoch:'c', lastCloud:null, jump:false, identityUnavailable,
     session:'1'.repeat(32),fingerprint:'2'.repeat(64),graphAge:.1,nonconverged:false,policyMismatch:false,
-    x:0, yaw:0, cloudSocketStreaming:true, httpClouds:0 }, writes=[], errors=[];
+    x:0, z:.3, yaw:0, cloudSocketStreaming:true, httpClouds:0, jointsStreaming:true, sitting:false }, writes=[], errors=[];
   const evidence=kind=>subscriptionEvidence?{kind,session:state[`${kind}Session`]??state.session,fingerprint:state.fingerprint,graphAge:state.graphAge}:null;
   let poseSequence=0, cloudSequence=0;
   page.on('pageerror',e=>errors.push(e.message));
@@ -74,11 +75,17 @@ async function fixture(page, {identityUnavailable=false,subscriptionEvidence=fal
     metrics:{converged:!state.nonconverged,rmse_m:provisional?.07:.02,overlap_ratio:.8,geometry_min_max_eigen_ratio:.2,matched_geometry_min_max_eigen_ratio:.2,
       ...(provisional?{inlier_count:80}:{})}});
   });
+  if (joints) await page.routeWebSocket('**/api/v1/ws/joints', socket => {
+    let seq=0;
+    const send=()=>{if(state.jointsStreaming) socket.send(JSON.stringify({state:'ok',topic:'/lowstate',source_order:'unitree_lowstate',
+      seq:++seq,age_s:0,order:GO2_JOINT_NAMES,position_rad:Array.from({length:4},()=>state.sitting?[0,1.4,-2.7]:[0,.7,-1.5]).flat()}));};
+    send(); const timer=setInterval(send,100); socket.onClose(()=>clearInterval(timer));
+  });
   await page.routeWebSocket('**/api/v1/ws/pose',socket=>{
     const send=(sourceStamp=state.lastCloud?.source_stamp_ns)=>{ if(state.streaming) {
       const seq=++poseSequence;
       socket.send(JSON.stringify({seq,topic:'/Odometry',frame_id:imu?'camera_init':'odom',child_frame_id:imu?'body':'base_link',
-        state:'ok',age_s:0,position:{x:state.jump?5:state.x,y:0,z:.3},orientation:{x:0,y:0,z:Math.sin(state.yaw/2),w:Math.cos(state.yaw/2)},
+        state:'ok',age_s:0,position:{x:state.jump?5:state.x,y:0,z:state.z},orientation:{x:0,y:0,z:Math.sin(state.yaw/2),w:Math.cos(state.yaw/2)},
         observation:{...obs(seq,'f',state.identityUnavailable,evidence('pose')),...(imu&&sourceStamp?{source_stamp_ns:sourceStamp}:{})}}));
     } };
     state.emitPose=send;
@@ -385,4 +392,61 @@ test('moving IMU trail survives same revision and catalogue refresh; changed rev
   expect(await page.evaluate(()=>window.observationScene.sensorObservationOverlay)).toBeNull();
   expect(writes.every(path=>path==='/api/v1/observations/map-alignment')).toBe(true);
   expect(errors).toEqual([]);
+});
+
+
+test('Go2 URDF sits and moves vertically at IMU origin with measured joints, and expires safely',async({page},testInfo)=>{
+  const {state,writes,errors}=await fixture(page,{imu:true,joints:true});
+  await expect.poll(()=>page.evaluate(()=>window.observationScene.observedRobotModel?.joints.FR_thigh_joint)).toBe(.7);
+  state.sitting=true; state.z=.18;
+  await expect.poll(()=>page.evaluate(()=>window.observationScene.observedRobotModel?.joints.FR_thigh_joint)).toBe(1.4);
+  await expect(page.locator('#savedLiveHeight')).toContainText('ΔZ -0.120 m');
+  await expect.poll(()=>page.evaluate(()=>window.observationScene.observedRobotModel?.pose.z)).toBeCloseTo(-.12,5);
+  state.z=.23;
+  await expect(page.locator('#savedLiveHeight')).toContainText('ΔZ -0.070 m');
+  await expect.poll(()=>page.evaluate(()=>window.observationScene.observedRobotModel?.pose.z)).toBeCloseTo(-.07,5);
+  expect(await page.evaluate(()=>window.observationScene.robotPose)).toBeNull();
+  await expect.poll(()=>page.evaluate(()=>window.observationScene.observedRobotModel?.body_extrinsic_verified)).toBe(false);
+  await page.locator('#savedLiveJointsDetails > summary').click();
+  await expect(page.locator('#savedLiveJoint_FR_thigh_joint')).toHaveText('80.2');
+  await page.locator('#savedLiveCenter').click();
+  await page.locator('#savedSceneCanvas').hover(); await page.mouse.wheel(0,-1600);
+  await page.locator('.saved-map-panel').screenshot({path:testInfo.outputPath('synthetic-go2-sitting.png')});
+  await page.setViewportSize({width:390,height:1100});
+  expect(await page.locator('#savedLiveObservation').evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+  await page.locator('#savedLiveJointsDetails').screenshot({path:testInfo.outputPath('synthetic-go2-joints.png')});
+  state.jointsStreaming=false;
+  await expect.poll(()=>page.evaluate(()=>window.observationScene.observedRobotModel)).toBeNull();
+  await expect(page.locator('#savedLiveJoint_FR_thigh_joint')).toHaveText('—');
+  expect(await page.evaluate(()=>Boolean(window.observationScene.sensorObservationOverlay))).toBe(true);
+  state.jointsStreaming=true;
+  await expect.poll(()=>page.evaluate(()=>Boolean(window.observationScene.observedRobotModel))).toBe(true);
+  state.streaming=false;
+  await expect(page.locator('#savedLiveState')).toHaveText('STALE');
+  expect(await page.evaluate(()=>window.observationScene.observedRobotModel)).toBeNull();
+  state.streaming=true;
+  await page.locator('#savedLiveConfirm').check(); await page.locator('#savedLiveAnchor').click();
+  await expect.poll(()=>page.evaluate(()=>Boolean(window.observationScene.observedRobotModel))).toBe(true);
+  state.epoch='e'; await expect(page.locator('#savedLiveState')).toHaveText('CLOUD_SOURCE_CHANGED');
+  expect(await page.evaluate(()=>window.observationScene.observedRobotModel)).toBeNull();
+  expect(writes).toEqual([]); expect(errors).toEqual([]);
+});
+
+test('alignment scheduling waits server cooldown after receipt despite slow dispatch and browser wall clock skew',async({page})=>{
+  const {backend,errors}=await fixture(page);
+  const calls=[],receipts=[];
+  backend.on('/api/v1/observations/map-alignment',async({route})=>{
+    const i=calls.length; calls.push(Date.now());
+    await new Promise(resolve=>setTimeout(resolve,i===0?450:40));
+    const headers=i===0?{'X-Observation-Retry-After-Ms':'730'}:i===1?{}:{'X-Observation-Retry-After-Ms':'1000'};
+    receipts.push(Date.now());
+    await route.fulfill({status:409,headers,contentType:'application/json',body:JSON.stringify({detail:'RATE_LIMIT_1HZ'})});
+  });
+  // Wall-clock skew must not affect request eligibility or local expiry.
+  await page.evaluate(()=>{const real=Date.now;Date.now=()=>real()+86400000;});
+  await page.locator('#savedLiveRegistration').check();
+  await expect.poll(()=>calls.length,{timeout:7000}).toBeGreaterThanOrEqual(3);
+  expect(calls[1]-receipts[0]).toBeGreaterThanOrEqual(720);
+  expect(calls[2]-receipts[1]).toBeGreaterThanOrEqual(990);
+  await page.locator('#savedLiveRegistration').uncheck(); expect(errors).toEqual([]);
 });

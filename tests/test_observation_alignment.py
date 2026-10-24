@@ -253,8 +253,9 @@ class ObservationApiTests(unittest.IsolatedAsyncioTestCase):
     async def test_origin_bounds_and_cached_only_numerical_request(self):
         app = FastAPI(); app.include_router(router)
         calls = []
+        response_headers = {}
         app.state.runtime = ApplicationRuntime(saved_maps=object(), agent=object(), observation_aligner=SimpleNamespace(
-            estimate=lambda *args: calls.append(args) or dict(status='REJECTED')))
+            estimate=lambda *args: calls.append(args) or dict(status='REJECTED'), retry_after_ms=lambda: 731))
         async def request(body, origin='http://testserver'):
             messages = []
             async def receive(): return dict(type='http.request', body=json.dumps(body).encode(), more_body=False)
@@ -263,14 +264,22 @@ class ObservationApiTests(unittest.IsolatedAsyncioTestCase):
             await app(dict(type='http', asgi={'version':'3.0'}, http_version='1.1', method='POST', scheme='http', path=path,
                 raw_path=path.encode(), query_string=b'', root_path='', server=('testserver',80), client=('127.0.0.1',1),
                 headers=[(b'host',b'testserver'),(b'origin',origin.encode()),(b'content-type',b'application/json')]), receive, send)
-            return next(m['status'] for m in messages if m['type']=='http.response.start')
+            start = next(m for m in messages if m['type'] == 'http.response.start')
+            response_headers.clear(); response_headers.update(dict(start['headers']))
+            return start['status']
         self.assertEqual(await request(request_body(), 'http://evil.example'), 403)
         self.assertEqual(calls, [])
         for change in [dict(map_id='../secret'), dict(T_map_odom_seed=[[1]*4]*5), dict(extra=True)]:
             self.assertEqual(await request(request_body() | change), 422)
         self.assertEqual(await request(request_body()), 200)
+        self.assertEqual(response_headers[b'x-observation-retry-after-ms'], b'731')
         self.assertEqual(len(calls), 1)
         self.assertFalse(calls[-1][2]['capture_inputs'])
         self.assertEqual(await request(request_body() | {'capture_inputs': True}), 200)
         self.assertTrue(calls[-1][2]['capture_inputs'])
         self.assertEqual(await request(request_body() | {'capture_inputs': 'true'}), 422)
+
+        def limited(*args): raise ObservationAlignmentError('RATE_LIMIT_1HZ')
+        app.state.runtime.observation_aligner.estimate = limited
+        self.assertEqual(await request(request_body()), 409)
+        self.assertEqual(response_headers[b'x-observation-retry-after-ms'], b'731')

@@ -779,3 +779,18 @@ test('default and non-IMU observation still require an explicit anchor after sta
   model.ingestPose(p(2)); model.ingestCloud(c(2));
   assert.equal(model.snapshot().pose,null);
 });
+
+
+test('relative height follows vertical odometry and survives map correction without claiming body pose', () => {
+  const {model} = setup();
+  model.ingestPose(pose(2, {position:{x:2,y:3,z:.38}})); model.ingestCloud(cloud(2));
+  assert.ok(Math.abs(model.snapshot().relative_height_m + .12) < 1e-9);
+  model.registrationEnabled = true;
+  const transform = model.anchor.T_map_odom.map(row => row.slice()); transform[2][3] += .05;
+  assert.equal(model.applyAlignment(result(model, {T_map_odom:transform}), model.generation), true);
+  assert.ok(Math.abs(model.snapshot().relative_height_m + .12) < 1e-9, 'correction is not body motion');
+  assert.equal(model.snapshot().body_pose, null); assert.equal(model.exportRecord().body_pose_verified, false);
+  model.registrationEnabled = false; model.setAnchor(guess, true); assert.equal(model.snapshot().relative_height_m, 0);
+  model.ingestPose(pose(3, {observation:observation(3,'e')}));
+  assert.equal(model.snapshot().relative_height_m, undefined);
+});

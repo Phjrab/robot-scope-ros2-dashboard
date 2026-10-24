@@ -5501,9 +5501,11 @@ function markJointsStale(force = false) {
 
 function applyJointSnapshot(snapshot) {
   if (!robotRuntimeDataCompatible || selectedRobotType !== 'go2') {
+    savedMapObservation?.ingestJoints(null);
     if (jointLive || targetJointPositions || renderedJointPositions) markJointsStale(true);
     return;
   }
+  if (snapshot) savedMapObservation?.ingestJoints(snapshot);
   const positions = snapshot?.position_rad;
   const validPositions = snapshot?.state === 'ok' && Array.isArray(positions) && positions.length === 12 && positions.every(Number.isFinite);
   if (!validPositions) {
@@ -5517,10 +5519,8 @@ function applyJointSnapshot(snapshot) {
   const rpy = snapshot?.imu_rpy_rad;
   if (Array.isArray(rpy) && rpy.length === 3 && rpy.every(Number.isFinite)) {
     latestBodyRpy = rpy.slice(0, 3);
-    // FAST-LIO starts camera_init yaw at zero and does not consume Unitree's
-    // absolute IMU quaternion.  Only use the high-rate IMU yaw *delta* from
-    // the latest Odometry anchor; the mapped roll/pitch/yaw basis remains the
-    // full FAST-LIO quaternion.
+    // Add only the IMU yaw delta to FAST-LIO's camera_init orientation;
+    // retain the full odometry quaternion as the mapped RPY anchor.
     if (targetPose && poseImuAnchor) {
       targetPose = {
         ...targetPose,

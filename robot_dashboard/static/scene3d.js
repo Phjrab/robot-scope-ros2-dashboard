@@ -1176,6 +1176,7 @@
       if (this.trailVisible) this._drawTrail();
       this._drawCameraFrustum();
       this._drawSpatialOverlay();
+      this._drawObservedRobotModel?.();
       this._drawSensorObservationOverlay();
       if (this.robotVisible) this._drawRobot();
       this._drawHud();
@@ -1625,8 +1626,8 @@
     _drawRobotLabel(anchor, pose) {
       const ctx = this.ctx;
       const modelLabel = String(this._robotModelLabel || 'ROBOT').trim().toUpperCase();
-      const primary = this.options.robotPoseLabel || (pose.sensorRelative ? `${modelLabel} · SENSOR EXTRINSIC` : pose.frameMismatch ? 'FRAME MISMATCH' : pose.preview ? `${modelLabel} · PREVIEW` : `${modelLabel} · LIVE POSE`);
-      const secondary = this.robotPose
+      const primary = pose.observationModel ? 'GO2 URDF · IMU ORIGIN APPROXIMATE' : this.options.robotPoseLabel || (pose.sensorRelative ? `${modelLabel} · SENSOR EXTRINSIC` : pose.frameMismatch ? 'FRAME MISMATCH' : pose.preview ? `${modelLabel} · PREVIEW` : `${modelLabel} · LIVE POSE`);
+      const secondary = pose.observationModel ? `Z ${pose.z.toFixed(3)} m · BODY / JOINT SYNC UNVERIFIED` : this.robotPose
         ? `X ${this.robotPose.x.toFixed(2)}  Y ${this.robotPose.y.toFixed(2)}  YAW ${((this.robotPose.yaw / DEG + 360) % 360).toFixed(0)}°`
         : 'ODOMETRY WAITING';
       ctx.save();

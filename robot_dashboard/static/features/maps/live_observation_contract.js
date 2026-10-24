@@ -316,6 +316,7 @@ export class LiveMapObservation {
     this.anchor = { generation: this.generation, map: { ...this.map }, poseKey: this.pose.key, cloudKey: this.cloud.key,
       T_map_odom: multiply(targetMatrix, inverseRigid(this.pose.matrix)), target_pose: { ...target },
       pose_stamp_ns: this.pose.value.observation.source_stamp_ns, kind: pair.kind, extrinsic: pair.extrinsic,
+      odometry_reference_z_m: this.pose.value.position.z,
       basis: 'OPERATOR_APPROXIMATE_DISPLAY_ANCHOR', accepted_registration: false, body_calibration_verified: false,
       tracked_frame: this.pose.value.child_frame_id, pose_topic: this.pose.value.topic,
       pose_reference: fastlioImu(this.pose.value) ? 'FASTLIO_IMU' : 'UNVERIFIED_BODY',
@@ -410,12 +411,13 @@ export class LiveMapObservation {
       ? (this.registrationEnabled ? 'SCAN_TO_MAP_CANDIDATE_SOURCE_UNVERIFIED' : 'ODOMETRY_PROPAGATED_SOURCE_UNVERIFIED')
       : (this.registrationEnabled ? 'SCAN_TO_MAP_CANDIDATE_UNVERIFIED' : 'ODOMETRY_PROPAGATED_UNVERIFIED'), canAnchor: true, pose,
       registration: this.registration,
+      relative_height_m: this.pose.value.position.z - this.anchor.odometry_reference_z_m,
       tracked_frame: this.anchor.tracked_frame, pose_reference: this.anchor.pose_reference,
       pair_method: pair.pair_method, pose_topic: this.pose.value.topic, odometry_frame: this.pose.value.frame_id,
       source_stamp_ns: this.pose.value.observation.source_stamp_ns,
       points: this.geometryCache.points, geometryKey: cacheKey, trail: this.trail,
       pairing: pair.kind, receipt_pair_delta_s: pair.receipt_delta_s, source_delta_ns: pair.source_delta_ns,
-      pose_age_ms: this.now()-this.pose.arrived, cloud_age_ms: this.now()-this.cloud.arrived,
+      pose_age_ms: this.pose.value.age_s * 1000 + this.now()-this.pose.arrived, cloud_age_ms: this.now()-this.cloud.arrived,
       cloud_receive_to_prepare_ms: this.now()-this.cloud.arrived };
   }
   alignmentRequest() {
