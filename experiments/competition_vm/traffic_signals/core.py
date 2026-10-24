@@ -109,16 +109,23 @@ class TemporalFilter:
     """Receiver-local time + synchronized explicit source age; never subtract host clocks."""
     def __init__(self, stability_s=.4, ttl_s=.25):
         if not all(math.isfinite(v) and v>0 for v in (stability_s,ttl_s)): raise ValueError('positive finite times required')
-        self.stability_s=stability_s; self.ttl_s=ttl_s; self.retired_epochs=set(); self.reset()
+        self.stability_s=stability_s; self.ttl_s=ttl_s; self.retired_epochs=set()
+        self.highwater={};self.receiver_highwater=None;self.reset()
     def reset(self):
         self.identity=None; self.seq=-1; self.source_ns=-1; self.last=None;self.since=None;self.candidate=None
     def update(self, state, *, identity, sequence, source_stamp_ns, receipt_s, source_age_s, flags=()):
-        now=float(receipt_s)
-        age=float(source_age_s)
-        if not math.isfinite(now) or not math.isfinite(age) or age<0 or age>self.ttl_s:
-            self.reset(); return 'UNKNOWN'
-        stamp=int(source_stamp_ns)
+        try:
+            now=float(receipt_s);age=float(source_age_s);stamp=int(source_stamp_ns)
+        except (ValueError,TypeError,OverflowError):
+            self.since=None;self.candidate=None;return 'UNKNOWN'
+        if (not math.isfinite(now) or not math.isfinite(age) or age<0 or age>self.ttl_s
+            or type(sequence) is not int or sequence<0 or stamp<0
+            or not isinstance(identity,tuple) or not identity or not isinstance(identity[0],str) or not identity[0]):
+            self.since=None;self.candidate=None;return 'UNKNOWN'
         epoch=identity[0]
+        watermark=self.highwater.get(epoch,(-1,-1))
+        if sequence<=watermark[0] or stamp<=watermark[1] or (self.receiver_highwater is not None and now<=self.receiver_highwater):
+            self.since=None;self.candidate=None;return 'UNKNOWN'
         if epoch in self.retired_epochs:
             self.since=None;self.candidate=None;return 'UNKNOWN'
         if identity!=self.identity:
@@ -129,6 +136,7 @@ class TemporalFilter:
         if invalid:
             self.since=None;self.candidate=None;return 'UNKNOWN'
         self.seq=sequence;self.source_ns=stamp;self.last=now
+        self.highwater[epoch]=(sequence,stamp);self.receiver_highwater=now
         if flags or state not in ('RED','GREEN'):
             self.since=None;self.candidate=None;return state if state=='AMBIGUOUS' else 'UNKNOWN'
         if gap or state!=self.candidate:
@@ -169,9 +177,11 @@ class StopInput:
 
 class StopGoFSM:
     """Explicit start required; result is constraint intent, never a velocity command."""
-    def __init__(self, *, simulation=True, ttl_s=.25, minimum_stop_s=2.):
+    def __init__(self, *, simulation=True, ttl_s=.25, minimum_stop_s=2., stop_gap_s=None):
         if not math.isfinite(ttl_s) or ttl_s<=0: raise ValueError('positive finite TTL required')
         if minimum_stop_s<2 or not math.isfinite(minimum_stop_s): raise ValueError('RULEBOOK minimum is 2s')
+        self.stop_gap=ttl_s if stop_gap_s is None else stop_gap_s
+        if not math.isfinite(self.stop_gap) or self.stop_gap<=0: raise ValueError('positive finite continuity gap required')
         self.simulation=simulation;self.ttl=ttl_s;self.dwell=minimum_stop_s
         self.begun_keys=set()
         self.state='INTERRUPTED';self.key=None;self.last=None;self.seq=-1;self.start=None;self.epoch=None
@@ -213,7 +223,7 @@ class StopGoFSM:
             self.retired_epochs.add(self.epoch);self.seq=-1;self.last=None;self.start=None
             if self.state not in ('CROSSING_COMMITTED','CLEAR'):self.state='STOP_ZONE_ALIGN'
         duplicate=i.sequence<=self.seq or (self.last is not None and i.receipt_s<=self.last)
-        gap=self.last is not None and i.receipt_s-self.last>self.ttl
+        gap=self.last is not None and i.receipt_s-self.last>self.stop_gap
         epoch_change=self.epoch is not None and self.epoch!=i.epoch
         if not fresh or duplicate:
             if self.state not in ('CROSSING_COMMITTED','CLEAR'):self.state='STOP_ZONE_ALIGN';self.start=None

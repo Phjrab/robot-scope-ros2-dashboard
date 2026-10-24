@@ -15,6 +15,7 @@ htmlcov/
 node_modules/
 playwright-report/
 test-results/
+competition-test-results/
 blob-report/
 build/
 install/

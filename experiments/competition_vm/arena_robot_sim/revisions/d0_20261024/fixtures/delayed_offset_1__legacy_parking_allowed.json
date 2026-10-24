@@ -1,0 +1,462 @@
+{
+  "fixture_schema": "d0-observation-projection.v1",
+  "source_file": "results/delayed_offset_1__legacy_parking_allowed__repeat1.json",
+  "source_file_sha256": "23482a95669a9ac1a8de163d8d12cf084e02ab3fe98f8a265103f6f683aaae61",
+  "source_frame_count": 71,
+  "retained_frame_fields": [
+    "t",
+    "v",
+    "w",
+    "sensor_fresh"
+  ],
+  "projection": "Exact values for every source frame; no downsampling or numeric rounding",
+  "metrics": {
+    "outcome": "SAFE_WAIT",
+    "reason": "SENSOR_STALE",
+    "sim_time_s": 7.1,
+    "path_length_m": 0.18451595756172912,
+    "interpolated_pose_samples": 426,
+    "swept_grid_contact_samples": 0,
+    "exact_cone_fence_contact_samples": 0,
+    "forbidden_parking_samples": 0,
+    "legacy_parking_overlap_samples": 0,
+    "min_grid_circumscribed_clearance_proxy_m": 0.08705216631211721,
+    "min_sampled_polygon_edge_clearance_m": 0.31425223653940293,
+    "accepted_scans": 5,
+    "rejected_scans": 29,
+    "states": {
+      "FOLLOWING": 11,
+      "SENSOR_STALE_HOLD": 60
+    },
+    "planner_attempts": 15,
+    "safety_pass": true
+  },
+  "frames": [
+    {
+      "t": 0.0,
+      "v": 0.15154528598385603,
+      "w": 0.2213144423477864,
+      "sensor_fresh": true
+    },
+    {
+      "t": 0.1,
+      "v": 0.1521034454927516,
+      "w": 0.21697320172304302,
+      "sensor_fresh": true
+    },
+    {
+      "t": 0.2,
+      "v": 0.1672613516914566,
+      "w": 0.09907837573311529,
+      "sensor_fresh": true
+    },
+    {
+      "t": 0.3,
+      "v": 0.16750982653264096,
+      "w": 0.09714579363501485,
+      "sensor_fresh": true
+    },
+    {
+      "t": 0.4,
+      "v": 0.16718324189381267,
+      "w": 0.09968589638145708,
+      "sensor_fresh": true
+    },
+    {
+      "t": 0.5,
+      "v": 0.17944383936413197,
+      "w": -0.004325693834529076,
+      "sensor_fresh": true
+    },
+    {
+      "t": 0.6,
+      "v": 0.17943001103012848,
+      "w": -0.004433247543444985,
+      "sensor_fresh": true
+    },
+    {
+      "t": 0.7,
+      "v": 0.17169253599130213,
+      "w": -0.064613608956539,
+      "sensor_fresh": true
+    },
+    {
+      "t": 0.8,
+      "v": 0.1716797501085136,
+      "w": -0.06471305471156086,
+      "sensor_fresh": true
+    },
+    {
+      "t": 0.9,
+      "v": 0.1685657027452739,
+      "w": -0.088933423092314,
+      "sensor_fresh": true
+    },
+    {
+      "t": 1.0,
+      "v": 0.16875439070838516,
+      "w": -0.08746585004589313,
+      "sensor_fresh": true
+    },
+    {
+      "t": 1.1,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 1.2,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 1.3,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 1.4,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 1.5,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 1.6,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 1.7,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 1.8,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 1.9,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 2.0,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 2.1,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 2.2,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 2.3,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 2.4,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 2.5,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 2.6,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 2.7,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 2.8,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 2.9,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 3.0,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 3.1,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 3.2,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 3.3,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 3.4,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 3.5,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 3.6,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 3.7,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 3.8,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 3.9,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 4.0,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 4.1,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 4.2,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 4.3,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 4.4,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 4.5,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 4.6,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 4.7,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 4.8,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 4.9,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 5.0,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 5.1,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 5.2,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 5.3,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 5.4,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 5.5,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 5.6,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 5.7,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 5.8,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 5.9,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 6.0,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 6.1,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 6.2,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 6.3,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 6.4,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 6.5,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 6.6,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 6.7,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 6.8,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 6.9,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    },
+    {
+      "t": 7.0,
+      "v": 0.0,
+      "w": 0.0,
+      "sensor_fresh": false
+    }
+  ]
+}

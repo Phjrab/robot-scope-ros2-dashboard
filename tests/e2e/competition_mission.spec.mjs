@@ -20,6 +20,46 @@ async function draft(page) {
   return result;
 }
 
+test('mission workspace saves explicit waypoint coordinates through the real API and reloads the definition', async ({page}) => {
+  const {workspace:w,backend} = await connect(page);
+  await w.getByRole('button',{name:'지도 불러오기 / 새 미션',exact:true}).click();
+  await w.getByLabel('미션 이름',{exact:true}).fill('C1 explicit waypoint');
+  await w.getByLabel('지도 도구',{exact:true}).selectOption('add');
+  await w.locator('svg').click();
+  await expect(w.locator('ol li')).toHaveCount(1);
+  await w.getByLabel('방문 이름',{exact:true}).fill('C1 waypoint');
+  await w.getByLabel('x(m)',{exact:true}).fill('1.5');
+  await w.getByLabel('y(m)',{exact:true}).fill('2.25');
+  await w.getByLabel('방향(°)',{exact:true}).fill('90');
+  const saved = page.waitForResponse(response =>
+    new URL(response.url()).pathname === '/api/v1/mission-plans'
+    && response.request().method() === 'POST');
+  await w.getByRole('button',{name:'미션 저장',exact:true}).click();
+  const response = await saved;
+  expect(response.status()).toBe(201);
+  const {plan} = await response.json();
+  expect(plan.definition.label).toBe('C1 explicit waypoint');
+  const visit = plan.definition.visits[0];
+  expect(visit.label).toBe('C1 waypoint');
+  expect(visit.target).toBe('mission_local_pose');
+  expect(visit.pose).toEqual({x:1.5,y:2.25,yaw:Math.PI/2});
+  const persisted = await page.request.get(`/api/v1/mission-plans/${plan.id}`);
+  expect(persisted.ok()).toBe(true);
+  expect((await persisted.json()).plan).toEqual(plan);
+  await expect(w.getByRole('status')).toContainText('저장됨');
+  // Remove the browser draft: reload must recover the definition from the API.
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await expect(w.getByLabel('미션 이름',{exact:true})).toHaveValue('C1 explicit waypoint');
+  await expect(w.locator('ol li')).toHaveCount(1);
+  await w.locator('[data-visit-label]').click();
+  await expect(w.getByLabel('x(m)',{exact:true})).toHaveValue('1.5');
+  await expect(w.getByLabel('y(m)',{exact:true})).toHaveValue('2.25');
+  expect((await (await page.request.get('/api/v1/mission-runs')).json()).runs).toEqual([]);
+  expect(backend.mutations('/api/v1/missions')).toHaveLength(0);
+  expect(backend.mutations('/api/v1/navigation/goal')).toHaveLength(0);
+});
+
 test('competition real API saves DRAFT, field edits, minima and per-step blockers', async ({page}) => {
   const errors=[]; page.on('pageerror', e => errors.push(e.message));
   const {workspace:w,backend} = await draft(page);

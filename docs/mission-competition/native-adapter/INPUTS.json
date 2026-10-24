@@ -1,0 +1,73 @@
+{
+  "base_commit": "7f2a7070a17975d2a5f123cbf6aab0f99f04bf8a",
+  "inputs": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "946364996d0a9986ac873d2b15562e3d388b94c4b8f51193aad0a4e59981eadc"
+    },
+    {
+      "path": "docs/mission-competition/HANDOFF.md",
+      "sha256": "3bde1fe9e555d7c31c51682965cfc6a6a9747263ff5e643fa604d7c7b3da3008"
+    },
+    {
+      "path": "docs/mission-competition/definition.schema.json",
+      "sha256": "a615d89f3ffec25b192e504e53f8f19d8555bee76a77e65683ee91f81b2decaf"
+    },
+    {
+      "path": "docs/mission-competition/evidence.schema.json",
+      "sha256": "ba890ce45c5da21122b8f07207db62e7cb8b29b4e70504dfce1a841556069e8e"
+    },
+    {
+      "path": "robot_dashboard/mission_routes/models.py",
+      "sha256": "72019803e55ef08740d3259c8e99661eff656faea167b3b3cb8545457f349554"
+    },
+    {
+      "path": "robot_dashboard/mission_routes/competition_contract.py",
+      "sha256": "c75f91d4f02c11ef7120283375ebdd1e7114e3f5dc9c381b4e44e3e6577497ee"
+    },
+    {
+      "path": "robot_dashboard/mission_routes/competition_executor.py",
+      "sha256": "498c5cdf0bf46deeb9a31a8e23e80bfb6d2af4e5f2d59a3c1898f7bf359d00d3"
+    },
+    {
+      "path": "robot_dashboard/mission_routes/service.py",
+      "sha256": "31db023a532e162d139e3bb38fd6b84b98f5e5153ea39e5d7c9565da223c08bd"
+    },
+    {
+      "path": "robot_dashboard/mission_routes/wiring.py",
+      "sha256": "bec5bb9386c61835c4cf5bffd1ca36d64acef350b1b5b66bc67968589ded339d"
+    },
+    {
+      "path": "robot_dashboard/application/mission_coordinator.py",
+      "sha256": "804bdbe243cb52ef9f4e15315ecce93ac4b450ebeec391bf9da280f9c8e01ecf"
+    },
+    {
+      "path": "robot_dashboard/application/navigation_coordinator.py",
+      "sha256": "9e8ab6915ed3bcf4f56dcbe10073662e57c96018864585b4215d39fb117e9108"
+    },
+    {
+      "path": "robot_dashboard/control.py",
+      "sha256": "6880924564640ede8d418935f040cb4c33bcf4ecbaaa37a8dc53666ce7f14f91"
+    },
+    {
+      "path": "experiments/competition_vm/integration/HANDOFF.md",
+      "sha256": "12a15acb284da746b7ea07733e03e560d8372931ed150885a50ac9fa4de0c680"
+    },
+    {
+      "path": "experiments/competition_vm/integration/adapter.py",
+      "sha256": "cfe1ae1934a456b8366ae1afe953e211f45887551775a8c025daa8eda3d354a5"
+    },
+    {
+      "path": "experiments/competition_vm/traffic_signals/core.py",
+      "sha256": "5a3e786243662547588365982d9784293f1025922d0e0f90d28e23d0cedc8f17"
+    },
+    {
+      "path": "experiments/competition_vm/traffic_signals/VM_TO_CODEX_HANDOFF.md",
+      "sha256": "175a09c92676567b3c05c3ac30b1e5de012fa34ee9001d922e6152a673069b67"
+    },
+    {
+      "path": "experiments/competition_vm/avoidance/core.py",
+      "sha256": "73b4861f1e984611c75dc9ad548434558882d0f92972865967d2e1b3c89e5e5d"
+    }
+  ]
+}

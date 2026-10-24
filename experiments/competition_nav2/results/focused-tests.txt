@@ -1,0 +1,43 @@
+test_clock_reset_fault (test_offline.BoundaryTests.test_clock_reset_fault) ... ok
+test_command_receipt_ttl_stops (test_offline.BoundaryTests.test_command_receipt_ttl_stops) ... ok
+test_delayed_source_not_refreshed_by_receipt (test_offline.BoundaryTests.test_delayed_source_not_refreshed_by_receipt) ... ok
+test_future_source_rejected (test_offline.BoundaryTests.test_future_source_rejected) ... ok
+test_hold_blocks_recovery_commands (test_offline.BoundaryTests.test_hold_blocks_recovery_commands) ... ok
+test_hold_clears_immediately (test_offline.BoundaryTests.test_hold_clears_immediately) ... ok
+test_initial_hold_is_exact_zero (test_offline.BoundaryTests.test_initial_hold_is_exact_zero) ... ok
+test_nonfinite_faults (test_offline.BoundaryTests.test_nonfinite_faults) ... ok
+test_old_epoch_and_pre_release_source_rejected (test_offline.BoundaryTests.test_old_epoch_and_pre_release_source_rejected) ... ok
+test_release_requires_new_command (test_offline.BoundaryTests.test_release_requires_new_command) ... ok
+test_replay_sequence_rejected (test_offline.BoundaryTests.test_replay_sequence_rejected) ... ok
+test_sensor_source_age_plus_receipt_age (test_offline.BoundaryTests.test_sensor_source_age_plus_receipt_age) ... ok
+test_speed_acceleration_limits_shared (test_offline.BoundaryTests.test_speed_acceleration_limits_shared) ... ok
+test_stale_sensor_latched_no_auto_resume (test_offline.BoundaryTests.test_stale_sensor_latched_no_auto_resume) ... ok
+test_all_candidates_lint_and_fair_shared_inputs (test_offline.ConfigIsolationEvidenceTests.test_all_candidates_lint_and_fair_shared_inputs) ... ok
+test_bad_profile_is_rejected (test_offline.ConfigIsolationEvidenceTests.test_bad_profile_is_rejected) ... ok
+test_bt_contains_real_actions (test_offline.ConfigIsolationEvidenceTests.test_bt_contains_real_actions) ... ok
+test_host_localhost_environment_is_insufficient (test_offline.ConfigIsolationEvidenceTests.test_host_localhost_environment_is_insufficient) ... ok
+test_matrix_contains_matched_repeats_without_execution_claim (test_offline.ConfigIsolationEvidenceTests.test_matrix_contains_matched_repeats_without_execution_claim) ... ok
+test_missing_delayed_probe_rejected_without_crash (test_offline.ConfigIsolationEvidenceTests.test_missing_delayed_probe_rejected_without_crash) ... ok
+test_missing_files_reject_even_declared_metrics (test_offline.ConfigIsolationEvidenceTests.test_missing_files_reject_even_declared_metrics) ... ok
+test_native_launch_refuses_host_before_ros_import (test_offline.ConfigIsolationEvidenceTests.test_native_launch_refuses_host_before_ros_import) ... ok
+test_native_name_alone_insufficient (test_offline.ConfigIsolationEvidenceTests.test_native_name_alone_insufficient) ... ok
+test_offline_or_not_run_can_never_pass_native (test_offline.ConfigIsolationEvidenceTests.test_offline_or_not_run_can_never_pass_native) ... ok
+test_original_mppi_period_error_is_rejected (test_offline.ConfigIsolationEvidenceTests.test_original_mppi_period_error_is_rejected) ... ok
+test_plugin_export_library_name_can_differ_from_package (test_offline.ConfigIsolationEvidenceTests.test_plugin_export_library_name_can_differ_from_package) ... ok
+test_deterministic_fixture (test_offline.FixtureTests.test_deterministic_fixture) ... ok
+test_hidden_cone_not_in_static_map (test_offline.FixtureTests.test_hidden_cone_not_in_static_map) ... ok
+test_map_export_identical_between_controller_cases (test_offline.FixtureTests.test_map_export_identical_between_controller_cases) ... ok
+test_parking_intrusion_preserved_and_optional_permission (test_offline.FixtureTests.test_parking_intrusion_preserved_and_optional_permission) ... ok
+test_required_scenarios_and_no_moved_central_cone (test_offline.FixtureTests.test_required_scenarios_and_no_moved_central_cone) ... ok
+test_scan_first_hit_and_late_appearance (test_offline.FixtureTests.test_scan_first_hit_and_late_appearance) ... ok
+test_start_goal_free_and_outside_blocked (test_offline.FixtureTests.test_start_goal_free_and_outside_blocked) ... ok
+test_terrain_is_blocked (test_offline.FixtureTests.test_terrain_is_blocked) ... ok
+test_clearance_touch_and_separation (test_offline.GeometryTests.test_clearance_touch_and_separation) ... ok
+test_sat_detects_edge_crossing_without_inside_vertices (test_offline.GeometryTests.test_sat_detects_edge_crossing_without_inside_vertices) ... ok
+test_sweep_finds_contact_between_endpoints (test_offline.GeometryTests.test_sweep_finds_contact_between_endpoints) ... ok
+test_turn_sweep_resolution_and_exact_propagation (test_offline.GeometryTests.test_turn_sweep_resolution_and_exact_propagation) ... ok
+
+----------------------------------------------------------------------
+Ran 38 tests in 1.618s
+
+OK

@@ -1,0 +1,49 @@
+test_clock_rollback_holds (test_adapter.IntegrationTests.test_clock_rollback_holds) ... ok
+test_duplicate_release_invalidates (test_adapter.IntegrationTests.test_duplicate_release_invalidates) ... ok
+test_expired_release (test_adapter.IntegrationTests.test_expired_release) ... ok
+test_invalid_ttl_failclosed (test_adapter.IntegrationTests.test_invalid_ttl_failclosed) ... ok
+test_missing_constraint_holds (test_adapter.IntegrationTests.test_missing_constraint_holds) ... ok
+test_multiple_holds_precedence (test_adapter.IntegrationTests.test_multiple_holds_precedence) ... ok
+test_no_implicit_caps_or_unknown_modes (test_adapter.IntegrationTests.test_no_implicit_caps_or_unknown_modes) ... ok
+test_previous_generation_cancel_rejected (test_adapter.IntegrationTests.test_previous_generation_cancel_rejected) ... ok
+test_red_clearpath_hold (test_adapter.IntegrationTests.test_red_clearpath_hold) ... ok
+test_release_never_replays_held_command (test_adapter.IntegrationTests.test_release_never_replays_held_command) ... ok
+test_release_rejects_pre_release_command_even_new_seq (test_adapter.IntegrationTests.test_release_rejects_pre_release_command_even_new_seq) ... ok
+test_safety_precedes_release (test_adapter.IntegrationTests.test_safety_precedes_release) ... ok
+test_stale_command_not_replayed_later (test_adapter.IntegrationTests.test_stale_command_not_replayed_later) ... ok
+test_unknown_clearpath_hold (test_adapter.IntegrationTests.test_unknown_clearpath_hold) ... ok
+test_wrong_session_release_rejected (test_adapter.IntegrationTests.test_wrong_session_release_rejected) ... ok
+test_zero_caps_required_for_hold (test_adapter.IntegrationTests.test_zero_caps_required_for_hold) ... ok
+test_approach_does_not_disable_collision_or_estop (test_d0_lifecycle_integration.LifecycleIntegrationTests.test_approach_does_not_disable_collision_or_estop) ... ok
+test_before_deadlock_and_after_approach (test_d0_lifecycle_integration.LifecycleIntegrationTests.test_before_deadlock_and_after_approach) ... ok
+test_cancel_closes_adapter (test_d0_lifecycle_integration.LifecycleIntegrationTests.test_cancel_closes_adapter) ... ok
+test_committed_red_ignores_signal_age_not_pose_age (test_d0_lifecycle_integration.LifecycleIntegrationTests.test_committed_red_ignores_signal_age_not_pose_age) ... ok
+test_false_terminal_does_not_create_hold_ack (test_d0_lifecycle_integration.LifecycleIntegrationTests.test_false_terminal_does_not_create_hold_ack) ... ok
+test_full_actual_module_trace (test_d0_lifecycle_integration.LifecycleIntegrationTests.test_full_actual_module_trace) ... ok
+test_invalid_event_blocks_without_observation_tick (test_d0_lifecycle_integration.LifecycleIntegrationTests.test_invalid_event_blocks_without_observation_tick) ... ok
+test_invalid_observation_fails_closed_without_exception (test_d0_lifecycle_integration.LifecycleIntegrationTests.test_invalid_observation_fails_closed_without_exception) ... ok
+test_repeated_source_observation_never_restamped_fresh (test_d0_lifecycle_integration.LifecycleIntegrationTests.test_repeated_source_observation_never_restamped_fresh) ... ok
+test_retained_release_expires_with_green_or_pose (test_d0_lifecycle_integration.LifecycleIntegrationTests.test_retained_release_expires_with_green_or_pose) ... ok
+test_terminal_event_blocks_without_observation_tick (test_d0_lifecycle_integration.LifecycleIntegrationTests.test_terminal_event_blocks_without_observation_tick) ... ok
+test_wrong_goal_command_never_accepted_on_approach (test_d0_lifecycle_integration.LifecycleIntegrationTests.test_wrong_goal_command_never_accepted_on_approach) ... ok
+test_bad_source_age_revokes_old_release (test_d0_transport.TransportTests.test_bad_source_age_revokes_old_release) ... ok
+test_epoch_restart_closes_current_generation (test_d0_transport.TransportTests.test_epoch_restart_closes_current_generation) ... ok
+test_explicit_cancel_never_revived (test_d0_transport.TransportTests.test_explicit_cancel_never_revived) ... ok
+test_goal_identity_barrier (test_d0_transport.TransportTests.test_goal_identity_barrier) ... ok
+test_no_old_goal_rebind (test_d0_transport.TransportTests.test_no_old_goal_rebind) ... ok
+test_old_held_command_not_reused_after_fresh_release (test_d0_transport.TransportTests.test_old_held_command_not_reused_after_fresh_release) ... ok
+test_producer_duplicate_rejected_despite_new_receiver_sequence (test_d0_transport.TransportTests.test_producer_duplicate_rejected_despite_new_receiver_sequence) ... ok
+test_producer_out_of_order_stamp (test_d0_transport.TransportTests.test_producer_out_of_order_stamp) ... ok
+test_receiver_future_and_backwards (test_d0_transport.TransportTests.test_receiver_future_and_backwards) ... ok
+test_receiver_ttl_after_boundary (test_d0_transport.TransportTests.test_receiver_ttl_after_boundary) ... ok
+test_receiver_ttl_exact_boundary (test_d0_transport.TransportTests.test_receiver_ttl_exact_boundary) ... ok
+test_source_age_exact_boundary (test_d0_transport.TransportTests.test_source_age_exact_boundary) ... ok
+test_source_age_expires_while_receiver_ttl_remains (test_d0_transport.TransportTests.test_source_age_expires_while_receiver_ttl_remains) ... ok
+test_source_age_plus_transit_not_separate_loophole (test_d0_transport.TransportTests.test_source_age_plus_transit_not_separate_loophole) ... ok
+test_source_stamp_never_subtracted_from_receiver_clock (test_d0_transport.TransportTests.test_source_stamp_never_subtracted_from_receiver_clock) ... ok
+test_wrong_session_and_generation_envelope (test_d0_transport.TransportTests.test_wrong_session_and_generation_envelope) ... ok
+
+----------------------------------------------------------------------
+Ran 44 tests in 0.018s
+
+OK

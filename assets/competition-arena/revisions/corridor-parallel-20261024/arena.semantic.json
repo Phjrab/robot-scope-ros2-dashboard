@@ -1,0 +1,1036 @@
+{
+  "schema_version": "0.1",
+  "arena_id": "roboworld_quadruped",
+  "revision": "corridor-parallel-20261024-v1",
+  "rules_version": "2026-10-15",
+  "base_commit": "7f2a7070a17975d2a5f123cbf6aab0f99f04bf8a",
+  "frame_id": "arena_design",
+  "units": "metre/radian",
+  "handedness": "right",
+  "quaternion_order": "xyzw",
+  "origin": "lower-left ground",
+  "bounds_xy_m": [
+    [
+      0,
+      0
+    ],
+    [
+      8,
+      6
+    ]
+  ],
+  "gltf_transform": "(x,z,-y)",
+  "map_transform": null,
+  "dimensions": [
+    {
+      "id": "overall_x",
+      "value": 8,
+      "unit": "m",
+      "source_page": 7,
+      "evidence_status": "RULEBOOK_TEXT",
+      "uncertainty": "",
+      "conflict_notes": ""
+    },
+    {
+      "id": "overall_y",
+      "value": 6,
+      "unit": "m",
+      "source_page": 7,
+      "evidence_status": "RULEBOOK_TEXT",
+      "uncertainty": "",
+      "conflict_notes": "Legacy6.018; not uniform scaled"
+    },
+    {
+      "id": "left_length",
+      "value": 5.018,
+      "unit": "m",
+      "source_page": 7,
+      "evidence_status": "RULEBOOK_TEXT",
+      "uncertainty": "",
+      "conflict_notes": "Figure5.000"
+    },
+    {
+      "id": "left_top_width",
+      "value": 1.4,
+      "unit": "m",
+      "source_page": 7,
+      "evidence_status": "RULEBOOK_TEXT",
+      "uncertainty": "Only top endpoint width; middle provisional",
+      "conflict_notes": ""
+    },
+    {
+      "id": "left_bottom_width",
+      "value": 1.4,
+      "unit": "m",
+      "source_page": 7,
+      "evidence_status": "RULEBOOK_TEXT",
+      "uncertainty": "Only bottom endpoint width; middle provisional",
+      "conflict_notes": ""
+    },
+    {
+      "id": "in_out_length",
+      "value": 2.4,
+      "unit": "m",
+      "source_page": 7,
+      "evidence_status": "RULEBOOK_TEXT",
+      "uncertainty": "",
+      "conflict_notes": ""
+    },
+    {
+      "id": "in_out_width",
+      "value": 1.018,
+      "unit": "m",
+      "source_page": 7,
+      "evidence_status": "RULEBOOK_TEXT",
+      "uncertainty": "",
+      "conflict_notes": "Figure1.000"
+    },
+    {
+      "id": "cross_left",
+      "value": 2.608,
+      "unit": "m",
+      "source_page": 7,
+      "evidence_status": "RULEBOOK_TEXT",
+      "uncertainty": "Unknown measurement line; not enforced on mesh",
+      "conflict_notes": "Legacy2.000"
+    },
+    {
+      "id": "cross_right",
+      "value": 3.245,
+      "unit": "m",
+      "source_page": 7,
+      "evidence_status": "RULEBOOK_TEXT",
+      "uncertainty": "Unknown measurement line; not enforced on mesh",
+      "conflict_notes": "Figure3.200"
+    },
+    {
+      "id": "parking_height",
+      "value": 1.5,
+      "unit": "m",
+      "source_page": 7,
+      "evidence_status": "RULEBOOK_TEXT",
+      "uncertainty": "",
+      "conflict_notes": ""
+    },
+    {
+      "id": "parking_width",
+      "value": 1.5,
+      "unit": "m",
+      "source_page": 6,
+      "evidence_status": "RULEBOOK_FIGURE",
+      "uncertainty": "Text does not specify width",
+      "conflict_notes": ""
+    },
+    {
+      "id": "parking_gap_each",
+      "value": 1.482,
+      "unit": "m",
+      "source_page": 7,
+      "evidence_status": "RULEBOOK_TEXT",
+      "uncertainty": "Unknown baseline; NOT enforced",
+      "conflict_notes": "Stacking two gaps+bays+parking yields6.500 not6.000"
+    },
+    {
+      "id": "wall_height",
+      "value": 0.6,
+      "unit": "m",
+      "source_page": null,
+      "evidence_status": "LEGACY_DRAWING",
+      "uncertainty": "Legacy S01/S04; also Figure p7 nominal600",
+      "conflict_notes": ""
+    },
+    {
+      "id": "ramp_run",
+      "value": 1.1,
+      "unit": "m",
+      "source_page": null,
+      "evidence_status": "LEGACY_DRAWING",
+      "uncertainty": "",
+      "conflict_notes": ""
+    },
+    {
+      "id": "stair_tread",
+      "value": 0.25,
+      "unit": "m",
+      "source_page": null,
+      "evidence_status": "LEGACY_DRAWING",
+      "uncertainty": "",
+      "conflict_notes": ""
+    },
+    {
+      "id": "stair_riser",
+      "value": 0.06,
+      "unit": "m",
+      "source_page": null,
+      "evidence_status": "LEGACY_DRAWING",
+      "uncertainty": "",
+      "conflict_notes": ""
+    },
+    {
+      "id": "platform_height",
+      "value": 0.18,
+      "unit": "m",
+      "source_page": null,
+      "evidence_status": "LEGACY_DRAWING",
+      "uncertainty": "",
+      "conflict_notes": ""
+    },
+    {
+      "id": "stop_depth",
+      "value": 0.3,
+      "unit": "m",
+      "source_page": 8,
+      "evidence_status": "PROVISIONAL",
+      "uncertainty": "Estimated; range0.2\u20130.5",
+      "conflict_notes": ""
+    },
+    {
+      "id": "stop_width",
+      "value": 0.7,
+      "unit": "m",
+      "source_page": 8,
+      "evidence_status": "PROVISIONAL",
+      "uncertainty": "Estimated; range0.5\u20130.9",
+      "conflict_notes": ""
+    },
+    {
+      "id": "wall_marker_side",
+      "value": 0.1,
+      "unit": "m",
+      "source_page": 8,
+      "evidence_status": "RULEBOOK_TEXT",
+      "uncertainty": "",
+      "conflict_notes": ""
+    }
+  ],
+  "semantic_zones": [
+    {
+      "id": "floor_left_straight",
+      "type": "WALKABLE",
+      "polygon": [
+        [
+          0,
+          0.491
+        ],
+        [
+          1.4,
+          0.491
+        ],
+        [
+          1.0,
+          1.6
+        ],
+        [
+          1.0,
+          4.4
+        ],
+        [
+          1.4,
+          5.509
+        ],
+        [
+          0,
+          5.509
+        ]
+      ],
+      "frame_id": "arena_design",
+      "ground_height_m": 0,
+      "evidence_status": "PROVISIONAL",
+      "navigation_qualified": false
+    },
+    {
+      "id": "floor_nw_diagonal",
+      "type": "WALKABLE",
+      "polygon": [
+        [
+          1,
+          4.4
+        ],
+        [
+          2.5928932188134524,
+          3.0
+        ],
+        [
+          3.3,
+          3.7071067811865475
+        ],
+        [
+          1.4,
+          5.509
+        ]
+      ],
+      "frame_id": "arena_design",
+      "ground_height_m": 0,
+      "evidence_status": "PROVISIONAL",
+      "navigation_qualified": false
+    },
+    {
+      "id": "floor_sw_diagonal",
+      "type": "WALKABLE",
+      "polygon": [
+        [
+          1,
+          1.6
+        ],
+        [
+          1.4,
+          0.491
+        ],
+        [
+          3.3,
+          2.2928932188134525
+        ],
+        [
+          2.5928932188134524,
+          3.0
+        ]
+      ],
+      "frame_id": "arena_design",
+      "ground_height_m": 0,
+      "evidence_status": "PROVISIONAL",
+      "navigation_qualified": false
+    },
+    {
+      "id": "floor_center_base",
+      "type": "WALKABLE",
+      "polygon": [
+        [
+          3.3,
+          2.2928932188134525
+        ],
+        [
+          4.007106781186548,
+          3.0
+        ],
+        [
+          3.3,
+          3.7071067811865475
+        ],
+        [
+          2.5928932188134524,
+          3.0
+        ]
+      ],
+      "frame_id": "arena_design",
+      "ground_height_m": 0,
+      "evidence_status": "PROVISIONAL",
+      "navigation_qualified": false
+    },
+    {
+      "id": "floor_ne_diagonal",
+      "type": "WALKABLE",
+      "polygon": [
+        [
+          3.3,
+          3.7071067811865475
+        ],
+        [
+          4.007106781186548,
+          3.0
+        ],
+        [
+          5.482,
+          4.474893218813452
+        ],
+        [
+          5.482,
+          4.982
+        ],
+        [
+          5.6,
+          4.982
+        ],
+        [
+          5.6,
+          6
+        ],
+        [
+          5.592893218813453,
+          6.0
+        ]
+      ],
+      "frame_id": "arena_design",
+      "ground_height_m": 0,
+      "evidence_status": "PROVISIONAL",
+      "navigation_qualified": false
+    },
+    {
+      "id": "floor_se_diagonal",
+      "type": "WALKABLE",
+      "polygon": [
+        [
+          3.3,
+          2.2928932188134525
+        ],
+        [
+          5.592893218813453,
+          0.0
+        ],
+        [
+          5.6,
+          0
+        ],
+        [
+          5.6,
+          1.018
+        ],
+        [
+          5.482,
+          1.018
+        ],
+        [
+          5.482,
+          1.5251067811865475
+        ],
+        [
+          4.007106781186548,
+          3.0
+        ]
+      ],
+      "frame_id": "arena_design",
+      "ground_height_m": 0,
+      "evidence_status": "PROVISIONAL",
+      "navigation_qualified": false
+    },
+    {
+      "id": "floor_in_bay",
+      "type": "WALKABLE",
+      "polygon": [
+        [
+          5.6,
+          4.982
+        ],
+        [
+          8,
+          4.982
+        ],
+        [
+          8,
+          6
+        ],
+        [
+          5.6,
+          6
+        ]
+      ],
+      "frame_id": "arena_design",
+      "ground_height_m": 0,
+      "evidence_status": "PROVISIONAL",
+      "navigation_qualified": false
+    },
+    {
+      "id": "floor_out_bay",
+      "type": "WALKABLE",
+      "polygon": [
+        [
+          5.6,
+          0
+        ],
+        [
+          8,
+          0
+        ],
+        [
+          8,
+          1.018
+        ],
+        [
+          5.6,
+          1.018
+        ]
+      ],
+      "frame_id": "arena_design",
+      "ground_height_m": 0,
+      "evidence_status": "PROVISIONAL",
+      "navigation_qualified": false
+    },
+    {
+      "id": "floor_right_straight",
+      "type": "WALKABLE",
+      "polygon": [
+        [
+          5.482,
+          1.018
+        ],
+        [
+          6.5,
+          1.018
+        ],
+        [
+          6.5,
+          4.982
+        ],
+        [
+          5.482,
+          4.982
+        ]
+      ],
+      "frame_id": "arena_design",
+      "ground_height_m": 0,
+      "evidence_status": "PROVISIONAL",
+      "navigation_qualified": false
+    },
+    {
+      "id": "floor_parking_bay",
+      "type": "WALKABLE",
+      "polygon": [
+        [
+          6.5,
+          2.25
+        ],
+        [
+          8,
+          2.25
+        ],
+        [
+          8,
+          3.75
+        ],
+        [
+          6.5,
+          3.75
+        ]
+      ],
+      "frame_id": "arena_design",
+      "ground_height_m": 0,
+      "evidence_status": "PROVISIONAL",
+      "navigation_qualified": false
+    },
+    {
+      "id": "zone_in",
+      "type": "START",
+      "polygon": [
+        [
+          5.6,
+          4.982
+        ],
+        [
+          8,
+          4.982
+        ],
+        [
+          8,
+          6
+        ],
+        [
+          5.6,
+          6
+        ]
+      ],
+      "approach_heading": 3.141592653589793,
+      "entry": [
+        8,
+        5.491
+      ],
+      "exit": [
+        5.6,
+        5.491
+      ],
+      "frame_id": "arena_design",
+      "ground_height_m": 0,
+      "evidence_status": "PROVISIONAL"
+    },
+    {
+      "id": "zone_out",
+      "type": "FINISH",
+      "polygon": [
+        [
+          5.6,
+          0
+        ],
+        [
+          8,
+          0
+        ],
+        [
+          8,
+          1.018
+        ],
+        [
+          5.6,
+          1.018
+        ]
+      ],
+      "approach_heading": 0,
+      "entry": [
+        5.6,
+        0.509
+      ],
+      "exit": [
+        8,
+        0.509
+      ],
+      "frame_id": "arena_design",
+      "ground_height_m": 0,
+      "evidence_status": "PROVISIONAL"
+    },
+    {
+      "id": "zone_parking",
+      "type": "PARKING",
+      "polygon": [
+        [
+          6.5,
+          2.25
+        ],
+        [
+          8,
+          2.25
+        ],
+        [
+          8,
+          3.75
+        ],
+        [
+          6.5,
+          3.75
+        ]
+      ],
+      "approach_heading": 0,
+      "entry": [
+        6.5,
+        3
+      ],
+      "exit": [
+        6.5,
+        3
+      ],
+      "frame_id": "arena_design",
+      "ground_height_m": 0,
+      "evidence_status": "PROVISIONAL"
+    },
+    {
+      "id": "zone_slalom",
+      "type": "WALKABLE",
+      "subtype": "SLALOM",
+      "polygon": [
+        [
+          0,
+          0.491
+        ],
+        [
+          1.4,
+          0.491
+        ],
+        [
+          1.0,
+          1.6
+        ],
+        [
+          1.0,
+          4.4
+        ],
+        [
+          1.4,
+          5.509
+        ],
+        [
+          0,
+          5.509
+        ]
+      ],
+      "frame_id": "arena_design",
+      "ground_height_m": 0,
+      "evidence_status": "PROVISIONAL"
+    },
+    {
+      "id": "keepout_0",
+      "type": "KEEP_OUT",
+      "polygon": [
+        [
+          1,
+          1.6
+        ],
+        [
+          2.5928932188134524,
+          3.0
+        ],
+        [
+          1,
+          4.4
+        ]
+      ],
+      "frame_id": "arena_design",
+      "ground_height_m": 0,
+      "evidence_status": "PROVISIONAL"
+    },
+    {
+      "id": "keepout_1",
+      "type": "KEEP_OUT",
+      "polygon": [
+        [
+          5.482,
+          1.5251067811865475
+        ],
+        [
+          5.482,
+          4.474893218813452
+        ],
+        [
+          4.007106781186548,
+          3.0
+        ]
+      ],
+      "frame_id": "arena_design",
+      "ground_height_m": 0,
+      "evidence_status": "PROVISIONAL"
+    },
+    {
+      "id": "stop_zone_01",
+      "type": "STOP_ZONE",
+      "polygon": [
+        [
+          3.0878679656440355,
+          2.505025253169417
+        ],
+        [
+          3.3,
+          2.717157287525381
+        ],
+        [
+          2.8050252531694166,
+          3.2121320343559643
+        ],
+        [
+          2.5928932188134524,
+          3.0
+        ]
+      ],
+      "signal_id": "signal_01",
+      "approach_heading": 0.7853981633974483,
+      "ground_height_m": 0.18,
+      "entry": [
+        3.0878679656440355,
+        2.505025253169417
+      ],
+      "exit": [
+        2.8050252531694166,
+        3.2121320343559643
+      ],
+      "dimension_status": "PROVISIONAL",
+      "allowed_feet_evidence": [
+        "SIM_GT",
+        "KINEMATIC",
+        "VISUAL"
+      ],
+      "proxy_is_qualification": false,
+      "frame_id": "arena_design",
+      "evidence_status": "PROVISIONAL"
+    },
+    {
+      "id": "stop_zone_02",
+      "type": "STOP_ZONE",
+      "polygon": [
+        [
+          3.512132034355964,
+          2.505025253169417
+        ],
+        [
+          4.007106781186548,
+          3.0
+        ],
+        [
+          3.794974746830583,
+          3.2121320343559643
+        ],
+        [
+          3.3,
+          2.717157287525381
+        ]
+      ],
+      "signal_id": "signal_02",
+      "approach_heading": -0.7853981633974483,
+      "ground_height_m": 0.18,
+      "entry": [
+        3.512132034355964,
+        2.505025253169417
+      ],
+      "exit": [
+        3.794974746830583,
+        3.2121320343559643
+      ],
+      "dimension_status": "PROVISIONAL",
+      "allowed_feet_evidence": [
+        "SIM_GT",
+        "KINEMATIC",
+        "VISUAL"
+      ],
+      "proxy_is_qualification": false,
+      "frame_id": "arena_design",
+      "evidence_status": "PROVISIONAL"
+    },
+    {
+      "id": "ramp_sw",
+      "type": "RAMP",
+      "polygon": [
+        [
+          2.5221825406947973,
+          1.51507575950825
+        ],
+        [
+          3.3,
+          2.2928932188134525
+        ],
+        [
+          2.5928932188134524,
+          3.0
+        ],
+        [
+          1.8150757595082498,
+          2.2221825406947975
+        ]
+      ],
+      "ground_height_relation": "linear0to0.18m",
+      "planar_navigation": "BLOCKED_TERRAIN_HANDOFF",
+      "frame_id": "arena_design",
+      "ground_height_m": 0,
+      "evidence_status": "PROVISIONAL"
+    },
+    {
+      "id": "ramp_ne",
+      "type": "RAMP",
+      "polygon": [
+        [
+          4.007106781186548,
+          3.0
+        ],
+        [
+          4.784924240491749,
+          3.7778174593052025
+        ],
+        [
+          4.077817459305202,
+          4.48492424049175
+        ],
+        [
+          3.3,
+          3.7071067811865475
+        ]
+      ],
+      "ground_height_relation": "linear0to0.18m",
+      "planar_navigation": "BLOCKED_TERRAIN_HANDOFF",
+      "frame_id": "arena_design",
+      "ground_height_m": 0,
+      "evidence_status": "PROVISIONAL"
+    },
+    {
+      "id": "stairs_nw",
+      "type": "STAIRS",
+      "polygon": [
+        [
+          2.5928932188134524,
+          3.0
+        ],
+        [
+          3.3,
+          3.7071067811865475
+        ],
+        [
+          2.946446609406726,
+          4.060660171779821
+        ],
+        [
+          2.2393398282201784,
+          3.353553390593274
+        ]
+      ],
+      "ground_height_relation": "discrete0.06/0.12/0.18m",
+      "planar_navigation": "BLOCKED_TERRAIN_HANDOFF",
+      "frame_id": "arena_design",
+      "ground_height_m": 0,
+      "evidence_status": "PROVISIONAL"
+    },
+    {
+      "id": "stairs_se",
+      "type": "STAIRS",
+      "polygon": [
+        [
+          3.3,
+          2.2928932188134525
+        ],
+        [
+          4.007106781186548,
+          3.0
+        ],
+        [
+          4.360660171779822,
+          2.646446609406726
+        ],
+        [
+          3.6535533905932738,
+          1.9393398282201786
+        ]
+      ],
+      "ground_height_relation": "discrete0.06/0.12/0.18m",
+      "planar_navigation": "BLOCKED_TERRAIN_HANDOFF",
+      "frame_id": "arena_design",
+      "ground_height_m": 0,
+      "evidence_status": "PROVISIONAL"
+    },
+    {
+      "id": "signal_01",
+      "type": "TRAFFIC_SIGNAL",
+      "polygon": [
+        [
+          2.1919999999999997,
+          2.9
+        ],
+        [
+          2.392,
+          2.9
+        ],
+        [
+          2.392,
+          3.1
+        ],
+        [
+          2.1919999999999997,
+          3.1
+        ]
+      ],
+      "height_m": 0.84,
+      "states": [
+        "RED",
+        "GREEN",
+        "OFF",
+        "AMBIGUOUS"
+      ],
+      "fixture_status": "PROVISIONAL",
+      "frame_id": "arena_design",
+      "ground_height_m": 0,
+      "evidence_status": "PROVISIONAL"
+    },
+    {
+      "id": "signal_02",
+      "type": "TRAFFIC_SIGNAL",
+      "polygon": [
+        [
+          4.208,
+          2.9
+        ],
+        [
+          4.4079999999999995,
+          2.9
+        ],
+        [
+          4.4079999999999995,
+          3.1
+        ],
+        [
+          4.208,
+          3.1
+        ]
+      ],
+      "height_m": 0.84,
+      "states": [
+        "RED",
+        "GREEN",
+        "OFF",
+        "AMBIGUOUS"
+      ],
+      "fixture_status": "PROVISIONAL",
+      "frame_id": "arena_design",
+      "ground_height_m": 0,
+      "evidence_status": "PROVISIONAL"
+    }
+  ],
+  "directed_edges": [
+    {
+      "id": "leg_00",
+      "from_zone": "zone_in",
+      "to_zone": "floor_ne_diagonal",
+      "status": "DRAFT",
+      "mandatory": true,
+      "shortcut_allowed": false
+    },
+    {
+      "id": "leg_01",
+      "from_zone": "floor_ne_diagonal",
+      "to_zone": "stop_zone_01",
+      "status": "DRAFT",
+      "mandatory": true,
+      "shortcut_allowed": false
+    },
+    {
+      "id": "leg_02",
+      "from_zone": "stop_zone_01",
+      "to_zone": "floor_sw_diagonal",
+      "status": "DRAFT",
+      "mandatory": true,
+      "shortcut_allowed": false
+    },
+    {
+      "id": "leg_03",
+      "from_zone": "floor_sw_diagonal",
+      "to_zone": "zone_slalom",
+      "status": "DRAFT",
+      "mandatory": true,
+      "shortcut_allowed": false
+    },
+    {
+      "id": "leg_04",
+      "from_zone": "zone_slalom",
+      "to_zone": "floor_nw_diagonal",
+      "status": "DRAFT",
+      "mandatory": true,
+      "shortcut_allowed": false
+    },
+    {
+      "id": "leg_05",
+      "from_zone": "floor_nw_diagonal",
+      "to_zone": "stop_zone_02",
+      "status": "DRAFT",
+      "mandatory": true,
+      "shortcut_allowed": false
+    },
+    {
+      "id": "leg_06",
+      "from_zone": "stop_zone_02",
+      "to_zone": "floor_se_diagonal",
+      "status": "DRAFT",
+      "mandatory": true,
+      "shortcut_allowed": false
+    },
+    {
+      "id": "leg_07",
+      "from_zone": "floor_se_diagonal",
+      "to_zone": "zone_parking",
+      "status": "DRAFT",
+      "mandatory": true,
+      "shortcut_allowed": false
+    },
+    {
+      "id": "leg_08",
+      "from_zone": "zone_parking",
+      "to_zone": "zone_out",
+      "status": "DRAFT",
+      "mandatory": true,
+      "shortcut_allowed": false
+    }
+  ],
+  "required_visits": [
+    "stop_zone_01",
+    "zone_slalom",
+    "stop_zone_02",
+    "zone_parking",
+    "zone_out"
+  ],
+  "course_graph_status": "DRAFT_UNCONFIRMED",
+  "visual_asset": "arena.glb",
+  "collision_asset": "collision/virtual_fences.json",
+  "terrain_asset": "arena.semantic.json",
+  "sources": [
+    {
+      "id": "RULEBOOK",
+      "pages": [
+        6,
+        7,
+        8
+      ]
+    },
+    {
+      "id": "LEGACY",
+      "path": "../../arena.json"
+    }
+  ],
+  "navigation_qualified": false
+}

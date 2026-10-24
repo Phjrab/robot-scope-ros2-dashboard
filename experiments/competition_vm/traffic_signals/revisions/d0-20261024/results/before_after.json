@@ -1,0 +1,26 @@
+{
+  "evidence": "SYNTHETIC_IN_PROCESS",
+  "base_commit": "7f2a7070a17975d2a5f123cbf6aab0f99f04bf8a",
+  "base_core_sha256": "5a3e786243662547588365982d9784293f1025922d0e0f90d28e23d0cedc8f17",
+  "approach_self_hold": {
+    "before": "HOLD",
+    "after": "RELEASE",
+    "meaning": "Traffic gate inactive during acknowledged-owned approach, safety still checked. No actual goal sent."
+  },
+  "stale_age_replay": {
+    "before": [
+      "UNKNOWN",
+      "GREEN",
+      "UNKNOWN",
+      "UNKNOWN",
+      "GREEN"
+    ],
+    "after": [
+      "UNKNOWN",
+      "GREEN",
+      "UNKNOWN",
+      "UNKNOWN",
+      "UNKNOWN"
+    ]
+  }
+}

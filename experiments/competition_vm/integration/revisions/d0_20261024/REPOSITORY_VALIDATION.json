@@ -1,0 +1,131 @@
+{
+  "generated_utc": "2026-10-24T12:12:34.211235+00:00",
+  "base_commit": "7f2a7070a17975d2a5f123cbf6aab0f99f04bf8a",
+  "local_only": true,
+  "commit_push_performed": false,
+  "module_unit_tests": {
+    "arena_d0_tests.log": {
+      "tests": 13,
+      "status": "PASS",
+      "log_sha256": "272a743f3745cff2ad1ad5bd4c1ceb0514797ca0a95be821c0e44780393785a6"
+    },
+    "integration_tests.log": {
+      "tests": 44,
+      "status": "PASS",
+      "log_sha256": "c866915dfe85a4dbf28c98c2235464e2066b9a22646ca63d0e03b56129b77f56"
+    },
+    "arena_legacy_tests.log": {
+      "tests": 7,
+      "status": "PASS",
+      "log_sha256": "a48dbdf2fee69db42a930674b215996115cd1529786ad5151f9843d047339eb0"
+    },
+    "traffic_signals_tests.log": {
+      "tests": 136,
+      "status": "PASS",
+      "log_sha256": "e8d03142ce871423c510a013cf93938d179e32d5b973d655f16a3ba8c153c45f"
+    },
+    "avoidance_tests.log": {
+      "tests": 30,
+      "status": "PASS",
+      "log_sha256": "e91e2873ee4452b2fd5bde6029b85412acfcee6fa629ac34f41ca5e0a09de5b2"
+    }
+  },
+  "module_total": 230,
+  "independent_blackbox_tests": 11,
+  "legacy_avoidance_runs": 48,
+  "arena": {
+    "base_commit": "7f2a7070a17975d2a5f123cbf6aab0f99f04bf8a",
+    "evidence": "SYNTHETIC_PLANAR_ONLY",
+    "scenario_layouts": 12,
+    "policy_cases": 24,
+    "repetitions_each": 2,
+    "total_runs": 48,
+    "determinism_all_pass": true,
+    "safety_all_pass": true,
+    "goal_reached_runs": 10,
+    "safe_wait_runs": 38,
+    "strict_obstacle_goal_successes": 0,
+    "multi_cone_goal_successes": 0,
+    "independent_pose_samples": 22913,
+    "independent_all_pass": true,
+    "unit_tests": {
+      "passed": 13,
+      "failed": 0,
+      "skipped": 0
+    },
+    "video": {
+      "file": "rendering/d0_planar_policy_comparison.mp4",
+      "duration_s": 20.7,
+      "fps": 10,
+      "frames": 207,
+      "resolution": [
+        1200,
+        840
+      ],
+      "viewed_pixels": [
+        "rendering/start.png",
+        "rendering/terminal.png"
+      ]
+    },
+    "versions": {
+      "python": "3.12.14",
+      "numpy": "2.3.5",
+      "scipy": "1.17.0",
+      "Pillow": "12.3.0"
+    },
+    "not_run": [
+      "native ROS/Nav2",
+      "gait/contact physics",
+      "measured LiDAR/SLAM",
+      "terrain traversal",
+      "parking seated posture",
+      "whole course linked mission",
+      "live robot",
+      "repository-wide suite: owned by D0 coordinator"
+    ],
+    "historical_records": {
+      "empty": {
+        "source_sha256": "c3f2e4a99f5f0dd4124068850390beed8188b44ba52a15e8c7fb00f63c5588d0",
+        "stored_outcome": "GOAL_REACHED",
+        "strict_parking_violation_frame_samples": 0,
+        "max_footprint_x_intrusion_m": 0.0,
+        "legacy_record_preserved": true
+      },
+      "cone_detour": {
+        "source_sha256": "cb5b2f31994815c2e61f909931d72442fcf26b8b86f194b446ffcdc669f2518e",
+        "stored_outcome": "GOAL_REACHED",
+        "strict_parking_violation_frame_samples": 16,
+        "max_footprint_x_intrusion_m": 0.07781901111732381,
+        "legacy_record_preserved": true
+      },
+      "blocked": {
+        "source_sha256": "eb6548174a7df1fa1a2d08fcc72e7a1fd3ce07ade8387f18b195f34c0f8e17fc",
+        "stored_outcome": "SAFE_WAIT",
+        "strict_parking_violation_frame_samples": 0,
+        "max_footprint_x_intrusion_m": 0.0,
+        "legacy_record_preserved": true
+      }
+    }
+  },
+  "repository_python": {
+    "tests": 2691,
+    "failures": 1,
+    "errors": 25,
+    "skipped": 1,
+    "status": "FAIL",
+    "new_failure": "test_vm_manifest_uses_published_hashes_without_registration_or_native_promotion: source is UNAVAILABLE_OR_CHANGED because immutable publication checksum differs; C1 new revision selection required",
+    "errors_reason": "Unix-domain socket socket.socket creation PermissionError in actual current tracebacks",
+    "log": "final_checks/python_full.log"
+  },
+  "javascript": {
+    "tests": 660,
+    "passed": 660
+  },
+  "native_ros": "NOT_RUN",
+  "real_RGB_YOLO": "INPUT_REQUIRED/NOT_RUN",
+  "robot": "NOT_RUN",
+  "browser_e2e": "NOT_RUN",
+  "ci": "NOT_USED_AS_LOCAL_EVIDENCE",
+  "package_apply_verification": "PASS: fresh independent baseline clone accepted patch/new files and all230module tests+38frame smoke passed before compact-publication fixture adaptation; exact publication tree rerun reported in REVIEW.md.",
+  "submission_update": "User approved D0-only review branch publication after LOCAL-ONLY implementation. No main, PR or device actions."
+}

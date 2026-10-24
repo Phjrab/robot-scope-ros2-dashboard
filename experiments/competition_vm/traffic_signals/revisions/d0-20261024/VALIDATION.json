@@ -1,0 +1,16 @@
+{
+  "base_commit": "7f2a7070a17975d2a5f123cbf6aab0f99f04bf8a",
+  "evidence": "SYNTHETIC_IN_PROCESS",
+  "tests": {
+    "existing": 67,
+    "new": 69,
+    "total": 136,
+    "result": "PASS"
+  },
+  "native_ros": "NOT_RUN",
+  "real_rgb": "INPUT_REQUIRED",
+  "trained_weights": "INPUT_REQUIRED",
+  "hardware": "NOT_RUN",
+  "commit_push": "NOT_PERFORMED",
+  "historical_results": "PRESERVED"
+}

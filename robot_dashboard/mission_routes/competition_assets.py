@@ -44,13 +44,39 @@ def arena_manifest():
         return {**arena_view(None), 'available':False, 'evidence_type':'unavailable', 'reason':'VM_ARENA_MISSING_OR_HASH_MISMATCH'}
 
 
-def vm_evidence():
-    """Published test evidence is diagnostic; never register a native executor."""
-    result = {}
-    for module, file, checksum in [('traffic_signals','core.py','SHA256SUMS'), ('avoidance','core.py','SHA256SUMS.txt'), ('integration','adapter.py','SHA256SUMS.txt')]:
-        try:
-            _, sha = checked_file(VM / module, file, checksum)
-            result[module] = {'stage':'VM_VERIFIED', 'scope':'SYNTHETIC_ONLY', 'source_sha256':sha, 'native_connected':False}
-        except (OSError, ValueError):
-            result[module] = {'stage':None, 'scope':'UNAVAILABLE_OR_CHANGED', 'native_connected':False}
-    return result
+def vm_evidence(revision='D0-20261024'):
+    """Verify one reviewed source AND validation/log bundle, never motion readiness.
+
+    Historical publication queries use preserved source snapshots. The original
+    publication manifests are immutable; they do not attest to current D0 code.
+    The registry is a code-reviewed allowlist, not a caller-provided manifest.
+    """
+    modules = ('traffic_signals', 'avoidance', 'integration')
+    try:
+        registry = json.loads(Path(__file__).with_name('competition_evidence_revisions.json').read_text())
+        selected = registry[revision]
+        verified = {}
+        for name, expected in selected['files'].items():
+            path = REPO / name
+            if (path.is_symlink() or REPO.resolve() not in path.resolve().parents
+                    or not path.is_file() or path.stat().st_size > 8_000_000):
+                raise ValueError('EVIDENCE_FILE_UNAVAILABLE')
+            raw = path.read_bytes()
+            if hashlib.sha256(raw).hexdigest() != expected:
+                raise ValueError('EVIDENCE_HASH_MISMATCH')
+            verified[name] = expected
+        if selected['manifest']:
+            manifest = json.loads((REPO / selected['manifest']).read_text())
+            if (manifest['revision'] != revision or manifest['scope'] != 'SYNTHETIC_ONLY'
+                    or manifest['native_connected'] is not False
+                    or any(verified.get(name) != sha for name, sha in manifest['sha256'].items())):
+                raise ValueError('EVIDENCE_MANIFEST_MISMATCH')
+        return {module: {'stage': 'VM_VERIFIED', 'scope': 'SYNTHETIC_ONLY',
+                         'revision': revision, 'native_connected': False,
+                         'historical': revision == 'publication-7f2a707',
+                         'verified_sha256': {name: sha for name, sha in verified.items()
+                                             if '/'+module+'/' in name}}
+                for module in modules}
+    except (OSError, ValueError, TypeError, KeyError):
+        return {module: {'stage': None, 'scope': 'UNAVAILABLE_OR_CHANGED',
+                         'revision': revision, 'native_connected': False} for module in modules}

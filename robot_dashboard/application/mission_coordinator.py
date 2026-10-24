@@ -235,6 +235,8 @@ class MissionCoordinator:
         self._context_guard = context_guard
         self._hold_deadlines: dict[str, float] = {}
         self._managed_admission: object | None = None
+        # Process-local capabilities: never serialize or restore native authority.
+        self._native_owners: dict[str, Any] = {}
         self._dispatch_preflight: Any = None
         self._stop_requests: set[str] = set()
         self._audit_warning = ""
@@ -383,6 +385,8 @@ class MissionCoordinator:
                     raise MissionUnavailable("mission log value is invalid")
                 logs.append({"seq": sequence, "timestamp": timestamp, "event": event, "waypoint_index": waypoint_index})
             log_seq = raw.get("log_seq", 0)
+            if type(raw.get("native_required", False)) is not bool:
+                raise MissionUnavailable("native owner marker is invalid")
             if isinstance(log_seq, bool) or not isinstance(log_seq, int) or not 0 <= log_seq <= 1_000_000:
                 raise MissionUnavailable("mission log cursor is invalid")
             missions.append(
@@ -404,6 +408,7 @@ class MissionCoordinator:
                     "phase": _bounded_token(raw.get("phase", "navigating"), "phase", 48),
                     "hold_remaining_seconds": _bounded_number(raw.get("hold_remaining_seconds", 0.0), "hold remaining"),
                     "context_revision": raw.get("context_revision", ""),
+                    "native_required": raw.get("native_required", False),
                     "confirmation_token": raw.get("confirmation_token"),
                     "waypoints": waypoints,
                     "hold_until_epoch": _bounded_number(raw.get("hold_until_epoch", 0.0), "hold deadline"),
@@ -496,6 +501,7 @@ class MissionCoordinator:
             "physical_stop_observed": None,
             "audit_warning": self._audit_warning or None,
             "context_revision": mission.get("context_revision", ""),
+            "native_required": mission.get("native_required", False),
             "logs": [dict(entry) for entry in mission["logs"][-MAX_LOG_ENTRIES:]],
             "ownership_active": mission["id"] == self._active_id and mission["state"] in ACTIVE_STATES,
             "terminal": terminal,
@@ -684,7 +690,7 @@ class MissionCoordinator:
         if mission.get("context_revision") and (self._managed_admission is None or admission is not self._managed_admission):
             raise MissionConflict("MISSION_ROUTE_API_REQUIRED")
 
-    async def start(self, mission_id: str, *, admission: object | None = None) -> dict[str, Any]:
+    async def start(self, mission_id: str, *, admission: object | None = None, native_owner: object | None = None) -> dict[str, Any]:
         async with self._operation_lock:
             navigation = self._navigation.view()
             localization_session = navigation.get("localization_session")
@@ -696,6 +702,7 @@ class MissionCoordinator:
                 )
             mission = self._mission(mission_id)
             self._require_managed_admission(mission, admission)
+            self._require_native_owner(mission_id, native_owner)
             if mission["state"] in {"starting", "running"} and self._active_id == mission_id:
                 return {"mission": self._public(mission)}
             if mission["state"] != "ready":
@@ -703,8 +710,13 @@ class MissionCoordinator:
             self._require_arrival_actions_ready(mission)
             if self._active_id and self._active_id != mission_id:
                 raise MissionConflict("another mission owns navigation")
+            native = self._native_owners.get(mission_id)
+            if native is not None and not native["guard"](starting=True):
+                raise MissionConflict("NATIVE_START_STOPPED")
             self._stop_requests.discard(mission_id)
             await self._claim(mission)
+            if native is not None and not native["guard"](starting=True):
+                raise MissionConflict("NATIVE_START_STOPPED")
             mission.update(state="starting", started_at=_timestamp(self._now()), started_epoch=self._now(), completed_at="", completed_epoch=0.0, error="", outcome="")
             self._record(mission, "mission_starting")
             self._save()
@@ -810,6 +822,11 @@ class MissionCoordinator:
         waypoint = mission["waypoints"][mission["current_index"]]
         self._hold_deadlines.pop(mission["id"], None)
         mission["hold_remaining_seconds"] = 0.0
+        if mission["id"] in self._native_owners:
+            mission.update(state="paused", phase="native_barrier", pause_reason="native_barrier", confirmation_token=None)
+            self._record(mission, "native_arrival_barrier", mission["current_index"])
+            self._save()
+            return
         if waypoint.get("after_arrival_confirmation") and not confirmed:
             mission.update(state="paused", phase="after_arrival_confirmation", pause_reason="after_arrival_confirmation", confirmation_token=secrets.token_hex(16))
             self._record(mission, "arrival_confirmation_required", mission["current_index"])
@@ -820,6 +837,85 @@ class MissionCoordinator:
         mission["current_index"] += 1
         mission["confirmation_token"] = None
         await self._dispatch_current_locked(mission, operator_confirmed=False)
+
+    def _require_native_owner(self, mission_id, token):
+        owner = self._native_owners.get(mission_id)
+        if self._mission(mission_id).get("native_required") and (owner is None or token is not owner["token"]):
+            raise MissionConflict("NATIVE_OWNER_REQUIRED")
+
+    def fence_native_stop(self, mission_id, *, token):
+        """Queue STOP before an awaited preflight can reach goal submission."""
+        self._require_native_owner(mission_id, token)
+        self._stop_requests.add(mission_id)
+
+    async def bind_native_owner(self, mission_id, *, admission, token, visits, guard):
+        """Internal injection only. Existing admission, context and monitor remain owners."""
+        async with self._operation_lock:
+            mission = self._mission(mission_id)
+            self._require_managed_admission(mission, admission)
+            if (not mission.get("context_revision") or mission["state"] != "ready"
+                    or mission_id in self._native_owners or token is None
+                    or mission.get("native_required")
+                    or tuple(w["visit_id"] for w in mission["waypoints"]) != tuple(visits)
+                    or len(visits) != 2 or not callable(guard)):
+                raise MissionConflict("NATIVE_BINDING_REQUIRES_NEW_PINNED_TWO_LEG_RUN")
+            mission["native_required"] = True
+            self._save()
+            self._native_owners[mission_id] = {"token": token, "visits": tuple(visits), "guard": guard}
+
+    async def continue_native(self, mission_id, *, admission, token, previous_visit,
+                              next_visit_id, actual_goal_id):
+        """Consume success/cancel terminal under the same owner operation lock.
+
+        The guard checks C2's new-generation HOLD ACK, dwell/postconditions and
+        STOP fence. No operator token, skip, second FSM or raw goal submission.
+        """
+        async with self._operation_lock:
+            mission = self._mission(mission_id)
+            self._require_managed_admission(mission, admission)
+            self._require_native_owner(mission_id, token)
+            owner = self._native_owners.get(mission_id)
+            goal = self._navigation.view().get("goal", {})
+            index = mission["current_index"]
+            if (owner is None or self._active_id != mission_id or mission["state"] != "paused"
+                    or index != 0 or previous_visit != owner["visits"][0]
+                    or next_visit_id != owner["visits"][1]
+                    or goal.get("goal_id") != actual_goal_id
+                    or goal.get("state") not in {"succeeded", "canceled"}
+                    or not owner["guard"]()):
+                raise MissionConflict("NATIVE_CONTINUATION_NOT_PROVEN")
+            await self._claim(mission)
+            # _claim may await shared admission. Recheck the STOP/proof fence.
+            if not owner["guard"]():
+                raise MissionConflict("NATIVE_CONTINUATION_STOPPED")
+            await self._stop_monitor_locked()
+            self._stop_requests.discard(mission_id)
+            mission["waypoints"][index].update(status="completed", goal_id=None)
+            mission.update(current_index=index + 1, confirmation_token=None,
+                           state="starting", hold_remaining_seconds=0.0)
+            self._record(mission, "native_continuation", index)
+            self._save()
+            await self._dispatch_current_locked(mission, operator_confirmed=False)
+            if mission["state"] == "running":
+                self._start_monitor_locked(mission)
+            return {"mission": self._public(mission)}
+
+    async def finish_native(self, mission_id, *, admission, token, actual_goal_id):
+        async with self._operation_lock:
+            mission = self._mission(mission_id)
+            self._require_managed_admission(mission, admission)
+            self._require_native_owner(mission_id, token)
+            owner = self._native_owners.get(mission_id)
+            goal = self._navigation.view().get("goal", {})
+            if (owner is None or self._active_id != mission_id or mission["current_index"] != 1
+                    or goal.get("goal_id") != actual_goal_id or goal.get("state") != "succeeded"
+                    or not owner["guard"](completed=True)):
+                raise MissionConflict("NATIVE_COMPLETION_NOT_PROVEN")
+            await self._stop_monitor_locked()
+            mission["waypoints"][1].update(status="completed", goal_id=None)
+            mission["current_index"] = 2
+            self._complete_locked(mission)
+            return {"mission": self._public(mission)}
 
     async def pause(self, mission_id: str) -> dict[str, Any]:
         if self._active_id == mission_id:
@@ -854,6 +950,7 @@ class MissionCoordinator:
         async with self._operation_lock:
             mission = self._mission(mission_id)
             self._require_managed_admission(mission, admission)
+            self._require_native_owner(mission_id, None)
             if mission["state"] != "paused" or self._active_id != mission_id:
                 raise MissionConflict("only the active paused mission can resume")
             if mission.get("confirmation_token") and mission.get("context_revision") and confirmation_token != mission["confirmation_token"]:
@@ -882,6 +979,7 @@ class MissionCoordinator:
         async with self._operation_lock:
             mission = self._mission(mission_id)
             self._require_managed_admission(mission, admission)
+            self._require_native_owner(mission_id, None)
             if mission["state"] not in {"running", "paused", "failed"}:
                 raise MissionConflict("mission waypoint cannot be skipped in this state")
             if mission.get("outcome") in {"interrupted", "aborted"}:
@@ -912,6 +1010,7 @@ class MissionCoordinator:
         async with self._operation_lock:
             mission = self._mission(mission_id)
             self._require_managed_admission(mission, admission)
+            self._require_native_owner(mission_id, None)
             if mission["state"] != "failed":
                 raise MissionConflict("only a failed mission waypoint can retry")
             if self._active_id and self._active_id != mission_id:

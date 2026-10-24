@@ -10,6 +10,10 @@ async function fixture(page) {
   const values = {
     '/api/v1/routes': { routes: [] }, '/api/v1/mission-plans': { definitions: [], context: {} }, '/api/v1/mission-runs': { runs: [] },
     '/api/v1/saved-maps': { maps: [map], total_size_bytes: 1000 },
+    [`/api/v1/observations/anchor-presets/${map.id}`]: {
+      map: { map_id: map.id, map_revision: map.revision, map_frame: map.frame_id },
+      presets: [], incompatible_count: 0, approximate_only: true, requires_reanchor: true,
+    },
     [`/api/v1/saved-maps/${map.id}/data`]: { ...map, map_id: map.id, seq: 1,
       points: [-2,-2,0, 2,-2,0, 2,2,0, -2,2,0, 0,0,1], units: 'm', source_points: 5 },
     '/api/v1/observations/global-jobs': { schema: 'robot-scope.raw-global-observations.v1',

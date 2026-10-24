@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "floor_count": 10,
+  "top_face_symmetric_difference_area_m2": {
+    "floor_left_straight": 2.824665392491489e-07,
+    "floor_nw_diagonal": 3.4553945499927943e-07,
+    "floor_sw_diagonal": 1.8108439556773568e-07,
+    "floor_center_base": 1.3486991964906103e-07,
+    "floor_ne_diagonal": 3.944228978367408e-07,
+    "floor_se_diagonal": 4.682667062367353e-07,
+    "floor_in_bay": 3.992080809858578e-07,
+    "floor_out_bay": 1.13105774162392e-07,
+    "floor_right_straight": 6.339549861539487e-07,
+    "floor_parking_bay": 0.0
+  },
+  "tolerance_m2": 3e-06,
+  "scope": "Actual GLB top triangle union versus semantic source polygons, with glTF axis transform applied"
+}

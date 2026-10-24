@@ -1,0 +1,851 @@
+{
+  "base_commit": "7f2a7070a17975d2a5f123cbf6aab0f99f04bf8a",
+  "seed": 20261024,
+  "evidence": "SYNTHETIC/PLANAR",
+  "cases": [
+    {
+      "case": "empty_0",
+      "policy": "strict_no_parking",
+      "count": 0,
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "reason": "PLANAR_GOAL_TOLERANCE",
+        "sim_time_s": 14.5,
+        "path_length_m": 2.586192741868737,
+        "interpolated_pose_samples": 870,
+        "swept_grid_contact_samples": 0,
+        "exact_cone_fence_contact_samples": 0,
+        "forbidden_parking_samples": 0,
+        "legacy_parking_overlap_samples": 0,
+        "min_grid_circumscribed_clearance_proxy_m": 0.08705216631211721,
+        "min_sampled_polygon_edge_clearance_m": 0.31425223653940293,
+        "accepted_scans": 73,
+        "rejected_scans": 0,
+        "states": {
+          "FOLLOWING": 145
+        },
+        "planner_attempts": 29,
+        "safety_pass": true
+      },
+      "repeat_sha256": [
+        "16303ff771342a0151ae3bc1bb2bd8be50d1ad6345b258ddb5f4ad923d678efc",
+        "16303ff771342a0151ae3bc1bb2bd8be50d1ad6345b258ddb5f4ad923d678efc"
+      ],
+      "reproducible": true,
+      "wall_seconds": [
+        3.7956615740000643,
+        3.659772723999936
+      ]
+    },
+    {
+      "case": "empty_0",
+      "policy": "legacy_parking_allowed",
+      "count": 0,
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "reason": "PLANAR_GOAL_TOLERANCE",
+        "sim_time_s": 14.5,
+        "path_length_m": 2.586192741868737,
+        "interpolated_pose_samples": 870,
+        "swept_grid_contact_samples": 0,
+        "exact_cone_fence_contact_samples": 0,
+        "forbidden_parking_samples": 0,
+        "legacy_parking_overlap_samples": 0,
+        "min_grid_circumscribed_clearance_proxy_m": 0.08705216631211721,
+        "min_sampled_polygon_edge_clearance_m": 0.31425223653940293,
+        "accepted_scans": 73,
+        "rejected_scans": 0,
+        "states": {
+          "FOLLOWING": 145
+        },
+        "planner_attempts": 29,
+        "safety_pass": true
+      },
+      "repeat_sha256": [
+        "2209d2c2fd5aad0a0ca32cbbed5f9dcd70d692c672e7a5048c54c587f8d31f2b",
+        "2209d2c2fd5aad0a0ca32cbbed5f9dcd70d692c672e7a5048c54c587f8d31f2b"
+      ],
+      "reproducible": true,
+      "wall_seconds": [
+        3.847366217000058,
+        3.731343700000025
+      ]
+    },
+    {
+      "case": "offset_1",
+      "policy": "strict_no_parking",
+      "count": 1,
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "reason": "NO_SAFE_PATH",
+        "sim_time_s": 6.1,
+        "path_length_m": 0.0,
+        "interpolated_pose_samples": 366,
+        "swept_grid_contact_samples": 0,
+        "exact_cone_fence_contact_samples": 0,
+        "forbidden_parking_samples": 0,
+        "legacy_parking_overlap_samples": 0,
+        "min_grid_circumscribed_clearance_proxy_m": 0.08705216631211721,
+        "min_sampled_polygon_edge_clearance_m": 0.3460000000000001,
+        "accepted_scans": 31,
+        "rejected_scans": 0,
+        "states": {
+          "SAFE_WAIT": 61
+        },
+        "planner_attempts": 13,
+        "safety_pass": true
+      },
+      "repeat_sha256": [
+        "b628b0fd8bcb96afc30054d9ad8b947771d970f13db796b617706afc0c31111f",
+        "b628b0fd8bcb96afc30054d9ad8b947771d970f13db796b617706afc0c31111f"
+      ],
+      "reproducible": true,
+      "wall_seconds": [
+        1.7993812250000474,
+        1.6769544400000314
+      ]
+    },
+    {
+      "case": "offset_1",
+      "policy": "legacy_parking_allowed",
+      "count": 1,
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "reason": "PLANAR_GOAL_TOLERANCE",
+        "sim_time_s": 18.700000000000003,
+        "path_length_m": 2.7858597410995922,
+        "interpolated_pose_samples": 1122,
+        "swept_grid_contact_samples": 0,
+        "exact_cone_fence_contact_samples": 0,
+        "forbidden_parking_samples": 0,
+        "legacy_parking_overlap_samples": 201,
+        "min_grid_circumscribed_clearance_proxy_m": 0.03225799882150321,
+        "min_sampled_polygon_edge_clearance_m": 0.12218202149056251,
+        "accepted_scans": 94,
+        "rejected_scans": 0,
+        "states": {
+          "FOLLOWING": 187
+        },
+        "planner_attempts": 38,
+        "safety_pass": true
+      },
+      "repeat_sha256": [
+        "656e8fb043c4aeab5c898ed031abbd67e5521a46ceac126df2db7adfc80cc06c",
+        "656e8fb043c4aeab5c898ed031abbd67e5521a46ceac126df2db7adfc80cc06c"
+      ],
+      "reproducible": true,
+      "wall_seconds": [
+        5.286397863000047,
+        5.451375675999998
+      ]
+    },
+    {
+      "case": "center_1",
+      "policy": "strict_no_parking",
+      "count": 1,
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "reason": "NO_SAFE_PATH",
+        "sim_time_s": 6.1,
+        "path_length_m": 0.0,
+        "interpolated_pose_samples": 366,
+        "swept_grid_contact_samples": 0,
+        "exact_cone_fence_contact_samples": 0,
+        "forbidden_parking_samples": 0,
+        "legacy_parking_overlap_samples": 0,
+        "min_grid_circumscribed_clearance_proxy_m": 0.08705216631211721,
+        "min_sampled_polygon_edge_clearance_m": 0.3460000000000001,
+        "accepted_scans": 31,
+        "rejected_scans": 0,
+        "states": {
+          "SAFE_WAIT": 61
+        },
+        "planner_attempts": 13,
+        "safety_pass": true
+      },
+      "repeat_sha256": [
+        "a1a03e1ea6400d8ddab22ade25f1fbe54ea3aa868663fc053eed995322895519",
+        "a1a03e1ea6400d8ddab22ade25f1fbe54ea3aa868663fc053eed995322895519"
+      ],
+      "reproducible": true,
+      "wall_seconds": [
+        1.5788315019999573,
+        1.5694535039999664
+      ]
+    },
+    {
+      "case": "center_1",
+      "policy": "legacy_parking_allowed",
+      "count": 1,
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "reason": "NO_SAFE_PATH",
+        "sim_time_s": 6.1,
+        "path_length_m": 0.0,
+        "interpolated_pose_samples": 366,
+        "swept_grid_contact_samples": 0,
+        "exact_cone_fence_contact_samples": 0,
+        "forbidden_parking_samples": 0,
+        "legacy_parking_overlap_samples": 0,
+        "min_grid_circumscribed_clearance_proxy_m": 0.08705216631211721,
+        "min_sampled_polygon_edge_clearance_m": 0.3460000000000001,
+        "accepted_scans": 31,
+        "rejected_scans": 0,
+        "states": {
+          "SAFE_WAIT": 61
+        },
+        "planner_attempts": 13,
+        "safety_pass": true
+      },
+      "repeat_sha256": [
+        "dc90bef75b418122f4b7a06b5fdfc1ff215f41217ae94d5266770cfa9a170cfa",
+        "dc90bef75b418122f4b7a06b5fdfc1ff215f41217ae94d5266770cfa9a170cfa"
+      ],
+      "reproducible": true,
+      "wall_seconds": [
+        1.7030034650000516,
+        1.712228538999966
+      ]
+    },
+    {
+      "case": "historical_575_1",
+      "policy": "strict_no_parking",
+      "count": 1,
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "reason": "NO_SAFE_PATH",
+        "sim_time_s": 6.1,
+        "path_length_m": 0.0,
+        "interpolated_pose_samples": 366,
+        "swept_grid_contact_samples": 0,
+        "exact_cone_fence_contact_samples": 0,
+        "forbidden_parking_samples": 0,
+        "legacy_parking_overlap_samples": 0,
+        "min_grid_circumscribed_clearance_proxy_m": 0.08705216631211721,
+        "min_sampled_polygon_edge_clearance_m": 0.3460000000000001,
+        "accepted_scans": 31,
+        "rejected_scans": 0,
+        "states": {
+          "SAFE_WAIT": 61
+        },
+        "planner_attempts": 13,
+        "safety_pass": true
+      },
+      "repeat_sha256": [
+        "84b4f23b1a321de84e8b9596a07d93bdc0a06bb48380b406e0a091290ea04909",
+        "84b4f23b1a321de84e8b9596a07d93bdc0a06bb48380b406e0a091290ea04909"
+      ],
+      "reproducible": true,
+      "wall_seconds": [
+        1.611849387999996,
+        1.5834204489999593
+      ]
+    },
+    {
+      "case": "historical_575_1",
+      "policy": "legacy_parking_allowed",
+      "count": 1,
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "reason": "NO_SAFE_PATH",
+        "sim_time_s": 10.0,
+        "path_length_m": 0.6511269435398385,
+        "interpolated_pose_samples": 600,
+        "swept_grid_contact_samples": 0,
+        "exact_cone_fence_contact_samples": 0,
+        "forbidden_parking_samples": 0,
+        "legacy_parking_overlap_samples": 0,
+        "min_grid_circumscribed_clearance_proxy_m": 0.08705216631211721,
+        "min_sampled_polygon_edge_clearance_m": 0.19973424013111776,
+        "accepted_scans": 50,
+        "rejected_scans": 0,
+        "states": {
+          "FOLLOWING": 40,
+          "SAFE_WAIT": 60
+        },
+        "planner_attempts": 20,
+        "safety_pass": true
+      },
+      "repeat_sha256": [
+        "d708a06e11be970bb4aab7964683e1b5ed1265d63eceb230eff92913f18bca9c",
+        "d708a06e11be970bb4aab7964683e1b5ed1265d63eceb230eff92913f18bca9c"
+      ],
+      "reproducible": true,
+      "wall_seconds": [
+        2.8386196369999652,
+        2.8774672710000004
+      ]
+    },
+    {
+      "case": "boundary_1",
+      "policy": "strict_no_parking",
+      "count": 1,
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "reason": "NO_SAFE_PATH",
+        "sim_time_s": 6.1,
+        "path_length_m": 0.0,
+        "interpolated_pose_samples": 366,
+        "swept_grid_contact_samples": 0,
+        "exact_cone_fence_contact_samples": 0,
+        "forbidden_parking_samples": 0,
+        "legacy_parking_overlap_samples": 0,
+        "min_grid_circumscribed_clearance_proxy_m": 0.08705216631211721,
+        "min_sampled_polygon_edge_clearance_m": 0.3460000000000001,
+        "accepted_scans": 31,
+        "rejected_scans": 0,
+        "states": {
+          "SAFE_WAIT": 61
+        },
+        "planner_attempts": 13,
+        "safety_pass": true
+      },
+      "repeat_sha256": [
+        "6233c29fa73c19a797d0c9a585ddd2d5459baa5febb85d61bdbf26394503b749",
+        "6233c29fa73c19a797d0c9a585ddd2d5459baa5febb85d61bdbf26394503b749"
+      ],
+      "reproducible": true,
+      "wall_seconds": [
+        1.8376936820000083,
+        1.7720826979999629
+      ]
+    },
+    {
+      "case": "boundary_1",
+      "policy": "legacy_parking_allowed",
+      "count": 1,
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "reason": "PLANAR_GOAL_TOLERANCE",
+        "sim_time_s": 18.0,
+        "path_length_m": 2.694155141949547,
+        "interpolated_pose_samples": 1080,
+        "swept_grid_contact_samples": 0,
+        "exact_cone_fence_contact_samples": 0,
+        "forbidden_parking_samples": 0,
+        "legacy_parking_overlap_samples": 0,
+        "min_grid_circumscribed_clearance_proxy_m": 0.04705216631211723,
+        "min_sampled_polygon_edge_clearance_m": 0.16772293695794574,
+        "accepted_scans": 90,
+        "rejected_scans": 0,
+        "states": {
+          "FOLLOWING": 180
+        },
+        "planner_attempts": 36,
+        "safety_pass": true
+      },
+      "repeat_sha256": [
+        "824e7419b25bc383b2ca9fcee0e56d1bdf77e2211172ac87ab632e2a1ba8dad8",
+        "824e7419b25bc383b2ca9fcee0e56d1bdf77e2211172ac87ab632e2a1ba8dad8"
+      ],
+      "reproducible": true,
+      "wall_seconds": [
+        5.506877112999973,
+        5.369526672999996
+      ]
+    },
+    {
+      "case": "alternating_2",
+      "policy": "strict_no_parking",
+      "count": 2,
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "reason": "NO_SAFE_PATH",
+        "sim_time_s": 6.1,
+        "path_length_m": 0.0,
+        "interpolated_pose_samples": 366,
+        "swept_grid_contact_samples": 0,
+        "exact_cone_fence_contact_samples": 0,
+        "forbidden_parking_samples": 0,
+        "legacy_parking_overlap_samples": 0,
+        "min_grid_circumscribed_clearance_proxy_m": 0.08705216631211721,
+        "min_sampled_polygon_edge_clearance_m": 0.3460000000000001,
+        "accepted_scans": 31,
+        "rejected_scans": 0,
+        "states": {
+          "SAFE_WAIT": 61
+        },
+        "planner_attempts": 13,
+        "safety_pass": true
+      },
+      "repeat_sha256": [
+        "aeb0bd5d6c9f8831ff7996647de4aeb555d15e6e828c08cc42ed7ec9b78d63b2",
+        "aeb0bd5d6c9f8831ff7996647de4aeb555d15e6e828c08cc42ed7ec9b78d63b2"
+      ],
+      "reproducible": true,
+      "wall_seconds": [
+        1.8856137730000455,
+        1.7793826079999917
+      ]
+    },
+    {
+      "case": "alternating_2",
+      "policy": "legacy_parking_allowed",
+      "count": 2,
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "reason": "NO_SAFE_PATH",
+        "sim_time_s": 6.1,
+        "path_length_m": 0.0,
+        "interpolated_pose_samples": 366,
+        "swept_grid_contact_samples": 0,
+        "exact_cone_fence_contact_samples": 0,
+        "forbidden_parking_samples": 0,
+        "legacy_parking_overlap_samples": 0,
+        "min_grid_circumscribed_clearance_proxy_m": 0.08705216631211721,
+        "min_sampled_polygon_edge_clearance_m": 0.3460000000000001,
+        "accepted_scans": 31,
+        "rejected_scans": 0,
+        "states": {
+          "SAFE_WAIT": 61
+        },
+        "planner_attempts": 13,
+        "safety_pass": true
+      },
+      "repeat_sha256": [
+        "03d2aed385904bac95d9be119ca80cb7d2f177b9701619990b9c20b8c39cf3e7",
+        "03d2aed385904bac95d9be119ca80cb7d2f177b9701619990b9c20b8c39cf3e7"
+      ],
+      "reproducible": true,
+      "wall_seconds": [
+        2.0552291129999958,
+        1.7891537879999078
+      ]
+    },
+    {
+      "case": "occluded_2",
+      "policy": "strict_no_parking",
+      "count": 2,
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "reason": "NO_SAFE_PATH",
+        "sim_time_s": 6.1,
+        "path_length_m": 0.0,
+        "interpolated_pose_samples": 366,
+        "swept_grid_contact_samples": 0,
+        "exact_cone_fence_contact_samples": 0,
+        "forbidden_parking_samples": 0,
+        "legacy_parking_overlap_samples": 0,
+        "min_grid_circumscribed_clearance_proxy_m": 0.08705216631211721,
+        "min_sampled_polygon_edge_clearance_m": 0.3460000000000001,
+        "accepted_scans": 31,
+        "rejected_scans": 0,
+        "states": {
+          "SAFE_WAIT": 61
+        },
+        "planner_attempts": 13,
+        "safety_pass": true
+      },
+      "repeat_sha256": [
+        "9eadadd1becf502062aed2840b28ea3ab3d4d9f6d27d6accef7c81f571e89ca1",
+        "9eadadd1becf502062aed2840b28ea3ab3d4d9f6d27d6accef7c81f571e89ca1"
+      ],
+      "reproducible": true,
+      "wall_seconds": [
+        1.8462420590000193,
+        1.7751037049999923
+      ]
+    },
+    {
+      "case": "occluded_2",
+      "policy": "legacy_parking_allowed",
+      "count": 2,
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "reason": "NO_SAFE_PATH",
+        "sim_time_s": 6.1,
+        "path_length_m": 0.0,
+        "interpolated_pose_samples": 366,
+        "swept_grid_contact_samples": 0,
+        "exact_cone_fence_contact_samples": 0,
+        "forbidden_parking_samples": 0,
+        "legacy_parking_overlap_samples": 0,
+        "min_grid_circumscribed_clearance_proxy_m": 0.08705216631211721,
+        "min_sampled_polygon_edge_clearance_m": 0.3460000000000001,
+        "accepted_scans": 31,
+        "rejected_scans": 0,
+        "states": {
+          "SAFE_WAIT": 61
+        },
+        "planner_attempts": 13,
+        "safety_pass": true
+      },
+      "repeat_sha256": [
+        "8c1248f5437d8faf2481e0d009a6523b4baf03afb5fc12c8c03da07be807b19d",
+        "8c1248f5437d8faf2481e0d009a6523b4baf03afb5fc12c8c03da07be807b19d"
+      ],
+      "reproducible": true,
+      "wall_seconds": [
+        1.8563306590000366,
+        1.7968268219999572
+      ]
+    },
+    {
+      "case": "blocked_5",
+      "policy": "strict_no_parking",
+      "count": 5,
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "reason": "NO_SAFE_PATH",
+        "sim_time_s": 6.1,
+        "path_length_m": 0.0,
+        "interpolated_pose_samples": 366,
+        "swept_grid_contact_samples": 0,
+        "exact_cone_fence_contact_samples": 0,
+        "forbidden_parking_samples": 0,
+        "legacy_parking_overlap_samples": 0,
+        "min_grid_circumscribed_clearance_proxy_m": 0.08705216631211721,
+        "min_sampled_polygon_edge_clearance_m": 0.262,
+        "accepted_scans": 31,
+        "rejected_scans": 0,
+        "states": {
+          "SAFE_WAIT": 61
+        },
+        "planner_attempts": 13,
+        "safety_pass": true
+      },
+      "repeat_sha256": [
+        "4f3ec934efde0461f3e45bca7987a1980211be85e82a693b9c36363c49160a77",
+        "4f3ec934efde0461f3e45bca7987a1980211be85e82a693b9c36363c49160a77"
+      ],
+      "reproducible": true,
+      "wall_seconds": [
+        2.3005799229999866,
+        2.4000321299999996
+      ]
+    },
+    {
+      "case": "blocked_5",
+      "policy": "legacy_parking_allowed",
+      "count": 5,
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "reason": "NO_SAFE_PATH",
+        "sim_time_s": 6.1,
+        "path_length_m": 0.0,
+        "interpolated_pose_samples": 366,
+        "swept_grid_contact_samples": 0,
+        "exact_cone_fence_contact_samples": 0,
+        "forbidden_parking_samples": 0,
+        "legacy_parking_overlap_samples": 0,
+        "min_grid_circumscribed_clearance_proxy_m": 0.08705216631211721,
+        "min_sampled_polygon_edge_clearance_m": 0.262,
+        "accepted_scans": 31,
+        "rejected_scans": 0,
+        "states": {
+          "SAFE_WAIT": 61
+        },
+        "planner_attempts": 13,
+        "safety_pass": true
+      },
+      "repeat_sha256": [
+        "4edc485776283087c8943779c903c6717d13137bf359e226f90633bd9719acdd",
+        "4edc485776283087c8943779c903c6717d13137bf359e226f90633bd9719acdd"
+      ],
+      "reproducible": true,
+      "wall_seconds": [
+        2.220582497999999,
+        2.377236354000047
+      ]
+    },
+    {
+      "case": "dense_10",
+      "policy": "strict_no_parking",
+      "count": 10,
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "reason": "NO_SAFE_PATH",
+        "sim_time_s": 6.1,
+        "path_length_m": 0.0,
+        "interpolated_pose_samples": 366,
+        "swept_grid_contact_samples": 0,
+        "exact_cone_fence_contact_samples": 0,
+        "forbidden_parking_samples": 0,
+        "legacy_parking_overlap_samples": 0,
+        "min_grid_circumscribed_clearance_proxy_m": 0.08705216631211721,
+        "min_sampled_polygon_edge_clearance_m": 0.262,
+        "accepted_scans": 31,
+        "rejected_scans": 0,
+        "states": {
+          "SAFE_WAIT": 61
+        },
+        "planner_attempts": 13,
+        "safety_pass": true
+      },
+      "repeat_sha256": [
+        "a9305a0b85e3af0dbd1703bb324f1fe7a0a7120fc9daa0b128664199ba3cf9bb",
+        "a9305a0b85e3af0dbd1703bb324f1fe7a0a7120fc9daa0b128664199ba3cf9bb"
+      ],
+      "reproducible": true,
+      "wall_seconds": [
+        3.1987223810000387,
+        3.130939665000028
+      ]
+    },
+    {
+      "case": "dense_10",
+      "policy": "legacy_parking_allowed",
+      "count": 10,
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "reason": "NO_SAFE_PATH",
+        "sim_time_s": 6.1,
+        "path_length_m": 0.0,
+        "interpolated_pose_samples": 366,
+        "swept_grid_contact_samples": 0,
+        "exact_cone_fence_contact_samples": 0,
+        "forbidden_parking_samples": 0,
+        "legacy_parking_overlap_samples": 0,
+        "min_grid_circumscribed_clearance_proxy_m": 0.08705216631211721,
+        "min_sampled_polygon_edge_clearance_m": 0.262,
+        "accepted_scans": 31,
+        "rejected_scans": 0,
+        "states": {
+          "SAFE_WAIT": 61
+        },
+        "planner_attempts": 13,
+        "safety_pass": true
+      },
+      "repeat_sha256": [
+        "60fe6ed4d624193f732ad14d25dbacb553801573d97123f5e166a8ffac954770",
+        "60fe6ed4d624193f732ad14d25dbacb553801573d97123f5e166a8ffac954770"
+      ],
+      "reproducible": true,
+      "wall_seconds": [
+        3.2374236130000327,
+        3.347034272999963
+      ]
+    },
+    {
+      "case": "delayed_offset_1",
+      "policy": "strict_no_parking",
+      "count": 1,
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "reason": "SENSOR_STALE",
+        "sim_time_s": 6.1,
+        "path_length_m": 0.0,
+        "interpolated_pose_samples": 366,
+        "swept_grid_contact_samples": 0,
+        "exact_cone_fence_contact_samples": 0,
+        "forbidden_parking_samples": 0,
+        "legacy_parking_overlap_samples": 0,
+        "min_grid_circumscribed_clearance_proxy_m": 0.08705216631211721,
+        "min_sampled_polygon_edge_clearance_m": 0.3460000000000001,
+        "accepted_scans": 5,
+        "rejected_scans": 24,
+        "states": {
+          "SAFE_WAIT": 11,
+          "SENSOR_STALE_HOLD": 50
+        },
+        "planner_attempts": 13,
+        "safety_pass": true
+      },
+      "repeat_sha256": [
+        "bbedd645fe2066259dddc5aa3f9600202c6c12c7548d8dfd1357f73265642178",
+        "bbedd645fe2066259dddc5aa3f9600202c6c12c7548d8dfd1357f73265642178"
+      ],
+      "reproducible": true,
+      "wall_seconds": [
+        1.0208261660000062,
+        1.0524618150000151
+      ]
+    },
+    {
+      "case": "delayed_offset_1",
+      "policy": "legacy_parking_allowed",
+      "count": 1,
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "reason": "SENSOR_STALE",
+        "sim_time_s": 7.1,
+        "path_length_m": 0.18451595756172912,
+        "interpolated_pose_samples": 426,
+        "swept_grid_contact_samples": 0,
+        "exact_cone_fence_contact_samples": 0,
+        "forbidden_parking_samples": 0,
+        "legacy_parking_overlap_samples": 0,
+        "min_grid_circumscribed_clearance_proxy_m": 0.08705216631211721,
+        "min_sampled_polygon_edge_clearance_m": 0.31425223653940293,
+        "accepted_scans": 5,
+        "rejected_scans": 29,
+        "states": {
+          "FOLLOWING": 11,
+          "SENSOR_STALE_HOLD": 60
+        },
+        "planner_attempts": 15,
+        "safety_pass": true
+      },
+      "repeat_sha256": [
+        "23412e1d3619b6126b41679c2eb957ceec09e3205933bf97cf872a0a47410cfa",
+        "23412e1d3619b6126b41679c2eb957ceec09e3205933bf97cf872a0a47410cfa"
+      ],
+      "reproducible": true,
+      "wall_seconds": [
+        1.1398993569999902,
+        1.1251108239999894
+      ]
+    },
+    {
+      "case": "dropout_offset_1",
+      "policy": "strict_no_parking",
+      "count": 1,
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "reason": "NO_SAFE_PATH",
+        "sim_time_s": 6.1,
+        "path_length_m": 0.0,
+        "interpolated_pose_samples": 366,
+        "swept_grid_contact_samples": 0,
+        "exact_cone_fence_contact_samples": 0,
+        "forbidden_parking_samples": 0,
+        "legacy_parking_overlap_samples": 0,
+        "min_grid_circumscribed_clearance_proxy_m": 0.08705216631211721,
+        "min_sampled_polygon_edge_clearance_m": 0.3460000000000001,
+        "accepted_scans": 15,
+        "rejected_scans": 16,
+        "states": {
+          "SAFE_WAIT": 30,
+          "SENSOR_STALE_HOLD": 31
+        },
+        "planner_attempts": 13,
+        "safety_pass": true
+      },
+      "repeat_sha256": [
+        "8478a40f6fe13b427f940d93271af8ba8800d494a1bad57a9e7100efbc560529",
+        "8478a40f6fe13b427f940d93271af8ba8800d494a1bad57a9e7100efbc560529"
+      ],
+      "reproducible": true,
+      "wall_seconds": [
+        1.2500983560000805,
+        1.268624520000003
+      ]
+    },
+    {
+      "case": "dropout_offset_1",
+      "policy": "legacy_parking_allowed",
+      "count": 1,
+      "metrics": {
+        "outcome": "GOAL_REACHED",
+        "reason": "PLANAR_GOAL_TOLERANCE",
+        "sim_time_s": 21.8,
+        "path_length_m": 2.786367248867132,
+        "interpolated_pose_samples": 1308,
+        "swept_grid_contact_samples": 0,
+        "exact_cone_fence_contact_samples": 0,
+        "forbidden_parking_samples": 0,
+        "legacy_parking_overlap_samples": 201,
+        "min_grid_circumscribed_clearance_proxy_m": 0.03225799882150321,
+        "min_sampled_polygon_edge_clearance_m": 0.12222472785341607,
+        "accepted_scans": 93,
+        "rejected_scans": 16,
+        "states": {
+          "FOLLOWING": 187,
+          "SENSOR_STALE_HOLD": 31
+        },
+        "planner_attempts": 44,
+        "safety_pass": true
+      },
+      "repeat_sha256": [
+        "d727fa54ed8eac3c8e192482a82f89bba2b5172fd322c3a1bda276d80e9518d1",
+        "d727fa54ed8eac3c8e192482a82f89bba2b5172fd322c3a1bda276d80e9518d1"
+      ],
+      "reproducible": true,
+      "wall_seconds": [
+        6.245233123000048,
+        5.987923840000008
+      ]
+    },
+    {
+      "case": "mapped_center_1",
+      "policy": "strict_no_parking",
+      "count": 1,
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "reason": "NO_SAFE_PATH",
+        "sim_time_s": 6.1,
+        "path_length_m": 0.0,
+        "interpolated_pose_samples": 366,
+        "swept_grid_contact_samples": 0,
+        "exact_cone_fence_contact_samples": 0,
+        "forbidden_parking_samples": 0,
+        "legacy_parking_overlap_samples": 0,
+        "min_grid_circumscribed_clearance_proxy_m": 0.08705216631211721,
+        "min_sampled_polygon_edge_clearance_m": 0.3460000000000001,
+        "accepted_scans": 31,
+        "rejected_scans": 0,
+        "states": {
+          "SAFE_WAIT": 61
+        },
+        "planner_attempts": 13,
+        "safety_pass": true
+      },
+      "repeat_sha256": [
+        "abb0e9370937e507b7a32cb132a8ab0cfbac6800849ac048dc4a378302595044",
+        "abb0e9370937e507b7a32cb132a8ab0cfbac6800849ac048dc4a378302595044"
+      ],
+      "reproducible": true,
+      "wall_seconds": [
+        1.7478872299999466,
+        1.676400584000021
+      ]
+    },
+    {
+      "case": "mapped_center_1",
+      "policy": "legacy_parking_allowed",
+      "count": 1,
+      "metrics": {
+        "outcome": "SAFE_WAIT",
+        "reason": "NO_SAFE_PATH",
+        "sim_time_s": 6.1,
+        "path_length_m": 0.0,
+        "interpolated_pose_samples": 366,
+        "swept_grid_contact_samples": 0,
+        "exact_cone_fence_contact_samples": 0,
+        "forbidden_parking_samples": 0,
+        "legacy_parking_overlap_samples": 0,
+        "min_grid_circumscribed_clearance_proxy_m": 0.08705216631211721,
+        "min_sampled_polygon_edge_clearance_m": 0.3460000000000001,
+        "accepted_scans": 31,
+        "rejected_scans": 0,
+        "states": {
+          "SAFE_WAIT": 61
+        },
+        "planner_attempts": 13,
+        "safety_pass": true
+      },
+      "repeat_sha256": [
+        "d8ebe60bd8ee409fb47b7986c97989b11d1fada851f1e178019e944df02b0f58",
+        "d8ebe60bd8ee409fb47b7986c97989b11d1fada851f1e178019e944df02b0f58"
+      ],
+      "reproducible": true,
+      "wall_seconds": [
+        1.9368915499999275,
+        1.8788403099999869
+      ]
+    }
+  ],
+  "historical_audit": {
+    "empty": {
+      "source_sha256": "c3f2e4a99f5f0dd4124068850390beed8188b44ba52a15e8c7fb00f63c5588d0",
+      "stored_outcome": "GOAL_REACHED",
+      "strict_parking_violation_frame_samples": 0,
+      "max_footprint_x_intrusion_m": 0.0,
+      "legacy_record_preserved": true
+    },
+    "cone_detour": {
+      "source_sha256": "cb5b2f31994815c2e61f909931d72442fcf26b8b86f194b446ffcdc669f2518e",
+      "stored_outcome": "GOAL_REACHED",
+      "strict_parking_violation_frame_samples": 16,
+      "max_footprint_x_intrusion_m": 0.07781901111732381,
+      "legacy_record_preserved": true
+    },
+    "blocked": {
+      "source_sha256": "eb6548174a7df1fa1a2d08fcc72e7a1fd3ce07ade8387f18b195f34c0f8e17fc",
+      "stored_outcome": "SAFE_WAIT",
+      "strict_parking_violation_frame_samples": 0,
+      "max_footprint_x_intrusion_m": 0.0,
+      "legacy_record_preserved": true
+    }
+  }
+}
