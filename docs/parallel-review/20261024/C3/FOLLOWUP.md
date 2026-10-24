@@ -32,6 +32,12 @@ raw command subscriptions, while delegating all other subscriptions unchanged.
 Source age still uses the actual DDS source timestamp, never a receipt restamp.
 Shutdown callback exceptions now preserve a FAIL result instead of losing it.
 
+Fifth run [40098521277](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40098521277), source `4a7bfae8d1f88722a2faa81af5b6d291b53dd6ed`, reached the empty-path goal with real RPP commands (`Reached the goal!` / `Goal succeeded` in native.log).
+Final report serialization rejected ROS's numpy uint8 UUID elements. The 16
+original UUID bytes are now explicitly converted to JSON integers, with length
+and range validation. This run is retained as a report-writing failure, not a
+completed validated comparison; the eight-case gate correctly stopped at one.
+
 The next run still gates on one empty RPP case: only actual GOAL_REACHED plus
 independent evidence PASS permits the remaining seven sequential cases. The separate synthetic obstacle
 diagnostic has a full-footprint swept reference feasibility check. That reference

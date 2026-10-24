@@ -25,6 +25,13 @@ def publisher_owners_match(observed, owner, endpoint_count=1):
     return sorted(observed) == [owner] * endpoint_count
 
 
+def goal_uuid_to_json(uuid):
+    values = [int(value) for value in uuid]
+    if len(values) != 16 or any(not 0 <= value <= 255 for value in values):
+        raise ValueError("action UUID must contain 16 bytes")
+    return values
+
+
 def plugin_library_names(share, plugin):
     """Use installed plugin exports; package and shared-library names can differ."""
     names = set()
@@ -680,7 +687,7 @@ def main(directory):
         goal.behavior_tree = str(Path(__file__).parent / "config/replan.xml")
         goal_handle = node.wait(action.send_goal_async(goal))
         report["action"]["accepted"] = goal_handle.accepted
-        report["action"]["goal_uuid"] = list(goal_handle.goal_id.uuid)
+        report["action"]["goal_uuid"] = goal_uuid_to_json(goal_handle.goal_id.uuid)
         if not goal_handle.accepted:
             raise RuntimeError("native goal rejected")
         node.goal_start = node.sim_t

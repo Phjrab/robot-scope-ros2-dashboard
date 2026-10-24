@@ -10,6 +10,7 @@ import xml.etree.ElementTree as ET
 import importlib.util
 import asyncio
 from types import SimpleNamespace
+import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -30,7 +31,11 @@ from fixtures import World, cases, diagnostic_cases, digest, reference_feasibili
 from preflight import isolated_errors
 from validate import validate_record, validate_directory
 from matrix import plan
-from native_runner import plugin_library_names, publisher_owners_match
+from native_runner import (
+    plugin_library_names,
+    publisher_owners_match,
+    goal_uuid_to_json,
+)
 from humble_executor import metadata_executor_type
 
 
@@ -233,6 +238,14 @@ class FixtureTests(unittest.TestCase):
 
 
 class ConfigIsolationEvidenceTests(unittest.TestCase):
+    def test_ros_uuid_numpy_bytes_roundtrip_without_losing_identity(self):
+        source = np.array([0, 255] * 8, dtype=np.uint8)
+        actual = goal_uuid_to_json(source)
+        self.assertEqual(json.loads(json.dumps(actual)), [0, 255] * 8)
+        for bad in ([0] * 15, [256] * 16, [-1] * 16):
+            with self.assertRaises(ValueError):
+                goal_uuid_to_json(bad)
+
     def test_humble_executor_preserves_source_metadata_and_default_callbacks(self):
         delivered = []
         message, metadata = (
