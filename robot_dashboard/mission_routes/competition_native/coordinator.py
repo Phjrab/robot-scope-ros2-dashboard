@@ -125,7 +125,7 @@ class CoordinatorNavigationPort:
             if receipt and nav_goal.get("goal_id") != receipt.actual_goal_id:
                 raise ValueError("FOREIGN_GOAL_NOT_CANCELED")
             if mission["state"] in {"starting", "running"}:
-                await self.coordinator.pause(self.mission_id)
+                await self.coordinator.pause(self.mission_id, native_owner=self.native_owner)
             elif mission["state"] in {"pausing", "canceling"}:
                 raise ValueError("CANCEL_ACK_PENDING")
             elif mission["state"] not in {"paused", "completed", "failed"}:

@@ -711,11 +711,11 @@ class MissionCoordinator:
             if self._active_id and self._active_id != mission_id:
                 raise MissionConflict("another mission owns navigation")
             native = self._native_owners.get(mission_id)
-            if native is not None and not native["guard"](starting=True):
+            if native is not None and (native.get("external_stop") or not native["guard"](starting=True)):
                 raise MissionConflict("NATIVE_START_STOPPED")
             self._stop_requests.discard(mission_id)
             await self._claim(mission)
-            if native is not None and not native["guard"](starting=True):
+            if native is not None and (native.get("external_stop") or not native["guard"](starting=True)):
                 raise MissionConflict("NATIVE_START_STOPPED")
             mission.update(state="starting", started_at=_timestamp(self._now()), started_epoch=self._now(), completed_at="", completed_epoch=0.0, error="", outcome="")
             self._record(mission, "mission_starting")
@@ -877,7 +877,8 @@ class MissionCoordinator:
             owner = self._native_owners.get(mission_id)
             goal = self._navigation.view().get("goal", {})
             index = mission["current_index"]
-            if (owner is None or self._active_id != mission_id or mission["state"] != "paused"
+            if (owner is None or owner.get("external_stop")
+                    or self._active_id != mission_id or mission["state"] != "paused"
                     or index != 0 or previous_visit != owner["visits"][0]
                     or next_visit_id != owner["visits"][1]
                     or goal.get("goal_id") != actual_goal_id
@@ -886,7 +887,7 @@ class MissionCoordinator:
                 raise MissionConflict("NATIVE_CONTINUATION_NOT_PROVEN")
             await self._claim(mission)
             # _claim may await shared admission. Recheck the STOP/proof fence.
-            if not owner["guard"]():
+            if owner.get("external_stop") or not owner["guard"]():
                 raise MissionConflict("NATIVE_CONTINUATION_STOPPED")
             await self._stop_monitor_locked()
             self._stop_requests.discard(mission_id)
@@ -917,7 +918,12 @@ class MissionCoordinator:
             self._complete_locked(mission)
             return {"mission": self._public(mission)}
 
-    async def pause(self, mission_id: str) -> dict[str, Any]:
+    async def pause(self, mission_id: str, *, native_owner: object | None = None) -> dict[str, Any]:
+        owner = self._native_owners.get(mission_id)
+        if owner is not None and native_owner is not owner["token"]:
+            # An operator/safety pause is never the adapter's cancel-to-exit ACK.
+            # A fresh run is required; no user confirmation can resume this one.
+            owner["external_stop"] = True
         if self._active_id == mission_id:
             self._stop_requests.add(mission_id)
         async with self._operation_lock:

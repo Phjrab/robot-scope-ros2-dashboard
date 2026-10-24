@@ -48,6 +48,7 @@ The entry point is explicit, in-process `MissionRoutes.create_software_native_se
 - A component may retain its original same-host `received_s`. Inference or polling cannot replace this first receipt. Duplicate components retain the original receipt and payload; old epochs/sequences are rejected. The 2 s dwell must be supported by both receipt progression and each foot/motion source timestamp's progression. Deltas are compared within each source clock, never between hosts.
 - The existing service's durable request ledger records start, observation/tick, stop and cleanup intent before effects. Same-key payload conflicts and uncertain receipts cannot replay effects. The session serializes event application; coordinator start/continuation/goal calls retain the existing operation/admission lock and actual goal ownership. It does not acquire that same non-reentrant admission lock around a nested coordinator call.
 - Successful arrival pauses at `native_barrier`, with no operator confirmation token. Resume/skip/retry cannot bypass the native owner. Canceled approach continuation validates the exact terminal goal, visits, owner token, new generation HOLD ACK and still-fresh C2 postconditions under the coordinator operation lock. Both paths use the existing dispatch/preflight/monitor machinery.
+- Operator/safety pause is distinguished from the adapter-owned approach cancellation by the process-local owner token. An external pause permanently blocks native continuation for that run. A regression first reproduced an unwanted second goal before this distinction and now asserts the explicit continuation rejection.
 - STOP immediately retires the software command gate and fences the coordinator before awaiting durable IO, admission or planning. Tests reproduced and fixed an exit-preflight race and cover first-goal admission waiting. Native completion releases coordinator ownership only after exit success and departure evidence.
 - `native_required` is durably retained, while owner tokens, GREEN/dwell and command authority are not restored. A restarted process cannot restart/resume the old run. The software gate rejects stale RELEASE, foreign goals, old generations, duplicate command sequences and expired inputs; E-stop/collision take priority.
 
@@ -80,9 +81,9 @@ Local environment: Python 3.12.3, Node 20.20.2, existing Chromium. Network insta
 | C2 standalone subtree | 66 PASS in final discovery (including first-goal STOP race) |
 | C3 offline subtree | 38 PASS; native 144-run plan not executed |
 | C4 standalone subtree | 53 PASS, no optional-dependency SKIP |
-| Combined actual-package integration | 20 path scenarios + 2 worker scenarios PASS |
+| Combined actual-package integration | 21 path scenarios + 2 worker scenarios PASS |
 | D0 revision evidence | 2 tests PASS, including four mutation/missing-file cases and historical lookup |
-| Full Python, final candidate | 2,841 run: 2,839 PASS, 2 SKIP; 93.455 s |
+| Full Python, final candidate | 2,842 run: 2,840 PASS, 2 SKIP; 85.921 s |
 | Full JS | 662 PASS |
 | Full browser E2E | Initial 191 PASS / 4 FAIL (new main anchor-preset GET missing from UI fixture); targeted rerun 4/4 PASS; remote full-suite result below |
 | Real FastAPI competition E2E | 5 PASS |
@@ -90,7 +91,7 @@ Local environment: Python 3.12.3, Node 20.20.2, existing Chromium. Network insta
 
 The two full-suite skips are the existing optional SVG plotting and rosbags CDR backends; C4 and combined integration did not skip locally.
 
-The combined tests cover approach tracking, actual success and canceled-approach continuation, missing HOLD ACK, moving body despite HOLD ACK, insufficient source time, duplicate callbacks/polling, fresh GREEN exit, ACK/departure separation, predeparture RED/UNKNOWN/stale, postdeparture RED, E-stop/collision, old epochs/foreign goals, durable payload conflicts, restart/cancel uncertainty, normal completion and STOP during exit preflight. Worker tests verify bounded queueing, event-loop responsiveness, sequence-gap invalidation and late-result disposal.
+The combined tests cover approach tracking, actual success and canceled-approach continuation, missing HOLD ACK, moving body despite HOLD ACK, insufficient source time, duplicate callbacks/polling, fresh GREEN exit, ACK/departure separation, predeparture RED/UNKNOWN/stale, postdeparture RED, E-stop/collision, old epochs/foreign goals, durable payload conflicts, restart/cancel uncertainty, normal completion STOP during exit preflight and operator pause after internal cancel ACK. Worker tests verify bounded queueing, event-loop responsiveness, sequence-gap invalidation and late-result disposal.
 
 CI adds `competition-offline-integration`, with explicit imports and separate interpreter discovery for D0/C3 and the C2/C4/combined packages. Thus optional imports cannot silently skip the combined path in that job. The two existing OS/Python jobs retain full Python/JS/browser coverage and C1's real-API E2E/failure artifacts. No full native matrix runs on ordinary pushes.
 
@@ -138,3 +139,6 @@ D0/C2/C3/C4 discovery commands and the explicit optional dependency environment 
 | `r2-integration-final.log` | `305611f9bd962ae7e725b22f94b66994e8bc51b30e489a1599868d5828b4fa55` |
 | `r2-browser-full.log` | `18d72a3b048efe7d0bc42fb60de37d2bbd5fcfc6131cad8c2ed9a89a52ca5cba` |
 | `r2-consistency-final.log` | `201f4d2165a19f7f2653d7ff0805a4d50f326d4c6fa8b07db6068a48c9fbc8d2` |
+| `r2-python-submission.log` | `b578ee822cb22b03521056ba5bfbdbf87d4ca022e4224eca6d34b99628249e2b` |
+| `r2-operator-pause-before.log` | `b1535255a9099fafea066cb43904a5f45a66a8ca9c334319303c3e68b6a7219d` |
+| `r2-operator-pause-final.log` | `d16b9209237f116d3e503c84607d073509c3fe35cd9876fcbf4c62ad5f087be0` |

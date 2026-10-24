@@ -314,3 +314,14 @@ class IntegrationPathTests(unittest.IsolatedAsyncioTestCase):
         await self.terminal()
         self.assertEqual(self.command()[0], (0., 0., 0.))
         self.assertEqual(len(self.nav.sent), 1)
+
+    async def test_operator_pause_cannot_be_consumed_as_native_cancel_continuation(self):
+        await self.terminal(canceled=True)
+        await self.coordinator.pause(self.session.adapter.scope.mission_run_id)
+        self.assertEqual(self.command()[0], (0., 0., 0.))
+        with self.assertRaisesRegex(MissionConflict, 'NATIVE_CONTINUATION_NOT_PROVEN'):
+            for _ in range(24):
+                await self.tick()
+        self.assertEqual(self.session.adapter.state.phase, 'FAILED')
+        self.assertEqual(len(self.nav.sent), 1)
+        self.assertEqual(self.command()[0], (0., 0., 0.))
