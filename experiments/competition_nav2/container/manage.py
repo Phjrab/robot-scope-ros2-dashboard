@@ -103,6 +103,9 @@ def run(args):
     if inspected["Id"] != image:
         raise ValueError("image ID mismatch")
     args.output.mkdir(parents=True, exist_ok=False)
+    source_sha = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=REPO, text=True
+    ).strip()
     name = "c3-nav2-" + uuid.uuid4().hex[:12]
     container_path = "/repo/experiments/competition_nav2"
     script = container_path + "/execute.py"
@@ -138,6 +141,8 @@ def run(args):
         "ROS_DOMAIN_ID=193",
         "-e",
         "C3_IMAGE_ID=" + image,
+        "-e",
+        "C3_SOURCE_SHA=" + source_sha,
         image,
         "python3",
         script,
@@ -154,7 +159,13 @@ def run(args):
         "--output",
         "/results/run",
     ]
-    receipt = dict(command=argv, image_id=image, network_mode=None, container_name=name)
+    receipt = dict(
+        command=argv,
+        image_id=image,
+        source_sha=source_sha,
+        network_mode=None,
+        container_name=name,
+    )
     created = False
     try:
         subprocess.run(argv, check=True)

@@ -92,6 +92,7 @@ def execute(args):
         installed_packages=packages,
         package_lock_sha256=hashlib.sha256(packages.encode()).hexdigest(),
         image_id=os.environ.get("C3_IMAGE_ID"),
+        source_sha=os.environ.get("C3_SOURCE_SHA"),
         python=sys.version,
         cmd=[
             "ros2",
