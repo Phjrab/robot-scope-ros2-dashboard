@@ -24,6 +24,14 @@ Humble TimedBehavior creates one velocity publisher per plugin, including Wait.
 The audit now requires the exact configured behavior-plugin count with the same
 owner for every endpoint. Foreign owners and extra/missing endpoints still fail.
 
+Fourth run [40098000263](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40098000263), source `6d9b111b10ab4163cede32bf73ea151b1432b27c`, reached the native NavigateToPose/FollowPath goal and controller output.
+Humble rclpy's default executor discards the DDS metadata returned by
+`Subscription.handle.take_message`; its callback receives only the message.
+The Humble-only executor adapter now retains the original metadata for the two
+raw command subscriptions, while delegating all other subscriptions unchanged.
+Source age still uses the actual DDS source timestamp, never a receipt restamp.
+Shutdown callback exceptions now preserve a FAIL result instead of losing it.
+
 The next run still gates on one empty RPP case: only actual GOAL_REACHED plus
 independent evidence PASS permits the remaining seven sequential cases. The separate synthetic obstacle
 diagnostic has a full-footprint swept reference feasibility check. That reference

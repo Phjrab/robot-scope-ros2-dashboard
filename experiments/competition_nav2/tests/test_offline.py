@@ -8,6 +8,8 @@ import tempfile
 import unittest
 import xml.etree.ElementTree as ET
 import importlib.util
+import asyncio
+from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -29,6 +31,7 @@ from preflight import isolated_errors
 from validate import validate_record, validate_directory
 from matrix import plan
 from native_runner import plugin_library_names, publisher_owners_match
+from humble_executor import metadata_executor_type
 
 
 class BoundaryTests(unittest.TestCase):
@@ -230,6 +233,52 @@ class FixtureTests(unittest.TestCase):
 
 
 class ConfigIsolationEvidenceTests(unittest.TestCase):
+    def test_humble_executor_preserves_source_metadata_and_default_callbacks(self):
+        delivered = []
+        message, metadata = (
+            object(),
+            {"source_timestamp": 123, "received_timestamp": 456},
+        )
+
+        class Handle:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                pass
+
+            def take_message(self, msg_type, raw):
+                return message, metadata
+
+        class Base:
+            def _take_subscription(self, sub):
+                return "ordinary"
+
+            async def _execute_subscription(self, sub, taken):
+                delivered.append((taken,))
+
+        async def invoke(callback, *args):
+            callback(*args)
+
+        executor = metadata_executor_type(Base, invoke)()
+        sub = SimpleNamespace(
+            c3_with_metadata=True,
+            handle=Handle(),
+            msg_type=object,
+            raw=False,
+            callback=lambda *args: delivered.append(args),
+        )
+        taken = executor._take_subscription(sub)
+        self.assertIs(taken[0], message)
+        self.assertIs(taken[1], metadata)
+        asyncio.run(executor._execute_subscription(sub, taken))
+        asyncio.run(executor._execute_subscription(sub, None))
+        self.assertEqual(delivered, [(message, metadata)])
+        sub.c3_with_metadata = False
+        self.assertEqual(executor._take_subscription(sub), "ordinary")
+        asyncio.run(executor._execute_subscription(sub, "ordinary"))
+        self.assertEqual(delivered[-1], ("ordinary",))
+
     def test_behavior_publishers_require_exact_plugin_count_and_same_owner(self):
         owner = "/c3_nav2/behavior_server"
         self.assertTrue(publisher_owners_match([owner, owner], owner, 2))
