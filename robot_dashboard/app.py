@@ -29,6 +29,7 @@ from .application.navigation_coordinator import NavigationCoordinator
 from .application.route_planner_coordinator import RoutePlannerCoordinator
 from .application.runtime import ApplicationRuntime, close_observation_resources, close_relocalization, configure_competition, configure_realsense_profile, configure_stationary_relocalization
 from .application.observation_runtime import close_observations, configure_observations, start_observations
+from .observation_presets import ObservationPresetStore
 from .api.dependencies import require_same_origin, websocket_same_origin
 from .api.dependencies import require_competition_unlocked, require_manual_operation_mode
 from .api.routers.cameras import router as cameras_router
@@ -1449,6 +1450,8 @@ def main() -> None:
         require_pipeline_for_save=False,
     )
     RUNTIME.saved_maps = catalog
+    RUNTIME.observation_presets = ObservationPresetStore(
+        Path(args.navigation_runtime_dir).expanduser().resolve() / "observation-anchors", catalog)
     RUNTIME.spatial_routes = SpatialRouteCatalog(Path(args.spatial_route_dir).expanduser().resolve(), catalog)
     def dataset_metadata_snapshot() -> Dict[str, Any]:
         metadata = RUNTIME.agent.pose_snapshot()

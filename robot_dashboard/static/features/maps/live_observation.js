@@ -1,6 +1,7 @@
 import { LiveMapObservation, rpyMatrix } from './live_observation_contract.js';
 import { ObservedJoints, GO2_JOINT_NAMES } from './observed_joints.js';
 import { initializeObservationSession } from './observation_session.js';
+import { ANCHOR_FIELDS, initializeAnchorPresets, validAnchorPose } from './anchor_presets.js';
 
 export function observationAvailabilityText(state) {
   if (state.status !== 'SOURCE_IDENTITY_UNAVAILABLE') return '';
@@ -88,6 +89,26 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
   const el = id => panel.querySelector(`#savedLive${id}`), model = new LiveMapObservation();
   const joints = new ObservedJoints();
   let geometryKey = '', inFlight = false, nextRequest = -Infinity, error = '', wasVisible = false, dynamicCleared = false, requestController = null, disposed = false, suspended = false;
+  let presetReference = null, presetMapKey = '';
+  const anchorMapKey = () => JSON.stringify([model.map?.id, model.map?.revision, model.map?.frame]);
+  const currentReference = () => model.pose
+    ? (model.pose.value.topic === '/Odometry' && model.pose.value.frame_id === 'camera_init' && model.pose.value.child_frame_id === 'body' ? 'FASTLIO_IMU' : 'UNVERIFIED_BODY')
+    : presetReference || 'FASTLIO_IMU';
+  const readAnchorPose = () => Object.fromEntries(ANCHOR_FIELDS.map(k => [k,
+    el(`_${k}`).value.trim() === '' ? NaN : Number(el(`_${k}`).value)]));
+  const presets = initializeAnchorPresets({
+    host: el('AnchorDetails').querySelector('.saved-live-details-body'), getState: () => model.snapshot(),
+    getReference: () => presetReference || currentReference(), readPose: readAnchorPose,
+    fillPose: (pose, reference) => {
+      if (!validAnchorPose(pose)) throw new Error('초기 위치·방향 값을 확인해 주세요.');
+      if (model.pose && reference !== currentReference()) throw new Error('프리셋의 IMU/본체 기준이 현재 pose와 다릅니다.');
+      presetReference = reference; presetMapKey = anchorMapKey();
+      for (const k of ANCHOR_FIELDS) el(`_${k}`).value = String(Number(pose[k].toFixed(6)));
+      model.invalidate('ANCHOR_INPUT_CHANGED'); model.registrationEnabled = false;
+      el('Confirm').checked = false; el('Registration').checked = false;
+      requestController?.abort(); error = ''; clearDynamic(true); render();
+    },
+  });
   const resetSession = reason => {
     model.resetInputs(reason); model.registrationEnabled = false; el('Confirm').checked = false; el('Registration').checked = false;
     requestController?.abort(); error = ''; clearDynamic(true); render();
@@ -111,6 +132,12 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     context.visible = context.visible && !layout.hidden;
     panel.hidden = !context.visible;
     model.setMap(context.meta, context.cloud);
+    if (presetReference && presetMapKey !== anchorMapKey()) {
+      presetReference = null; presetMapKey = '';
+      for (const k of ANCHOR_FIELDS) el(`_${k}`).value = '';
+      el('Confirm').checked = false;
+    }
+    presets.render();
     if (!context.visible && wasVisible && model.enabled) model.invalidate('VIEW_SUSPENDED');
     wasVisible = context.visible;
     const state = model.snapshot();
@@ -207,12 +234,13 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
   for (const k of ['x','y','z','roll','pitch','yaw']) el(`_${k}`).addEventListener('input', () => { model.invalidate('ANCHOR_INPUT_CHANGED'); el('Confirm').checked = false; render(); });
   el('Anchor').addEventListener('click', () => {
     try {
+      if (presetReference && presetReference !== currentReference()) throw new Error('프리셋의 IMU/본체 기준이 현재 pose와 다릅니다.');
       const pose = Object.fromEntries(['x','y','z','roll','pitch','yaw'].map(k => [k, (el(`_${k}`).value.trim() === '' ? NaN : Number(el(`_${k}`).value)) * (['x','y','z'].includes(k) ? 1 : Math.PI/180)]));
       model.setAnchor(pose, el('Confirm').checked); error = '';
     } catch (e) { error = e.message; }
     render();
   });
-  el('Clear').addEventListener('click', () => { model.invalidate('CLEARED'); error = ''; render(); });
+  el('Clear').addEventListener('click', () => { presetReference = null; presetMapKey = ''; model.invalidate('CLEARED'); error = ''; render(); });
   el('Registration').addEventListener('change', () => {
     model.registrationEnabled = el('Registration').checked; model.registration = null; model.generation++;
     model.geometryCache = null; render(); void estimate();
@@ -239,5 +267,5 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     demandChanged(); render();
   }, ingestPose: value => { if (!suspended) model.ingestPose(value); }, ingestCloud: value => { if (!suspended) model.ingestCloud(value); },
     ingestJoints: value => joints.ingest(value),
-    reset: reason => { joints.clear(); model.resetInputs(reason); clearDynamic(true); }, destroy: () => { disposed = true; session.destroy(); visibility.disconnect(); model.enable(false); requestController?.abort(); clearInterval(timer); clearDynamic(); panel.remove(); style.remove(); } };
+    reset: reason => { joints.clear(); model.resetInputs(reason); clearDynamic(true); }, destroy: () => { disposed = true; presets.destroy(); session.destroy(); visibility.disconnect(); model.enable(false); requestController?.abort(); clearInterval(timer); clearDynamic(); panel.remove(); style.remove(); } };
 }

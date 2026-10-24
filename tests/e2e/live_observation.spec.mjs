@@ -526,3 +526,70 @@ test('slow status reads do not swallow start or anchor clicks or overwrite a new
   hold=false;release();
   expect(starts).toBe(1);expect(errors).toEqual([]);
 });
+
+test('server anchor presets reload editable coordinates without starting or connecting observation',async({page})=>{
+  const {backend,writes,errors}=await fixture(page,{imu:true});
+  const saved=[], root=`/api/v1/observations/anchor-presets/${id}`;
+  backend.on(root,({json,body,request})=>{
+    if(request.method()==='POST') {
+      const preset={id:'user-'+'c'.repeat(32),label:body.name,values:{map_id:id,...body,units:'metres_degrees',saved_at:'2026-10-24T12:00:00+00:00'}};
+      delete preset.values.name; saved.push(preset);return json({preset,approximate_only:true,requires_reanchor:true},201);
+    }
+    return json({map:{map_id:id,map_revision:revision,map_frame:'map'},presets:saved,incompatible_count:0,approximate_only:true,requires_reanchor:true});
+  });
+  await page.locator('#savedAnchorPresetRefresh').click();
+  await page.locator('#savedLive_x').fill('0.37');await page.locator('#savedLive_yaw').fill('30');
+  await page.locator('#savedAnchorPresetName').fill('출입구 · 서 있음');
+  await page.locator('#savedAnchorPresetSave').click();
+  await expect(page.locator('#savedAnchorPresetStatus')).toContainText('저장 완료');
+  await page.locator('#savedLive_x').fill('9');await page.locator('#savedAnchorPresetLoad').click();
+  await expect(page.locator('#savedLive_x')).toHaveValue('0.37');
+  await expect(page.locator('#savedLive_yaw')).toHaveValue('30');
+  await expect(page.locator('#savedLiveConfirm')).not.toBeChecked();
+  await expect(page.locator('#savedLiveAnchor')).toBeDisabled();
+  await expect(page.locator('#savedLiveRegistration')).not.toBeChecked();
+  await page.reload(); await page.locator('.saved-map-item').filter({hasText:meta.name}).click();
+  await page.locator('#savedLiveAnchorDetails > summary').click();
+  await expect(page.locator('#savedAnchorPresetLoad')).toBeEnabled();
+  await page.locator('#savedAnchorPresetLoad').click();
+  await expect(page.locator('#savedLive_x')).toHaveValue('0.37');
+  await expect(page.locator('#savedLiveConfirm')).not.toBeChecked();
+  expect(writes).toEqual([root]);expect(errors).toEqual([]);
+});
+
+test('a fresh corrected IMU pose fills editable anchor fields and still requires confirmation',async({page})=>{
+  const {state,errors}=await fixture(page,{imu:true});
+  await page.locator('#savedLiveRegistration').check();
+  await expect(page.locator('#savedLiveState')).toHaveText('SCAN_TO_MAP_CANDIDATE_UNVERIFIED');
+  state.x=.2;
+  await expect(page.locator('#savedLiveMetrics')).toContainText('X 0.200');
+  await expect(page.locator('#savedAnchorPresetCurrent')).toBeEnabled();
+  await page.locator('#savedAnchorPresetCurrent').click();
+  await expect(page.locator('#savedLive_x')).toHaveValue('0.2');
+  await expect(page.locator('#savedLiveConfirm')).not.toBeChecked();
+  await expect(page.locator('#savedLiveRegistration')).not.toBeChecked();
+  await expect(page.locator('#savedAnchorPresetCurrent')).toBeDisabled();
+  expect(errors).toEqual([]);
+});
+
+test('preset save errors do not retry writes and loaded body coordinates cannot replace an IMU anchor',async({page})=>{
+  const {backend,writes,errors}=await fixture(page,{imu:true});
+  const root=`/api/v1/observations/anchor-presets/${id}`;
+  backend.on(root,({json,request})=>request.method()==='POST' ? json({detail:'SYNTHETIC_STORAGE_UNAVAILABLE'},503) : json({
+    map:{map_id:id,map_revision:revision,map_frame:'map'},presets:[{id:'user-'+'c'.repeat(32),label:'different reference',
+      values:{map_id:id,map_revision:revision,map_frame:'map',pose_reference:'UNVERIFIED_BODY',units:'metres_degrees',
+        pose:{x:9,y:9,z:9,roll:0,pitch:0,yaw:0},saved_at:'2026-10-24T12:00:00+00:00'}}],
+    incompatible_count:0,approximate_only:true,requires_reanchor:true}));
+  await page.locator('#savedAnchorPresetRefresh').click();
+  await expect(page.locator('#savedAnchorPresetLoad')).toBeEnabled();
+  await page.locator('#savedAnchorPresetLoad').click();
+  await expect(page.locator('#savedAnchorPresetStatus')).toContainText('기준이 현재 pose와 다릅니다');
+  await expect(page.locator('#savedLive_x')).toHaveValue('0');
+  await expect(page.locator('#savedLiveConfirm')).toBeChecked();
+  await page.locator('#savedAnchorPresetName').fill('test');
+  await page.locator('#savedAnchorPresetSave').click();
+  await expect(page.locator('#savedAnchorPresetStatus')).toContainText('SYNTHETIC_STORAGE_UNAVAILABLE');
+  await page.locator('#savedAnchorPresetRefresh').click();
+  await expect(page.locator('#savedAnchorPresetStatus')).toContainText('불러올 수 있는 초기값');
+  expect(writes).toEqual([root]);expect(errors).toEqual([]);
+});
