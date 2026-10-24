@@ -179,9 +179,10 @@ def run(args):
         (args.output / "container_receipt.json").write_text(
             json.dumps(receipt, indent=2) + "\n"
         )
-        subprocess.run([args.runtime, "start", "-a", name], check=True)
+        started = subprocess.run([args.runtime, "start", "-a", name], check=False)
         state = json.loads(command(args.runtime, "inspect", name))[0]["State"]
         receipt["exit_code"] = state["ExitCode"]
+        receipt["runtime_return_code"] = started.returncode
         if state.get("OOMKilled"):
             receipt["failure"] = "OOMKilled"
         return state["ExitCode"]

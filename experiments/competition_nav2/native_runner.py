@@ -215,6 +215,9 @@ def main(directory):
                         v=msg.linear.x,
                         w=msg.angular.z,
                         accepted=accepted,
+                        epoch=self.boundary.epoch,
+                        fault=self.boundary.fault,
+                        held=self.boundary.hold,
                         active_action_owners=owners,
                         origin="native_nav2",
                     ),
@@ -356,6 +359,36 @@ def main(directory):
                         held=held,
                         reason=self.boundary.reason,
                         raw_sequence=self.sequence,
+                        epoch=self.boundary.epoch,
+                        monotonic=now,
+                        command_source_age_s=(
+                            now - self.boundary.command.sent
+                            if self.boundary.command
+                            else None
+                        ),
+                        command_receipt_age_s=(
+                            now - self.boundary.command.received
+                            if self.boundary.command
+                            else None
+                        ),
+                        sensor_source_age_s=(
+                            now
+                            - self.boundary.scan_received
+                            + self.boundary.scan_source
+                            if self.boundary.scan_received is not None
+                            else None
+                        ),
+                        sensor_receipt_age_s=(
+                            now - self.boundary.scan_received
+                            if self.boundary.scan_received is not None
+                            else None
+                        ),
+                        published_ros=dict(
+                            clock_s=self.sim_t,
+                            tf_stamp_s=self.sim_t,
+                            odom_stamp_s=self.sim_t,
+                            tf_frames=["map", "odom", "base_link"],
+                        ),
                         action_owners=dict(self.active_actions),
                         wall_gap_s=gap,
                         collision_count=self.collision_count,
@@ -639,6 +672,12 @@ def main(directory):
             settle = time.monotonic() + 2.1
             while time.monotonic() < settle:
                 rclpy.spin_once(node, timeout_sec=0.02)
+            report["dropout_recovery"] = dict(
+                fault_latched=node.boundary.fault,
+                final_output=list(node.previous_output),
+                auto_resume=False,
+                restart_requirement="Terminate this run; create a fresh isolated run, acquire fresh scans, activate servers, accept a new goal and release epoch. HOLD/RELEASE alone cannot clear a latched fault.",
+            )
         if recovery is not None:
             rr = node.wait(recovery.get_result_async(), 8.0)
             node.action_events[-1]["result_status"] = rr.status

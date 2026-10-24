@@ -24,7 +24,7 @@ from core import (
     rectangle,
     swept_poses,
 )
-from fixtures import World, cases, digest
+from fixtures import World, cases, diagnostic_cases, digest, reference_feasibility
 from preflight import isolated_errors
 from validate import validate_record, validate_directory
 from matrix import plan
@@ -159,6 +159,16 @@ class GeometryTests(unittest.TestCase):
 
 
 class FixtureTests(unittest.TestCase):
+    def test_diagnostic_detour_is_full_footprint_feasible_and_separate(self):
+        fixture = diagnostic_cases()[0]
+        proof = reference_feasibility(fixture)
+        self.assertEqual(proof["status"], "PASS")
+        self.assertGreater(proof["min_conservative_clearance_m"], 0.1)
+        self.assertNotIn(fixture["scenario"], self.fixtures)
+        world = World(fixture)
+        self.assertTrue(world.collision((4.0, 3.0, 0.0), 0.0))
+        self.assertEqual(digest(cases()), digest(cases()))
+
     @classmethod
     def setUpClass(cls):
         cls.fixtures = {f["scenario"]: f for f in cases()}

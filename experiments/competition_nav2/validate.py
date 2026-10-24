@@ -5,6 +5,8 @@ import hashlib
 import json
 import math
 from pathlib import Path
+import re
+import yaml
 
 from configure import NODES, PLUGINS
 from core import LIMITS, propagate, swept_poses
@@ -104,6 +106,17 @@ def validate_directory(directory):
         file = directory / name
         if not file.is_file() or hashes.get(name) != sha(file):
             errors.append("missing or changed evidence: " + name)
+    if (directory / "environment.json").exists():
+        environment = json.loads((directory / "environment.json").read_text())
+        if not re.fullmatch(r"[0-9a-f]{40}", environment.get("source_sha") or ""):
+            errors.append("actual source commit missing")
+        if not re.fullmatch(r"sha256:[0-9a-f]{64}", environment.get("image_id") or ""):
+            errors.append("actual image ID missing")
+    if (directory / "params.yaml").exists():
+        if digest(
+            yaml.safe_load((directory / "params.yaml").read_text())
+        ) != record.get("config_sha256"):
+            errors.append("config hash mismatch")
     log = (
         (directory / "native.log").read_text(errors="replace")
         if (directory / "native.log").is_file()
@@ -133,6 +146,19 @@ def validate_directory(directory):
                 break
             if (row["held"] or row["reason"] != "RELEASE") and (v != 0.0 or w != 0.0):
                 errors.append("nonzero actuator under hold/fault/TTL")
+                break
+            if v != 0.0 or w != 0.0:
+                for key, limit in (
+                    ("command_source_age_s", LIMITS["command_ttl"]),
+                    ("command_receipt_age_s", LIMITS["command_ttl"]),
+                    ("sensor_source_age_s", LIMITS["sensor_ttl"]),
+                    ("sensor_receipt_age_s", LIMITS["sensor_ttl"]),
+                ):
+                    age = row.get(key)
+                    if age is None or not 0 <= age <= limit:
+                        errors.append("nonzero output without fresh evidence: " + key)
+            if row.get("published_ros", {}).get("clock_s") != row["sim_t"]:
+                errors.append("clock publication evidence missing/mismatched")
                 break
         if trace[-1]["actuator"] != [0.0, 0.0]:
             errors.append("shutdown actuator is not zero")
@@ -187,6 +213,17 @@ def validate_directory(directory):
                 or any(r["actuator"] != [0.0, 0.0] for r in tail)
             ):
                 errors.append("safe wait lacks two-second zero-command evidence")
+        if record.get("scenario") == "sensor_stale":
+            stale = [r for r in trace if r["reason"] == "SENSOR_STALE"]
+            if not stale or not any(
+                r["actuator"][0] > 0 for r in trace if r["sim_t"] < stale[0]["sim_t"]
+            ):
+                errors.append("dropout was not exercised during forward progress")
+            recovery = record.get("dropout_recovery", {})
+            if recovery.get("fault_latched") != "SENSOR_STALE" or recovery.get(
+                "final_output"
+            ) != [0.0, 0.0]:
+                errors.append("dropout latched zero evidence missing")
     if (directory / "cleanup.json").exists():
         cleanup = json.loads((directory / "cleanup.json").read_text())
         if (

@@ -12,7 +12,7 @@ import time
 import yaml
 
 from configure import candidate, validate_config
-from fixtures import ROOT, World, cases, digest
+from fixtures import ROOT, World, cases, diagnostic_cases, digest, reference_feasibility
 from preflight import require_isolated
 from validate import validate_directory, sha
 
@@ -57,7 +57,17 @@ def execute(args):
     isolation = require_isolated()
     out = args.output.resolve()
     out.mkdir(parents=True, exist_ok=False)
-    fixture = next(f for f in cases(args.seed) if f["scenario"] == args.scenario)
+    fixture = next(
+        f
+        for f in cases(args.seed) + diagnostic_cases(args.seed)
+        if f["scenario"] == args.scenario
+    )
+    if fixture.get("reference_waypoints"):
+        feasibility = reference_feasibility(fixture)
+        (out / "reference_feasibility.json").write_text(
+            json.dumps(feasibility, indent=2) + "\n"
+        )
+        assert feasibility["status"] == "PASS"
     world = World(fixture)
     fixture["map_sha256"] = world.write_map(out)
     fixture["fixture_sha256"] = digest(fixture)
@@ -150,17 +160,11 @@ def execute(args):
     except Exception as exc:
         failure = type(exc).__name__ + ": " + str(exc)
     finally:
-        for group in reversed(groups):
-            try:
-                os.killpg(group, signal.SIGINT)
-            except ProcessLookupError:
-                pass
-        for child in process_snapshot(groups):
-            if child["state"] != "Z":
-                try:
-                    os.kill(child["pid"], signal.SIGINT)
-                except ProcessLookupError:
-                    pass
+        # ros2 launch forwards SIGINT to its own children. Signalling both the
+        # launcher group and every descendant caused duplicate interrupts in CI.
+        for process in reversed(processes):
+            if process.poll() is None:
+                process.send_signal(signal.SIGINT)
         deadline = time.monotonic() + 12.0
         while time.monotonic() < deadline:
             for p in processes:
@@ -239,7 +243,9 @@ if __name__ == "__main__":
     p.add_argument("--controller", choices=["rpp", "mppi"], required=True)
     p.add_argument("--variant", choices=["baseline", "tuned"], default="baseline")
     p.add_argument(
-        "--scenario", choices=[f["scenario"] for f in cases()], required=True
+        "--scenario",
+        choices=[f["scenario"] for f in cases() + diagnostic_cases()],
+        required=True,
     )
     p.add_argument("--seed", type=int, default=20261024)
     p.add_argument("--repeat", type=int, default=0)
