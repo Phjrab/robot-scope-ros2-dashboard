@@ -1,5 +1,6 @@
 import { LiveMapObservation, rpyMatrix } from './live_observation_contract.js';
 import { ObservedJoints, GO2_JOINT_NAMES } from './observed_joints.js';
+import { initializeObservationSession } from './observation_session.js';
 
 export function observationAvailabilityText(state) {
   if (state.status !== 'SOURCE_IDENTITY_UNAVAILABLE') return '';
@@ -87,6 +88,14 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
   const el = id => panel.querySelector(`#savedLive${id}`), model = new LiveMapObservation();
   const joints = new ObservedJoints();
   let geometryKey = '', inFlight = false, nextRequest = -Infinity, error = '', wasVisible = false, dynamicCleared = false, requestController = null, disposed = false, suspended = false;
+  const resetSession = reason => {
+    model.resetInputs(reason); model.registrationEnabled = false; el('Confirm').checked = false; el('Registration').checked = false;
+    requestController?.abort(); error = ''; clearDynamic(true); render();
+  };
+  const session = initializeObservationSession({ panel, getContext,
+    onStart: () => { model.enable(true); el('Enabled').checked = true; resetSession('OBSERVATION_STARTING'); demandChanged(); },
+    onSessionChange: () => { model.enable(true); el('Enabled').checked = true; resetSession('OBSERVATION_SESSION_CHANGED'); demandChanged(); },
+    onStop: () => resetSession('OBSERVATION_STOPPED') });
   const wanted = () => model.enabled && !suspended && getContext().visible && !layout.hidden;
   function clearDynamic(force = false) {
     scene.setStatus({ online: null, lidarOnline: null, snapshot: true, message: model.snapshot().status });
@@ -230,5 +239,5 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     demandChanged(); render();
   }, ingestPose: value => { if (!suspended) model.ingestPose(value); }, ingestCloud: value => { if (!suspended) model.ingestCloud(value); },
     ingestJoints: value => joints.ingest(value),
-    reset: reason => { joints.clear(); model.resetInputs(reason); clearDynamic(true); }, destroy: () => { disposed = true; visibility.disconnect(); model.enable(false); requestController?.abort(); clearInterval(timer); clearDynamic(); panel.remove(); style.remove(); } };
+    reset: reason => { joints.clear(); model.resetInputs(reason); clearDynamic(true); }, destroy: () => { disposed = true; session.destroy(); visibility.disconnect(); model.enable(false); requestController?.abort(); clearInterval(timer); clearDynamic(); panel.remove(); style.remove(); } };
 }

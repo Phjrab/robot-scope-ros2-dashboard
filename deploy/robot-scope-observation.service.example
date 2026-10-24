@@ -1,0 +1,30 @@
+# Install as a fixed system unit after confirming these device-specific paths.
+# Not enabled at boot: only the dashboard's explicit start action starts it.
+[Unit]
+Description=Robot Scope observation-only FAST-LIO (30 minutes)
+BindsTo=robot-scope.service
+PartOf=robot-scope.service
+After=robot-scope.service
+
+[Service]
+Type=exec
+User=unitree
+Group=unitree
+WorkingDirectory=/home/unitree/robot-scope
+StateDirectory=robot-scope-observation
+StateDirectoryMode=0750
+BindPaths=/var/lib/robot-scope-observation/log:/home/unitree/robot-scope-workspaces/ws/fastlio_ws/src/FAST_LIO/Log
+BindPaths=/var/lib/robot-scope-observation/pcd:/home/unitree/robot-scope-workspaces/ws/fastlio_ws/src/FAST_LIO/PCD
+Environment=ROBOT_SCOPE_WORKSPACE_ROOT=/home/unitree/robot-scope-workspaces
+Environment=ROBOT_SCOPE_MAPPING_PROFILE=go2-onboard
+Environment=ROBOT_SCOPE_GO2_INTERFACE=enP8p1s0
+Environment=ROBOT_SCOPE_GO2_INTERFACE_CIDR=192.168.123.18/24
+Environment=ROS_DOMAIN_ID=0
+Environment=ROBOT_SCOPE_FASTLIO_OBSERVATION_ONLY=1
+ExecStart=/usr/bin/python3 /home/unitree/robot-scope/scripts/start_observation_fastlio.py
+RuntimeMaxSec=1800
+TimeoutStopSec=15
+KillMode=control-group
+Restart=no
+UMask=0027
+NoNewPrivileges=yes

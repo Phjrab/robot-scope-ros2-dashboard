@@ -49,3 +49,7 @@
   .saved-live-actions > button { flex: 1 1 auto; }
   .saved-live-details > summary > small { flex-basis: 100%; margin-left: 24px; }
 }
+.saved-observation-session { display: grid; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-soft); }
+.saved-observation-session small { display: block; overflow-wrap: anywhere; color: var(--muted); }
+.saved-observation-session small:empty { display: none; }
+#savedSessionError { color: var(--amber); }

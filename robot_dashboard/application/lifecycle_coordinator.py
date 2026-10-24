@@ -59,6 +59,7 @@ class LifecycleTransitionBusy(RuntimeError):
         "control_bridge": (
             "a control bridge service lifecycle operation is pending"
         ),
+        "observation": "관측 FAST-LIO를 먼저 종료하세요.",
     }
 
     def __init__(self, lifecycle: str) -> None:
@@ -99,6 +100,16 @@ class LifecycleCoordinator:
         self._service_lifecycle = service_lifecycle
         self._control_bridge_lifecycle = control_bridge_lifecycle
         self._control_bridge_autostart = control_bridge_autostart is True
+        self._observation_activity: Callable[[], bool] = lambda: False
+
+    def set_observation_activity(self, provider: Callable[[], bool]) -> None:
+        self._observation_activity = provider
+
+    def _observation_active(self) -> bool:
+        try:
+            return self._observation_activity() is not False
+        except Exception:
+            return True
 
     @classmethod
     def from_environment(
@@ -189,6 +200,8 @@ class LifecycleCoordinator:
             mapping_jobs=self._snapshot(self._mapping_jobs_snapshot_provider),
             mapping_task_active=self._mapping_task_active(),
         )
+        if self._observation_active():
+            blockers.append("observation_fastlio_active")
         startup = self._navigation_start_snapshot()
         if startup.get("pending") or startup.get("mapping_owned"):
             blockers.append("navigation_start_pending")
@@ -237,6 +250,9 @@ class LifecycleCoordinator:
             dataset_capture_active=self._dataset_capture_active(),
             dashboard_service_lifecycle_busy=dashboard_lifecycle_busy,
         )
+        if self._observation_active():
+            # STOP remains available; only new bridge startup is excluded.
+            blockers["start"].append("observation_fastlio_active")
         startup = self._navigation_start_snapshot()
         if startup.get("pending") or startup.get("mapping_owned"):
             for action in ("start", "stop"):
@@ -324,6 +340,8 @@ class LifecycleCoordinator:
     def require_idle(self) -> None:
         """Prevent new work while either service transition is active."""
 
+        if self._observation_active():
+            raise LifecycleTransitionBusy("observation")
         if self.service_lifecycle.is_busy():
             raise LifecycleTransitionBusy("dashboard")
         if self.control_bridge_lifecycle.is_busy():

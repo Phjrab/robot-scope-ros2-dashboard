@@ -376,6 +376,13 @@ def ownership_readback(runtime: Any) -> dict[str, Any]:
            lambda owner: _native_jobs(owner, coordinator=True), optional=True)
     sample("relocalization", runtime.relocalization, _native_jobs, optional=True)
     sample("sensor_tracking", runtime.sensor_tracking, _sensor, optional=True)
+    def observation_session(owner):
+        with _locked(owner._lock):
+            stale = owner.enabled and time.monotonic() - owner._updated_at > 6
+            return dict(busy=bool(owner._status["busy"] or owner._pending or stale),
+                        state="UNKNOWN" if stale else owner._status["state"], session_id=owner._status.get("session_id"),
+                        operation=owner._pending)
+    sample("fastlio_observation", runtime.fastlio_observation, observation_session, optional=True)
     if runtime.observation_aligner is None:
         components["legacy_alignment"] = dict(status="absent", busy=False)
     else:

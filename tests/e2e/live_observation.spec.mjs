@@ -450,3 +450,49 @@ test('alignment scheduling waits server cooldown after receipt despite slow disp
   expect(calls[2]-receipts[1]).toBeGreaterThanOrEqual(990);
   await page.locator('#savedLiveRegistration').uncheck(); expect(errors).toEqual([]);
 });
+
+test('Maps observation service start waits for input and requires a fresh anchor; stop uses exact session',async({page},testInfo)=>{
+  const {backend,writes}=await fixture(page);
+  let session={state:'STOPPED',active:false,session_id:null,can_start:true,can_stop:false,remaining_s:null},starts=0,stops=[];
+  backend.on('/api/v1/observations/fastlio',({json})=>json(session));
+  backend.on('/api/v1/observations/fastlio/start',({json,body})=>{
+    expect(body).toEqual({confirmed:true}); starts++;
+    session={state:'WAITING_INPUTS',active:true,session_id:'a'.repeat(32),can_start:false,can_stop:true,remaining_s:1800};
+    return json(session);
+  });
+  backend.on('/api/v1/observations/fastlio/stop',({json,body})=>{
+    stops.push(body);session={state:'STOPPED',active:false,session_id:'a'.repeat(32),can_start:true,can_stop:false};return json(session);
+  });
+  await expect(page.locator('#savedSessionStart')).toBeEnabled();
+  await page.locator('#savedSessionStart').click();
+  await expect(page.locator('#savedSessionState')).toHaveText('새 입력 수신 대기');
+  await expect(page.locator('#savedSessionStart')).toBeDisabled();
+  await expect(page.locator('#savedSessionAnchor')).toBeDisabled();
+  await expect(page.locator('#savedLiveConfirm')).not.toBeChecked();
+  await expect(page.locator('#savedLiveCenter')).toBeDisabled();
+  session={...session,state:'READY'};
+  await expect(page.locator('#savedSessionAnchor')).toBeEnabled();
+  await page.locator('#savedSessionAnchor').click();
+  await expect(page.locator('#savedLive_x')).toBeVisible();
+  await page.locator('#savedLiveObservation').screenshot({path:testInfo.outputPath('synthetic-observation-session-ready.png')});
+  await page.locator('#savedLiveConfirm').check();await page.locator('#savedLiveAnchor').click();
+  await expect(page.locator('#savedLiveCenter')).toBeEnabled();
+  await page.locator('#savedSessionStop').click();
+  await expect(page.locator('#savedSessionState')).toHaveText('관측기 정지');
+  await expect(page.locator('#savedLiveCenter')).toBeDisabled();
+  expect(starts).toBe(1);expect(stops).toEqual([{confirmed:true,session_id:'a'.repeat(32)}]);
+  expect(writes).toEqual(['/api/v1/observations/fastlio/start','/api/v1/observations/fastlio/stop']);
+});
+
+test('failed observation start is never retried automatically or shown as registered',async({page})=>{
+  const {backend}=await fixture(page);let calls=0;
+  backend.on('/api/v1/observations/fastlio',({json})=>json({state:'STOPPED',active:false,can_start:true,can_stop:false}));
+  backend.on('/api/v1/observations/fastlio/start',({json})=>{calls++;return json({detail:'다른 FAST-LIO가 실행 중입니다.'},409);});
+  await expect(page.locator('#savedSessionStart')).toBeEnabled();
+  await page.locator('#savedSessionStart').click();
+  await expect(page.locator('#savedSessionError')).toContainText('다른 FAST-LIO');
+  await expect(page.locator('#savedLiveCenter')).toBeDisabled();
+  await expect(page.locator('#savedLiveConfirm')).not.toBeChecked();
+  await expect(page.locator('#savedSessionStart')).toBeEnabled();
+  expect(calls).toBe(1);
+});

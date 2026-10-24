@@ -70,6 +70,17 @@ class FakeControlBridgeLifecycle:
 
 
 class LifecycleCoordinatorTests(unittest.TestCase):
+    def test_observation_blocks_new_work_and_bridge_start_but_not_bridge_stop(self):
+        self.coordinator.set_observation_activity(lambda: True)
+        with self.assertRaises(LifecycleTransitionBusy):
+            self.coordinator.require_idle()
+        self.assertIn("observation_fastlio_active", self.coordinator.service_blockers())
+        state = self.coordinator.control_bridge_preflight()
+        self.assertIn("observation_fastlio_active", state["start"])
+        self.assertNotIn("observation_fastlio_active", state["stop"])
+        self.coordinator.set_observation_activity(lambda: False)
+        self.coordinator.require_idle()
+
     def setUp(self):
         self.state = {
             "control": {

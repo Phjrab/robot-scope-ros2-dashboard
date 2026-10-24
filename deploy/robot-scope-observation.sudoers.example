@@ -1,0 +1,3 @@
+# Only the fixed observation service; never arbitrary units, shells or systemd-run.
+unitree ALL=(root) NOPASSWD: /usr/bin/systemctl --no-block start robot-scope-observation.service
+unitree ALL=(root) NOPASSWD: /usr/bin/systemctl --no-block stop robot-scope-observation.service

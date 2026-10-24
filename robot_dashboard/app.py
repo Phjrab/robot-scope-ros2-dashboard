@@ -28,7 +28,7 @@ from .application.mission_coordinator import MissionCoordinator, MissionError
 from .application.navigation_coordinator import NavigationCoordinator
 from .application.route_planner_coordinator import RoutePlannerCoordinator
 from .application.runtime import ApplicationRuntime, close_observation_resources, close_relocalization, configure_competition, configure_realsense_profile, configure_stationary_relocalization
-from .application.observation_runtime import close_observations, configure_observations
+from .application.observation_runtime import close_observations, configure_observations, start_observations
 from .api.dependencies import require_same_origin, websocket_same_origin
 from .api.dependencies import require_competition_unlocked, require_manual_operation_mode
 from .api.routers.cameras import router as cameras_router
@@ -159,6 +159,7 @@ async def lifespan(fastapi: FastAPI):
     if runtime.agent is None:
         raise RuntimeError("ROS agent has not been configured")
     runtime.agent.start()
+    await start_observations(runtime)
     if runtime.perception is not None:
         runtime.perception.start()
     if runtime.lifecycle is not None:
