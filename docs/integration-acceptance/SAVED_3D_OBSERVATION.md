@@ -17,9 +17,17 @@ are preserved; there is no stand-height or ground clamp. The ΔZ reference survi
 map correction, and resets on explicit reanchor/new source. Synthetic sitting,
 vertical movement, stale input and source replacement pass. The approved ten-file
 deployment and standing stationary hardware validation are complete. The user
-deferred physical sitting/vertical motion testing. The observation runtime is
-bounded to 15:16:06–15:46:06 KST; see the session record for remaining catalogue
-lock delays and qualification limits.
+subsequently lowered the robot to the floor and raised it to standing manually.
+Twenty-second plateau medians give estimated IMU Z changes of −0.084222 m down,
++0.086019 m up, and +0.001797 m on return versus baseline. This is relative
+odometry evidence, not millimetre accuracy or calibrated body height: lowering
+also changed estimated XY by 0.146679 m and pitch by −7.477565°. All 1,157 pose
+and 1,157 joint API samples were state ok; joint angles are URDF-clamped, with
+all four calves reaching the −156° API limit at the floor. The model folded and
+returned, but transient UI STALE/recovery occurred. The observation runtime is
+still bounded to 15:16:06–15:46:06 KST, with no restart or extension for this test.
+See the session record for plateau windows, remaining catalogue lock delays,
+source-clock and body-origin qualification limits.
 
 **Latest hardware evidence (2026-10-24):** the conditional coarse-to-full seed
 implementation in `cc83ee0` was deployed as three Python overlays, followed by

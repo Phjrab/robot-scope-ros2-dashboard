@@ -438,3 +438,65 @@ inactive/disabled, 새 FAST-LIO1개와 preview1개였다. ownership은 수치 �
 `joints-stationary-summary.json`, `joints-live-motion.ndjson`, `joints-ui-export.json`,
 `joints-cooldown-response.json`, `joints-service-journal.txt`, `joints-final-readback.json`,
 `joints-map-screen.png`, `joints-controls-screen.png`와 복구 번들을 보존했다.
+
+
+## 사용자 수동 낮춤·올림 측정 (15:33–15:39 KST)
+
+사용자가 조작 가능함을 알린 뒤 같은 승인 관측 세션에서 측정했다. 새 배포,
+서비스 재시작, 추정기 실행/연장, 제어·자세 명령은 없다. 15:30:28 읽기에서
+같은 observer/pose epoch/frame, FAST-LIO 1개, bridge OFF와 지도/설정/설치 보존을
+확인했다. 브라우저가 숨겨진 동안 VIEW_SUSPENDED로 연결이 무효화되어,
+동일 observer·pose epoch·subscription의 과거 보정 T_map_odom과 최신 odometry로
+현재 근사 prior를 계산하고 UI에서 명시적으로 재연결했다. 새 세션으로 과거
+변환을 넘기지 않았으며 이 재연결이 새 ΔZ 기준이다. 정량 비교는 지도 보정과
+독립적인 아래 API odometry 정지 구간을 기준으로 한다.
+
+기존 localhost GET /pose, /joints만 읽는 수집을 **15:33:06–15:38:38** 수행했다.
+요청 시작·소요시간·완료 snapshot·서버 age·원래 sensor stamp를 저장했다.
+수집 UTC는 로봇 호스트 시각이며, 1,157행의 pose/관절 모두 state ok, 요청 오류0,
+pose unique seq1,151/관절1,157이었다. pose는 같은 epoch1개, stamp 역행0,
+최대 서버 age232ms/관절78ms였다. 관절 stamp는 모두0이며 sensor-clock 동기화는
+여전히 미검증이다. 이 기록은 API snapshot이지 원시 ROS 메시지/모터각 archive가
+아니다. 수집 완료 후 이번 로컬 SSH reader만 종료했고 관측 서비스는 유지했다.
+
+사용자는 “낮춤완료 바닥에 딱 붙게”, 이어 “올림 완료”를 보고했다. 각 20초
+안정 구간 전체 샘플의 중앙값을 비교했다. 시작·끝은 KST, 끝 시각은 미포함이다.
+
+| 구간 | 시각 | 샘플 | odom Z 중앙값 | Z 최소–최대 |
+|---|---|---:|---:|---:|
+| 서 있는 기준 | 15:34:10–15:34:30 | 69 | 0.018065m | 0.016369–0.020459m |
+| 바닥까지 낮춤 | 15:35:40–15:36:00 | 68 | −0.066157m | −0.073145–−0.062592m |
+| 다시 서 있음 | 15:36:35–15:36:55 | 69 | 0.019862m | 0.012262–0.028953m |
+
+낮춤 **−0.084222m**, 올림 **+0.086019m**, 처음 대비 복귀 **+0.001797m**다.
+이는 현재 FAST-LIO IMU 추정량이며 1.8mm 정확도가 아니다. 특히 복귀 구간의
+Z 변동폭도16.691mm다. 낮출 때 추정 XY 이동0.146679m, pitch 변화−7.477565°,
+복귀 후 XY 차이0.076736m도 있었으므로 순수한 수직 이동 시험으로 취급하지 않는다.
+줄자 등 독립 정답과 검증된 IMU→본체 변환이 없어 실제 몸체 높이는 미측정이다.
+바닥에 닿았다는 현장 보고를 IMU Z=0이나 바닥 원점으로 강제하지 않았다.
+
+12관절의 접힘·복귀를 관측했다. 앞 오른쪽 thigh 중앙값은41.31°→70.91°→37.05°,
+calf는−84.67°→−156.00°→−78.33°였다. 기존 API `limit_policy=clamped_to_go2_urdf`
+때문에 바닥 자세의 calf4개가−156°에 닿았다. 이 값이 실제 원시 모터각이라고
+해석하지 않으며, 한계 밖 동작의 세부 관절 측정은 별도 원시 입력이 필요하다.
+
+실제 Maps 화면에서 낮춘 모델과 ΔZ−0.078m, 다시 선 모델과 ΔZ+0.004m를
+각각 확인했다. 이는 서로 다른 시점의 화면값이며 위 중앙값과 구분한다. 낮춤
+화면은 RECOVERED_APPROXIMATE_ODOMETRY_ESTIMATE, 복귀 화면은
+MAP_CORRECTED_ESTIMATE_ACCURACY_UNVERIFIED였다. 중간에 STALE로 모델·높이가
+숨겨진 경우도 있어 끊김 없는 화면 추적으로 완료 처리하지 않는다. 낮춤 중
+JSON download 이벤트는 도구 timeout으로 저장되지 않았고, 화면·API 기록으로
+증거를 보존했다. 정확한 정합 잔차는 이전 정지 검증 수치를 재사용하지 않는다.
+
+15:39:23 readback에서 지도/설정 SHA와 설치/백업 해시 모두 일치, dashboard
+PID153644, FAST-LIO mapping154753/서비스154694, preview153797, bridge
+inactive/disabled, busy/unknown 없음이었다. 기존 15:46:06 자동 종료는 유지한다.
+이 읽기는 종료 시각 이후 서비스 상태를 확인한 것이 아니다. 문서 반영 전
+Python2,649개(4 skip), 관련 JS38개가 통과했다. runtime source 변경은 없다.
+
+private `resume-20261024/`에 `joints-vertical-live.ndjson`,
+`vertical-stage-events.ndjson`, `vertical-reanchor-prior.json`,
+`vertical-measurement-summary.json`, `analyze-vertical.py`, 실제 낮춤/복귀 화면,
+`vertical-final-readback.json`을 보존한다. 원본 입력·그림은 Git에 포함하지 않는다.
+다음 최소 검증은 같은 두 정지 자세에서 독립적으로 잰 높이 차이와 IMU ΔZ를
+비교하는 것이다. 바닥에 붙은 자세 내에서의 작은 상하 반복 운동은 별도 미실시다.
