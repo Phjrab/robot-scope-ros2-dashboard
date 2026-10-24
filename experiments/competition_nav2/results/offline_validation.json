@@ -118,5 +118,7 @@
     "ruff": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
   },
   "large_or_full_logs": "Full repository logs remain local; they have not been uploaded. A small exact terminal summary and C3 focused log are included.",
-  "native_evidence_status": "NOT_RUN; no actual Nav2 logs/action outputs/plugin runtime receipts exist for this submission."
+  "native_evidence_status": "NOT_RUN; no actual Nav2 logs/action outputs/plugin runtime receipts exist for this submission.",
+  "remote_main_at_submission": "5d78fcb7c7589134a533d6dc0ddd09995f9163f9",
+  "remote_main_delta": "Observation UI/status polling documentation, JavaScript and E2E; not merged into C3. Integration against latest main NOT_RUN."
 }

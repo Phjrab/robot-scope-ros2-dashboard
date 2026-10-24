@@ -5,6 +5,7 @@
 - 역할: C3, 브랜치: `review/20261024-c3-nav2-benchmark`.
 - 실제 작업 기준 SHA: `7f2a7070a17975d2a5f123cbf6aab0f99f04bf8a`.
 - 작업 시작/브랜치 전환 시 확인한 원격 main: `7f2a7070a17975d2a5f123cbf6aab0f99f04bf8a`.
+- 제출 직전 확인한 원격 main: `5d78fcb7c7589134a533d6dc0ddd09995f9163f9`. 기준 이후 `ace55b0` 관측 UI 제어 수정 및 `5d78fcb` merge가 추가되어 관측 문서/JS/E2E 3개 파일이 달라졌다. C3가 main에 쓴 변경은 아니며 이 브랜치에 병합하지 않았다. 최신 main과 결합한 회귀 검사는 NOT_RUN이다.
 - 테스트 대상 코드 커밋: `dfeabb36e16a80f14c65f23361fd29d36504ac6b`. 테스트한 작업 트리 내용을 변경 없이 이 커밋으로 기록했다. 이 REVIEW와 검증 요약은 뒤의 문서 전용 커밋에 포함되므로 최종 제출 HEAD와 구분한다. 최종 HEAD는 제출 응답에서 확인한다.
 - 독립 일반 clone에서 작업했다. 이전 C2 clone의 Git 기준 객체만 복제했으며, 다른 작업자의 미커밋 소스나 결과는 복사하지 않았다. 사용자 변경 요청에 따라 기존 수정 내용을 유지한 채 지정 브랜치를 만들었다.
 - C3 변경을 main에 반영한 적 없음. PR/merge/cherry-pick/force-push 없음. AGENTS.md 변경 없음.
