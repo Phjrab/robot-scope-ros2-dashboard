@@ -2,7 +2,7 @@
 
 Branch: `review/20261024-c1-integration-r2`.
 Base: `7ef47dc249e4dba83865e78dc283f40013ea92de` (latest remote main at start and pre-submission check).
-Source candidate commit and remote CI results are recorded below after publication.
+Verified source candidate: `c5de97b14c3bc132bf881d132378641cf69f825a`. The final publication after this source commit only records CI evidence in this review document.
 Scope: hardware-free software integration. `SYNTHETIC_ONLY`; production native motion remains disabled.
 
 ## Adopted revisions and preservation
@@ -85,7 +85,7 @@ Local environment: Python 3.12.3, Node 20.20.2, existing Chromium. Network insta
 | D0 revision evidence | 2 tests PASS, including four mutation/missing-file cases and historical lookup |
 | Full Python, final candidate | 2,842 run: 2,840 PASS, 2 SKIP; 85.921 s |
 | Full JS | 662 PASS |
-| Full browser E2E | Initial 191 PASS / 4 FAIL (new main anchor-preset GET missing from UI fixture); targeted rerun 4/4 PASS; remote full-suite result below |
+| Full browser E2E | Initial 191 PASS / 4 FAIL (new main anchor-preset GET missing from UI fixture); targeted rerun 4/4 PASS; final remote full suite 195/195 PASS on both OS/Python jobs |
 | Real FastAPI competition E2E | 5 PASS |
 | Static checks | Ruff PASS; mypy 4 source files PASS; JS syntax 105 modules PASS; tracked-source secret scan PASS; pip check PASS; npm audit 0 vulnerabilities |
 
@@ -142,3 +142,23 @@ D0/C2/C3/C4 discovery commands and the explicit optional dependency environment 
 | `r2-python-submission.log` | `b578ee822cb22b03521056ba5bfbdbf87d4ca022e4224eca6d34b99628249e2b` |
 | `r2-operator-pause-before.log` | `b1535255a9099fafea066cb43904a5f45a66a8ca9c334319303c3e68b6a7219d` |
 | `r2-operator-pause-final.log` | `d16b9209237f116d3e503c84607d073509c3fe35cd9876fcbf4c62ad5f087be0` |
+
+## Final remote CI evidence
+
+[CI run 40099488046](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40099488046) completed **SUCCESS** for source `c5de97b14c3bc132bf881d132378641cf69f825a`.
+
+| Job | Result | Completed UTC |
+|---|---|---|
+| hardware-free-tests (ubuntu-24.04, 3.12) | SUCCESS | 2026-10-24T14:01:34Z |
+| competition-offline-integration | SUCCESS | 2026-10-24T13:45:46Z |
+| hardware-free-tests (ubuntu-22.04, 3.10) | SUCCESS | 2026-10-24T14:00:55Z |
+
+The dedicated offline job executed 416 tests: C2 66, C4 53, combined integration 23, revision evidence 2, D0 136 + 30 + 44 + 13 + 11, and C3 38. None were skipped. The two matrix jobs passed static checks, dependency audits, Python coverage tests, JavaScript tests, all 195 browser tests and all 5 real-API mission E2E tests. Each matrix root suite ran 2,770 tests with 6 optional-dependency skips: the existing SVG/rosbags checks plus four C4/combined modules in the base environment. The dedicated job installs their dependencies and runs all C4/combined tests with no skips. Raw GitHub job logs were checked; this is not an inference from a queued workflow.
+
+The earlier `cddec817f32694a99665f3fa1088c6ff28c148a1` candidate was superseded by the operator-pause fix and is not the final verification source. The final source and this report retain the same approved role snapshots. Later C3 follow-up code remains excluded.
+
+| Downloaded final job log | SHA-256 |
+|---|---|
+| `r2-ci-final-offline.log` | `e7fb3f040cf5e98320690962d45b7c0a7d1c96b60d804a59b50503b2e7321313` |
+| `r2-ci-final-ubuntu22.log` | `6b806297bec02a50343c6055d747cef2df7de416987f2f9a45839e83d820cbde` |
+| `r2-ci-final-ubuntu24.log` | `6c81a70d8b7e3358b670c2dbcde643d837f63ed580a3b82f99370239b2bc8e54` |
