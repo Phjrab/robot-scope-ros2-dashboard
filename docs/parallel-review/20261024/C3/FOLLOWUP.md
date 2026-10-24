@@ -38,6 +38,15 @@ original UUID bytes are now explicitly converted to JSON integers, with length
 and range validation. This run is retained as a report-writing failure, not a
 completed validated comparison; the eight-case gate correctly stopped at one.
 
+Sixth run [40098944552](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40098944552), source `dd715db33617df00f69f944a6398ebe1d63bcbbd`, attempted all eight cases.
+All four RPP cases passed independent validation: empty/diagnostic goal reached,
+blocked/dropout SAFE_WAIT, no footprint contacts or keepout violations. MPPI's
+four attempts activated its native plugin but stopped before goals because its
+default `/trajectories` publisher escaped the namespace. This visualization topic
+is now explicitly remapped into `/c3_nav2`; the outside-topic audit is preserved.
+This is 4 validated native results, not an 8-case completed native comparison.
+The original eight-attempt summary is retained in `results/minimum_attempt_40098944552.json`.
+
 The next run still gates on one empty RPP case: only actual GOAL_REACHED plus
 independent evidence PASS permits the remaining seven sequential cases. The separate synthetic obstacle
 diagnostic has a full-footprint swept reference feasibility check. That reference

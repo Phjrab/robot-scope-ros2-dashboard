@@ -38,6 +38,7 @@ def generate_launch_description():
                 ("/tf", "tf"),
                 ("/tf_static", "tf_static"),
                 ("/diagnostics", "/c3_nav2/diagnostics"),
+                ("/trajectories", "/c3_nav2/trajectories"),
             ]
             if name in ("controller_server", "behavior_server"):
                 remaps += [("cmd_vel", "raw/" + name)]
