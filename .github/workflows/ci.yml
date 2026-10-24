@@ -76,3 +76,16 @@ jobs:
 
       - name: Run hardware-free browser E2E
         run: npm run test:e2e:ci
+
+      - name: Run mission real-API fixture E2E
+        run: npx playwright test --config playwright.competition.config.mjs --reporter=line --output=competition-test-results
+
+      - name: Preserve browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-failure-${{ matrix.os }}-python-${{ matrix.python }}
+          path: |
+            test-results/
+            competition-test-results/
+          if-no-files-found: ignore

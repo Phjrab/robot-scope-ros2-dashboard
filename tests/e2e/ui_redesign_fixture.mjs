@@ -41,6 +41,13 @@ export async function installMissionFixture(page, options = {}) {
   // Current pages also read SLAM catalogue and offline calibration status.
   // Keep these explicit and read-only so captures show the UI, not fake 404s.
   const readOnly = {
+    '/api/v1/observations/fastlio': {
+      schema: 'robot-scope.fastlio-observation-session.v1',
+      state: 'UNAVAILABLE', active: false, busy: false, session_id: null,
+      remaining_s: null, limit_s: 1800, can_start: false, can_stop: false,
+      reason: 'SYNTHETIC_NO_HARDWARE', observation_only: true,
+      map_registration_applied: false,
+    },
     '/api/v1/slam/engines': { engines: [
       { engine_id: 'lidar_fastlio', available_now: false, tasks: ['mapping'], blocked_reason: 'SYNTHETIC_NO_HARDWARE' },
       { engine_id: 'visual_stereo', available_now: false, tasks: ['mapping'], blocked_reason: 'SYNTHETIC_NO_HARDWARE' },
