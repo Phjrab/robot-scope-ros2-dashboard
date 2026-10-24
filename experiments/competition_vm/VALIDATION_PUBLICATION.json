@@ -1,0 +1,30 @@
+{
+  "date_utc": "2026-10-24",
+  "upstream_before_publication": "ebce05ca7e1063b136953f10a6a960ce0d65ffa1",
+  "new_vm_tests": {
+    "avoidance": 30,
+    "traffic_signals": 67,
+    "integration": 16,
+    "arena_robot_sim": 7,
+    "status": "PASS"
+  },
+  "javascript_unit_tests": {
+    "count": 656,
+    "status": "PASS"
+  },
+  "arena_glb_validation": "PASS",
+  "repository_python_tests": {
+    "command": "python3 -m unittest discover -s tests -v",
+    "tests": 2664,
+    "errors": 25,
+    "skipped": 1,
+    "status": "BLOCKED_ENVIRONMENT",
+    "reason": "Unix socket creation PermissionError: Operation not permitted; same 25 errors as baseline. No restriction bypass attempted.",
+    "validated_python_base": "ebce05ca7e1063b136953f10a6a960ce0d65ffa1"
+  },
+  "native_ros": "NOT_RUN",
+  "physical_robot": "NOT_RUN",
+  "real_measurements_included": false,
+  "full_course_qualification": "NOT_RUN",
+  "publication_note": "Full suite and JavaScript rerun on final combined snapshot after upstream FAST-LIO commit. Simulator unit test generates excluded grid in memory."
+}

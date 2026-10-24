@@ -1,0 +1,21 @@
+test_clock_rollback_holds (test_adapter.IntegrationTests.test_clock_rollback_holds) ... ok
+test_duplicate_release_invalidates (test_adapter.IntegrationTests.test_duplicate_release_invalidates) ... ok
+test_expired_release (test_adapter.IntegrationTests.test_expired_release) ... ok
+test_invalid_ttl_failclosed (test_adapter.IntegrationTests.test_invalid_ttl_failclosed) ... ok
+test_missing_constraint_holds (test_adapter.IntegrationTests.test_missing_constraint_holds) ... ok
+test_multiple_holds_precedence (test_adapter.IntegrationTests.test_multiple_holds_precedence) ... ok
+test_no_implicit_caps_or_unknown_modes (test_adapter.IntegrationTests.test_no_implicit_caps_or_unknown_modes) ... ok
+test_previous_generation_cancel_rejected (test_adapter.IntegrationTests.test_previous_generation_cancel_rejected) ... ok
+test_red_clearpath_hold (test_adapter.IntegrationTests.test_red_clearpath_hold) ... ok
+test_release_never_replays_held_command (test_adapter.IntegrationTests.test_release_never_replays_held_command) ... ok
+test_release_rejects_pre_release_command_even_new_seq (test_adapter.IntegrationTests.test_release_rejects_pre_release_command_even_new_seq) ... ok
+test_safety_precedes_release (test_adapter.IntegrationTests.test_safety_precedes_release) ... ok
+test_stale_command_not_replayed_later (test_adapter.IntegrationTests.test_stale_command_not_replayed_later) ... ok
+test_unknown_clearpath_hold (test_adapter.IntegrationTests.test_unknown_clearpath_hold) ... ok
+test_wrong_session_release_rejected (test_adapter.IntegrationTests.test_wrong_session_release_rejected) ... ok
+test_zero_caps_required_for_hold (test_adapter.IntegrationTests.test_zero_caps_required_for_hold) ... ok
+
+----------------------------------------------------------------------
+Ran 16 tests in 0.005s
+
+OK

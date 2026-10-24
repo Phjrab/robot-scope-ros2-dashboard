@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "scope": "Render legibility and basic topology review, not all-constraint geometry correctness",
+  "reviewed": [
+    "previews/top.png",
+    "previews/isometric.png",
+    "previews/parking.png",
+    "previews/parking_wall_markers.png"
+  ],
+  "findings": [
+    "Provisional connector gaps corrected",
+    "Wall P glyph visible on interior 100mm panel",
+    "Separate blank QR placeholder visible; no payload fabricated",
+    "Terrain protrusions at legacy/provisional floor alignment disclosed in ASSUMPTIONS"
+  ],
+  "browser_test": "NOT_RUN"
+}

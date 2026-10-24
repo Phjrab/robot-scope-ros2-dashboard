@@ -1,0 +1,51 @@
+{
+  "schema_version": "0.1",
+  "arena_revision": "rulebook-20261015-v1",
+  "scenario_id": "two_signals",
+  "seed": 20261015,
+  "evidence_type": "SIMULATION_GT",
+  "frame_id": "arena_design",
+  "obstacles": [],
+  "obstacles_baked_in_static_map": false,
+  "signals": [
+    {
+      "signal_id": "signal_01",
+      "initial": "RED",
+      "period_s": 5
+    },
+    {
+      "signal_id": "signal_02",
+      "initial": "GREEN",
+      "period_s": 5
+    }
+  ],
+  "gt_schedule_for_detector": false,
+  "hard_negatives": [
+    "green_background",
+    "red_P",
+    "display_monitor",
+    "reflection"
+  ],
+  "footprint": {
+    "kind": "SIMULATION_ASSUMPTION",
+    "polygon": [
+      [
+        -0.3,
+        -0.16
+      ],
+      [
+        0.3,
+        -0.16
+      ],
+      [
+        0.3,
+        0.16
+      ],
+      [
+        -0.3,
+        0.16
+      ]
+    ]
+  },
+  "parking_probe": null
+}

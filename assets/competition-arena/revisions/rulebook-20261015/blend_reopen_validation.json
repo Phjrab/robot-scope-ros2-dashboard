@@ -1,0 +1,7 @@
+{
+  "status": "PASS",
+  "validation_type": "BLENDER_REOPEN",
+  "version": "4.3.2",
+  "mesh_count": 49,
+  "nonfinite_or_empty_meshes": 0
+}

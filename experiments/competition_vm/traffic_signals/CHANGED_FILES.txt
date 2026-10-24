@@ -1,0 +1,17 @@
+BASE_COMMIT.txt
+README.md
+VALIDATION_RESULTS.json
+VM_TO_CODEX_HANDOFF.md
+config/arena_bindings.json
+config/capture_proposal.json
+core.py
+detector.py
+replay.py
+requirements.txt
+results/contact_sheet.png
+results/metrics.json
+results/replay.gif
+results/replay.jsonl
+ros_wrapper.py
+stop_zone.py
+tests/test_traffic.py

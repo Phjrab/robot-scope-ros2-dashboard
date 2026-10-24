@@ -1,0 +1,178 @@
+{
+  "schema": "robot-scope.vm-handoff-validation.v0.1",
+  "description": "Executed local arena asset report; source and hardware limitations retained.",
+  "created_date": "2026-10-24",
+  "base_commit": "b1077e39e4ee456621c47eada49b1f0c85453661",
+  "workstream": "arena_modeling",
+  "environment": {
+    "os": "Debian13",
+    "blender": "4.3.2",
+    "device": "CPU",
+    "scope": "assistant VM local-only"
+  },
+  "artifact_manifest_sha256": "a7fd4c22dec3a9c359defa29269e9290084cb2d109558ca948a56b47231ef8e2",
+  "artifact_manifest_path": "arena.json",
+  "tests": [
+    {
+      "test_id": "LEGACY_ASSET_CHECK",
+      "evidence_type": "PYTHON_STATIC",
+      "expected_result": "Original structural check passes without original modifications",
+      "status": "PASS",
+      "observed_result": "Copied legacy asset validated and original hashes unchanged",
+      "seed": 20261015,
+      "log_path": "legacy_validation.json",
+      "metrics": {}
+    },
+    {
+      "test_id": "CPU_BUILD_AND_REOPEN",
+      "evidence_type": "BLENDER_CPU",
+      "expected_result": "Regenerate and reopen valid nonempty finite mesh scene",
+      "status": "PASS",
+      "observed_result": "Blender4.3.2 CPU export and saved blend reopen passed",
+      "seed": 20261015,
+      "log_path": "blend_reopen_validation.json",
+      "metrics": {
+        "recorded_mesh_objects": 49
+      }
+    },
+    {
+      "test_id": "GLB_DIMENSIONS_AXES_IDS",
+      "evidence_type": "PYTHON_BINARY_GLB",
+      "expected_result": "Actual GLB vertices match source dimensions and (x,z,-y)",
+      "status": "PASS",
+      "observed_result": "All49 object bounds match within tolerance",
+      "seed": 20261015,
+      "log_path": "validation.json",
+      "metrics": {
+        "maximum_bbox_error_m": 4.0435791071047333e-07,
+        "tolerance_m": 2e-05
+      }
+    },
+    {
+      "test_id": "CLOSED_TERRAIN_TOPOLOGY",
+      "evidence_type": "PYTHON_STATIC",
+      "expected_result": "All terrain edges have exactly2 adjacentfaces",
+      "status": "PASS",
+      "observed_result": "Closed terrain solids including separate treads passed",
+      "seed": 20261015,
+      "log_path": "validation.json",
+      "metrics": {}
+    },
+    {
+      "test_id": "CONTAINMENT_AND_FINISH",
+      "evidence_type": "SYNTHETIC_UNIT",
+      "expected_result": "Reject singlefoot, partial parking and center-only or wrongexit crossing",
+      "status": "PASS",
+      "observed_result": "Positive and negative fullpolygon/twofeet queries passed",
+      "seed": 20261015,
+      "log_path": "validation.json",
+      "metrics": {}
+    },
+    {
+      "test_id": "SCENARIOS_AND_SEED",
+      "evidence_type": "SYNTHETIC_UNIT",
+      "expected_result": "At least6 scenarios, maximum10 objects, fixedseed repeatability",
+      "status": "PASS",
+      "observed_result": "Seven scenarios;0..10 accepted;11 rejected",
+      "seed": 20261015,
+      "log_path": "validation.json",
+      "metrics": {
+        "scenario_count": 7
+      }
+    },
+    {
+      "test_id": "INDEPENDENT_REGENERATION",
+      "evidence_type": "BLENDER_CPU_AND_JSON_COMPARE",
+      "expected_result": "Core geometry and semantics identical in independent generation",
+      "status": "PASS",
+      "observed_result": "Eleven JSON manifests identical",
+      "seed": 20261015,
+      "log_path": "reproducibility.json",
+      "metrics": {
+        "identical_manifests": 11
+      }
+    },
+    {
+      "test_id": "OFF_AMBIGUOUS_PROFILES",
+      "evidence_type": "BLENDER_CPU_AND_BINARY_GLB",
+      "expected_result": "Both state profiles export and validate",
+      "status": "PASS",
+      "observed_result": "OFF/AMBIGUOUS independent exports validated; not camera recognition",
+      "seed": 20261015,
+      "log_path": "profile_ambiguous_validation.json",
+      "metrics": {}
+    },
+    {
+      "test_id": "RENDER_VISUAL_REVIEW",
+      "evidence_type": "RENDER_IMAGE_REVIEW",
+      "expected_result": "No missing wallmarkers or provisional connector gaps",
+      "status": "PASS",
+      "observed_result": "Reviewed top/isometric/parking; corrected connector gaps; disclosed legacy terrain alignment issue",
+      "seed": 20261015,
+      "log_path": "visual_review.json",
+      "metrics": {}
+    },
+    {
+      "test_id": "ALL_GEOMETRIC_CONSTRAINTS",
+      "evidence_type": "SOURCE_CONSTRAINT_REVIEW",
+      "expected_result": "Resolve source dimensions into one qualified geometry",
+      "status": "BLOCKED",
+      "observed_result": "6.500m literal parking stacking conflicts with6.000m envelope; X/gapbaselines and terrain/floor alignment unresolved",
+      "seed": 20261015,
+      "log_path": "ASSUMPTIONS.md",
+      "metrics": {}
+    },
+    {
+      "test_id": "NATIVE_ROS",
+      "evidence_type": "NATIVE_ROS",
+      "expected_result": "Separate environment-specific qualification required",
+      "status": "NOT_RUN",
+      "observed_result": "Not executed; no inference from synthetic tests",
+      "seed": 20261015,
+      "log_path": null,
+      "metrics": {}
+    },
+    {
+      "test_id": "PHYSICS_SDF_LOAD",
+      "evidence_type": "NATIVE_PHYSICS",
+      "expected_result": "Separate environment-specific qualification required",
+      "status": "NOT_RUN",
+      "observed_result": "Not executed; no inference from synthetic tests",
+      "seed": 20261015,
+      "log_path": null,
+      "metrics": {}
+    },
+    {
+      "test_id": "BROWSER_VIEWER",
+      "evidence_type": "BROWSER",
+      "expected_result": "Separate environment-specific qualification required",
+      "status": "NOT_RUN",
+      "observed_result": "Not executed; no inference from synthetic tests",
+      "seed": 20261015,
+      "log_path": null,
+      "metrics": {}
+    },
+    {
+      "test_id": "REAL_ROBOT_CLEARANCE",
+      "evidence_type": "HARDWARE",
+      "expected_result": "Separate environment-specific qualification required",
+      "status": "NOT_RUN",
+      "observed_result": "Not executed; no inference from synthetic tests",
+      "seed": 20261015,
+      "log_path": null,
+      "metrics": {}
+    },
+    {
+      "test_id": "REAL_CAMERA_SIGNAL_VALIDATION",
+      "evidence_type": "CAMERA_REPLAY",
+      "expected_result": "Separate environment-specific qualification required",
+      "status": "NOT_RUN",
+      "observed_result": "Not executed; no inference from synthetic tests",
+      "seed": 20261015,
+      "log_path": null,
+      "metrics": {}
+    }
+  ],
+  "robot_execution": "NOT_RUN",
+  "deployment": "NOT_RUN"
+}

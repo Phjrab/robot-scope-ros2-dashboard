@@ -1,0 +1,855 @@
+{
+  "revision": "rulebook-20261015-v1",
+  "frame_id": "arena_design",
+  "unit": "m",
+  "objects": [
+    {
+      "id": "floor_left_straight",
+      "bbox_m": [
+        [
+          0,
+          0.491,
+          -0.05
+        ],
+        [
+          1.4,
+          5.509,
+          0
+        ]
+      ],
+      "kind": "SOLID",
+      "semantic_id": "floor_left_straight"
+    },
+    {
+      "id": "floor_nw_diagonal",
+      "bbox_m": [
+        [
+          1,
+          3.0,
+          -0.05
+        ],
+        [
+          3.3,
+          5.509,
+          0
+        ]
+      ],
+      "kind": "SOLID",
+      "semantic_id": "floor_nw_diagonal"
+    },
+    {
+      "id": "floor_sw_diagonal",
+      "bbox_m": [
+        [
+          1,
+          0.491,
+          -0.05
+        ],
+        [
+          3.3,
+          3.0,
+          0
+        ]
+      ],
+      "kind": "SOLID",
+      "semantic_id": "floor_sw_diagonal"
+    },
+    {
+      "id": "floor_center_base",
+      "bbox_m": [
+        [
+          2.5928932188134524,
+          2.2928932188134525,
+          -0.05
+        ],
+        [
+          4.007106781186548,
+          3.7071067811865475,
+          0
+        ]
+      ],
+      "kind": "SOLID",
+      "semantic_id": "floor_center_base"
+    },
+    {
+      "id": "floor_ne_diagonal",
+      "bbox_m": [
+        [
+          3.3,
+          3.0,
+          -0.05
+        ],
+        [
+          5.6,
+          6,
+          0
+        ]
+      ],
+      "kind": "SOLID",
+      "semantic_id": "floor_ne_diagonal"
+    },
+    {
+      "id": "floor_se_diagonal",
+      "bbox_m": [
+        [
+          3.3,
+          0,
+          -0.05
+        ],
+        [
+          5.6,
+          3.0,
+          0
+        ]
+      ],
+      "kind": "SOLID",
+      "semantic_id": "floor_se_diagonal"
+    },
+    {
+      "id": "floor_in_bay",
+      "bbox_m": [
+        [
+          5.6,
+          4.982,
+          -0.05
+        ],
+        [
+          8,
+          6,
+          0
+        ]
+      ],
+      "kind": "SOLID",
+      "semantic_id": "floor_in_bay"
+    },
+    {
+      "id": "floor_out_bay",
+      "bbox_m": [
+        [
+          5.6,
+          0,
+          -0.05
+        ],
+        [
+          8,
+          1.018,
+          0
+        ]
+      ],
+      "kind": "SOLID",
+      "semantic_id": "floor_out_bay"
+    },
+    {
+      "id": "floor_right_straight",
+      "bbox_m": [
+        [
+          5.482,
+          1.018,
+          -0.05
+        ],
+        [
+          6.5,
+          4.982,
+          0
+        ]
+      ],
+      "kind": "SOLID",
+      "semantic_id": "floor_right_straight"
+    },
+    {
+      "id": "floor_parking_bay",
+      "bbox_m": [
+        [
+          6.5,
+          2.25,
+          -0.05
+        ],
+        [
+          8,
+          3.75,
+          0
+        ]
+      ],
+      "kind": "SOLID",
+      "semantic_id": "floor_parking_bay"
+    },
+    {
+      "id": "wall_outer_01",
+      "bbox_m": [
+        [
+          0,
+          0.491,
+          0
+        ],
+        [
+          1.4,
+          0.491,
+          0.6
+        ]
+      ],
+      "kind": "VIRTUAL_FENCE",
+      "semantic_id": "wall_outer_01"
+    },
+    {
+      "id": "wall_outer_02",
+      "bbox_m": [
+        [
+          1.4,
+          0.491,
+          0
+        ],
+        [
+          3.3,
+          2.2928932188134525,
+          0.6
+        ]
+      ],
+      "kind": "VIRTUAL_FENCE",
+      "semantic_id": "wall_outer_02"
+    },
+    {
+      "id": "wall_outer_03",
+      "bbox_m": [
+        [
+          3.3,
+          0,
+          0
+        ],
+        [
+          5.6,
+          2.2928932188134525,
+          0.6
+        ]
+      ],
+      "kind": "VIRTUAL_FENCE",
+      "semantic_id": "wall_outer_03"
+    },
+    {
+      "id": "wall_outer_04",
+      "bbox_m": [
+        [
+          5.6,
+          0,
+          0
+        ],
+        [
+          8,
+          0,
+          0.6
+        ]
+      ],
+      "kind": "VIRTUAL_FENCE",
+      "semantic_id": "wall_outer_04"
+    },
+    {
+      "id": "wall_outer_05",
+      "bbox_m": [
+        [
+          8,
+          0,
+          0
+        ],
+        [
+          8,
+          1.018,
+          0.6
+        ]
+      ],
+      "kind": "VIRTUAL_FENCE",
+      "semantic_id": "wall_outer_05"
+    },
+    {
+      "id": "wall_outer_06",
+      "bbox_m": [
+        [
+          6.5,
+          1.018,
+          0
+        ],
+        [
+          8,
+          1.018,
+          0.6
+        ]
+      ],
+      "kind": "VIRTUAL_FENCE",
+      "semantic_id": "wall_outer_06"
+    },
+    {
+      "id": "wall_outer_07",
+      "bbox_m": [
+        [
+          6.5,
+          1.018,
+          0
+        ],
+        [
+          6.5,
+          2.25,
+          0.6
+        ]
+      ],
+      "kind": "VIRTUAL_FENCE",
+      "semantic_id": "wall_outer_07"
+    },
+    {
+      "id": "wall_outer_08",
+      "bbox_m": [
+        [
+          6.5,
+          2.25,
+          0
+        ],
+        [
+          8,
+          2.25,
+          0.6
+        ]
+      ],
+      "kind": "VIRTUAL_FENCE",
+      "semantic_id": "wall_outer_08"
+    },
+    {
+      "id": "wall_outer_09",
+      "bbox_m": [
+        [
+          8,
+          2.25,
+          0
+        ],
+        [
+          8,
+          3.75,
+          0.6
+        ]
+      ],
+      "kind": "VIRTUAL_FENCE",
+      "semantic_id": "wall_outer_09"
+    },
+    {
+      "id": "wall_outer_10",
+      "bbox_m": [
+        [
+          6.5,
+          3.75,
+          0
+        ],
+        [
+          8,
+          3.75,
+          0.6
+        ]
+      ],
+      "kind": "VIRTUAL_FENCE",
+      "semantic_id": "wall_outer_10"
+    },
+    {
+      "id": "wall_outer_11",
+      "bbox_m": [
+        [
+          6.5,
+          3.75,
+          0
+        ],
+        [
+          6.5,
+          4.982,
+          0.6
+        ]
+      ],
+      "kind": "VIRTUAL_FENCE",
+      "semantic_id": "wall_outer_11"
+    },
+    {
+      "id": "wall_outer_12",
+      "bbox_m": [
+        [
+          6.5,
+          4.982,
+          0
+        ],
+        [
+          8,
+          4.982,
+          0.6
+        ]
+      ],
+      "kind": "VIRTUAL_FENCE",
+      "semantic_id": "wall_outer_12"
+    },
+    {
+      "id": "wall_outer_13",
+      "bbox_m": [
+        [
+          8,
+          4.982,
+          0
+        ],
+        [
+          8,
+          6,
+          0.6
+        ]
+      ],
+      "kind": "VIRTUAL_FENCE",
+      "semantic_id": "wall_outer_13"
+    },
+    {
+      "id": "wall_outer_14",
+      "bbox_m": [
+        [
+          5.6,
+          6,
+          0
+        ],
+        [
+          8,
+          6,
+          0.6
+        ]
+      ],
+      "kind": "VIRTUAL_FENCE",
+      "semantic_id": "wall_outer_14"
+    },
+    {
+      "id": "wall_outer_15",
+      "bbox_m": [
+        [
+          3.3,
+          3.7071067811865475,
+          0
+        ],
+        [
+          5.6,
+          6,
+          0.6
+        ]
+      ],
+      "kind": "VIRTUAL_FENCE",
+      "semantic_id": "wall_outer_15"
+    },
+    {
+      "id": "wall_outer_16",
+      "bbox_m": [
+        [
+          1.4,
+          3.7071067811865475,
+          0
+        ],
+        [
+          3.3,
+          5.509,
+          0.6
+        ]
+      ],
+      "kind": "VIRTUAL_FENCE",
+      "semantic_id": "wall_outer_16"
+    },
+    {
+      "id": "wall_outer_17",
+      "bbox_m": [
+        [
+          0,
+          5.509,
+          0
+        ],
+        [
+          1.4,
+          5.509,
+          0.6
+        ]
+      ],
+      "kind": "VIRTUAL_FENCE",
+      "semantic_id": "wall_outer_17"
+    },
+    {
+      "id": "wall_outer_18",
+      "bbox_m": [
+        [
+          0,
+          0.491,
+          0
+        ],
+        [
+          0,
+          5.509,
+          0.6
+        ]
+      ],
+      "kind": "VIRTUAL_FENCE",
+      "semantic_id": "wall_outer_18"
+    },
+    {
+      "id": "wall_inner_0_01",
+      "bbox_m": [
+        [
+          1,
+          1.6,
+          0
+        ],
+        [
+          2.5928932188134524,
+          3.0,
+          0.6
+        ]
+      ],
+      "kind": "VIRTUAL_FENCE",
+      "semantic_id": "wall_inner_0_01"
+    },
+    {
+      "id": "wall_inner_0_02",
+      "bbox_m": [
+        [
+          1,
+          3.0,
+          0
+        ],
+        [
+          2.5928932188134524,
+          4.4,
+          0.6
+        ]
+      ],
+      "kind": "VIRTUAL_FENCE",
+      "semantic_id": "wall_inner_0_02"
+    },
+    {
+      "id": "wall_inner_0_03",
+      "bbox_m": [
+        [
+          1,
+          1.6,
+          0
+        ],
+        [
+          1,
+          4.4,
+          0.6
+        ]
+      ],
+      "kind": "VIRTUAL_FENCE",
+      "semantic_id": "wall_inner_0_03"
+    },
+    {
+      "id": "wall_inner_1_01",
+      "bbox_m": [
+        [
+          5.482,
+          1.018,
+          0
+        ],
+        [
+          5.482,
+          4.982,
+          0.6
+        ]
+      ],
+      "kind": "VIRTUAL_FENCE",
+      "semantic_id": "wall_inner_1_01"
+    },
+    {
+      "id": "wall_inner_1_02",
+      "bbox_m": [
+        [
+          4.007106781186548,
+          3.0,
+          0
+        ],
+        [
+          5.482,
+          4.982,
+          0.6
+        ]
+      ],
+      "kind": "VIRTUAL_FENCE",
+      "semantic_id": "wall_inner_1_02"
+    },
+    {
+      "id": "wall_inner_1_03",
+      "bbox_m": [
+        [
+          4.007106781186548,
+          1.018,
+          0
+        ],
+        [
+          5.482,
+          3.0,
+          0.6
+        ]
+      ],
+      "kind": "VIRTUAL_FENCE",
+      "semantic_id": "wall_inner_1_03"
+    },
+    {
+      "id": "terrain_platform",
+      "bbox_m": [
+        [
+          2.5928932188134524,
+          2.2928932188134525,
+          0
+        ],
+        [
+          4.007106781186548,
+          3.7071067811865475,
+          0.18
+        ]
+      ],
+      "kind": "TERRAIN_SOLID",
+      "semantic_id": "floor_center_base"
+    },
+    {
+      "id": "terrain_ramp_sw",
+      "bbox_m": [
+        [
+          1.8150757595082498,
+          1.51507575950825,
+          -0.005
+        ],
+        [
+          3.3,
+          3.0,
+          0.18
+        ]
+      ],
+      "kind": "TERRAIN_SOLID",
+      "semantic_id": "ramp_sw"
+    },
+    {
+      "id": "terrain_ramp_ne",
+      "bbox_m": [
+        [
+          3.3,
+          3.0,
+          -0.005
+        ],
+        [
+          4.784924240491749,
+          4.48492424049175,
+          0.18
+        ]
+      ],
+      "kind": "TERRAIN_SOLID",
+      "semantic_id": "ramp_ne"
+    },
+    {
+      "id": "terrain_stairs_nw_1",
+      "bbox_m": [
+        [
+          2.4161165235168154,
+          3.0,
+          0
+        ],
+        [
+          3.3,
+          3.8838834764831844,
+          0.12
+        ]
+      ],
+      "kind": "TERRAIN_SOLID",
+      "semantic_id": "stairs_nw"
+    },
+    {
+      "id": "terrain_stairs_nw_2",
+      "bbox_m": [
+        [
+          2.2393398282201784,
+          3.176776695296637,
+          0
+        ],
+        [
+          3.123223304703363,
+          4.060660171779821,
+          0.06
+        ]
+      ],
+      "kind": "TERRAIN_SOLID",
+      "semantic_id": "stairs_nw"
+    },
+    {
+      "id": "terrain_stairs_se_1",
+      "bbox_m": [
+        [
+          3.3,
+          2.1161165235168156,
+          0
+        ],
+        [
+          4.183883476483184,
+          3.0,
+          0.12
+        ]
+      ],
+      "kind": "TERRAIN_SOLID",
+      "semantic_id": "stairs_se"
+    },
+    {
+      "id": "terrain_stairs_se_2",
+      "bbox_m": [
+        [
+          3.476776695296637,
+          1.9393398282201786,
+          0
+        ],
+        [
+          4.360660171779822,
+          2.823223304703363,
+          0.06
+        ]
+      ],
+      "kind": "TERRAIN_SOLID",
+      "semantic_id": "stairs_se"
+    },
+    {
+      "id": "stop_zone_01",
+      "bbox_m": [
+        [
+          2.5928932188134524,
+          2.505025253169417,
+          0.181
+        ],
+        [
+          3.3,
+          3.2121320343559643,
+          0.184
+        ]
+      ],
+      "kind": "SOLID",
+      "semantic_id": "stop_zone_01"
+    },
+    {
+      "id": "stop_zone_02",
+      "bbox_m": [
+        [
+          3.3,
+          2.505025253169417,
+          0.181
+        ],
+        [
+          4.007106781186548,
+          3.2121320343559643,
+          0.184
+        ]
+      ],
+      "kind": "SOLID",
+      "semantic_id": "stop_zone_02"
+    },
+    {
+      "id": "signal_01_post",
+      "bbox_m": [
+        [
+          2.267,
+          2.975,
+          0
+        ],
+        [
+          2.3169999999999997,
+          3.025,
+          0.75
+        ]
+      ],
+      "kind": "SOLID",
+      "semantic_id": "signal_01"
+    },
+    {
+      "id": "signal_01",
+      "bbox_m": [
+        [
+          2.202,
+          2.94,
+          0.75
+        ],
+        [
+          2.3819999999999997,
+          3.06,
+          0.92
+        ]
+      ],
+      "kind": "SOLID",
+      "semantic_id": "signal_01"
+    },
+    {
+      "id": "signal_02_post",
+      "bbox_m": [
+        [
+          4.2829999999999995,
+          2.975,
+          0
+        ],
+        [
+          4.333,
+          3.025,
+          0.75
+        ]
+      ],
+      "kind": "SOLID",
+      "semantic_id": "signal_02"
+    },
+    {
+      "id": "signal_02",
+      "bbox_m": [
+        [
+          4.218,
+          2.94,
+          0.75
+        ],
+        [
+          4.398,
+          3.06,
+          0.92
+        ]
+      ],
+      "kind": "SOLID",
+      "semantic_id": "signal_02"
+    },
+    {
+      "id": "wall_marker_P",
+      "bbox_m": [
+        [
+          7.999,
+          2.75,
+          0.25
+        ],
+        [
+          8.001,
+          2.85,
+          0.35
+        ]
+      ],
+      "kind": "VISUAL_ONLY",
+      "semantic_id": "zone_parking"
+    },
+    {
+      "id": "wall_marker_QR_PLACEHOLDER",
+      "bbox_m": [
+        [
+          7.999,
+          3.15,
+          0.25
+        ],
+        [
+          8.001,
+          3.25,
+          0.35
+        ]
+      ],
+      "kind": "VISUAL_ONLY",
+      "semantic_id": "zone_parking"
+    }
+  ],
+  "source_bounds_m": [
+    [
+      0,
+      0,
+      -0.05
+    ],
+    [
+      8.001,
+      6,
+      0.92
+    ]
+  ],
+  "semantic": "arena.semantic.json",
+  "gltf_transform": "(x,z,-y)",
+  "hardware_qualified": false
+}

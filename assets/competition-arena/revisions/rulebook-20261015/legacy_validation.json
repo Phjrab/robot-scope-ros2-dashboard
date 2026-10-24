@@ -1,0 +1,385 @@
+{
+  "status": "passed",
+  "scope": "Visualization asset consistency only; not source/CAD/survey accuracy, physical collision, localization or Nav2 validation.",
+  "checks": {
+    "glb_header_and_length": true,
+    "object_ids_match_json": true,
+    "source_to_gltf_axis_transform": true,
+    "plan_bounds_8_by_6_018_m": true,
+    "right_corridor_clear_width_1_m": true,
+    "wall_materials_double_sided": true,
+    "wall_thickness_unspecified_surface_model": true,
+    "ramp_run_rise_width": true,
+    "stair_dimensions": true,
+    "source_files_unchanged": [
+      {
+        "id": "S01",
+        "unchanged_hash": true,
+        "size_matches_reattachment_metadata": true
+      },
+      {
+        "id": "S02",
+        "unchanged_hash": true,
+        "size_matches_reattachment_metadata": true
+      },
+      {
+        "id": "S03",
+        "unchanged_hash": true,
+        "size_matches_reattachment_metadata": true
+      },
+      {
+        "id": "S04",
+        "unchanged_hash": true,
+        "size_matches_reattachment_metadata": true
+      }
+    ]
+  },
+  "object_count": 83,
+  "gltf_world_bounds_m": {
+    "min": [
+      0.0,
+      -0.05999999865889549,
+      -6.01800012588501
+    ],
+    "max": [
+      8.0,
+      0.8399999886751175,
+      0.0
+    ]
+  },
+  "maximum_object_bbox_error_m": 5.377545484464008e-07,
+  "node_checks": [
+    {
+      "id": "floor_left_straight",
+      "source_to_gltf_bbox_max_error_m": 1.258850099716824e-07
+    },
+    {
+      "id": "floor_nw_turn",
+      "source_to_gltf_bbox_max_error_m": 2.2888183615066282e-07
+    },
+    {
+      "id": "floor_nw_diagonal",
+      "source_to_gltf_bbox_max_error_m": 1.9073486345888568e-07
+    },
+    {
+      "id": "floor_sw_turn",
+      "source_to_gltf_bbox_max_error_m": 4.2915344167226976e-08
+    },
+    {
+      "id": "floor_sw_diagonal",
+      "source_to_gltf_bbox_max_error_m": 6.29425049858412e-08
+    },
+    {
+      "id": "floor_center_base",
+      "source_to_gltf_bbox_max_error_m": 4.364318844096715e-07
+    },
+    {
+      "id": "floor_ne_diagonal",
+      "source_to_gltf_bbox_max_error_m": 1.716613766689079e-07
+    },
+    {
+      "id": "floor_ne_turn",
+      "source_to_gltf_bbox_max_error_m": 1.258850099716824e-07
+    },
+    {
+      "id": "floor_in_bay",
+      "source_to_gltf_bbox_max_error_m": 1.258850099716824e-07
+    },
+    {
+      "id": "floor_right_straight",
+      "source_to_gltf_bbox_max_error_m": 1.258850099716824e-07
+    },
+    {
+      "id": "floor_parking_bay",
+      "source_to_gltf_bbox_max_error_m": 1.341104505225843e-09
+    },
+    {
+      "id": "floor_out_bay",
+      "source_to_gltf_bbox_max_error_m": 1.341104505225843e-09
+    },
+    {
+      "id": "floor_se_turn",
+      "source_to_gltf_bbox_max_error_m": 1.907348590179936e-08
+    },
+    {
+      "id": "floor_se_diagonal",
+      "source_to_gltf_bbox_max_error_m": 6.29425049858412e-08
+    },
+    {
+      "id": "wall_outer_01",
+      "source_to_gltf_bbox_max_error_m": 3.4332275467008344e-08
+    },
+    {
+      "id": "wall_outer_02",
+      "source_to_gltf_bbox_max_error_m": 4.2915344167226976e-08
+    },
+    {
+      "id": "wall_outer_03",
+      "source_to_gltf_bbox_max_error_m": 2.3425292949852405e-07
+    },
+    {
+      "id": "wall_outer_04",
+      "source_to_gltf_bbox_max_error_m": 2.3425292949852405e-07
+    },
+    {
+      "id": "wall_outer_05",
+      "source_to_gltf_bbox_max_error_m": 1.2207031208077979e-07
+    },
+    {
+      "id": "wall_outer_06",
+      "source_to_gltf_bbox_max_error_m": 1.2207031208077979e-07
+    },
+    {
+      "id": "wall_outer_07",
+      "source_to_gltf_bbox_max_error_m": 2.384185793236071e-08
+    },
+    {
+      "id": "wall_outer_08",
+      "source_to_gltf_bbox_max_error_m": 2.384185793236071e-08
+    },
+    {
+      "id": "wall_outer_09",
+      "source_to_gltf_bbox_max_error_m": 2.384185793236071e-08
+    },
+    {
+      "id": "wall_outer_10",
+      "source_to_gltf_bbox_max_error_m": 2.384185793236071e-08
+    },
+    {
+      "id": "wall_outer_11",
+      "source_to_gltf_bbox_max_error_m": 2.384185793236071e-08
+    },
+    {
+      "id": "wall_outer_12",
+      "source_to_gltf_bbox_max_error_m": 2.384185793236071e-08
+    },
+    {
+      "id": "wall_outer_13",
+      "source_to_gltf_bbox_max_error_m": 1.258850099716824e-07
+    },
+    {
+      "id": "wall_outer_14",
+      "source_to_gltf_bbox_max_error_m": 1.258850099716824e-07
+    },
+    {
+      "id": "wall_outer_15",
+      "source_to_gltf_bbox_max_error_m": 1.258850099716824e-07
+    },
+    {
+      "id": "wall_outer_16",
+      "source_to_gltf_bbox_max_error_m": 1.258850099716824e-07
+    },
+    {
+      "id": "wall_outer_17",
+      "source_to_gltf_bbox_max_error_m": 1.716613766689079e-07
+    },
+    {
+      "id": "wall_outer_18",
+      "source_to_gltf_bbox_max_error_m": 1.716613766689079e-07
+    },
+    {
+      "id": "wall_outer_19",
+      "source_to_gltf_bbox_max_error_m": 1.9073486345888568e-07
+    },
+    {
+      "id": "wall_outer_20",
+      "source_to_gltf_bbox_max_error_m": 1.9073486345888568e-07
+    },
+    {
+      "id": "wall_outer_21",
+      "source_to_gltf_bbox_max_error_m": 1.258850099716824e-07
+    },
+    {
+      "id": "wall_outer_22",
+      "source_to_gltf_bbox_max_error_m": 1.258850099716824e-07
+    },
+    {
+      "id": "wall_left_inner_01",
+      "source_to_gltf_bbox_max_error_m": 2.2888183615066282e-07
+    },
+    {
+      "id": "wall_left_inner_02",
+      "source_to_gltf_bbox_max_error_m": 2.2888183615066282e-07
+    },
+    {
+      "id": "wall_left_inner_03",
+      "source_to_gltf_bbox_max_error_m": 1.4460754416134591e-07
+    },
+    {
+      "id": "wall_left_inner_04",
+      "source_to_gltf_bbox_max_error_m": 2.384185793236071e-08
+    },
+    {
+      "id": "wall_left_inner_05",
+      "source_to_gltf_bbox_max_error_m": 2.2888183615066282e-07
+    },
+    {
+      "id": "wall_right_inner_01",
+      "source_to_gltf_bbox_max_error_m": 4.364318844096715e-07
+    },
+    {
+      "id": "wall_right_inner_02",
+      "source_to_gltf_bbox_max_error_m": 1.258850099716824e-07
+    },
+    {
+      "id": "wall_right_inner_03",
+      "source_to_gltf_bbox_max_error_m": 4.364318844096715e-07
+    },
+    {
+      "id": "floor_raised_crossing",
+      "source_to_gltf_bbox_max_error_m": 4.364318844096715e-07
+    },
+    {
+      "id": "ramp_sw",
+      "source_to_gltf_bbox_max_error_m": 2.5346374510348824e-07
+    },
+    {
+      "id": "ramp_ne",
+      "source_to_gltf_bbox_max_error_m": 2.8970336884981407e-07
+    },
+    {
+      "id": "stair_nw_tread_01",
+      "source_to_gltf_bbox_max_error_m": 3.257293701430797e-07
+    },
+    {
+      "id": "stair_nw_tread_02",
+      "source_to_gltf_bbox_max_error_m": 4.970397950998517e-07
+    },
+    {
+      "id": "stair_se_tread_01",
+      "source_to_gltf_bbox_max_error_m": 4.1537475592434703e-07
+    },
+    {
+      "id": "stair_se_tread_02",
+      "source_to_gltf_bbox_max_error_m": 4.495544434490739e-07
+    },
+    {
+      "id": "signal_01_base",
+      "source_to_gltf_bbox_max_error_m": 2.46244648671734e-07
+    },
+    {
+      "id": "signal_01_pole",
+      "source_to_gltf_bbox_max_error_m": 7.666647450221831e-08
+    },
+    {
+      "id": "signal_01_housing",
+      "source_to_gltf_bbox_max_error_m": 7.808208479787027e-08
+    },
+    {
+      "id": "signal_01_lens_red_lens",
+      "source_to_gltf_bbox_max_error_m": 7.686018932417937e-08
+    },
+    {
+      "id": "signal_01_lens_amber",
+      "source_to_gltf_bbox_max_error_m": 7.686018932417937e-08
+    },
+    {
+      "id": "signal_01_lens_green",
+      "source_to_gltf_bbox_max_error_m": 7.686018932417937e-08
+    },
+    {
+      "id": "signal_02_base",
+      "source_to_gltf_bbox_max_error_m": 2.500593456744582e-07
+    },
+    {
+      "id": "signal_02_pole",
+      "source_to_gltf_bbox_max_error_m": 8.04811719490317e-08
+    },
+    {
+      "id": "signal_02_housing",
+      "source_to_gltf_bbox_max_error_m": 8.189678180059445e-08
+    },
+    {
+      "id": "signal_02_lens_red_lens",
+      "source_to_gltf_bbox_max_error_m": 8.067488632690356e-08
+    },
+    {
+      "id": "signal_02_lens_amber",
+      "source_to_gltf_bbox_max_error_m": 8.067488632690356e-08
+    },
+    {
+      "id": "signal_02_lens_green",
+      "source_to_gltf_bbox_max_error_m": 8.067488632690356e-08
+    },
+    {
+      "id": "marking_ramp_foot_sw",
+      "source_to_gltf_bbox_max_error_m": 3.6764377586706587e-07
+    },
+    {
+      "id": "marking_ramp_foot_ne",
+      "source_to_gltf_bbox_max_error_m": 3.078891595009736e-07
+    },
+    {
+      "id": "marking_stair_foot_nw",
+      "source_to_gltf_bbox_max_error_m": 2.603066056039438e-07
+    },
+    {
+      "id": "marking_stair_foot_se",
+      "source_to_gltf_bbox_max_error_m": 5.377545484464008e-07
+    },
+    {
+      "id": "marking_stop_line_01",
+      "source_to_gltf_bbox_max_error_m": 4.0088676511729204e-07
+    },
+    {
+      "id": "marking_stop_line_02",
+      "source_to_gltf_bbox_max_error_m": 2.2957634016051998e-07
+    },
+    {
+      "id": "marking_parking_outline_1",
+      "source_to_gltf_bbox_max_error_m": 6.6943466769942e-08
+    },
+    {
+      "id": "marking_parking_outline_2",
+      "source_to_gltf_bbox_max_error_m": 2.3130143667060565e-07
+    },
+    {
+      "id": "marking_parking_outline_3",
+      "source_to_gltf_bbox_max_error_m": 1.0453526133602509e-07
+    },
+    {
+      "id": "marking_parking_outline_4",
+      "source_to_gltf_bbox_max_error_m": 2.3130143667060565e-07
+    },
+    {
+      "id": "label_in",
+      "source_to_gltf_bbox_max_error_m": 5.328750614097544e-07
+    },
+    {
+      "id": "label_out",
+      "source_to_gltf_bbox_max_error_m": 2.768268583253075e-07
+    },
+    {
+      "id": "label_parking",
+      "source_to_gltf_bbox_max_error_m": 5.256686210763917e-07
+    },
+    {
+      "id": "label_slalom",
+      "source_to_gltf_bbox_max_error_m": 4.5499117073966033e-07
+    },
+    {
+      "id": "label_ramp_sw",
+      "source_to_gltf_bbox_max_error_m": 5.349014249311779e-07
+    },
+    {
+      "id": "label_ramp_ne",
+      "source_to_gltf_bbox_max_error_m": 4.330823593079458e-07
+    },
+    {
+      "id": "zone_in",
+      "source_to_gltf_bbox_max_error_m": 4.2915344167226976e-08
+    },
+    {
+      "id": "zone_out",
+      "source_to_gltf_bbox_max_error_m": 4.2915344167226976e-08
+    },
+    {
+      "id": "zone_slalom",
+      "source_to_gltf_bbox_max_error_m": 5.960464483090178e-09
+    },
+    {
+      "id": "zone_parking",
+      "source_to_gltf_bbox_max_error_m": 1.3113021779531664e-08
+    }
+  ]
+}

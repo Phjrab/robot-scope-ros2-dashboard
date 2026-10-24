@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.venv/
+*.blend1
+*.npy
+*.npz
+*.pcd
+*.bag
+*.db3
+**/rendering/output/**/frames/
+**/rendering/output/**/labeled/
+**/rendering/*.log
+**/results/development/
+*.tar.gz

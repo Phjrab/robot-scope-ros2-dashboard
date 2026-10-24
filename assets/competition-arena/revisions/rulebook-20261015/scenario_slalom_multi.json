@@ -1,0 +1,97 @@
+{
+  "schema_version": "0.1",
+  "arena_revision": "rulebook-20261015-v1",
+  "scenario_id": "slalom_multi",
+  "seed": 20261015,
+  "evidence_type": "SIMULATION_GT",
+  "frame_id": "arena_design",
+  "obstacles": [
+    {
+      "id": "cone_0",
+      "xy": [
+        0.3,
+        1.8
+      ],
+      "radius_m": 0.1,
+      "height_m": 0.25
+    },
+    {
+      "id": "cone_1",
+      "xy": [
+        0.6499999999999999,
+        2.35
+      ],
+      "radius_m": 0.1,
+      "height_m": 0.25
+    },
+    {
+      "id": "cone_2",
+      "xy": [
+        0.3,
+        2.9000000000000004
+      ],
+      "radius_m": 0.1,
+      "height_m": 0.25
+    },
+    {
+      "id": "cone_3",
+      "xy": [
+        0.6499999999999999,
+        3.45
+      ],
+      "radius_m": 0.1,
+      "height_m": 0.25
+    },
+    {
+      "id": "cone_4",
+      "xy": [
+        0.3,
+        4.0
+      ],
+      "radius_m": 0.1,
+      "height_m": 0.25
+    }
+  ],
+  "obstacles_baked_in_static_map": false,
+  "signals": [
+    {
+      "signal_id": "signal_01",
+      "initial": "RED",
+      "period_s": 5
+    },
+    {
+      "signal_id": "signal_02",
+      "initial": "GREEN",
+      "period_s": 5
+    }
+  ],
+  "gt_schedule_for_detector": false,
+  "hard_negatives": [
+    "green_background",
+    "red_P",
+    "display_monitor",
+    "reflection"
+  ],
+  "footprint": {
+    "kind": "SIMULATION_ASSUMPTION",
+    "polygon": [
+      [
+        -0.3,
+        -0.16
+      ],
+      [
+        0.3,
+        -0.16
+      ],
+      [
+        0.3,
+        0.16
+      ],
+      [
+        -0.3,
+        0.16
+      ]
+    ]
+  },
+  "parking_probe": null
+}

@@ -1,0 +1,30 @@
+{
+  "status": "PASS",
+  "validation_type": "VM_STATIC_ASSET_AND_QUERY_TEST",
+  "checks": {
+    "glb_actual_vertices": true,
+    "source_dimension_checks": true,
+    "axis_transform_x_z_minus_y": true,
+    "semantic_ids": true,
+    "closed_terrain_edges": true,
+    "scenario_count": 7,
+    "obstacle_limit": true,
+    "fixed_seed": true,
+    "full_footprint_parking": true,
+    "both_front_feet": true,
+    "finite_exit_full_footprint": true
+  },
+  "object_count": 49,
+  "max_glb_bbox_error_m": 4.0435791071047333e-07,
+  "physics_load": "NOT_RUN",
+  "navigation_qualification": "NOT_RUN",
+  "physical_measurement": "NOT_RUN",
+  "unresolved": [
+    "crossing measurement baselines",
+    "parking gap6.500 vs envelope6.000",
+    "wall thickness",
+    "map transform",
+    "route direction",
+    "signal/stop exact siting"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "status": "PROPOSED_NOT_APPLIED",
+  "owner": "existing_single_rgb_camera_owner",
+  "required_readbacks": ["RGB sensor name", "encoding/range", "exposure units/min/max/step", "gain min/max", "white balance", "auto exposure state", "power-line frequency support", "actual exposure per frame"],
+  "comparison": ["current auto exposure", "supported shorter manual exposures at stationary scene"],
+  "fixed_device_values": null,
+  "settling_policy": "UNKNOWN until settings generation acknowledged and configured settling interval completed",
+  "frame_join": "Never fuse different source timestamps or changing lamp states into HDR",
+  "tensorRT": "Export only after owner weights, version, class and preprocessing verified. Build engine on actual target JetPack/CUDA/TensorRT; compare CPU/ONNX and target outputs. No VM engine compatibility claim."
+}
