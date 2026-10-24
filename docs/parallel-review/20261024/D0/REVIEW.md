@@ -170,3 +170,7 @@ A	experiments/competition_vm/traffic_signals/tests/test_lifecycle_d0.py
 일반 git push는 HTTPS 자격증명 부재로 실패했다. 새 인증정보를 만들지 않고 이미 연결된 GitHub API로 동일 blob/tree를 게시했다. 로컬 source commit dd0fed3의 tree `177cf20adc99e5fe9ea20a4edc8e3179dce2c611`과 API source commit5983bdc의 tree가 완전히 일치함을 확인했고, API source SHA 자체를 fetch한 독립 clone에서도230모듈 검사와 전체Python2691검사를 재실행했다. API source 재실행도1manifestfailure/25socketerrors/1skip이며 숨기지 않는다. 기존 로컬 commit/ZIP은 보존한다. API가 정한 author/time 때문에 commit SHA가 달라도 source bytes는 같으며 이를 혼동하지 않는다.
 
 최종 원격 branch HEAD/검토 문서 URL/실제CI 결과는 제출 이후 응답에 기록한다. 이 문서를 고치기 위해 무한히 자기 SHA를 반복 커밋하지 않는다. 어떤 main ref도 변경하지 않으며 PR/merge/auto-merge/device action도 하지 않는다.
+
+### 원격 main 재확인 (2026-10-24 12:33 UTC)
+
+브랜치 제출 직전 원격 main은 `b38ffad1ec262d0a6e3bdade2a834085b66ae224`로 전진해 있었다. D0는 그 변경을 만들거나 합치지 않았으며 실제 작업 기준7f2a707을 그대로 유지했다. 새로운 main과의 호환성/충돌은 C1의 후속 검토 대상이다. 이번 작업이 main을 변경하지 않았다는 말은 D0의 쓰기 행위가 없다는 뜻이지, 다른 작업에 의한 원격 main 변경이 없다는 뜻이 아니다.
