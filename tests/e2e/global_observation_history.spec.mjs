@@ -52,6 +52,7 @@ async function selectMap(page) {
   await page.locator('.saved-map-item').filter({ hasText: map.name }).click();
   await expect(page.locator('#savedGlobalProvider')).toContainText('SYNTHETIC_HISTORY_FIXTURE');
   await expect(page.locator('#savedGlobalHistory')).toHaveValue(ID);
+  await page.locator('.saved-global-heading').click();
 }
 async function openListed(page) {
   await page.locator('#savedGlobalHistory').selectOption(ID);

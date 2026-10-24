@@ -89,6 +89,7 @@ for (const width of [390, 1440]) for (const theme of ['dark', 'light']) {
     await page.locator('.saved-map-item').filter({ hasText: f.map.name }).click();
     const sensor = page.locator('#savedSensorTracking');
     await expect(sensor).toBeVisible();
+    await sensor.locator('.saved-sensor-heading').click();
     for (const selector of ['p', 'small']) {
       for (const copy of await sensor.locator(selector).all()) {
         await expect(copy).toHaveCSS('font-size', '15px');
@@ -96,7 +97,7 @@ for (const width of [390, 1440]) for (const theme of ['dark', 'light']) {
       }
     }
     await expect(sensor.locator('small')).toHaveCSS('color', await tokenColor(page, '--muted'));
-    await expect(sensor).toHaveCSS('padding-left', width < 480 ? '12px' : '16px');
+    await expect(sensor.locator('.saved-sensor-body')).toHaveCSS('padding-left', width < 480 ? '12px' : '16px');
     const disclosure = page.locator('#savedSensorAlternatives > summary');
     await expect(disclosure).toBeVisible();
     expect(await disclosure.evaluate(el => el.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);

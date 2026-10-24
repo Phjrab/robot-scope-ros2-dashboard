@@ -47,12 +47,12 @@ export function initializeSensorTrackingObservation({ scene, getContext, getGlob
   if (!layout || !scene) return null;
   const style = document.createElement('link'); style.rel = 'stylesheet'; style.href = '/static/features/maps/sensor_tracking.css'; document.head.append(style);
   const panel = document.createElement('section'); panel.id = 'savedSensorTracking'; panel.className = 'panel saved-sensor-tracking';
-  panel.innerHTML = `<strong>저장 3D 지도 · 센서 연속 관측</strong>
+  panel.innerHTML = `<details class="saved-sensor-disclosure"><summary class="saved-sensor-heading"><strong>저장 3D 지도 · 센서 연속 관측</strong></summary><div class="saved-sensor-body">
     <p>전역 탐색이 선택한 과거 센서 후보에서 새 점군으로 이어지는 관측입니다. 센서 마커와 방향축·짧은 궤적만 표시하며 GO2 본체 위치로 해석하지 않습니다.</p>
     <div class="saved-sensor-actions"><button id="savedSensorStart" type="button" disabled>선택된 전역 후보로 센서 관측 시작</button><button id="savedSensorStop" type="button" disabled>센서 관측 중지</button></div>
     <strong id="savedSensorState" role="status">전역 후보 대기</strong><p id="savedSensorDetail"></p>
     <details id="savedSensorAlternatives" hidden><summary>마지막 지역 정합 원본 기록 (과거 진단 · 대안·점수·gate)</summary><pre id="savedSensorAlternativesRecord"></pre></details>
-    <small>원본 점군 잔차와 시간적 연속성은 실제 위치 정확도·본체 자세·자율주행 가능성을 뜻하지 않습니다. 운영 TF·제어 입력에 적용하지 않습니다.</small>`;
+    <small>원본 점군 잔차와 시간적 연속성은 실제 위치 정확도·본체 자세·자율주행 가능성을 뜻하지 않습니다. 운영 TF·제어 입력에 적용하지 않습니다.</small></div></details>`;
   (document.querySelector('#savedGlobalObservation') || layout).after(panel);
   const el = name => panel.querySelector(`#savedSensor${name}`);
   let disposed = false, exclusive = false, overlayKey = '', visible = false;

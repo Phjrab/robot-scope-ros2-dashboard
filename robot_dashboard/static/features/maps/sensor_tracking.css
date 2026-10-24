@@ -1,6 +1,12 @@
-.saved-sensor-tracking { margin-top: 12px; padding: 16px; min-width: 0; overflow-wrap: anywhere; font-size: var(--type-secondary); line-height: var(--leading-body); }
+.saved-sensor-tracking { margin-top: 12px; min-width: 0; overflow-wrap: anywhere; font-size: var(--type-secondary); line-height: var(--leading-body); }
 .saved-sensor-tracking[hidden] { display: none; }
-.saved-sensor-tracking > strong:first-child { font-size: var(--type-body); }
+.saved-sensor-heading { display: grid; grid-template-columns: 12px minmax(0, 1fr); align-items: center; gap: 12px; min-height: 68px; padding: 17px 20px; cursor: pointer; list-style: none; font-size: var(--type-section); }
+.saved-sensor-heading::-webkit-details-marker { display: none; }
+.saved-sensor-heading::before { content: '›'; color: var(--muted); font-family: var(--font-mono); text-align: center; }
+.saved-sensor-disclosure[open] > .saved-sensor-heading::before { transform: rotate(90deg); }
+.saved-sensor-disclosure[open] > .saved-sensor-heading { border-bottom: 1px solid var(--line); }
+.saved-sensor-heading:hover { background: var(--panel-strong); }
+.saved-sensor-body { padding: 16px; }
 .saved-sensor-tracking p { margin: 8px 0; font-size: var(--type-secondary); line-height: var(--leading-body); }
 .saved-sensor-tracking small { display: block; margin-top: 10px; color: var(--muted); font-size: var(--type-secondary); line-height: var(--leading-body); }
 .saved-sensor-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
@@ -14,6 +20,6 @@
 #savedSensorAlternatives { border-top: 1px solid var(--line); }
 #savedSensorAlternatives > summary { min-height: 44px; padding: 10px 0; cursor: pointer; color: var(--muted); }
 @media (max-width: 480px) {
-  .saved-sensor-tracking { padding: 12px; }
+  .saved-sensor-heading, .saved-sensor-body { padding: 12px; }
   .saved-sensor-actions > button { flex: 1 1 auto; }
 }

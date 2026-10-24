@@ -61,6 +61,7 @@ async function fixture(page, { available = true, delay = false } = {}) {
   });
   await page.locator('.saved-map-item').filter({ hasText: map.name }).click();
   await expect(page.locator('#savedGlobalProvider')).toContainText(available ? 'SYNTHETIC_FIXTURE' : 'TRUSTED_LOCAL_RUNNER_UNAVAILABLE');
+  await page.locator('.saved-global-heading').click();
   return { state, writes, errors };
 }
 
