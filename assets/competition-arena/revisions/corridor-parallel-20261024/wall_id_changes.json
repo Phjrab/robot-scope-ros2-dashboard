@@ -1,0 +1,357 @@
+{
+  "warning": "Do not reuse wall indices across revisions",
+  "old_count": 24,
+  "new_count": 26,
+  "mapping": [
+    {
+      "old_id": "wall_outer_01",
+      "old_a": [
+        0,
+        0.491
+      ],
+      "old_b": [
+        1.4,
+        0.491
+      ],
+      "same_geometry_new_ids": [
+        "wall_outer_01"
+      ],
+      "status": "UNCHANGED_GEOMETRY"
+    },
+    {
+      "old_id": "wall_outer_02",
+      "old_a": [
+        1.4,
+        0.491
+      ],
+      "old_b": [
+        3.3,
+        2.2928932188134525
+      ],
+      "same_geometry_new_ids": [
+        "wall_outer_02"
+      ],
+      "status": "UNCHANGED_GEOMETRY"
+    },
+    {
+      "old_id": "wall_outer_03",
+      "old_a": [
+        3.3,
+        2.2928932188134525
+      ],
+      "old_b": [
+        5.6,
+        0
+      ],
+      "same_geometry_new_ids": [],
+      "status": "REPLACED_GEOMETRY"
+    },
+    {
+      "old_id": "wall_outer_04",
+      "old_a": [
+        5.6,
+        0
+      ],
+      "old_b": [
+        8,
+        0
+      ],
+      "same_geometry_new_ids": [
+        "wall_outer_05"
+      ],
+      "status": "UNCHANGED_GEOMETRY"
+    },
+    {
+      "old_id": "wall_outer_05",
+      "old_a": [
+        8,
+        0
+      ],
+      "old_b": [
+        8,
+        1.018
+      ],
+      "same_geometry_new_ids": [
+        "wall_outer_06"
+      ],
+      "status": "UNCHANGED_GEOMETRY"
+    },
+    {
+      "old_id": "wall_outer_06",
+      "old_a": [
+        8,
+        1.018
+      ],
+      "old_b": [
+        6.5,
+        1.018
+      ],
+      "same_geometry_new_ids": [
+        "wall_outer_07"
+      ],
+      "status": "UNCHANGED_GEOMETRY"
+    },
+    {
+      "old_id": "wall_outer_07",
+      "old_a": [
+        6.5,
+        1.018
+      ],
+      "old_b": [
+        6.5,
+        2.25
+      ],
+      "same_geometry_new_ids": [
+        "wall_outer_08"
+      ],
+      "status": "UNCHANGED_GEOMETRY"
+    },
+    {
+      "old_id": "wall_outer_08",
+      "old_a": [
+        6.5,
+        2.25
+      ],
+      "old_b": [
+        8,
+        2.25
+      ],
+      "same_geometry_new_ids": [
+        "wall_outer_09"
+      ],
+      "status": "UNCHANGED_GEOMETRY"
+    },
+    {
+      "old_id": "wall_outer_09",
+      "old_a": [
+        8,
+        2.25
+      ],
+      "old_b": [
+        8,
+        3.75
+      ],
+      "same_geometry_new_ids": [
+        "wall_outer_10"
+      ],
+      "status": "UNCHANGED_GEOMETRY"
+    },
+    {
+      "old_id": "wall_outer_10",
+      "old_a": [
+        8,
+        3.75
+      ],
+      "old_b": [
+        6.5,
+        3.75
+      ],
+      "same_geometry_new_ids": [
+        "wall_outer_11"
+      ],
+      "status": "UNCHANGED_GEOMETRY"
+    },
+    {
+      "old_id": "wall_outer_11",
+      "old_a": [
+        6.5,
+        3.75
+      ],
+      "old_b": [
+        6.5,
+        4.982
+      ],
+      "same_geometry_new_ids": [
+        "wall_outer_12"
+      ],
+      "status": "UNCHANGED_GEOMETRY"
+    },
+    {
+      "old_id": "wall_outer_12",
+      "old_a": [
+        6.5,
+        4.982
+      ],
+      "old_b": [
+        8,
+        4.982
+      ],
+      "same_geometry_new_ids": [
+        "wall_outer_13"
+      ],
+      "status": "UNCHANGED_GEOMETRY"
+    },
+    {
+      "old_id": "wall_outer_13",
+      "old_a": [
+        8,
+        4.982
+      ],
+      "old_b": [
+        8,
+        6
+      ],
+      "same_geometry_new_ids": [
+        "wall_outer_14"
+      ],
+      "status": "UNCHANGED_GEOMETRY"
+    },
+    {
+      "old_id": "wall_outer_14",
+      "old_a": [
+        8,
+        6
+      ],
+      "old_b": [
+        5.6,
+        6
+      ],
+      "same_geometry_new_ids": [
+        "wall_outer_15"
+      ],
+      "status": "UNCHANGED_GEOMETRY"
+    },
+    {
+      "old_id": "wall_outer_15",
+      "old_a": [
+        5.6,
+        6
+      ],
+      "old_b": [
+        3.3,
+        3.7071067811865475
+      ],
+      "same_geometry_new_ids": [],
+      "status": "REPLACED_GEOMETRY"
+    },
+    {
+      "old_id": "wall_outer_16",
+      "old_a": [
+        3.3,
+        3.7071067811865475
+      ],
+      "old_b": [
+        1.4,
+        5.509
+      ],
+      "same_geometry_new_ids": [
+        "wall_outer_18"
+      ],
+      "status": "UNCHANGED_GEOMETRY"
+    },
+    {
+      "old_id": "wall_outer_17",
+      "old_a": [
+        1.4,
+        5.509
+      ],
+      "old_b": [
+        0,
+        5.509
+      ],
+      "same_geometry_new_ids": [
+        "wall_outer_19"
+      ],
+      "status": "UNCHANGED_GEOMETRY"
+    },
+    {
+      "old_id": "wall_outer_18",
+      "old_a": [
+        0,
+        5.509
+      ],
+      "old_b": [
+        0,
+        0.491
+      ],
+      "same_geometry_new_ids": [
+        "wall_outer_20"
+      ],
+      "status": "UNCHANGED_GEOMETRY"
+    },
+    {
+      "old_id": "wall_inner_0_01",
+      "old_a": [
+        1,
+        1.6
+      ],
+      "old_b": [
+        2.5928932188134524,
+        3.0
+      ],
+      "same_geometry_new_ids": [
+        "wall_inner_0_01"
+      ],
+      "status": "UNCHANGED_GEOMETRY"
+    },
+    {
+      "old_id": "wall_inner_0_02",
+      "old_a": [
+        2.5928932188134524,
+        3.0
+      ],
+      "old_b": [
+        1,
+        4.4
+      ],
+      "same_geometry_new_ids": [
+        "wall_inner_0_02"
+      ],
+      "status": "UNCHANGED_GEOMETRY"
+    },
+    {
+      "old_id": "wall_inner_0_03",
+      "old_a": [
+        1,
+        4.4
+      ],
+      "old_b": [
+        1,
+        1.6
+      ],
+      "same_geometry_new_ids": [
+        "wall_inner_0_03"
+      ],
+      "status": "UNCHANGED_GEOMETRY"
+    },
+    {
+      "old_id": "wall_inner_1_01",
+      "old_a": [
+        5.482,
+        1.018
+      ],
+      "old_b": [
+        5.482,
+        4.982
+      ],
+      "same_geometry_new_ids": [],
+      "status": "REPLACED_GEOMETRY"
+    },
+    {
+      "old_id": "wall_inner_1_02",
+      "old_a": [
+        5.482,
+        4.982
+      ],
+      "old_b": [
+        4.007106781186548,
+        3.0
+      ],
+      "same_geometry_new_ids": [],
+      "status": "REPLACED_GEOMETRY"
+    },
+    {
+      "old_id": "wall_inner_1_03",
+      "old_a": [
+        4.007106781186548,
+        3.0
+      ],
+      "old_b": [
+        5.482,
+        1.018
+      ],
+      "same_geometry_new_ids": [],
+      "status": "REPLACED_GEOMETRY"
+    }
+  ]
+}
