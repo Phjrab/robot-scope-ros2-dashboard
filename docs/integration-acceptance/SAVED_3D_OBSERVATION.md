@@ -1,5 +1,18 @@
 # Saved 3D map observation and editor integration — 2026-10-18
 
+**Latest hardware evidence (2026-10-24):** the conditional coarse-to-full seed
+implementation in `cc83ee0` was deployed as three Python overlays, followed by
+one approved dashboard restart. A new observation-only FAST-LIO session started
+at 14:43:51 KST with a 30-minute automatic limit. A historical arrival map pose
+was used only as an approximate prior against fresh odometry. Actual map
+correction and a current **FAST-LIO IMU** marker were observed. Five of six
+captures using the corrected seed converged at 0.07198–0.07295 m RMSE; one
+exceeded the unchanged compute budget. An additional original-prior capture
+was rejected at 0.22320 m. This is stationary observation evidence, not arbitrary
+start localization, verified body pose, absolute accuracy, or uninterrupted
+motion tracking. See [the session record](SESSION_RESUME_20261024.md). The
+deployment-pending statements below describe their original historical dates.
+
 This candidate adds an opt-in observation layer to the existing Maps 3D view.
 It displays current LiDAR and an **unverified Go2 pose estimate** against the
 selected saved 3D reference. It also integrates the transferred 2D/3D map editor

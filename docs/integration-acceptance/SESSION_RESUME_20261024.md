@@ -207,7 +207,7 @@ FAST-LIO 종료를 확인했다. systemd의 `timeout` 결과는 승인된 Runtim
 임의 epoch 간 연결은 검증 완료 기능이 아니다. 수신 공백의 원인은 여전히
 미확정이며 다음 승인된 실기 구간에서 재현·송수신 계측이 필요하다.
 
-## 로컬 후속: 거친 초기값의 단계별 정합 — 장비 미적용
+## 로컬 후속: 거친 초기값의 단계별 정합 — 당시 장비 미적용
 
 사용자는 마지막 위치에서 약 1.35m 규모로 직접 움직인 것이 맞다고 확인했다.
 이는 이동 규모의 확인이며 독립 좌표·정확한 방향의 정답은 아니다. 기존
@@ -250,6 +250,90 @@ PID67085·동일 boot, bridge OFF/disabled, 종료된 관측기, 원본 지도·
 하지 않았다. 별도 승인이 필요한 후보 범위는 3파일 적용, dashboard 재시작
 1회, 기존 설정의 관측 FAST-LIO 1개 최대 30분 및 현재 도착 위치의 정지 확인이다.
 
+## 추가 승인 후 단계별 정합 배포와 새 정지 관측
+
+사용자는 3파일 적용·dashboard 재시작 1회·기존 설정의 관측 FAST-LIO 1개
+최대 30분·마지막 도착 위치의 정지 검증을 승인했다. 소스는
+`cc83ee0474be7c3883b3bfd4d345178462366c4e`이며 장비 Git base
+`d7807de8f15fb457942039bb90ab41cf68d384c6`와 기존 선택적 설치를 유지했다.
+`observation_alignment.py`, 새 `observation_seed.py`, `observation_capture.py`
+3파일만 추가 적용했다. 원본 2파일 백업·설치 해시와 원복 리허설을 확인했고
+실제 원복은 필요하지 않았다. 지도·설정·기존 로그를 수정하지 않았다.
+
+- Dashboard: 14:42:48 KST 재시작, PID67085 → 118660. 이번 승인 범위 1회.
+- 서비스 소유 Hesai preview 자동 복구, PID118808.
+- 새 관측기: `robot-scope-observation-coarse-20261024.service`,
+  14:43:51 KST 시작, MainPID120010/FAST-LIO PID120059 한 개.
+- `RuntimeMaxSec=1800`, **15:13:51 KST 자동 종료 예정**. 14:49:44 readback에서
+  실행 중/30분 제한을 확인했다. 이 기록은 예정 시각의 실제 종료 증거는 아니다.
+- TF·map·path를 observation 이름으로 remap, PCD 저장 OFF, Log/PCD bind 및
+  ROS 로그 격리. bridge inactive/disabled, 자동 시작 OFF, 소유권 제약 clear.
+- 별도 로봇 이동·자세·Nav2·운영 TF·제어 출력은 수행하지 않았다.
+
+새 observer `0ebcb17b05e24ad227ef4657a7457d55`, pose/cloud epoch
+`0672aeec036aa4a9c1fd6fe7e9b424f4` / `a8cd74a57ea1f36c8efb868df019687a`를
+확인했다. `/Odometry`는 `camera_init → body`의 FAST-LIO IMU,
+`/cloud_registered`는 이미 `camera_init`에 있는 점군이며 graph publisher는
+각각 `laser_mapping` 한 개다. 메시지별 publisher identity는 여전히 제공되지
+않으므로 subscription/graph 관측 허용 모드를 명시적으로 사용했다.
+
+마지막 저장 입력의 수치 후보에서 얻은 지도 XYZ
+`(0.386558913, 0.405521097, 0.056802836)`m, RPY
+`(-2.611982723, 3.311181897, 6.812771896)`°를 **근사 prior**로 입력했다.
+새 신선한 pose에 연결해 새 `T_map_odom`을 계산했으며 이전 세대 transform을
+재사용하지 않았다. 화면에서 지도 보정 상태와 IMU 마커를 확인했다.
+14:48경 표시값은 대략 XYZ `(0.33, 0.43, 0.05)`m / yaw `10.5°`였다.
+이는 관측 추정이며 독립 정답이나 Go2 본체 중심 위치가 아니다.
+
+반복 관측을 잠시 끄고, 이미 화면에서 수락한 새 지도 연결을 seed로 6회
+입력 캡처했다. 첫 요청은 `COMPUTE_BUDGET_EXCEEDED`로 거절됐다.
+나머지 5회는 모두 수렴/overlap 1.0, 407–414 inliers였으며
+`CANDIDATE_SOURCE_UNVERIFIED`였다. RMSE 범위는
+`0.0719841603–0.0729496082m`, 수치 계산 47.23–88.01ms,
+서버 `total_runtime_ms` 108.49–159.62ms였다. 전체 reference/query를 포함한
+캡처 HTTP 왕복은 465–820ms로, 작은 일반 응답이나 센서→화면 지연과 구분한다.
+잠정 10cm 잔차는 통과하지만 원래 5cm는 거절이다. 가까운 corrected seed여서
+이 5회에는 coarse 단계가 필요하지 않았다. 대표 입력의 오프라인 재현도
+같은 잔차·14회 수렴이었다.
+
+반대로 **원래 근사 prior를 유지한 별도 새 입력**은 coarse 단계가 실행됐으나
+최종 RMSE `0.2231962948m`, overlap 1.0, 12회 수렴으로 `HIGH_RESIDUAL` 거절이다.
+같은 정확한 입력의 오프라인 fine-only 비교도 `0.2242169335m`로 거절됐다.
+이 실패를 버리지 않고 보존했으며, 조건부 coarse가 모든 초기값·scan에서
+성공한다거나 정확한 초기 위치 정보가 불필요한 전역 위치찾기가 됐다고
+보고하지 않는다. 잔차·수렴·600ms·1초 신선도·UI 급변 차단은 변경하지 않았다.
+
+정지 90초 동시 읽기 결과:
+
+| 읽기 위치 | pose/점군 수 | 최대 pose/점군 수신 간격 | 1초 초과 |
+| --- | --- | --- | --- |
+| Jetson loopback | 643 / 402 | 0.455 / 0.618초 | 0 / 0 |
+| Mac | 620 / 394 | 0.451 / 0.640초 | 0 / 0 |
+
+각 스트림은 동일 epoch였다. Jetson 호스트 수신→기록기 수신 중앙값/최대는
+pose 52.6/141.7ms, 점군 161.5/386.7ms다. 센서 시계 동기화나 전체 표시 지연은
+검증하지 않았다. 동시 30초 UI 73표본은 지도 보정 32회, 보정 실패 중 odometry
+계속 41회, STALE 0회였다. `NO_PAIRED_POSE`와 `RATE_LIMIT_1HZ`가 나타났고
+유효한 현재 pose는 계속 표시됐다. 이 표본 수를 시간 비율로 해석하지 않는다.
+
+14:44:54–14:46:16 반복 관측 구간(별도 캡처 요청 1회 포함)의 서버 로그는
+HTTP200 41건/409 34건이다. HTTP200은 수치 응답 완료이며 후보 수락과 같지 않다.
+200 응답의 dispatch→response 중앙값/최대는 280.8/616.3ms,
+분리 계산 단계는 74.9/531.9ms였다. 수치 예산과 API 왕복·dispatch 시간은
+서로 다른 범위다. 이전 수신 공백 해결 완료나 장시간 무중단 추적 근거는 아니다.
+
+이번 새 세션은 정지 검증만 수행했다. 수동 이동은 앞 절의 별도 세션 결과이며,
+새 연결의 연속 이동 궤적까지 완료됐다고 표시하지 않는다. 다음 최소 작업은
+같은 기록으로 exact-stamp pose pairing 실패와 1Hz 요청 간격을 재현하는 것이다.
+추가 배포·재시작·추정기 재실행/연장은 이번 승인에 포함되지 않는다.
+
+private `resume-20261024/`에 `coarse-*-readback.json`,
+`coarse-live-input-capture.json`, `coarse-corrected-capture-1..6.json`,
+`coarse-live-replay-comparison.json`, `coarse-paired-{jetson,mac}.ndjson`,
+`coarse-ui-samples.json`, `coarse-stationary-summary.json` 및 실제 화면
+`coarse-map-screen.png`, `coarse-live-screen.png`를 보존했다.
+최종 설치·백업 해시와 지도·설정 SHA는 모두 일치했다.
+
 ## 검사와 보존
 
 단계별 정합 후속은 관련 Python 94개, 전체 Python 2,643개(4 skip), JS
@@ -263,7 +347,7 @@ PID67085·동일 boot, bridge OFF/disabled, 종료된 관측기, 원본 지도·
 static 수정의 관련 JS 52개, 전체 JS 650개, 브라우저 10개가 통과했다.
 잠금 수정 전 전체 Python 2,636개(4 skip), 수정 후 2,637개(4 skip)가
 통과했다. 합성 브라우저 검사는 실장비 이동 검증을 대체하지 않는다.
-최종 readback에서 최초 20파일, 추가 static 3파일과 Python 1파일의 설치·백업
+앞선 1시간 관측의 최종 readback에서 최초 20파일, 추가 static 3파일과 Python 1파일의 설치·백업
 해시, 지도·설정 SHA가 일치했다. dashboard PID67085, 관측 MainPID17924,
 Hesai PID67237, bridge inactive/disabled, ownership 제약 clear,
 관측 RuntimeMaxSec=3600이었다. Git main에 소스 커밋을 push했으며 장비 checkout
