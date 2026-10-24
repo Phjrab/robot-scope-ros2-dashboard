@@ -1,0 +1,89 @@
+{
+  "evidence_type": "SYNTHETIC",
+  "frames": 100,
+  "confusion_by_variant": {
+    "raw": {
+      "RED": {
+        "RED": 30,
+        "GREEN": 0,
+        "UNKNOWN": 0,
+        "AMBIGUOUS": 0
+      },
+      "GREEN": {
+        "RED": 0,
+        "GREEN": 60,
+        "UNKNOWN": 0,
+        "AMBIGUOUS": 0
+      },
+      "UNKNOWN": {
+        "RED": 0,
+        "GREEN": 0,
+        "UNKNOWN": 10,
+        "AMBIGUOUS": 0
+      }
+    },
+    "luminance": {
+      "RED": {
+        "RED": 30,
+        "GREEN": 0,
+        "UNKNOWN": 0,
+        "AMBIGUOUS": 0
+      },
+      "GREEN": {
+        "RED": 0,
+        "GREEN": 60,
+        "UNKNOWN": 0,
+        "AMBIGUOUS": 0
+      },
+      "UNKNOWN": {
+        "RED": 0,
+        "GREEN": 0,
+        "UNKNOWN": 10,
+        "AMBIGUOUS": 0
+      }
+    },
+    "combined": {
+      "RED": {
+        "RED": 30,
+        "GREEN": 0,
+        "UNKNOWN": 0,
+        "AMBIGUOUS": 0
+      },
+      "GREEN": {
+        "RED": 0,
+        "GREEN": 60,
+        "UNKNOWN": 0,
+        "AMBIGUOUS": 0
+      },
+      "UNKNOWN": {
+        "RED": 0,
+        "GREEN": 0,
+        "UNKNOWN": 10,
+        "AMBIGUOUS": 0
+      }
+    }
+  },
+  "false_depart_intent_events": 0,
+  "first_green_s": 4.0,
+  "first_stable_green_s": 4.4,
+  "first_depart_intent_s": 4.4,
+  "green_transition_delay_s": 0.40000000000000036,
+  "p95_core_processing_ms": 3.6766584500469413,
+  "mean_core_processing_ms": 3.472921040008714,
+  "yolo_detection_recall": null,
+  "model_sha256": null,
+  "real_RGB_validated": false,
+  "Jetson_performance": null,
+  "runtime": {
+    "python": "3.12.14",
+    "opencv": "4.10.0",
+    "numpy": "2.3.5",
+    "platform": "Linux-6.18.55-x86_64-with-glibc2.41"
+  },
+  "limits": [
+    "No actual owner weights or RGB clips provided",
+    "Timing excludes detector, IO and render",
+    "No physical safety guarantee; finite fixture only",
+    "Design thresholds not calibrated on field data"
+  ]
+}

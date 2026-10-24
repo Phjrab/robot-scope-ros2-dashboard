@@ -1,0 +1,246 @@
+{
+  "local_only": true,
+  "regenerate": "python3 experiments/competition_vm/arena_robot_sim/revisions/d0_20261024/regression.py",
+  "files": [
+    {
+      "path": "results/alternating_2__legacy_parking_allowed__repeat1.json",
+      "bytes": 520461,
+      "sha256": "2d19555a7c241641cdd2269396f83d2b280a7ca0f59dc998d0e08a32788933a4"
+    },
+    {
+      "path": "results/alternating_2__legacy_parking_allowed__repeat2.json",
+      "bytes": 520461,
+      "sha256": "2d19555a7c241641cdd2269396f83d2b280a7ca0f59dc998d0e08a32788933a4"
+    },
+    {
+      "path": "results/alternating_2__strict_no_parking__repeat1.json",
+      "bytes": 520456,
+      "sha256": "d6dd2dadc78f88171fb3f2a08d52d0717c70d846d226e23cae44532117378473"
+    },
+    {
+      "path": "results/alternating_2__strict_no_parking__repeat2.json",
+      "bytes": 520456,
+      "sha256": "d6dd2dadc78f88171fb3f2a08d52d0717c70d846d226e23cae44532117378473"
+    },
+    {
+      "path": "results/blocked_5__legacy_parking_allowed__repeat1.json",
+      "bytes": 526371,
+      "sha256": "3fadac13b2849f924449cd9102e8ca39f87b23be12214149f6914f9cf870a335"
+    },
+    {
+      "path": "results/blocked_5__legacy_parking_allowed__repeat2.json",
+      "bytes": 526371,
+      "sha256": "3fadac13b2849f924449cd9102e8ca39f87b23be12214149f6914f9cf870a335"
+    },
+    {
+      "path": "results/blocked_5__strict_no_parking__repeat1.json",
+      "bytes": 526366,
+      "sha256": "dc15e5c0fcad80f7f012928d8da575cfc1f116bcfd4be5f28bc6051574106503"
+    },
+    {
+      "path": "results/blocked_5__strict_no_parking__repeat2.json",
+      "bytes": 526366,
+      "sha256": "dc15e5c0fcad80f7f012928d8da575cfc1f116bcfd4be5f28bc6051574106503"
+    },
+    {
+      "path": "results/boundary_1__legacy_parking_allowed__repeat1.json",
+      "bytes": 1540722,
+      "sha256": "013e6efd6e48b4e04a7bb70d384d928918060f1f4c987d73e0205d7c79470d57"
+    },
+    {
+      "path": "results/boundary_1__legacy_parking_allowed__repeat2.json",
+      "bytes": 1540722,
+      "sha256": "013e6efd6e48b4e04a7bb70d384d928918060f1f4c987d73e0205d7c79470d57"
+    },
+    {
+      "path": "results/boundary_1__strict_no_parking__repeat1.json",
+      "bytes": 516134,
+      "sha256": "09df8ec098c2a594c96e4b33561a7b06dab8e92902dfebb0e73357dc9b169beb"
+    },
+    {
+      "path": "results/boundary_1__strict_no_parking__repeat2.json",
+      "bytes": 516134,
+      "sha256": "09df8ec098c2a594c96e4b33561a7b06dab8e92902dfebb0e73357dc9b169beb"
+    },
+    {
+      "path": "results/center_1__legacy_parking_allowed__repeat1.json",
+      "bytes": 516385,
+      "sha256": "619ccdf773080116ed1add393a1f3c69bf3a436f5cf7ae82bd8159832686fdb4"
+    },
+    {
+      "path": "results/center_1__legacy_parking_allowed__repeat2.json",
+      "bytes": 516385,
+      "sha256": "619ccdf773080116ed1add393a1f3c69bf3a436f5cf7ae82bd8159832686fdb4"
+    },
+    {
+      "path": "results/center_1__strict_no_parking__repeat1.json",
+      "bytes": 516380,
+      "sha256": "e6a35dd72bdcaf4173d11ce2121a2e397d6269d880a6a1f03939621ff8aaed0a"
+    },
+    {
+      "path": "results/center_1__strict_no_parking__repeat2.json",
+      "bytes": 516380,
+      "sha256": "e6a35dd72bdcaf4173d11ce2121a2e397d6269d880a6a1f03939621ff8aaed0a"
+    },
+    {
+      "path": "results/delayed_offset_1__legacy_parking_allowed__repeat1.json",
+      "bytes": 649477,
+      "sha256": "23482a95669a9ac1a8de163d8d12cf084e02ab3fe98f8a265103f6f683aaae61"
+    },
+    {
+      "path": "results/delayed_offset_1__legacy_parking_allowed__repeat2.json",
+      "bytes": 649477,
+      "sha256": "23482a95669a9ac1a8de163d8d12cf084e02ab3fe98f8a265103f6f683aaae61"
+    },
+    {
+      "path": "results/delayed_offset_1__strict_no_parking__repeat1.json",
+      "bytes": 516675,
+      "sha256": "f9f82cacae78d1fb99c69efdbe3ecfbbbb0841511ea082326fd6512ac33e227a"
+    },
+    {
+      "path": "results/delayed_offset_1__strict_no_parking__repeat2.json",
+      "bytes": 516675,
+      "sha256": "f9f82cacae78d1fb99c69efdbe3ecfbbbb0841511ea082326fd6512ac33e227a"
+    },
+    {
+      "path": "results/dense_10__legacy_parking_allowed__repeat1.json",
+      "bytes": 528102,
+      "sha256": "a831d609bfc0565cfa3c567ca857db988c245b5cf1b1237e67cbf8e757ebe176"
+    },
+    {
+      "path": "results/dense_10__legacy_parking_allowed__repeat2.json",
+      "bytes": 528102,
+      "sha256": "a831d609bfc0565cfa3c567ca857db988c245b5cf1b1237e67cbf8e757ebe176"
+    },
+    {
+      "path": "results/dense_10__strict_no_parking__repeat1.json",
+      "bytes": 528097,
+      "sha256": "842e83b4377fa201bc9fb3ae4630346e626a6eb823ddecf92f91dc747bde6026"
+    },
+    {
+      "path": "results/dense_10__strict_no_parking__repeat2.json",
+      "bytes": 528097,
+      "sha256": "842e83b4377fa201bc9fb3ae4630346e626a6eb823ddecf92f91dc747bde6026"
+    },
+    {
+      "path": "results/dropout_offset_1__legacy_parking_allowed__repeat1.json",
+      "bytes": 1878230,
+      "sha256": "733db264f4200ab772557cf58b3aabf0edb8ae9496f27e494c13f88d471d2e7a"
+    },
+    {
+      "path": "results/dropout_offset_1__legacy_parking_allowed__repeat2.json",
+      "bytes": 1878230,
+      "sha256": "733db264f4200ab772557cf58b3aabf0edb8ae9496f27e494c13f88d471d2e7a"
+    },
+    {
+      "path": "results/dropout_offset_1__strict_no_parking__repeat1.json",
+      "bytes": 516505,
+      "sha256": "478f126340a010cce437447c5555acd7a9c141d7af0481f4979af99747f0059d"
+    },
+    {
+      "path": "results/dropout_offset_1__strict_no_parking__repeat2.json",
+      "bytes": 516505,
+      "sha256": "478f126340a010cce437447c5555acd7a9c141d7af0481f4979af99747f0059d"
+    },
+    {
+      "path": "results/empty_0__legacy_parking_allowed__repeat1.json",
+      "bytes": 1234337,
+      "sha256": "9ceec7825c552e04968cbbd9a97b6f2672e75824b089ca989c1196b127813ee4"
+    },
+    {
+      "path": "results/empty_0__legacy_parking_allowed__repeat2.json",
+      "bytes": 1234337,
+      "sha256": "9ceec7825c552e04968cbbd9a97b6f2672e75824b089ca989c1196b127813ee4"
+    },
+    {
+      "path": "results/empty_0__strict_no_parking__repeat1.json",
+      "bytes": 1234332,
+      "sha256": "104bb8901e5f7273b32e273b6970c5e635b76f2e3a20ef803c903c0a121056f6"
+    },
+    {
+      "path": "results/empty_0__strict_no_parking__repeat2.json",
+      "bytes": 1234332,
+      "sha256": "104bb8901e5f7273b32e273b6970c5e635b76f2e3a20ef803c903c0a121056f6"
+    },
+    {
+      "path": "results/historical_575_1__legacy_parking_allowed__repeat1.json",
+      "bytes": 861889,
+      "sha256": "969adb15516dbbdac0dcad824b60a4cb1e37bd911d1aa7d5ad1af59b58a3bbc4"
+    },
+    {
+      "path": "results/historical_575_1__legacy_parking_allowed__repeat2.json",
+      "bytes": 861889,
+      "sha256": "969adb15516dbbdac0dcad824b60a4cb1e37bd911d1aa7d5ad1af59b58a3bbc4"
+    },
+    {
+      "path": "results/historical_575_1__strict_no_parking__repeat1.json",
+      "bytes": 515892,
+      "sha256": "f853013d45d7004450f8b37ac8a2c5f8f48f38b735cb6758a452a8af3f08a07b"
+    },
+    {
+      "path": "results/historical_575_1__strict_no_parking__repeat2.json",
+      "bytes": 515892,
+      "sha256": "f853013d45d7004450f8b37ac8a2c5f8f48f38b735cb6758a452a8af3f08a07b"
+    },
+    {
+      "path": "results/mapped_center_1__legacy_parking_allowed__repeat1.json",
+      "bytes": 516401,
+      "sha256": "1e580aa1e7f47f36e6ddc949a403b1eb488f4cd2939f75c69e3a99976da77894"
+    },
+    {
+      "path": "results/mapped_center_1__legacy_parking_allowed__repeat2.json",
+      "bytes": 516401,
+      "sha256": "1e580aa1e7f47f36e6ddc949a403b1eb488f4cd2939f75c69e3a99976da77894"
+    },
+    {
+      "path": "results/mapped_center_1__strict_no_parking__repeat1.json",
+      "bytes": 516396,
+      "sha256": "6a8171fa183ca2eb6c90ef478cf019cedcdcaf374cfc614c63c6897455642c3a"
+    },
+    {
+      "path": "results/mapped_center_1__strict_no_parking__repeat2.json",
+      "bytes": 516396,
+      "sha256": "6a8171fa183ca2eb6c90ef478cf019cedcdcaf374cfc614c63c6897455642c3a"
+    },
+    {
+      "path": "results/occluded_2__legacy_parking_allowed__repeat1.json",
+      "bytes": 516432,
+      "sha256": "c4de690d12799e58499307d26d0adbf1e819f11215a448b6f3ecbeaf8f618321"
+    },
+    {
+      "path": "results/occluded_2__legacy_parking_allowed__repeat2.json",
+      "bytes": 516432,
+      "sha256": "c4de690d12799e58499307d26d0adbf1e819f11215a448b6f3ecbeaf8f618321"
+    },
+    {
+      "path": "results/occluded_2__strict_no_parking__repeat1.json",
+      "bytes": 516427,
+      "sha256": "1411837f4526426da086ec394c4e9e26aa8706123ce9726af9be96d245aa950f"
+    },
+    {
+      "path": "results/occluded_2__strict_no_parking__repeat2.json",
+      "bytes": 516427,
+      "sha256": "1411837f4526426da086ec394c4e9e26aa8706123ce9726af9be96d245aa950f"
+    },
+    {
+      "path": "results/offset_1__legacy_parking_allowed__repeat1.json",
+      "bytes": 1607096,
+      "sha256": "536064de3f81ff008322da856d2934405290f923429bc22590ab7024344968a6"
+    },
+    {
+      "path": "results/offset_1__legacy_parking_allowed__repeat2.json",
+      "bytes": 1607096,
+      "sha256": "536064de3f81ff008322da856d2934405290f923429bc22590ab7024344968a6"
+    },
+    {
+      "path": "results/offset_1__strict_no_parking__repeat1.json",
+      "bytes": 516193,
+      "sha256": "51593dcebcda01ab34170093e9145baf0206b728bfa63ea3c81fa7b43be84c9c"
+    },
+    {
+      "path": "results/offset_1__strict_no_parking__repeat2.json",
+      "bytes": 516193,
+      "sha256": "51593dcebcda01ab34170093e9145baf0206b728bfa63ea3c81fa7b43be84c9c"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+test_composite_age_blocks_approach (__main__.IndependentReview.test_composite_age_blocks_approach) ... ok
+test_event_transition_stops_without_next_sensor (__main__.IndependentReview.test_event_transition_stops_without_next_sensor) ... ok
+test_expired_green_blocks_cached_release (__main__.IndependentReview.test_expired_green_blocks_cached_release) ... ok
+test_expired_pose_blocks_cached_release (__main__.IndependentReview.test_expired_pose_blocks_cached_release) ... ok
+test_invalid_structure_cannot_revive_approach (__main__.IndependentReview.test_invalid_structure_cannot_revive_approach) ... ok
+test_malformed_epoch_fails_closed (__main__.IndependentReview.test_malformed_epoch_fails_closed) ... ok
+test_motion_before_ack_does_not_commit (__main__.IndependentReview.test_motion_before_ack_does_not_commit) ... ok
+test_red_after_bound_movement_not_signal_stop (__main__.IndependentReview.test_red_after_bound_movement_not_signal_stop) ... ok
+test_release_without_movement_not_commit (__main__.IndependentReview.test_release_without_movement_not_commit) ... ok
+test_source_delay_not_credited_to_dwell (__main__.IndependentReview.test_source_delay_not_credited_to_dwell) ... ok
+test_stale_reset_cannot_replay_green (__main__.IndependentReview.test_stale_reset_cannot_replay_green) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.006s
+
+OK

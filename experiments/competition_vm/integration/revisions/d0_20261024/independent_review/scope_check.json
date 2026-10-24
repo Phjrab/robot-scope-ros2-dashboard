@@ -1,0 +1,31 @@
+{
+  "base_commit": "7f2a7070a17975d2a5f123cbf6aab0f99f04bf8a",
+  "current_head": "7f2a7070a17975d2a5f123cbf6aab0f99f04bf8a",
+  "tracked_changes": [
+    "experiments/competition_vm/integration/adapter.py",
+    "experiments/competition_vm/integration/smoke.py",
+    "experiments/competition_vm/traffic_signals/README.md",
+    "experiments/competition_vm/traffic_signals/core.py"
+  ],
+  "untracked_file_count": 88,
+  "write_scope_violations": [],
+  "immutable_or_canonical_changed": [],
+  "reviewed_python_hashes": {
+    "experiments/competition_vm/integration/adapter.py": "a34232ddc69e17093ae31e5f9d7a62be10e25b421fc484e39ba72bc0008e12c4",
+    "experiments/competition_vm/integration/smoke.py": "3dac58f36c9899bff618e83d161b59c5f0f0a0a3c267c1558c4c59fe5dc70c5c",
+    "experiments/competition_vm/traffic_signals/core.py": "075747e0ab18f0d05035baec3edb9efea6bdda92ac3d0a932c11221611fc79fc",
+    "experiments/competition_vm/arena_robot_sim/revisions/d0_20261024/audit_trace.py": "106319ed8847476b37c7e2d1f9b6c3e900690a6ea81f1a9c4d65c66607af2c00",
+    "experiments/competition_vm/arena_robot_sim/revisions/d0_20261024/regression.py": "06d60eda156a050d7a2db3e6bda53392c698e31cb18cec14746d82ceaca5c71e",
+    "experiments/competition_vm/arena_robot_sim/revisions/d0_20261024/render_replay.py": "44fa0b806c0f1526e9607286bacb9d0e2f93271298aee958d15c4094b4b60995",
+    "experiments/competition_vm/arena_robot_sim/revisions/d0_20261024/test_regression.py": "d6682ab7fbd2954fdf52aae138aeee7cb0a8c80b9e20c11a7d2d48346d3b2df8",
+    "experiments/competition_vm/avoidance/revisions/d0_20261024/replay_baseline.py": "b964e4be90a333d57162447ab7f60c5b089f4b1d5cba3e7544abd95fa0b2117c",
+    "experiments/competition_vm/integration/before_after.py": "1d1407ee0b8a548b69ba1a9128728a7b64313433827ab6916dbf24d813500614",
+    "experiments/competition_vm/integration/d0_smoke.py": "3be8eb79dfd845db48d3b21adbd7a843f3a917666d450eb3f0c4e76152dd8be3",
+    "experiments/competition_vm/integration/tests/test_d0_lifecycle_integration.py": "2d4e8bcc050c2a842dce6d39454102d7973079bf7c50a77be66712344b096ca5",
+    "experiments/competition_vm/integration/tests/test_d0_transport.py": "101e470b718e8a9a2bac5aebb0c723a1f3a8a43e7780f5301cc0e2a407419acf",
+    "experiments/competition_vm/traffic_signals/lifecycle.py": "aaf8fa341dba2fe090dfe6cd7f93821020560a1b264bde57b8a09f8f91af4bec",
+    "experiments/competition_vm/traffic_signals/revisions/d0-20261024/reproduce_before_after.py": "59e64e49de8e9200a75da3312859340b48b261d3499eddd1c7695d6b31cad560",
+    "experiments/competition_vm/traffic_signals/tests/test_lifecycle_d0.py": "7276d3e9d6c65df0df2437c58a88f2c4fcebd8ee1e8d63cd0a72e3fc946acbe6"
+  },
+  "pass": true
+}

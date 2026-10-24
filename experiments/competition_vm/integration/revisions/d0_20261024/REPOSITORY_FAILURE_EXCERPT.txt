@@ -1,0 +1,18 @@
+FAIL: test_vm_manifest_uses_published_hashes_without_registration_or_native_promotion (test_competition_mission.CompetitionContractTests.test_vm_manifest_uses_published_hashes_without_registration_or_native_promotion)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/b09eacf6919d/robot-scope-d0-20261024/tests/test_competition_mission.py", line 97, in test_vm_manifest_uses_published_hashes_without_registration_or_native_promotion
+    self.assertEqual(vm_evidence()['traffic_signals']['scope'], 'SYNTHETIC_ONLY')
+AssertionError: 'UNAVAILABLE_OR_CHANGED' != 'SYNTHETIC_ONLY'
+- UNAVAILABLE_OR_CHANGED
++ SYNTHETIC_ONLY
+
+
+----------------------------------------------------------------------
+Ran 2691 tests in 88.020s
+
+FAILED (failures=1, errors=25, skipped=1)
+{"status": "BLOCKED", "output": "/tmp/tmpmn_x3dh8/blocked.json"}
+{"status": "COMPUTED_DECLARED_INPUTS", "output": "/tmp/tmpyomms5cv/result.json"}
+
+25 additional ERROR entries are socket creation PermissionError; full local log retained outside Git.

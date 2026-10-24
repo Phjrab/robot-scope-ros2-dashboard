@@ -1,0 +1,1889 @@
+{
+  "video": "d0_planar_policy_comparison.mp4",
+  "fps": 10,
+  "frames": 207,
+  "source_files": [
+    {
+      "file": "results/empty_0__strict_no_parking__repeat1.json",
+      "sha256": "104bb8901e5f7273b32e273b6970c5e635b76f2e3a20ef803c903c0a121056f6"
+    },
+    {
+      "file": "results/offset_1__legacy_parking_allowed__repeat1.json",
+      "sha256": "536064de3f81ff008322da856d2934405290f923429bc22590ab7024344968a6"
+    },
+    {
+      "file": "results/offset_1__strict_no_parking__repeat1.json",
+      "sha256": "51593dcebcda01ab34170093e9145baf0206b728bfa63ea3c81fa7b43be84c9c"
+    },
+    {
+      "file": "results/dense_10__strict_no_parking__repeat1.json",
+      "sha256": "842e83b4377fa201bc9fb3ae4630346e626a6eb823ddecf92f91dc747bde6026"
+    }
+  ],
+  "frame_indexes": [
+    {
+      "video_frame": 0,
+      "trace_indices": [
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "video_frame": 1,
+      "trace_indices": [
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "video_frame": 2,
+      "trace_indices": [
+        2,
+        2,
+        2,
+        2
+      ]
+    },
+    {
+      "video_frame": 3,
+      "trace_indices": [
+        3,
+        3,
+        3,
+        3
+      ]
+    },
+    {
+      "video_frame": 4,
+      "trace_indices": [
+        4,
+        4,
+        4,
+        4
+      ]
+    },
+    {
+      "video_frame": 5,
+      "trace_indices": [
+        5,
+        5,
+        5,
+        5
+      ]
+    },
+    {
+      "video_frame": 6,
+      "trace_indices": [
+        6,
+        6,
+        6,
+        6
+      ]
+    },
+    {
+      "video_frame": 7,
+      "trace_indices": [
+        7,
+        7,
+        7,
+        7
+      ]
+    },
+    {
+      "video_frame": 8,
+      "trace_indices": [
+        8,
+        8,
+        8,
+        8
+      ]
+    },
+    {
+      "video_frame": 9,
+      "trace_indices": [
+        9,
+        9,
+        9,
+        9
+      ]
+    },
+    {
+      "video_frame": 10,
+      "trace_indices": [
+        10,
+        10,
+        10,
+        10
+      ]
+    },
+    {
+      "video_frame": 11,
+      "trace_indices": [
+        11,
+        11,
+        11,
+        11
+      ]
+    },
+    {
+      "video_frame": 12,
+      "trace_indices": [
+        12,
+        12,
+        12,
+        12
+      ]
+    },
+    {
+      "video_frame": 13,
+      "trace_indices": [
+        13,
+        13,
+        13,
+        13
+      ]
+    },
+    {
+      "video_frame": 14,
+      "trace_indices": [
+        14,
+        14,
+        14,
+        14
+      ]
+    },
+    {
+      "video_frame": 15,
+      "trace_indices": [
+        15,
+        15,
+        15,
+        15
+      ]
+    },
+    {
+      "video_frame": 16,
+      "trace_indices": [
+        16,
+        16,
+        16,
+        16
+      ]
+    },
+    {
+      "video_frame": 17,
+      "trace_indices": [
+        17,
+        17,
+        17,
+        17
+      ]
+    },
+    {
+      "video_frame": 18,
+      "trace_indices": [
+        18,
+        18,
+        18,
+        18
+      ]
+    },
+    {
+      "video_frame": 19,
+      "trace_indices": [
+        19,
+        19,
+        19,
+        19
+      ]
+    },
+    {
+      "video_frame": 20,
+      "trace_indices": [
+        20,
+        20,
+        20,
+        20
+      ]
+    },
+    {
+      "video_frame": 21,
+      "trace_indices": [
+        21,
+        21,
+        21,
+        21
+      ]
+    },
+    {
+      "video_frame": 22,
+      "trace_indices": [
+        22,
+        22,
+        22,
+        22
+      ]
+    },
+    {
+      "video_frame": 23,
+      "trace_indices": [
+        23,
+        23,
+        23,
+        23
+      ]
+    },
+    {
+      "video_frame": 24,
+      "trace_indices": [
+        24,
+        24,
+        24,
+        24
+      ]
+    },
+    {
+      "video_frame": 25,
+      "trace_indices": [
+        25,
+        25,
+        25,
+        25
+      ]
+    },
+    {
+      "video_frame": 26,
+      "trace_indices": [
+        26,
+        26,
+        26,
+        26
+      ]
+    },
+    {
+      "video_frame": 27,
+      "trace_indices": [
+        27,
+        27,
+        27,
+        27
+      ]
+    },
+    {
+      "video_frame": 28,
+      "trace_indices": [
+        28,
+        28,
+        28,
+        28
+      ]
+    },
+    {
+      "video_frame": 29,
+      "trace_indices": [
+        29,
+        29,
+        29,
+        29
+      ]
+    },
+    {
+      "video_frame": 30,
+      "trace_indices": [
+        30,
+        30,
+        30,
+        30
+      ]
+    },
+    {
+      "video_frame": 31,
+      "trace_indices": [
+        31,
+        31,
+        31,
+        31
+      ]
+    },
+    {
+      "video_frame": 32,
+      "trace_indices": [
+        32,
+        32,
+        32,
+        32
+      ]
+    },
+    {
+      "video_frame": 33,
+      "trace_indices": [
+        33,
+        33,
+        33,
+        33
+      ]
+    },
+    {
+      "video_frame": 34,
+      "trace_indices": [
+        34,
+        34,
+        34,
+        34
+      ]
+    },
+    {
+      "video_frame": 35,
+      "trace_indices": [
+        35,
+        35,
+        35,
+        35
+      ]
+    },
+    {
+      "video_frame": 36,
+      "trace_indices": [
+        36,
+        36,
+        36,
+        36
+      ]
+    },
+    {
+      "video_frame": 37,
+      "trace_indices": [
+        37,
+        37,
+        37,
+        37
+      ]
+    },
+    {
+      "video_frame": 38,
+      "trace_indices": [
+        38,
+        38,
+        38,
+        38
+      ]
+    },
+    {
+      "video_frame": 39,
+      "trace_indices": [
+        39,
+        39,
+        39,
+        39
+      ]
+    },
+    {
+      "video_frame": 40,
+      "trace_indices": [
+        40,
+        40,
+        40,
+        40
+      ]
+    },
+    {
+      "video_frame": 41,
+      "trace_indices": [
+        41,
+        41,
+        41,
+        41
+      ]
+    },
+    {
+      "video_frame": 42,
+      "trace_indices": [
+        42,
+        42,
+        42,
+        42
+      ]
+    },
+    {
+      "video_frame": 43,
+      "trace_indices": [
+        43,
+        43,
+        43,
+        43
+      ]
+    },
+    {
+      "video_frame": 44,
+      "trace_indices": [
+        44,
+        44,
+        44,
+        44
+      ]
+    },
+    {
+      "video_frame": 45,
+      "trace_indices": [
+        45,
+        45,
+        45,
+        45
+      ]
+    },
+    {
+      "video_frame": 46,
+      "trace_indices": [
+        46,
+        46,
+        46,
+        46
+      ]
+    },
+    {
+      "video_frame": 47,
+      "trace_indices": [
+        47,
+        47,
+        47,
+        47
+      ]
+    },
+    {
+      "video_frame": 48,
+      "trace_indices": [
+        48,
+        48,
+        48,
+        48
+      ]
+    },
+    {
+      "video_frame": 49,
+      "trace_indices": [
+        49,
+        49,
+        49,
+        49
+      ]
+    },
+    {
+      "video_frame": 50,
+      "trace_indices": [
+        50,
+        50,
+        50,
+        50
+      ]
+    },
+    {
+      "video_frame": 51,
+      "trace_indices": [
+        51,
+        51,
+        51,
+        51
+      ]
+    },
+    {
+      "video_frame": 52,
+      "trace_indices": [
+        52,
+        52,
+        52,
+        52
+      ]
+    },
+    {
+      "video_frame": 53,
+      "trace_indices": [
+        53,
+        53,
+        53,
+        53
+      ]
+    },
+    {
+      "video_frame": 54,
+      "trace_indices": [
+        54,
+        54,
+        54,
+        54
+      ]
+    },
+    {
+      "video_frame": 55,
+      "trace_indices": [
+        55,
+        55,
+        55,
+        55
+      ]
+    },
+    {
+      "video_frame": 56,
+      "trace_indices": [
+        56,
+        56,
+        56,
+        56
+      ]
+    },
+    {
+      "video_frame": 57,
+      "trace_indices": [
+        57,
+        57,
+        57,
+        57
+      ]
+    },
+    {
+      "video_frame": 58,
+      "trace_indices": [
+        58,
+        58,
+        58,
+        58
+      ]
+    },
+    {
+      "video_frame": 59,
+      "trace_indices": [
+        59,
+        59,
+        59,
+        59
+      ]
+    },
+    {
+      "video_frame": 60,
+      "trace_indices": [
+        60,
+        60,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 61,
+      "trace_indices": [
+        61,
+        61,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 62,
+      "trace_indices": [
+        62,
+        62,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 63,
+      "trace_indices": [
+        63,
+        63,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 64,
+      "trace_indices": [
+        64,
+        64,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 65,
+      "trace_indices": [
+        65,
+        65,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 66,
+      "trace_indices": [
+        66,
+        66,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 67,
+      "trace_indices": [
+        67,
+        67,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 68,
+      "trace_indices": [
+        68,
+        68,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 69,
+      "trace_indices": [
+        69,
+        69,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 70,
+      "trace_indices": [
+        70,
+        70,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 71,
+      "trace_indices": [
+        71,
+        71,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 72,
+      "trace_indices": [
+        72,
+        72,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 73,
+      "trace_indices": [
+        73,
+        73,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 74,
+      "trace_indices": [
+        74,
+        74,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 75,
+      "trace_indices": [
+        75,
+        75,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 76,
+      "trace_indices": [
+        76,
+        76,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 77,
+      "trace_indices": [
+        77,
+        77,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 78,
+      "trace_indices": [
+        78,
+        78,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 79,
+      "trace_indices": [
+        79,
+        79,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 80,
+      "trace_indices": [
+        80,
+        80,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 81,
+      "trace_indices": [
+        81,
+        81,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 82,
+      "trace_indices": [
+        82,
+        82,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 83,
+      "trace_indices": [
+        83,
+        83,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 84,
+      "trace_indices": [
+        84,
+        84,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 85,
+      "trace_indices": [
+        85,
+        85,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 86,
+      "trace_indices": [
+        86,
+        86,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 87,
+      "trace_indices": [
+        87,
+        87,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 88,
+      "trace_indices": [
+        88,
+        88,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 89,
+      "trace_indices": [
+        89,
+        89,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 90,
+      "trace_indices": [
+        90,
+        90,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 91,
+      "trace_indices": [
+        91,
+        91,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 92,
+      "trace_indices": [
+        92,
+        92,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 93,
+      "trace_indices": [
+        93,
+        93,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 94,
+      "trace_indices": [
+        94,
+        94,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 95,
+      "trace_indices": [
+        95,
+        95,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 96,
+      "trace_indices": [
+        96,
+        96,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 97,
+      "trace_indices": [
+        97,
+        97,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 98,
+      "trace_indices": [
+        98,
+        98,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 99,
+      "trace_indices": [
+        99,
+        99,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 100,
+      "trace_indices": [
+        100,
+        100,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 101,
+      "trace_indices": [
+        101,
+        101,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 102,
+      "trace_indices": [
+        102,
+        102,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 103,
+      "trace_indices": [
+        103,
+        103,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 104,
+      "trace_indices": [
+        104,
+        104,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 105,
+      "trace_indices": [
+        105,
+        105,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 106,
+      "trace_indices": [
+        106,
+        106,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 107,
+      "trace_indices": [
+        107,
+        107,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 108,
+      "trace_indices": [
+        108,
+        108,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 109,
+      "trace_indices": [
+        109,
+        109,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 110,
+      "trace_indices": [
+        110,
+        110,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 111,
+      "trace_indices": [
+        111,
+        111,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 112,
+      "trace_indices": [
+        112,
+        112,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 113,
+      "trace_indices": [
+        113,
+        113,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 114,
+      "trace_indices": [
+        114,
+        114,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 115,
+      "trace_indices": [
+        115,
+        115,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 116,
+      "trace_indices": [
+        116,
+        116,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 117,
+      "trace_indices": [
+        117,
+        117,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 118,
+      "trace_indices": [
+        118,
+        118,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 119,
+      "trace_indices": [
+        119,
+        119,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 120,
+      "trace_indices": [
+        120,
+        120,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 121,
+      "trace_indices": [
+        121,
+        121,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 122,
+      "trace_indices": [
+        122,
+        122,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 123,
+      "trace_indices": [
+        123,
+        123,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 124,
+      "trace_indices": [
+        124,
+        124,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 125,
+      "trace_indices": [
+        125,
+        125,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 126,
+      "trace_indices": [
+        126,
+        126,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 127,
+      "trace_indices": [
+        127,
+        127,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 128,
+      "trace_indices": [
+        128,
+        128,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 129,
+      "trace_indices": [
+        129,
+        129,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 130,
+      "trace_indices": [
+        130,
+        130,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 131,
+      "trace_indices": [
+        131,
+        131,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 132,
+      "trace_indices": [
+        132,
+        132,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 133,
+      "trace_indices": [
+        133,
+        133,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 134,
+      "trace_indices": [
+        134,
+        134,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 135,
+      "trace_indices": [
+        135,
+        135,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 136,
+      "trace_indices": [
+        136,
+        136,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 137,
+      "trace_indices": [
+        137,
+        137,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 138,
+      "trace_indices": [
+        138,
+        138,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 139,
+      "trace_indices": [
+        139,
+        139,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 140,
+      "trace_indices": [
+        140,
+        140,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 141,
+      "trace_indices": [
+        141,
+        141,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 142,
+      "trace_indices": [
+        142,
+        142,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 143,
+      "trace_indices": [
+        143,
+        143,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 144,
+      "trace_indices": [
+        144,
+        144,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 145,
+      "trace_indices": [
+        144,
+        145,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 146,
+      "trace_indices": [
+        144,
+        146,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 147,
+      "trace_indices": [
+        144,
+        147,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 148,
+      "trace_indices": [
+        144,
+        148,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 149,
+      "trace_indices": [
+        144,
+        149,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 150,
+      "trace_indices": [
+        144,
+        150,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 151,
+      "trace_indices": [
+        144,
+        151,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 152,
+      "trace_indices": [
+        144,
+        152,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 153,
+      "trace_indices": [
+        144,
+        153,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 154,
+      "trace_indices": [
+        144,
+        154,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 155,
+      "trace_indices": [
+        144,
+        155,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 156,
+      "trace_indices": [
+        144,
+        156,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 157,
+      "trace_indices": [
+        144,
+        157,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 158,
+      "trace_indices": [
+        144,
+        158,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 159,
+      "trace_indices": [
+        144,
+        159,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 160,
+      "trace_indices": [
+        144,
+        160,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 161,
+      "trace_indices": [
+        144,
+        161,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 162,
+      "trace_indices": [
+        144,
+        162,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 163,
+      "trace_indices": [
+        144,
+        163,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 164,
+      "trace_indices": [
+        144,
+        164,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 165,
+      "trace_indices": [
+        144,
+        165,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 166,
+      "trace_indices": [
+        144,
+        166,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 167,
+      "trace_indices": [
+        144,
+        167,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 168,
+      "trace_indices": [
+        144,
+        168,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 169,
+      "trace_indices": [
+        144,
+        169,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 170,
+      "trace_indices": [
+        144,
+        170,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 171,
+      "trace_indices": [
+        144,
+        171,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 172,
+      "trace_indices": [
+        144,
+        172,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 173,
+      "trace_indices": [
+        144,
+        173,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 174,
+      "trace_indices": [
+        144,
+        174,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 175,
+      "trace_indices": [
+        144,
+        175,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 176,
+      "trace_indices": [
+        144,
+        176,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 177,
+      "trace_indices": [
+        144,
+        177,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 178,
+      "trace_indices": [
+        144,
+        178,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 179,
+      "trace_indices": [
+        144,
+        179,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 180,
+      "trace_indices": [
+        144,
+        180,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 181,
+      "trace_indices": [
+        144,
+        181,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 182,
+      "trace_indices": [
+        144,
+        182,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 183,
+      "trace_indices": [
+        144,
+        183,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 184,
+      "trace_indices": [
+        144,
+        184,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 185,
+      "trace_indices": [
+        144,
+        185,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 186,
+      "trace_indices": [
+        144,
+        186,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 187,
+      "trace_indices": [
+        144,
+        186,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 188,
+      "trace_indices": [
+        144,
+        186,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 189,
+      "trace_indices": [
+        144,
+        186,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 190,
+      "trace_indices": [
+        144,
+        186,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 191,
+      "trace_indices": [
+        144,
+        186,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 192,
+      "trace_indices": [
+        144,
+        186,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 193,
+      "trace_indices": [
+        144,
+        186,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 194,
+      "trace_indices": [
+        144,
+        186,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 195,
+      "trace_indices": [
+        144,
+        186,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 196,
+      "trace_indices": [
+        144,
+        186,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 197,
+      "trace_indices": [
+        144,
+        186,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 198,
+      "trace_indices": [
+        144,
+        186,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 199,
+      "trace_indices": [
+        144,
+        186,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 200,
+      "trace_indices": [
+        144,
+        186,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 201,
+      "trace_indices": [
+        144,
+        186,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 202,
+      "trace_indices": [
+        144,
+        186,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 203,
+      "trace_indices": [
+        144,
+        186,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 204,
+      "trace_indices": [
+        144,
+        186,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 205,
+      "trace_indices": [
+        144,
+        186,
+        60,
+        60
+      ]
+    },
+    {
+      "video_frame": 206,
+      "trace_indices": [
+        144,
+        186,
+        60,
+        60
+      ]
+    }
+  ],
+  "render_kind": "2D exact trace envelope replay; not robot gait animation"
+}

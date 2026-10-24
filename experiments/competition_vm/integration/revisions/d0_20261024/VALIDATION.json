@@ -1,0 +1,14 @@
+{
+  "generated_at": "2026-10-24T12:07:26.656385+00:00",
+  "base_commit": "7f2a7070a17975d2a5f123cbf6aab0f99f04bf8a",
+  "evidence": "SYNTHETIC_IN_PROCESS",
+  "tests": 44,
+  "original_tests": 16,
+  "added_tests": 28,
+  "status": "PASS",
+  "trace_frames": 38,
+  "defect_reproductions": 3,
+  "native_ros": "NOT_RUN",
+  "robot": "NOT_RUN",
+  "canonical_schema_modified": false
+}
