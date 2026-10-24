@@ -1,0 +1,62 @@
+[
+  {
+    "scenario": "empty",
+    "fixture_sha256": "e6ee1aade91486d8019c8ad22d45ba0c7b6e46ad919d2308c81d18b6d58197d2",
+    "map_sha256": "5bbd3ddfdbd1175b1681e0c837bcb4f07902cb2ba77e457bbac9d0084cf4a986"
+  },
+  {
+    "scenario": "single_cone",
+    "fixture_sha256": "f7bc6072e97edd56ff11b14acbfbbec2619c37ef616c45191d01f8817547345c",
+    "map_sha256": "5bbd3ddfdbd1175b1681e0c837bcb4f07902cb2ba77e457bbac9d0084cf4a986"
+  },
+  {
+    "scenario": "central_cone_failure",
+    "fixture_sha256": "02f794f16f797d9bad85e1705d01eb60d7a9f715029b47af8ec1f0d3988b0f76",
+    "map_sha256": "5bbd3ddfdbd1175b1681e0c837bcb4f07902cb2ba77e457bbac9d0084cf4a986"
+  },
+  {
+    "scenario": "offcenter_575_failure",
+    "fixture_sha256": "62c46ac4cadcc44d00b07627cefa97910996e491ba39cc3c1b83d3b3b156c4fb",
+    "map_sha256": "5bbd3ddfdbd1175b1681e0c837bcb4f07902cb2ba77e457bbac9d0084cf4a986"
+  },
+  {
+    "scenario": "multiple_obstacles",
+    "fixture_sha256": "e136cc0484cb7fcb84bf6d97e982715b641c55ec69beeb23a9acd10f2dac1560",
+    "map_sha256": "5bbd3ddfdbd1175b1681e0c837bcb4f07902cb2ba77e457bbac9d0084cf4a986"
+  },
+  {
+    "scenario": "narrow_corridor",
+    "fixture_sha256": "f82378545fb9877c906bcd1fc83511bdbfa5bf25fd86f8d2fe63c6716d3f62d6",
+    "map_sha256": "5bbd3ddfdbd1175b1681e0c837bcb4f07902cb2ba77e457bbac9d0084cf4a986"
+  },
+  {
+    "scenario": "fully_blocked",
+    "fixture_sha256": "bba0caa89f1e18cb4383f9c25af54ca83fc916d5c75a39622ee4573b20cb886b",
+    "map_sha256": "5bbd3ddfdbd1175b1681e0c837bcb4f07902cb2ba77e457bbac9d0084cf4a986"
+  },
+  {
+    "scenario": "late_obstacle",
+    "fixture_sha256": "2d8e663ae7dcb0f55238fa9d6faeec606ed7108b2ad4937f57f016afb8fe478e",
+    "map_sha256": "5bbd3ddfdbd1175b1681e0c837bcb4f07902cb2ba77e457bbac9d0084cf4a986"
+  },
+  {
+    "scenario": "sensor_stale",
+    "fixture_sha256": "18f21411987f2bfc3f792536c8e825cc54d5634c2d1f9d52dadc1569019eba25",
+    "map_sha256": "5bbd3ddfdbd1175b1681e0c837bcb4f07902cb2ba77e457bbac9d0084cf4a986"
+  },
+  {
+    "scenario": "hold_release_delayed",
+    "fixture_sha256": "e3a833bb79b052eb1ed90b09d78583bff99a1a695b6de802d0735678875a32ae",
+    "map_sha256": "5bbd3ddfdbd1175b1681e0c837bcb4f07902cb2ba77e457bbac9d0084cf4a986"
+  },
+  {
+    "scenario": "signal_hold_recovery",
+    "fixture_sha256": "fee02428ef0379100770ddfa1c1ba657d04c6c75b9049cb72c43da1d12d40123",
+    "map_sha256": "5bbd3ddfdbd1175b1681e0c837bcb4f07902cb2ba77e457bbac9d0084cf4a986"
+  },
+  {
+    "scenario": "parking_forbidden",
+    "fixture_sha256": "322ab58e1c413d6cad06bc3dec7662c3295a46b966c70e6bb05024b20a7066a2",
+    "map_sha256": "b0ad2ca3d6ce8e5d0b56b535782fca99c90ef3a8dae1e6c51326df4c337772ae"
+  }
+]

@@ -1,0 +1,32 @@
+{
+  "rpp_baseline": {
+    "config_sha256": "bb719015548368ccecd87784d3090c70198cab4eb7aca42b1ad9a1b288984e9b",
+    "tuning_delta": {}
+  },
+  "rpp_tuned": {
+    "config_sha256": "d461d879dbf9417f4ad45ca5a50e393cfd5e09c977e3ad8c47fb28b4e877497c",
+    "tuning_delta": {
+      "lookahead_dist": {
+        "from": 0.4,
+        "to": 0.25
+      }
+    }
+  },
+  "mppi_baseline": {
+    "config_sha256": "d7a40b32efd00d7162d3a97f4eb04fd5acb0d9765dd70064c25211800ba0cd51",
+    "tuning_delta": {}
+  },
+  "mppi_tuned": {
+    "config_sha256": "a14b12a96b74bc522b72a6d98d1e42fe5233a3d65c5fcbde80430adc553ed5ac",
+    "tuning_delta": {
+      "time_steps": {
+        "from": 56,
+        "to": 40
+      },
+      "batch_size": {
+        "from": 1000,
+        "to": 1500
+      }
+    }
+  }
+}

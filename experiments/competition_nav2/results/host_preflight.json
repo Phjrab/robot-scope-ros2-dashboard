@@ -1,0 +1,33 @@
+{
+  "os_release": "PRETTY_NAME=\"Ubuntu 24.04.5 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nVERSION=\"24.04.5 LTS (Noble Numbat)\"\nVERSION_CODENAME=noble\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=noble\nLOGO=ubuntu-logo\n",
+  "architecture": "x86_64",
+  "container_runtimes": {
+    "docker": null,
+    "podman": null,
+    "nerdctl": null
+  },
+  "ros_distributions": [
+    "jazzy"
+  ],
+  "network_interfaces": [
+    "enp4s0",
+    "lo"
+  ],
+  "current_network_namespace": "net:[4026533970]",
+  "native_launch_attempted": false,
+  "errors": [],
+  "status": "NOT_RUN",
+  "blockers": [
+    "No installed container CLI; Humble absent on host; no host changes authorized by C3 scope."
+  ],
+  "namespace_probe": {
+    "args": [
+      "unshare",
+      "-Urn",
+      "true"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  }
+}

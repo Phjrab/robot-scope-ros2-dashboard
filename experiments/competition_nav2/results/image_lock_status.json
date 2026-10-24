@@ -1,0 +1,7 @@
+{
+  "status": "NOT_RUN",
+  "base_digest": null,
+  "image_id": null,
+  "installed_humble_nav2_versions": null,
+  "reason": "No existing Docker/Podman/nerdctl runtime; Humble absent. Resolve with container/manage.py build on an existing supported runtime."
+}
