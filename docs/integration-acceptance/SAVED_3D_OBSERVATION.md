@@ -63,6 +63,16 @@ are bounded. Unavailable/busy/changed inputs return HTTP 409.
   inlier RMSE, 0.002 minimum geometry eigen ratio, 40 iterations. Matched local
   reference geometry has the same eigen-ratio gate, so a large 3D map cannot
   qualify a locally planar correspondence set on its global geometry alone.
+- Local seed preparation (2026-10-24): when the initial inlier RMSE exceeds
+  0.2 m and initial overlap is at least 60%, one 0.4 m voxel-centroid stage
+  supplies a numerical seed, followed by the unchanged full-reference/full-query
+  ICP and qualification. Each stage has at most 40 iterations and shares the
+  same 600 ms request deadline. The 0.2 m trigger selects work, not acceptance.
+  Coarse metrics never qualify a result; only derived map geometry is cached,
+  never an old scan or transform. `seed_refinement` identifies this path as
+  `NUMERICAL_SEED_ONLY`. Close seeds keep the original numerical path. See
+  [the session record](SESSION_RESUME_20261024.md) for replay results and the
+  separate device deployment status.
 - Exact radius-grid neighbours use every reference point within the gate.
   Reusable candidate indices are bounded to 500,000 (4 MB) and 2,048 cells;
   exceeding the cache limit never truncates the candidate set.

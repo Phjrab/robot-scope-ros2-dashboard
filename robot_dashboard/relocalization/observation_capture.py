@@ -105,6 +105,7 @@ def replay_capture(payload, *, budget_s=10.0):
             "map": value["map"], "source_stamp_ns": value["source"]["source_stamp_ns"],
             "reference_sha256": value["reference"]["sha256"], "query_sha256": value["query"]["sha256"],
             "original": {key: copy.deepcopy(item) for key, item in payload.items() if key != "input_capture"},
-            "replay": {**assessment, "metrics": result["metrics"], "T_map_odom": transform.tolist()},
+            "replay": {**assessment, "metrics": result["metrics"], "T_map_odom": transform.tolist(),
+                       "seed_refinement": result.get("seed_refinement")},
             "budget_s": budget_s, "current_pose_valid": False,
             "qualification": "Offline current-solver replay; runtime, platform and library versions may differ."}

@@ -100,6 +100,7 @@ class ReferenceIndex:
     """
     def __init__(self, points: np.ndarray, *, deadline: float = float("inf")) -> None:
         self.points = points
+        self.coarse_cache = None
         try:
             from scipy.spatial import cKDTree
         except ImportError:
@@ -109,6 +110,16 @@ class ReferenceIndex:
             self.tree = cKDTree(points)
         if time.monotonic() > deadline:
             raise ObservationAlignmentError("COMPUTE_BUDGET_EXCEEDED")
+
+    def coarse_index(self, *, deadline: float):
+        from .observation_seed import voxel_centroids
+        if time.monotonic() > deadline:
+            raise ObservationAlignmentError("COMPUTE_BUDGET_EXCEEDED")
+        if self.coarse_cache is None:
+            # Only immutable derived map geometry survives between requests.
+            points = voxel_centroids(self.points)
+            self.coarse_cache = (points, ReferenceIndex(points, deadline=deadline))
+        return self.coarse_cache
 
     def nearest(self, query: np.ndarray, *, deadline: float = float("inf")) -> tuple[np.ndarray, np.ndarray]:
         if self.tree is None:
@@ -241,6 +252,9 @@ def project_query(cloud: dict[str, Any], pose: dict[str, Any], now: float, *,
 
 def solve_prepared(reference, grid, target_frame, points, frame, stamp_ns, seed, deadline):
     """Pure numerical work shared by inline diagnostics and the isolated worker."""
+    from .observation_seed import prepare_seed
+    with measure("local_seed"):
+        seed, refinement = prepare_seed(grid, points, target_frame, frame, stamp_ns, seed, deadline)
     def nearest(query, _):
         with measure("nearest"):
             return grid.nearest(query, deadline=deadline)
@@ -262,6 +276,8 @@ def solve_prepared(reference, grid, target_frame, points, frame, stamp_ns, seed,
         result["status"], result["reason"] = "REJECTED", "DEGENERATE_MATCHED_GEOMETRY"
     result["metrics"]["matched_geometry_min_max_eigen_ratio"] = ratio
     result["metrics"]["inlier_count"] = len(matched)
+    if refinement is not None:
+        result["seed_refinement"] = refinement
     return result, transform
 
 
@@ -377,6 +393,8 @@ class ObservationAligner:
                 "correspondence_gate_m": MAX_CORRESPONDENCE_M, "sampling": "uniform_stride_query_max512_full_normalized_reference",
                 "reference_processing": "catalogue all usable points; count equality required; rounded 0.0001 m; catalogue frame unverified",
                 "total_runtime_ms": (time.monotonic() - started) * 1000}
+            if "seed_refinement" in result:
+                payload["seed_refinement"] = result["seed_refinement"]
             if body.get("capture_inputs") is True:
                 from .observation_capture import capture_inputs
                 capture_started = time.monotonic()
