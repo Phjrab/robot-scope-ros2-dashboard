@@ -1,0 +1,122 @@
+{
+  "schema": "c3-offline-validation.v1",
+  "created_at_kst": "2026-10-24T21:28:49.722275+09:00",
+  "tested_code_commit": "dfeabb36e16a80f14c65f23361fd29d36504ac6b",
+  "tested_content_note": "Commands ran on the working-tree content subsequently committed without changes at tested_code_commit; this report and review documentation are a later documentation-only commit.",
+  "base_commit": "7f2a7070a17975d2a5f123cbf6aab0f99f04bf8a",
+  "backend": "surrogate/offline",
+  "environment": {
+    "os": "Ubuntu 24.04 x86_64",
+    "python": "3.12.3",
+    "numpy": "1.26.4",
+    "scipy": "1.11.4",
+    "PyYAML": "6.0.1",
+    "fastapi": "0.146.0",
+    "pydantic": "2.14.1",
+    "ruff": "0.6.9",
+    "dependency_source": "project-specific venv reuses read-only preinstalled Robot Scope packages and system NumPy/SciPy; no host/global package changes"
+  },
+  "checks": [
+    {
+      "name": "C3 focused",
+      "command": "../c3-venv/bin/python -m unittest discover -s experiments/competition_nav2/tests -v",
+      "status": "PASS",
+      "run": 38,
+      "passed": 38,
+      "skipped": 0
+    },
+    {
+      "name": "repository Python",
+      "command": "timeout 180s ../c3-venv/bin/python -m unittest discover -s tests -v",
+      "status": "PASS",
+      "run": 2691,
+      "passed": 2689,
+      "skipped": 2,
+      "duration_s": 84.805,
+      "context": "outside execution sandbox after sandbox asyncio executor shutdown hang was reproduced; hardware-free tests only"
+    },
+    {
+      "name": "JavaScript",
+      "command": "<bundled-node>/bin/node --test tests/*.mjs",
+      "status": "PASS",
+      "runner_test_units": 70
+    },
+    {
+      "name": "JavaScript syntax",
+      "command": "<bundled-node>/bin/node scripts/check_frontend_syntax.mjs",
+      "status": "PASS",
+      "modules": 104
+    },
+    {
+      "name": "Ruff",
+      "command": "ruff check experiments/competition_nav2 robot_dashboard scripts",
+      "status": "PASS"
+    },
+    {
+      "name": "Python syntax",
+      "command": "python -m compileall -q experiments/competition_nav2",
+      "status": "PASS"
+    },
+    {
+      "name": "fixture generation",
+      "command": "python experiments/competition_nav2/fixtures.py --output ../c3-generated-fixtures",
+      "status": "PASS",
+      "cases": 12,
+      "generated_maps_in_git": false
+    },
+    {
+      "name": "configuration generation/lint",
+      "command": "python experiments/competition_nav2/configure.py",
+      "status": "PASS",
+      "candidate_count": 4
+    },
+    {
+      "name": "tracked-source secrets",
+      "command": "python scripts/check_repository_secrets.py",
+      "status": "PASS"
+    },
+    {
+      "name": "native image build and comparison",
+      "status": "NOT_RUN",
+      "scheduled": 144,
+      "executed": 0,
+      "reason": "No existing Docker/Podman/nerdctl and no Humble; host Jazzy not substituted"
+    },
+    {
+      "name": "physical robot and whole course",
+      "status": "NOT_RUN",
+      "reason": "outside authorized scope"
+    },
+    {
+      "name": "local browser E2E",
+      "status": "NOT_RUN",
+      "reason": "no browser/UI changes in C3; existing branch CI will run the untouched baseline E2E suite"
+    }
+  ],
+  "skip_reasons": [
+    "optional rosbags backend not installed",
+    "PCD_EDIT_NODE not set for Python/JavaScript geometry parity"
+  ],
+  "setup_failures_preserved": [
+    {
+      "status": "BLOCKED_ENVIRONMENT",
+      "detail": "Sandbox full suite and isolated mapping test hung in asyncio Runner.close; identical 13 mapping tests passed outside sandbox."
+    },
+    {
+      "status": "FAILED_SETUP_THEN_RESOLVED",
+      "detail": "First outside-sandbox suite: missing FastAPI/Pydantic; next run: NumPy 2.5.4 / SciPy 1.11.4 ABI mismatch. Reused installed dependencies and selected NumPy 1.26.4 in C3 environment; final full suite passed."
+    },
+    {
+      "status": "BLOCKED_ENVIRONMENT",
+      "detail": "Ruff pip attempts timed out/network unreachable. Existing repository-specific Ruff 0.6.9 used read-only."
+    }
+  ],
+  "local_full_log_sha256": {
+    "focused": "7d72a5585ad4336883c5ea3dc5252acebfb400ea47984cba269d7ee5693351ac",
+    "repository_python": "7dac158e1326be94dbda8d4512bb32a64d15f810725310e8038fbc6692b97db8",
+    "javascript": "3e30bb8f6cf364bddd6bff7946173478b8152856b4ea583c43b21dde5e929a9a",
+    "ruff": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+  },
+  "large_or_full_logs": "Full repository logs remain local; they have not been uploaded. A small exact terminal summary and C3 focused log are included.",
+  "native_evidence_status": "NOT_RUN; no actual Nav2 logs/action outputs/plugin runtime receipts exist for this submission."
+}

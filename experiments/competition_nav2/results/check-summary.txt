@@ -1,0 +1,21 @@
+Repository Python (hardware-free, outside sandbox):
+test_real_humble_cdr_serialization_is_decoded_offline (test_isaac_vslam_inspect_bag.RosbagsBackendTests.test_real_humble_cdr_serialization_is_decoded_offline) ... skipped 'optional rosbags backend not installed'
+test_javascript_geometry_parity (test_pcd_editing_codec.GeometryTests.test_javascript_geometry_parity) ... skipped 'Set PCD_EDIT_NODE to run parity against the existing JavaScript editor'
+Ran 2691 tests in 84.805s
+OK (skipped=2)
+
+JavaScript:
+✔ tests/test_ui_status_labels.mjs (65.053965ms)
+ℹ tests 70
+ℹ suites 0
+ℹ pass 70
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1538.580452
+
+Ruff:
+All checks passed!
+
+Frontend syntax: checked JavaScript syntax for 104 dashboard modules
