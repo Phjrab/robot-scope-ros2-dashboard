@@ -388,3 +388,53 @@ bridge inactive, ownership clear였다. private `joints-time-bundle`에 10파일
 checkout에서 check/install/restore/check를 통과했다. 아직 장비에 쓰지 않았다.
 기존 관측의 15:13:51 종료 시각을 연장하지 않는다. 추가 적용·재시작 1회와
 이전 관측 종료 후 최대 30분 실행은 원래 요청 7항의 추가 승인 대상이다.
+
+
+## 추가 승인 적용 및 정지 실장비 확인
+
+사용자가 10파일 적용·dashboard 재시작 1회·관측 30분을 승인했다. 소스는
+`8a224151d55869cefc3c9d447233e4cd8928c204`, 로봇 Git base는 기존
+`d7807de8f15fb457942039bb90ab41cf68d384c6`에 선택적 overlay로 구분한다.
+9파일 백업/신규 1파일 설치 후 dashboard는 **15:15:16 KST**, PID153644로
+한 번 재시작했다. sudo 비대화형 캐시 만료 후 기존 승인·인증 범위의 대화형
+재시작을 완료했으며 인증정보는 파일에 보존하지 않았다. service 소유 Hesai
+preview PID153797이 복구됐다. 이전 coarse 관측은 종료됐고 중복 FAST-LIO가
+없음을 확인한 뒤 `robot-scope-observation-joints-time-20261024.service`를
+15:16:06에 시작했다. MainPID154694/mapping154753, RuntimeMaxSec1800,
+TF·Log·PCD 격리와 PCD save OFF를 확인했다. **15:46:06 자동 종료 예정**이며
+실행 시간을 연장하지 않았다.
+
+새 observer `cf336aaaaf7962bfdbe9faff805b9a86`의 `/Odometry`
+`camera_init→body`는 계속 FAST-LIO IMU 기준이다. 과거 보정 지도 pose
+XYZ(0.3351,0.4273,0.05054)m/RPY(0.5283,−0.0720,10.4711)°만 근사 prior로
+새 odometry에 다시 연결했다. 옛 T_map_odom을 재사용하지 않았다. 기존 관측
+종료 후 자동 선택된 제조사 odometry는 FAST-LIO prior 전파에 사용하지 않았다.
+같은 최신 지도 ID/revision을 유지하며 실제 정합 보정·IMU 마커·URDF 모델·
+12관절·높이 표시를 확인했다. 화면 예시 RMSE0.07057–0.07228m/overlap1.0,
+별도 단독 HTTP 요청은 RMSE0.0725568m/408 inliers/7회 수렴/총91.77ms였다.
+그 응답의 `X-Observation-Retry-After-Ms: 896`을 확인했고, 왕복은484ms였다.
+원래5cm 판정은 계속 거절, 잠정10cm만 통과이며 절대 정확도는 미측정이다.
+
+재시작 이후 수집한 서버 trace 110건은 HTTP200 99건/409 11건이었다. exact
+pose 대기가 필요한 16건은2–4회 조회했고 최대 대기41.45ms였다. trace에서
+RATE_LIMIT 전용 조기 거절이나 input pairing 단계 실패는 관측되지 않았다.
+99건 HTTP200의 서버 응답 시간 중앙값은168.43ms다. 나머지11건은 metadata
+7건, completion validation3건, 초기 isolated registration1건의 실패였다.
+목록 잠금 대기가 약0.59–1.12초인 구간이 있어 기존 계산·신선도 제한에 걸리는
+문제는 남아 있다. 시간 제한은 늘리지 않았고 실패 중 유효한 odometry를 유지한다.
+HTTP200 집계를 독립 정확도나 매번 수렴 성공으로 해석하지 않는다.
+
+사용자는 **서 있는 정지 상태만 확인**을 선택했다. 15:18:16–15:21:15 KST의
+3분 읽기 기록에서 pose370개·관절370개 모두 state ok, 서로 다른seq370개,
+pose epoch1개였다. 서버 age 최대pose177ms/관절57ms, odometry Z 범위는
+0.001303–0.005446m(폭4.143mm), 가장 큰 관절각 변동폭0.000212rad였다.
+이는 정지 입력 변동이며 독립 정확도·움직임 추적 성능이 아니다. 앉은 자세의
+실제 상하 운동은 미실시이며 합성 수직 이동·앉기 시험과 구분한다.
+
+15:23:02 최종 readback에서 설치/백업·지도/설정 해시가 모두 일치하고 bridge
+inactive/disabled, 새 FAST-LIO1개와 preview1개였다. ownership은 수치 정합
+`legacy_alignment`만 수행 중이고 다른 busy/unknown은 없었다. UI의 반복
+정합은 단독 응답 확인 후 다시 켰고 지도·관절 화면을 남겼다. private에
+`joints-stationary-summary.json`, `joints-live-motion.ndjson`, `joints-ui-export.json`,
+`joints-cooldown-response.json`, `joints-service-journal.txt`, `joints-final-readback.json`,
+`joints-map-screen.png`, `joints-controls-screen.png`와 복구 번들을 보존했다.

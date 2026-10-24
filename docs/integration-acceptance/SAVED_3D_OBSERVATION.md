@@ -1,6 +1,6 @@
 # Saved 3D map observation and editor integration — 2026-10-18
 
-**Latest local candidate (2026-10-24; not deployed):** live alignment responses
+**Latest approved deployment (2026-10-24; `8a22415`):** live alignment responses
 return `X-Observation-Retry-After-Ms`, computed from the server monotonic limiter
 after serialization. The browser waits the returned duration after receipt;
 wall clocks are never compared. Missing headers or network errors use a one-second
@@ -15,8 +15,11 @@ calibration or joint/pose clock-sync claim. Missing/stale joints hide this model
 fresh IMU observations remain independent. Full XYZ/RPY and metric geometry
 are preserved; there is no stand-height or ground clamp. The ΔZ reference survives
 map correction, and resets on explicit reanchor/new source. Synthetic sitting,
-vertical movement, stale input and source replacement pass; physical validation
-and deployment still require the next approved observation session.
+vertical movement, stale input and source replacement pass. The approved ten-file
+deployment and standing stationary hardware validation are complete. The user
+deferred physical sitting/vertical motion testing. The observation runtime is
+bounded to 15:16:06–15:46:06 KST; see the session record for remaining catalogue
+lock delays and qualification limits.
 
 **Latest hardware evidence (2026-10-24):** the conditional coarse-to-full seed
 implementation in `cc83ee0` was deployed as three Python overlays, followed by
