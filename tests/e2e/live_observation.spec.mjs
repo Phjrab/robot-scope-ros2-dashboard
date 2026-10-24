@@ -593,3 +593,68 @@ test('preset save errors do not retry writes and loaded body coordinates cannot 
   await expect(page.locator('#savedAnchorPresetStatus')).toContainText('불러올 수 있는 초기값');
   expect(writes).toEqual([root]);expect(errors).toEqual([]);
 });
+
+function anchorProposalBackend(backend) {
+  const flags={historical_only:true,current_result:null,body_pose:null,tracking_verified:false,body_pose_verified:false,
+    body_extrinsic_verified:false,operational_application:'NOT_RUN',absolute_accuracy_m:null};
+  const root='/api/v1/observations/global-jobs', jobId='9'.repeat(24);
+  let job=null;
+  backend.on(root,({json,body,request})=>{
+    if(request.method()==='POST') {
+      expect(body.input_kind).toBe('fastlio_imu');
+      const captured={map_id:id,map_revision:revision,map_frame:'map',source_frame:'body',observer_id:'d'.repeat(32),
+        observer_epoch:'c'.repeat(32),source_stamp_ns:'1792309179130175352'};
+      job={...flags,schema:'robot-scope.raw-global-observation-job.v1',job_id:jobId,generation:1,request_id:body.request_id,
+        input_kind:body.input_kind,provenance_mode:body.provenance_mode,map_id:id,map_revision:revision,
+        state:'succeeded',worker_active:false,captured_context:captured,result:{...flags,
+          schema:'robot-scope.raw-global-observation-result.v1',job_id:jobId,generation:1,captured_context:captured,observation:{}}};
+      return json(job,202);
+    }
+    return json({...flags,schema:'robot-scope.raw-global-observations.v1',provider:{available:true},generation:job?1:0,closed:false,active:null,latest:job});
+  });
+  const value={schema:'robot-scope.anchor-proposal.v1',job_id:jobId,map:{id,revision,frame:'map'},pose_reference:'FASTLIO_IMU',
+    units:'metres_degrees',pose:{x:.7,y:-.4,z:.12,roll:1,pitch:-2,yaw:35},approximate_only:true,requires_reanchor:true,
+    source_contract:{observer_id:'d'.repeat(32),cloud_epoch:'c'.repeat(32),pose_epoch:'f'.repeat(32),
+      provenance_mode:'native_publisher',cloud_subscription:null,pose_subscription:null},
+    capture_stamp_ns:'1792309179130175352',proposal_stamp_ns:'1792309179130175353',pose_age_s:.1,
+    ambiguity_unresolved:true,rmse_m:.07,overlap:.9,absolute_accuracy_m:null,body_extrinsic_verified:false,operational_application:'NOT_RUN'};
+  const path=`${root}/${jobId}/anchor-proposal`;
+  backend.on(path,({json})=>json(value));
+  return {root,path,value};
+}
+
+test('automatic IMU proposal fills editable values and connects only after user confirmation',async({page})=>{
+  const {backend,writes,errors}=await fixture(page,{imu:true});
+  const {root}=anchorProposalBackend(backend);
+  await expect(page.locator('#savedAnchorEstimateStart')).toBeEnabled();
+  await page.locator('#savedAnchorEstimateStart').click();
+  await expect(page.locator('#savedAnchorEstimateApply')).toBeEnabled();
+  await page.locator('#savedAnchorEstimateApply').click();
+  await expect(page.locator('#savedLive_x')).toHaveValue('0.7');
+  await expect(page.locator('#savedLive_yaw')).toHaveValue('35');
+  await expect(page.locator('#savedAnchorEstimateStatus')).toContainText('모호한 후보');
+  await expect(page.locator('#savedLiveConfirm')).not.toBeChecked();
+  await expect(page.locator('#savedLiveAnchor')).toBeDisabled();
+  await expect(page.locator('#savedLiveRegistration')).not.toBeChecked();
+  await page.locator('#savedLive_yaw').fill('34');
+  await page.locator('#savedLiveConfirm').check();
+  await page.locator('#savedLiveAnchor').click();
+  await page.locator('#savedLiveRegistration').check();
+  await expect(page.locator('#savedLiveState')).toHaveText('SCAN_TO_MAP_CANDIDATE_UNVERIFIED');
+  expect(writes.filter(p=>p===root)).toHaveLength(1);
+  expect(writes.filter(p=>p.includes('/fastlio/'))).toEqual([]);expect(errors).toEqual([]);
+});
+
+test('a late automatic proposal cannot fill fields after its source changes',async({page})=>{
+  const {backend,state,errors}=await fixture(page,{imu:true});
+  const {path,value}=anchorProposalBackend(backend);
+  let release;const gate=new Promise(resolve=>{release=resolve;});let entered=false;
+  backend.on(path,async({json})=>{entered=true;await gate;return json(value);});
+  await expect(page.locator('#savedAnchorEstimateStart')).toBeEnabled();await page.locator('#savedAnchorEstimateStart').click();
+  await expect(page.locator('#savedAnchorEstimateApply')).toBeEnabled();await page.locator('#savedAnchorEstimateApply').click();
+  await expect.poll(()=>entered).toBe(true);state.epoch='e';
+  await expect(page.locator('#savedAnchorEstimateApply')).toBeDisabled();
+  await page.waitForTimeout(350);release();
+  await expect(page.locator('#savedLive_x')).toHaveValue('0');
+  await expect(page.locator('#savedLiveConfirm')).not.toBeChecked();expect(errors).toEqual([]);
+});

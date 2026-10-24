@@ -2,6 +2,7 @@ import { LiveMapObservation, rpyMatrix } from './live_observation_contract.js';
 import { ObservedJoints, GO2_JOINT_NAMES } from './observed_joints.js';
 import { initializeObservationSession } from './observation_session.js';
 import { ANCHOR_FIELDS, initializeAnchorPresets, validAnchorPose } from './anchor_presets.js';
+import { initializeAnchorProposal, anchorSourceContract, sameAnchorSource } from './anchor_proposal.js';
 
 export function observationAvailabilityText(state) {
   if (state.status !== 'SOURCE_IDENTITY_UNAVAILABLE') return '';
@@ -48,7 +49,7 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
   panel.innerHTML = `<div class="saved-live-heading"><strong>저장 지도 · 실험 관측</strong><label class="saved-live-toggle"><input id="savedLiveEnabled" type="checkbox"> 현재 점군·pose 읽기</label></div>
     <div class="saved-live-overview">
       <div class="saved-live-status"><strong id="savedLiveState" role="status">OFF</strong><span class="saved-live-qualification">미검증 추정 · 운영 위치 적용 없음</span></div>
-      <p>수동 기준점 실험이며 새 전역 후보·센서 연속 관측과 연결되지 않습니다.</p>
+      <p>자동 추정 또는 저장된 초기값을 확인한 뒤 기준점 연결·지도 정합을 진행하세요.</p>
       <span id="savedLiveMetrics"></span>
       <span id="savedLiveHeight"></span>
       <p id="savedLiveAvailability" hidden></p>
@@ -58,7 +59,7 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     <details class="saved-live-details" id="savedLiveAnchorDetails">
       <summary><span>기준점 설정</span><small>지도 위치·방향</small></summary>
       <div class="saved-live-details-body">
-        <p>지도 초기 위치는 사용자 추정값입니다. 본체 교정·시계·scan deskew는 미검증입니다.</p>
+        <p>지도 초기 위치는 확인·수정할 수 있는 근사값입니다. 본체 교정·시계·scan deskew는 미검증입니다.</p>
         <div class="saved-live-anchor">${['x','y','z','roll','pitch','yaw'].map(k => `<label>${k.toUpperCase()} (${['x','y','z'].includes(k) ? 'm' : '°'})<input id="savedLive_${k}" type="number" step="0.01" value="0" aria-label="지도 후보 ${k}"></label>`).join('')}</div>
         <label><input id="savedLiveConfirm" type="checkbox"> 정지 상태에서 입력한 위치·방향을 근사 기준점으로 사용합니다. 원점 0은 자동으로 검증되지 않습니다.</label>
         <div class="saved-live-actions"><button id="savedLiveAnchor" type="button">현재 pose를 기준점에 연결</button><button id="savedLiveClear" type="button">기준점 해제</button></div>
@@ -89,25 +90,36 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
   const el = id => panel.querySelector(`#savedLive${id}`), model = new LiveMapObservation();
   const joints = new ObservedJoints();
   let geometryKey = '', inFlight = false, nextRequest = -Infinity, error = '', wasVisible = false, dynamicCleared = false, requestController = null, disposed = false, suspended = false;
-  let presetReference = null, presetMapKey = '';
+  let presetReference = null, presetMapKey = '', proposalFence = null;
+  const proposalInputs = () => ({ cloud: model.cloud?.value, pose: model.pose?.value, mode: model.provenanceMode });
   const anchorMapKey = () => JSON.stringify([model.map?.id, model.map?.revision, model.map?.frame]);
   const currentReference = () => model.pose
     ? (model.pose.value.topic === '/Odometry' && model.pose.value.frame_id === 'camera_init' && model.pose.value.child_frame_id === 'body' ? 'FASTLIO_IMU' : 'UNVERIFIED_BODY')
     : presetReference || 'FASTLIO_IMU';
   const readAnchorPose = () => Object.fromEntries(ANCHOR_FIELDS.map(k => [k,
     el(`_${k}`).value.trim() === '' ? NaN : Number(el(`_${k}`).value)]));
-  const presets = initializeAnchorPresets({
-    host: el('AnchorDetails').querySelector('.saved-live-details-body'), getState: () => model.snapshot(),
-    getReference: () => presetReference || currentReference(), readPose: readAnchorPose,
-    fillPose: (pose, reference) => {
+  const fillAnchorPose = (pose, reference) => {
       if (!validAnchorPose(pose)) throw new Error('초기 위치·방향 값을 확인해 주세요.');
       if (model.pose && reference !== currentReference()) throw new Error('프리셋의 IMU/본체 기준이 현재 pose와 다릅니다.');
+      proposalFence = null;
       presetReference = reference; presetMapKey = anchorMapKey();
       for (const k of ANCHOR_FIELDS) el(`_${k}`).value = String(Number(pose[k].toFixed(6)));
       model.invalidate('ANCHOR_INPUT_CHANGED'); model.registrationEnabled = false;
       el('Confirm').checked = false; el('Registration').checked = false;
       requestController?.abort(); error = ''; clearDynamic(true); render();
+  };
+  const presets = initializeAnchorPresets({
+    host: el('AnchorDetails').querySelector('.saved-live-details-body'), getState: () => model.snapshot(),
+    getReference: () => presetReference || currentReference(), readPose: readAnchorPose, fillPose: fillAnchorPose,
+  });
+  const proposal = initializeAnchorProposal({
+    host: el('AnchorDetails').querySelector('.saved-live-details-body'), getState: () => model.snapshot(), getInputs: proposalInputs,
+    available: () => !disposed && !suspended && model.enabled && getContext().visible,
+    onStart: () => {
+      model.invalidate('INITIAL_ESTIMATE_RUNNING'); model.registrationEnabled = false;
+      el('Registration').checked = false; el('Confirm').checked = false; requestController?.abort(); clearDynamic(true); render();
     },
+    fillPose: (pose, fence) => { fillAnchorPose(pose, 'FASTLIO_IMU'); proposalFence = fence; },
   });
   const resetSession = reason => {
     model.resetInputs(reason); model.registrationEnabled = false; el('Confirm').checked = false; el('Registration').checked = false;
@@ -132,12 +144,18 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     context.visible = context.visible && !layout.hidden;
     panel.hidden = !context.visible;
     model.setMap(context.meta, context.cloud);
+    if (proposalFence && !sameAnchorSource(proposalFence, anchorSourceContract(proposalInputs()))) {
+      proposalFence = null; presetReference = null; presetMapKey = '';
+      for (const k of ANCHOR_FIELDS) el(`_${k}`).value = '';
+      el('Confirm').checked = false; model.invalidate('INITIAL_ESTIMATE_SOURCE_CHANGED');
+    }
     if (presetReference && presetMapKey !== anchorMapKey()) {
       presetReference = null; presetMapKey = '';
       for (const k of ANCHOR_FIELDS) el(`_${k}`).value = '';
       el('Confirm').checked = false;
     }
     presets.render();
+    proposal.render();
     if (!context.visible && wasVisible && model.enabled) model.invalidate('VIEW_SUSPENDED');
     wasVisible = context.visible;
     const state = model.snapshot();
@@ -240,7 +258,7 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     } catch (e) { error = e.message; }
     render();
   });
-  el('Clear').addEventListener('click', () => { presetReference = null; presetMapKey = ''; model.invalidate('CLEARED'); error = ''; render(); });
+  el('Clear').addEventListener('click', () => { proposalFence = null; presetReference = null; presetMapKey = ''; model.invalidate('CLEARED'); error = ''; render(); });
   el('Registration').addEventListener('change', () => {
     model.registrationEnabled = el('Registration').checked; model.registration = null; model.generation++;
     model.geometryCache = null; render(); void estimate();
@@ -267,5 +285,5 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     demandChanged(); render();
   }, ingestPose: value => { if (!suspended) model.ingestPose(value); }, ingestCloud: value => { if (!suspended) model.ingestCloud(value); },
     ingestJoints: value => joints.ingest(value),
-    reset: reason => { joints.clear(); model.resetInputs(reason); clearDynamic(true); }, destroy: () => { disposed = true; presets.destroy(); session.destroy(); visibility.disconnect(); model.enable(false); requestController?.abort(); clearInterval(timer); clearDynamic(); panel.remove(); style.remove(); } };
+    reset: reason => { joints.clear(); model.resetInputs(reason); clearDynamic(true); }, destroy: () => { disposed = true; proposal.destroy(); presets.destroy(); session.destroy(); visibility.disconnect(); model.enable(false); requestController?.abort(); clearInterval(timer); clearDynamic(); panel.remove(); style.remove(); } };
 }
