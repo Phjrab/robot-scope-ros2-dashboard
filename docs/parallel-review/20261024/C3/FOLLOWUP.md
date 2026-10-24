@@ -18,6 +18,12 @@ a matching forward-only through-poses tree with native Spin/Wait. The normal
 NavigateToPose tree and controller limits stay unchanged. Costmap footprint,
 inflation and scan configuration now also receive runtime parameter readback.
 
+Third run [40097544519](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40097544519), source `3f7abe20924a8da11493762095006d81306e2fa8`, activated all five native lifecycle nodes.
+Graph audit then found two publishers belonging to the same behavior server:
+Humble TimedBehavior creates one velocity publisher per plugin, including Wait.
+The audit now requires the exact configured behavior-plugin count with the same
+owner for every endpoint. Foreign owners and extra/missing endpoints still fail.
+
 The next run still gates on one empty RPP case: only actual GOAL_REACHED plus
 independent evidence PASS permits the remaining seven sequential cases. The separate synthetic obstacle
 diagnostic has a full-footprint swept reference feasibility check. That reference

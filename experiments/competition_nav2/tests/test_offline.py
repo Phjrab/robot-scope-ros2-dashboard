@@ -28,7 +28,7 @@ from fixtures import World, cases, diagnostic_cases, digest, reference_feasibili
 from preflight import isolated_errors
 from validate import validate_record, validate_directory
 from matrix import plan
-from native_runner import plugin_library_names
+from native_runner import plugin_library_names, publisher_owners_match
 
 
 class BoundaryTests(unittest.TestCase):
@@ -230,6 +230,16 @@ class FixtureTests(unittest.TestCase):
 
 
 class ConfigIsolationEvidenceTests(unittest.TestCase):
+    def test_behavior_publishers_require_exact_plugin_count_and_same_owner(self):
+        owner = "/c3_nav2/behavior_server"
+        self.assertTrue(publisher_owners_match([owner, owner], owner, 2))
+        self.assertFalse(publisher_owners_match([owner], owner, 2))
+        self.assertFalse(publisher_owners_match([owner] * 3, owner, 2))
+        self.assertFalse(
+            publisher_owners_match([owner, "/foreign/behavior_server"], owner, 2)
+        )
+        self.assertFalse(publisher_owners_match([owner, owner], owner))
+
     def test_both_default_trees_only_require_enabled_behaviors(self):
         for name in ("replan.xml", "replan_through_poses.xml"):
             root = ET.parse(ROOT / "config" / name).getroot()

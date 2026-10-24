@@ -19,6 +19,11 @@ from fixtures import World, digest
 from preflight import require_isolated
 
 
+def publisher_owners_match(observed, owner, endpoint_count=1):
+    """Humble TimedBehavior allocates one publisher per loaded behavior plugin."""
+    return sorted(observed) == [owner] * endpoint_count
+
+
 def plugin_library_names(share, plugin):
     """Use installed plugin exports; package and shared-library names can differ."""
     names = set()
@@ -454,7 +459,18 @@ def main(directory):
                 ownership[topic] = [
                     p.node_namespace.rstrip("/") + "/" + p.node_name for p in pubs
                 ]
-                if require_owners and ownership[topic] != ["/c3_nav2/" + owner]:
+                count = (
+                    len(
+                        expected["behavior_server"]["ros__parameters"][
+                            "behavior_plugins"
+                        ]
+                    )
+                    if owner == "behavior_server"
+                    else 1
+                )
+                if require_owners and not publisher_owners_match(
+                    ownership[topic], "/c3_nav2/" + owner, count
+                ):
                     raise RuntimeError(
                         "publisher ownership conflict or absence: "
                         + topic
