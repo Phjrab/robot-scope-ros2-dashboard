@@ -137,5 +137,5 @@ def _frame(item, bgr, sequence, epoch, fps, binding_id, video_index):
         f"{item.sha256}:{video_index}".encode()).hexdigest()
     return Frame(bgr, "offline-rgb", epoch, sequence, str(round(t * 1e9)),
                  "fixture", 0., t, True, "RECORDED_RGB_OFFLINE_VIRTUAL_CLOCK", handle,
-                 binding_id, original_metadata={"input_sha256": item.sha256,
+                 binding_id, identity_verified=True, original_metadata={"input_sha256": item.sha256,
                  "video_frame_index": video_index, "explicit_replay_fps": fps, **item.metadata})

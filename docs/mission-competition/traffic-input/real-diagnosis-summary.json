@@ -1,0 +1,138 @@
+{
+  "baseline_head": "e2e9c5087767f3953d715c61e76388e4769d34b4",
+  "source_timeline": {
+    "status": "PASS",
+    "missing_inputs": [],
+    "real_model_inference": "RUN",
+    "real_rgb_decode": "PASS",
+    "real_rgb_detection_replay": "RUN",
+    "robot_observation": "NOT_RUN",
+    "traffic_accuracy": null,
+    "exposure_problem_resolved": false,
+    "input_files": 255,
+    "frames": 255,
+    "decode_errors": 0,
+    "quality_flags": {
+      "EXPECTED_ROI_MISMATCH": 74,
+      "ASSOCIATION_UNVERIFIED": 255,
+      "DETECTOR_MISSING": 167,
+      "FRAME_RECEIPT_GAP": 2,
+      "ASSOCIATION_UNCERTAIN": 2
+    },
+    "stable_states": {
+      "UNKNOWN": 255
+    },
+    "complete_mission_evidence": false,
+    "wall_seconds": 14.181141966953874,
+    "clock_mode": "source-timeline",
+    "funnel_pass_counts": {
+      "decoded": 255,
+      "candidate_present": 88,
+      "roi_selected": 12,
+      "readable_raw_color": 5,
+      "binding_verified": 0,
+      "stable_color": 0
+    },
+    "terminal_rejections": {
+      "EXPECTED_ROI_MISMATCH": 74,
+      "DETECTION_REJECTED": 167,
+      "ASSOCIATION_UNCERTAIN": 2,
+      "ASSOCIATION_UNVERIFIED": 5,
+      "COLOR_REJECTED": 7
+    },
+    "historical_clock_verified": false,
+    "online_readiness": "NOT_VERIFIED_LOCAL_FIXTURE_WORKLOAD_ONLY",
+    "pipeline_wall_latency_s": {
+      "min": 0.02313712681643665,
+      "max": 0.11415619985200465,
+      "mean": 0.027842440573936877,
+      "p95": 0.03331755194813013
+    }
+  },
+  "wall_clock": {
+    "status": "PASS",
+    "missing_inputs": [],
+    "real_model_inference": "RUN",
+    "real_rgb_decode": "PASS",
+    "real_rgb_detection_replay": "RUN",
+    "robot_observation": "NOT_RUN",
+    "traffic_accuracy": null,
+    "exposure_problem_resolved": false,
+    "input_files": 255,
+    "frames": 255,
+    "decode_errors": 0,
+    "quality_flags": {
+      "EXPECTED_ROI_MISMATCH": 74,
+      "ASSOCIATION_UNVERIFIED": 255,
+      "DETECTOR_MISSING": 167,
+      "FRAME_RECEIPT_GAP": 2,
+      "ASSOCIATION_UNCERTAIN": 2
+    },
+    "stable_states": {
+      "UNKNOWN": 255
+    },
+    "complete_mission_evidence": false,
+    "wall_seconds": 51.85354241798632,
+    "clock_mode": "wall-clock",
+    "funnel_pass_counts": {
+      "decoded": 255,
+      "candidate_present": 88,
+      "roi_selected": 12,
+      "readable_raw_color": 5,
+      "binding_verified": 0,
+      "stable_color": 0
+    },
+    "terminal_rejections": {
+      "EXPECTED_ROI_MISMATCH": 74,
+      "DETECTION_REJECTED": 167,
+      "ASSOCIATION_UNCERTAIN": 2,
+      "ASSOCIATION_UNVERIFIED": 5,
+      "COLOR_REJECTED": 7
+    },
+    "historical_clock_verified": false,
+    "online_readiness": "NOT_VERIFIED_LOCAL_FIXTURE_WORKLOAD_ONLY",
+    "pipeline_wall_latency_s": {
+      "min": 0.023589247837662697,
+      "max": 0.11781905498355627,
+      "mean": 0.03420574446117469,
+      "p95": 0.07699355809018016
+    }
+  },
+  "before_after": {
+    "baseline_missing_flag": 241,
+    "new_no_traffic_candidate": 167,
+    "new_expected_roi_mismatch": 74,
+    "same_candidates_every_frame": true,
+    "same_raw_and_stable_every_frame": true
+  },
+  "post_nms_boxes": 1723,
+  "allowlist_boxes": 105,
+  "non_allowlist_boxes": 1618,
+  "no_post_nms_box_frames": 7,
+  "only_non_allowlist_frames": 160,
+  "below_floor_or_nms_suppression_count": "NOT_OBSERVABLE_AFTER_NMS",
+  "native_crop_pixel_equality_pass": 12,
+  "encoding_checks": [
+    {
+      "sample_index": 117,
+      "opencv_bgr_equals_pillow_rgb_reversed": true
+    },
+    {
+      "sample_index": 127,
+      "opencv_bgr_equals_pillow_rgb_reversed": true
+    },
+    {
+      "sample_index": 131,
+      "opencv_bgr_equals_pillow_rgb_reversed": true
+    }
+  ],
+  "original_clock_verified": false,
+  "source_identity_available": "Offline replay identity only; historical epoch/sequence unverified",
+  "independent_robot_binding_verified": false,
+  "private_artifact_sha256": {
+    "followup-source-candidate/observations.jsonl": "73ec1d998ef9a68019495ba4e78477da650a5106c4f810bdb2936b226b106f19",
+    "followup-wall-candidate/observations.jsonl": "69faa325ff5afe9117e360e602c7fe5008af5cdf237d4836f1baaa1452d2ffc8",
+    "followup-label-candidate/evaluation.json": "f57c5fb77330e236f791a1425775210a27c055d2652f46aa1bf1c9539c4368b3",
+    "jetson-v3/frames.jsonl": "6502cd1e961f501c7991563eb04e4a8aa103682ab528b59e4bc5c3d2269110a5"
+  }
+}

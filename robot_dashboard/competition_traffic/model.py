@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import os
-from experiments.competition_vm.traffic_signals.detector import LocalUltralytics
+from experiments.competition_vm.traffic_signals.detector import Detection, LocalUltralytics
 
 from .config import sha256_file
 
@@ -45,6 +45,26 @@ class OwnerModel:
         self.sha256 = self.adapter.sha256
         self.coordinate_space = "native_xyxy"
         self.model_size = None
+        self.last_diagnostics = {}
+        self.confidence_floor = min(.25, config.document["min_confidence"])
 
     def infer(self, bgr):
-        return self.adapter.infer(bgr)
+        # Reuse the VM-loaded model and its identical CPU prediction path. Capture
+        # post-NMS diagnostics before its allowlist filter would discard objects.
+        r = self.adapter.model.predict(source=bgr, device="cpu", verbose=False,
+                                       conf=self.confidence_floor)[0]
+        boxes = [Detection(tuple(box), float(conf), int(cls), f"detection-{idx}")
+                 for idx, (box, conf, cls) in enumerate(zip(
+                     r.boxes.xyxy.tolist(), r.boxes.conf.tolist(), r.boxes.cls.tolist()))]
+        selected = [d for d in boxes if d.class_id in self.adapter.allowed]
+        self.last_diagnostics = {
+            "post_nms_boxes": len(boxes), "allowlist_boxes": len(selected),
+            "non_allowlist_boxes": len(boxes) - len(selected),
+            "model_confidence_floor": self.confidence_floor,
+            "below_model_floor": "NOT_OBSERVABLE_AFTER_NMS",
+            "input_encoding": "bgr8", "result_original_shape_hw": list(r.orig_shape),
+            "coordinate_space": "native_xyxy", "inverse_letterbox_applied": False,
+        }
+        if list(r.orig_shape) != list(bgr.shape[:2]):
+            raise ValueError("MODEL_ORIGINAL_SHAPE_MISMATCH")
+        return selected

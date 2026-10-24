@@ -28,7 +28,7 @@ def lamp(color=(0, 230, 0), size=(64, 64)):
 def frame(n=0, image=None, **kwargs):
     return replace(Frame(lamp() if image is None else image, "camera-1", "epoch-1", n,
                          str(n * 100000000), "fixture", 0., n / 10., True,
-                         "SYNTHETIC_TEST", f"frame-{n}", "camera-heading-revision-1"), **kwargs)
+                         "SYNTHETIC_TEST", f"frame-{n}", "camera-heading-revision-1", identity_verified=True), **kwargs)
 
 
 class Detector:
