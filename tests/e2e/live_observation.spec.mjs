@@ -485,8 +485,8 @@ test('Maps observation service start waits for input and requires a fresh anchor
 });
 
 test('failed observation start is never retried automatically or shown as registered',async({page})=>{
-  const {backend}=await fixture(page);let calls=0;
-  backend.on('/api/v1/observations/fastlio',({json})=>json({state:'STOPPED',active:false,can_start:true,can_stop:false}));
+  const {backend}=await fixture(page);let calls=0,reads=0;
+  backend.on('/api/v1/observations/fastlio',({json})=>{reads++;return json({state:'STOPPED',active:false,can_start:true,can_stop:false});});
   backend.on('/api/v1/observations/fastlio/start',({json})=>{calls++;return json({detail:'다른 FAST-LIO가 실행 중입니다.'},409);});
   await expect(page.locator('#savedSessionStart')).toBeEnabled();
   await page.locator('#savedSessionStart').click();
@@ -494,5 +494,35 @@ test('failed observation start is never retried automatically or shown as regist
   await expect(page.locator('#savedLiveCenter')).toBeDisabled();
   await expect(page.locator('#savedLiveConfirm')).not.toBeChecked();
   await expect(page.locator('#savedSessionStart')).toBeEnabled();
+  const afterFailure=reads;
+  await expect.poll(()=>reads).toBeGreaterThan(afterFailure+1);
+  await expect(page.locator('#savedSessionError')).toContainText('다른 FAST-LIO');
   expect(calls).toBe(1);
+});
+
+test('slow status reads do not swallow start or anchor clicks or overwrite a newer session',async({page})=>{
+  const {backend,errors}=await fixture(page);let hold=false,reading=false,release,starts=0;
+  let session={state:'STOPPED',active:false,can_start:true,can_stop:false};
+  backend.on('/api/v1/observations/fastlio',async({json})=>{
+    const captured={...session};
+    if(hold){reading=true;await new Promise(resolve=>{release=resolve;});}
+    return json(captured);
+  });
+  backend.on('/api/v1/observations/fastlio/start',({json})=>{
+    starts++;session={state:'READY',active:true,session_id:'d'.repeat(32),can_start:false,can_stop:true};return json(session);
+  });
+  await expect(page.locator('#savedSessionStart')).toBeEnabled();hold=true;
+  await expect.poll(()=>reading).toBe(true);
+  await expect(page.locator('#savedSessionStart')).toBeEnabled();
+  await page.locator('#savedSessionStart').click();
+  await expect(page.locator('#savedSessionState')).toHaveText('입력 준비 완료');
+  hold=false;release();
+  await expect(page.locator('#savedSessionStart')).toBeDisabled();
+  reading=false;hold=true;
+  await expect.poll(()=>reading).toBe(true);
+  await expect(page.locator('#savedSessionAnchor')).toBeEnabled();
+  await page.locator('#savedSessionAnchor').click();
+  await expect(page.locator('#savedLive_x')).toBeVisible();
+  hold=false;release();
+  expect(starts).toBe(1);expect(errors).toEqual([]);
 });

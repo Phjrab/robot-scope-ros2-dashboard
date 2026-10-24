@@ -18,38 +18,53 @@ export function initializeObservationSession({ panel, getContext, onSessionChang
     <small id="savedSessionDetail"></small><small id="savedSessionError" role="alert"></small>`;
   panel.querySelector('.saved-live-heading').after(host);
   const el = name => host.querySelector(`#savedSession${name}`);
-  let state = {}, received = performance.now(), pending = false, disposed = false, controller = null, lastSession = null, error = '';
+  let state = {}, received = performance.now(), pending = false, pendingAction = null, revision = 0;
+  let disposed = false, controller = null, lastSession = null, error = '', readError = '';
   function render() {
     const view = observationSessionView(state, (performance.now() - received) / 1000);
-    el('State').textContent = view.label; el('Detail').textContent = view.detail; el('Error').textContent = error;
-    el('Start').disabled = pending || !view.canStart || !getContext().meta;
-    el('Stop').disabled = pending || !view.canStop;
-    el('Anchor').disabled = pending || !view.ready || !getContext().meta;
+    const writing = pending && pendingAction !== null;
+    el('State').textContent = view.label; el('Detail').textContent = view.detail; el('Error').textContent = error || readError;
+    el('Start').disabled = writing || !view.canStart || !getContext().meta;
+    el('Stop').disabled = writing || !view.canStop;
+    el('Anchor').disabled = writing || !view.ready || !getContext().meta;
   }
   async function request(action = null) {
-    if (disposed || pending) return;
-    pending = true; render(); controller = new AbortController();
-    const timer = setTimeout(() => controller?.abort(), action ? 12000 : 3000);
+    if (disposed || (pending && (!action || pendingAction !== null))) return;
+    // A user action supersedes a read, never another write. Old GET completion
+    // must not re-enable START or replace a newer service invocation.
+    controller?.abort();
+    const token = ++revision, requestController = new AbortController();
+    controller = requestController; pending = true; pendingAction = action;
+    if (action) { error = ''; readError = ''; if (action === 'start') onStart(); else onStop(); }
+    render();
+    const timer = setTimeout(() => requestController.abort(), action ? 12000 : 3000);
     try {
       const response = await fetch(`/api/v1/observations/fastlio${action ? '/' + action : ''}`, {
-        signal: controller.signal, ...(action ? { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        signal: requestController.signal, ...(action ? { method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ confirmed: true, ...(action === 'stop' ? { session_id: state.session_id } : {}) }) } : {}) });
       const value = await response.json();
+      if (disposed || token !== revision) return;
       if (!response.ok) throw new Error(typeof value.detail === 'string' ? value.detail : `관측 상태 조회 실패 (${response.status})`);
-      state = value; received = performance.now(); error = '';
+      state = value; received = performance.now(); readError = '';
+      if (action) error = '';
       if (state.session_id && state.active && state.session_id !== lastSession) {
         lastSession = state.session_id; onSessionChange();
       } else if (lastSession && !state.active && !['STARTING', 'UNKNOWN'].includes(state.state)) {
         lastSession = null; onStop();
       }
     } catch (e) {
-      error = e.name === 'AbortError' ? '응답 대기 중입니다. 다시 시작하지 않고 상태를 확인합니다.' : e.message;
+      if (disposed || token !== revision) return;
+      const message = e.name === 'AbortError' ? '응답 대기 중입니다. 다시 시작하지 않고 상태를 확인합니다.' : e.message;
+      if (action) error = message; else readError = message;
       // A failed write may have reached the server. Only a later GET enables START.
       state = { ...state, state: 'UNKNOWN', can_start: false, can_stop: false };
-    } finally { clearTimeout(timer); controller = null; pending = false; render(); }
+    } finally {
+      clearTimeout(timer);
+      if (!disposed && token === revision) { controller = null; pending = false; pendingAction = null; render(); }
+    }
   }
-  el('Start').addEventListener('click', () => { onStart(); void request('start'); });
-  el('Stop').addEventListener('click', () => { onStop(); void request('stop'); });
+  el('Start').addEventListener('click', () => { void request('start'); });
+  el('Stop').addEventListener('click', () => { void request('stop'); });
   el('Anchor').addEventListener('click', () => {
     const details = panel.querySelector('#savedLiveAnchorDetails'); details.open = true;
     details.querySelector('input').focus();
