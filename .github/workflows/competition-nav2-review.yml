@@ -17,7 +17,7 @@ concurrency:
 jobs:
   native:
     runs-on: ubuntu-22.04
-    timeout-minutes: 25
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
         with:
@@ -32,10 +32,10 @@ jobs:
         timeout-minutes: 12
         run: |
           python3 experiments/competition_nav2/container/manage.py build --lock "$RUNNER_TEMP/c3-evidence/image-lock.json"
-      - name: First empty RPP baseline (network none)
-        timeout-minutes: 6
+      - name: Empty RPP gate, then eight matched native cases (network none)
+        timeout-minutes: 20
         run: |
-          python3 experiments/competition_nav2/container/manage.py run --lock "$RUNNER_TEMP/c3-evidence/image-lock.json" --controller rpp --scenario empty --output "$RUNNER_TEMP/c3-evidence/rpp-empty"
+          python3 experiments/competition_nav2/run_minimum.py --lock "$RUNNER_TEMP/c3-evidence/image-lock.json" --output "$RUNNER_TEMP/c3-evidence/minimum"
       - name: Preserve native evidence even after failure
         if: always()
         uses: actions/upload-artifact@v4

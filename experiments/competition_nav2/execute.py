@@ -78,6 +78,12 @@ def execute(args):
     cfg["bt_navigator"]["ros__parameters"]["default_nav_to_pose_bt_xml"] = str(
         ROOT / "config/replan.xml"
     )
+    # Humble activates BOTH navigators and loads both default trees, even when
+    # this runner only sends NavigateToPose. Its shipped through-poses tree uses
+    # Backup, which is intentionally absent from this forward-only experiment.
+    cfg["bt_navigator"]["ros__parameters"]["default_nav_through_poses_bt_xml"] = str(
+        ROOT / "config/replan_through_poses.xml"
+    )
     (out / "params.yaml").write_text(yaml.safe_dump(cfg, sort_keys=False))
     (out / "run.json").write_text(
         json.dumps(

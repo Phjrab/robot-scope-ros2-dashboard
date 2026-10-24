@@ -230,6 +230,15 @@ class FixtureTests(unittest.TestCase):
 
 
 class ConfigIsolationEvidenceTests(unittest.TestCase):
+    def test_both_default_trees_only_require_enabled_behaviors(self):
+        for name in ("replan.xml", "replan_through_poses.xml"):
+            root = ET.parse(ROOT / "config" / name).getroot()
+            self.assertIsNone(root.find(".//BackUp"))
+            self.assertIsNotNone(root.find(".//Spin"))
+            self.assertIsNotNone(root.find(".//Wait"))
+        through = ET.parse(ROOT / "config/replan_through_poses.xml").getroot()
+        self.assertIsNotNone(through.find(".//ComputePathThroughPoses"))
+
     def test_plugin_export_library_name_can_differ_from_package(self):
         plugin = "nav2_mppi_controller::MPPIController"
         with tempfile.TemporaryDirectory() as directory:

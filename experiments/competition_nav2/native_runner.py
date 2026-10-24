@@ -570,6 +570,35 @@ def main(directory):
             report["parameters"][name] = actual
             if actual != flat[name]:
                 raise RuntimeError("parameter mismatch: " + name)
+        report["costmap_parameters"] = {}
+        shared_keys = [
+            "footprint",
+            "footprint_padding",
+            "resolution",
+            "track_unknown_space",
+            "inflation_layer.inflation_radius",
+            "inflation_layer.cost_scaling_factor",
+            "obstacle_layer.scan.topic",
+            "obstacle_layer.scan.expected_update_rate",
+        ]
+        for costmap in ("global_costmap", "local_costmap"):
+            flat_costmap = flatten(expected[costmap][costmap]["ros__parameters"])
+            request = GetParameters.Request()
+            request.names = shared_keys
+            values = node.service(
+                GetParameters, f"{costmap}/{costmap}/get_parameters", request
+            ).values
+            applied = {}
+            for key, value in zip(shared_keys, values):
+                actual = (
+                    getattr(value, fields[value.type]) if value.type in fields else None
+                )
+                applied[key] = actual
+                if actual != flat_costmap[key]:
+                    raise RuntimeError(
+                        "costmap parameter mismatch: " + costmap + "." + key
+                    )
+            report["costmap_parameters"][costmap] = applied
         package = (
             "nav2_mppi_controller"
             if run["controller"] == "mppi"
@@ -668,10 +697,13 @@ def main(directory):
         # Always collect actual terminal action status, including abort/cancel.
         result = node.wait(result_future, 10.0)
         report["action"]["status"] = result.status
-        if node.boundary.fault == "SENSOR_STALE":
-            settle = time.monotonic() + 2.1
+        if result.status != 4 or node.boundary.fault == "SENSOR_STALE":
+            # Observe the terminal native stop plus TTL and two seconds of zero.
+            # Do not inject HOLD or fabricate zero to make a SAFE_WAIT outcome.
+            settle = time.monotonic() + 2.6
             while time.monotonic() < settle:
                 rclpy.spin_once(node, timeout_sec=0.02)
+        if node.boundary.fault == "SENSOR_STALE":
             report["dropout_recovery"] = dict(
                 fault_latched=node.boundary.fault,
                 final_output=list(node.previous_output),

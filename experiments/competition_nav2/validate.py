@@ -113,10 +113,29 @@ def validate_directory(directory):
         if not re.fullmatch(r"sha256:[0-9a-f]{64}", environment.get("image_id") or ""):
             errors.append("actual image ID missing")
     if (directory / "params.yaml").exists():
-        if digest(
-            yaml.safe_load((directory / "params.yaml").read_text())
-        ) != record.get("config_sha256"):
+        config = yaml.safe_load((directory / "params.yaml").read_text())
+        if digest(config) != record.get("config_sha256"):
             errors.append("config hash mismatch")
+        for name in ("global_costmap", "local_costmap"):
+            applied = record.get("costmap_parameters", {}).get(name, {})
+            requested = config[name][name]["ros__parameters"]
+            for key in (
+                "footprint",
+                "footprint_padding",
+                "resolution",
+                "track_unknown_space",
+                "inflation_layer.inflation_radius",
+                "inflation_layer.cost_scaling_factor",
+                "obstacle_layer.scan.topic",
+                "obstacle_layer.scan.expected_update_rate",
+            ):
+                expected = requested
+                for part in key.split("."):
+                    expected = expected[part]
+                if applied.get(key) != expected:
+                    errors.append(
+                        "costmap readback missing/mismatched: " + name + "." + key
+                    )
     log = (
         (directory / "native.log").read_text(errors="replace")
         if (directory / "native.log").is_file()

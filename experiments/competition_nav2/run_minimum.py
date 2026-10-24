@@ -68,13 +68,22 @@ def execute(lock, output):
             terminal_fault=result.get("terminal_fault"),
             action=result.get("action"),
             metrics=result.get("metrics"),
+            goal_distance_m=result.get("goal_distance_m"),
+            goal_yaw_error_rad=result.get("goal_yaw_error_rad"),
+            package_versions=result.get("package_versions"),
+            loaded_library_sha256=result.get("loaded_library_sha256"),
+            raw_command_counts=result.get("raw_command_counts"),
+            map_sha256=read("fixture.json").get("map_sha256"),
             fixture_sha256=result.get("fixture_sha256"),
             config_sha256=result.get("config_sha256"),
             source_sha=environment.get("source_sha"),
             image_id=environment.get("image_id"),
         )
         row["expectation_met"] = (
-            validation.get("status") == "PASS" and row["outcome"] == expected
+            process.returncode == 0
+            and row["status"] == "NATIVE_RECORDED"
+            and validation.get("status") == "PASS"
+            and row["outcome"] == expected
         )
         summary["cases"].append(row)
         summary["attempted"] += 1
