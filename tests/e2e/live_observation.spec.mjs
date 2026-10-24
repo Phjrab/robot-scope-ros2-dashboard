@@ -27,22 +27,29 @@ function binary(seq, observation, frameId='odom') {
   frame.writeUInt32LE(points.length/3,8); frame.writeUInt32LE(points.length*4,12); metadata.copy(frame,16);
   points.forEach((v,i)=>frame.writeFloatLE(v,offset+i*4)); return frame;
 }
-async function fixture(page, {identityUnavailable=false,subscriptionEvidence=false,provisional=false,imu=false}={}) {
+async function fixture(page, {identityUnavailable=false,subscriptionEvidence=false,provisional=false,imu=false,httpFallback=false}={}) {
   const state={ streaming:true, rejected:false, epoch:'c', lastCloud:null, jump:false, identityUnavailable,
     session:'1'.repeat(32),fingerprint:'2'.repeat(64),graphAge:.1,nonconverged:false,policyMismatch:false,
-    x:0, yaw:0 }, writes=[], errors=[];
+    x:0, yaw:0, cloudSocketStreaming:true, httpClouds:0 }, writes=[], errors=[];
   const evidence=kind=>subscriptionEvidence?{kind,session:state[`${kind}Session`]??state.session,fingerprint:state.fingerprint,graphAge:state.graphAge}:null;
   let poseSequence=0, cloudSequence=0;
   page.on('pageerror',e=>errors.push(e.message));
   page.on('request',r=> { if(r.method()!=='GET') writes.push(new URL(r.url()).pathname); });
-  const backend=await installDashboardBackend(page,{ pointcloudFrame:()=> {
+  const nextCloud=()=> {
     if(!state.streaming) return null;
     const seq=++cloudSequence; state.lastCloud=obs(seq,state.epoch,state.identityUnavailable,evidence('cloud'));
     // FAST-LIO supplies a matching pose for each registered scan. Independent
     // timers alone could omit that exact stamp and fail setup on a busy runner.
     if(imu) state.emitPose?.(state.lastCloud.source_stamp_ns);
     return binary(seq,state.lastCloud,imu?'camera_init':'odom');
-  }});
+  };
+  const backend=await installDashboardBackend(page,{pointcloudFrame:()=>state.cloudSocketStreaming?nextCloud():null});
+  if(httpFallback) backend.on('/api/v1/pointcloud.bin',({route})=>{
+    const frame=nextCloud();
+    if(!frame) return route.fulfill({status:204,body:''});
+    state.httpClouds++;
+    return route.fulfill({status:200,contentType:'application/octet-stream',body:frame});
+  });
   backend.on('/api/v1/saved-maps',({json})=>json({maps:[meta],total_size_bytes:1000}));
   backend.on(meta.data_url,({json})=>json({...meta,map_id:id,seq:1,points,units:'m',source_points:5}));
   backend.on('/api/v1/observations/map-alignment',({json,body})=>{
@@ -279,7 +286,7 @@ test('source-unverified provisional observation still rejects altered residual-p
 });
 
 
-test('same-start IMU estimate keeps current pose on fit failure and hides on stale input', async({page},testInfo)=>{
+test('opted-in IMU estimate hides stale input and recovers only an approximate same-session connection', async({page},testInfo)=>{
   const {state,errors}=await fixture(page,{imu:true});
   await page.locator('#savedLiveContinuous').check();
   await page.locator('#savedLiveConfirm').check();
@@ -295,6 +302,33 @@ test('same-start IMU estimate keeps current pose on fit failure and hides on sta
   await expect(page.locator('#savedLiveCenter')).toBeEnabled();
   await page.locator('#savedLiveCenter').click();
   await page.locator('#savedLiveObservation').screenshot({path:testInfo.outputPath('synthetic-same-start-imu.png')});
+  state.streaming=false;
+  await expect(page.locator('#savedLiveState')).toHaveText('STALE');
+  expect(await page.evaluate(()=>window.observationScene.sensorObservationOverlay)).toBeNull();
+  state.streaming=true;
+  await expect(page.locator('#savedLiveState')).toHaveText('RECOVERED_APPROXIMATE_ODOMETRY_ESTIMATE');
+  await expect(page.locator('#savedLiveCenter')).toBeEnabled();
+  state.rejected=false;
+  await expect(page.locator('#savedLiveState')).toContainText('MAP_CORRECTED_ESTIMATE');
+  state.streaming=false;
+  await expect(page.locator('#savedLiveState')).toHaveText('STALE');
+  state.epoch='e'; state.streaming=true;
+  await expect(page.locator('#savedLiveState')).toHaveText('CLOUD_SOURCE_CHANGED');
+  await expect(page.locator('#savedLiveCenter')).toBeDisabled();
+  expect(errors).toEqual([]);
+});
+
+test('silent pointcloud socket keeps receiving fresh HTTP inputs but stopped sources still hide the pose', async({page})=>{
+  const {state,errors}=await fixture(page,{imu:true,httpFallback:true});
+  await page.locator('#savedLiveContinuous').check();
+  await page.locator('#savedLiveConfirm').check();
+  await page.locator('#savedLiveAnchor').click();
+  state.cloudSocketStreaming=false;
+  const start=state.httpClouds;
+  await expect.poll(()=>state.httpClouds).toBeGreaterThan(start+2);
+  state.x=.3;
+  await expect.poll(()=>page.evaluate(()=>window.observationScene.sensorObservationOverlay?.pose.origin[0])).toBeCloseTo(.3,4);
+  await expect(page.locator('#savedLiveCenter')).toBeEnabled();
   state.streaming=false;
   await expect(page.locator('#savedLiveState')).toHaveText('STALE');
   expect(await page.evaluate(()=>window.observationScene.sensorObservationOverlay)).toBeNull();

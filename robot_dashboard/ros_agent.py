@@ -2511,8 +2511,7 @@ class RosAgent(ObservationSubscriptionMixin, RawObservationAccessMixin):
             else:
                 mapping_state = "waiting"
 
-            return {
-                "health": self.health_snapshot(),
+            snapshot = {
                 "sources": sources,
                 "sensors": sorted(sensors, key=lambda item: item["topic"]),
                 "camera": camera_meta,
@@ -2526,6 +2525,10 @@ class RosAgent(ObservationSubscriptionMixin, RawObservationAccessMixin):
                     "odometry": odom_metric,
                 },
             }
+        # Health may run network/interface probes. Do not hold the shared
+        # sensor lock across those waits: pose/cloud WebSockets also need it.
+        snapshot["health"] = self.health_snapshot()
+        return snapshot
 
     def camera_snapshot(self, source_id: str = "go2_front") -> Dict[str, Any]:
         with self._lock:

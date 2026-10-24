@@ -145,10 +145,12 @@ export class LiveMapObservation {
   constructor(now = () => performance.now()) {
     this.now = now; this.map = null; this.enabled = false; this.anchor = null;
     this.pose = null; this.cloud = null; this.history = []; this.trail = [];
+    this.suspendedAnchor = null;
     this.reason = 'OFF'; this.generation = 0; this.geometryCache = null; this.samples = [];
     this.registration = null; this.registrationEnabled = false;
     this.provenanceMode = 'native_publisher';
     this.continuousEstimate = false;
+    this.resumeSameSession = false;
     this.alignmentRevision = 0;
     this.telemetrySummary = { pose: null, cloud: null };
     this.telemetryReceipt = { pose: null, cloud: null };
@@ -166,11 +168,13 @@ export class LiveMapObservation {
     if (mode === this.provenanceMode) return;
     this.provenanceMode = mode; this.registrationEnabled = false; this.resetInputs('PROVENANCE_MODE_CHANGED');
   }
-  setContinuousEstimate(value) {
+  setContinuousEstimate(value, { resumeSameSession = false } = {}) {
     this.continuousEstimate = Boolean(value);
+    this.resumeSameSession = this.continuousEstimate && resumeSameSession === true;
     this.invalidate('NO_ANCHOR');
   }
   invalidate(reason, keepTelemetry = false) {
+    this.suspendedAnchor = null;
     this.anchor = null; this.reason = reason; this.trail = []; this.samples = []; this.geometryCache = null; this.registration = null; this.generation++;
     if (!keepTelemetry) this.telemetrySummary = { pose: null, cloud: null };
   }
@@ -307,6 +311,7 @@ export class LiveMapObservation {
   setAnchor(target, confirmed) {
     if (confirmed !== true) throw new Error('OPERATOR_ESTIMATE_CONFIRMATION_REQUIRED');
     const pair = this.ready(), targetMatrix = rpyMatrix(target);
+    this.suspendedAnchor = null;
     this.generation++;
     this.anchor = { generation: this.generation, map: { ...this.map }, poseKey: this.pose.key, cloudKey: this.cloud.key,
       T_map_odom: multiply(targetMatrix, inverseRigid(this.pose.matrix)), target_pose: { ...target },
@@ -319,6 +324,36 @@ export class LiveMapObservation {
     this.reason = this.provenanceMode === 'subscription_observation' ? 'ODOMETRY_PROPAGATED_SOURCE_UNVERIFIED' : 'ODOMETRY_PROPAGATED_UNVERIFIED'; this.trail = []; this.samples = []; this.geometryCache = null;
     this.registration = null;
   }
+  suspendStaleConnection() {
+    // Preserve only an observation transform, never a current pose or old trail.
+    // Freshness still hides every output during the gap. A new epoch, map,
+    // source reversal/jump, or explicit reset discards this retained connection.
+    const suspended = this.resumeSameSession && this.continuousEstimate && fastlioImu(this.pose?.value)
+      && this.anchor?.kind === 'REGISTERED_CLOUD_FIXED_FRAME_UNVERIFIED'
+      ? { anchor: this.anchor, poseSeq: this.pose.value.seq, cloudSeq: this.cloud.value.seq,
+        poseStamp: this.pose.value.observation.source_stamp_ns,
+        cloudStamp: this.cloud.value.observation.source_stamp_ns } : null;
+    this.invalidate('STALE', true);
+    this.suspendedAnchor = suspended;
+  }
+  resumeFreshConnection(pair) {
+    const saved = this.suspendedAnchor;
+    if (!saved || !this.resumeSameSession || !this.continuousEstimate || !fastlioImu(this.pose?.value)) return;
+    const { anchor } = saved;
+    if (anchor.poseKey !== this.pose.key || anchor.cloudKey !== this.cloud.key
+        || anchor.kind !== pair.kind || JSON.stringify(anchor.extrinsic) !== JSON.stringify(pair.extrinsic)
+        || ['id', 'revision', 'frame'].some(key => anchor.map[key] !== this.map[key])) {
+      this.invalidate('SOURCE_CONTRACT_CHANGED'); return;
+    }
+    // Both subscriptions must advance after suspension. Cached or single-sided
+    // receipts cannot revive an old connection, even with a fresh browser clock.
+    if (this.pose.value.seq <= saved.poseSeq || this.cloud.value.seq <= saved.cloudSeq
+        || BigInt(this.pose.value.observation.source_stamp_ns) <= BigInt(saved.poseStamp)
+        || BigInt(this.cloud.value.observation.source_stamp_ns) <= BigInt(saved.cloudStamp)) return;
+    this.anchor = { ...anchor, generation: this.generation, accepted_registration: false,
+      basis: 'SAME_SESSION_RECOVERED_APPROXIMATE_ANCHOR' };
+    this.suspendedAnchor = null;
+  }
   snapshot() {
     const base = { enabled: this.enabled, status: this.reason, map: this.map, anchor: this.anchor,
       pose: null, points: null, trail: [], absolute_accuracy_m: null, map_registration: this.registration?.status || 'NOT_RUN',
@@ -327,9 +362,12 @@ export class LiveMapObservation {
     if (!this.enabled) return base;
     let pair;
     try { pair = this.ready(); } catch (e) {
-      if (this.anchor && ['STALE', 'POSE_STALE', 'SUBSCRIPTION_GRAPH_STALE'].includes(e.message)) this.invalidate(e.message, true);
+      if (this.anchor && e.message === 'STALE') this.suspendStaleConnection();
+      else if ((this.anchor || this.suspendedAnchor) && ['POSE_STALE', 'SUBSCRIPTION_GRAPH_STALE'].includes(e.message)) this.invalidate(e.message, true);
       return { ...base, anchor: this.anchor, status: e.message };
     }
+    this.resumeFreshConnection(pair);
+    base.anchor = this.anchor;
     if (!this.anchor) return { ...base, canAnchor: true, status: this.reason === 'SOURCE_IDENTITY_UNAVAILABLE' ? 'NO_ANCHOR' : this.reason, pairing: pair.kind };
     if (this.anchor.poseKey !== this.pose.key || this.anchor.cloudKey !== this.cloud.key
         || this.anchor.kind !== pair.kind || JSON.stringify(this.anchor.extrinsic) !== JSON.stringify(pair.extrinsic)) {
@@ -366,7 +404,8 @@ export class LiveMapObservation {
     }
     const estimateStatus = this.anchor.accepted_registration
       ? (correctionUnavailable ? 'MAP_CORRECTION_UNAVAILABLE_ODOMETRY_CONTINUING' : 'MAP_CORRECTED_ESTIMATE_ACCURACY_UNVERIFIED')
-      : 'SAME_START_ODOMETRY_ESTIMATE';
+      : this.anchor.basis === 'SAME_SESSION_RECOVERED_APPROXIMATE_ANCHOR'
+        ? 'RECOVERED_APPROXIMATE_ODOMETRY_ESTIMATE' : 'SAME_START_ODOMETRY_ESTIMATE';
     return { ...base, status: this.continuousEstimate ? estimateStatus : this.provenanceMode === 'subscription_observation'
       ? (this.registrationEnabled ? 'SCAN_TO_MAP_CANDIDATE_SOURCE_UNVERIFIED' : 'ODOMETRY_PROPAGATED_SOURCE_UNVERIFIED')
       : (this.registrationEnabled ? 'SCAN_TO_MAP_CANDIDATE_UNVERIFIED' : 'ODOMETRY_PROPAGATED_UNVERIFIED'), canAnchor: true, pose,
@@ -440,6 +479,7 @@ export class LiveMapObservation {
       generated_at: new Date().toISOString(), limits: OBSERVATION_LIMITS, map: state.map,
       anchor: state.anchor, status: state.status, map_registration: this.registration || 'NOT_RUN', absolute_accuracy_m: null,
       operational_application: 'NOT_RUN', body_pose_verified: false, body_pose: null, tracking_verified: false, samples: this.samples,
+      same_session_recovery_enabled: this.resumeSameSession,
       provenance_mode: this.provenanceMode, per_message_publisher_verified: Boolean(this.provenanceMode === 'native_publisher' && this.pose && this.cloud), body_extrinsic_verified: false,
       source: { pose: this.pose?.value.observation || null, cloud: this.cloud?.value.observation || null } };
   }

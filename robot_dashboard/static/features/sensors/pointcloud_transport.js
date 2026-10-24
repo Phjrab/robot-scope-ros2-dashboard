@@ -29,6 +29,7 @@ export function createPointcloudTransport(options = {}) {
     || environment.clearTimeout?.bind(environment);
   const setTimer = options.setTimeout || environment.setTimeout?.bind(environment);
   const clearTimer = options.clearTimeout || environment.clearTimeout?.bind(environment);
+  const now = options.now || (() => environment.performance?.now?.() ?? Date.now());
   const locationValue = options.location || environment.location || { protocol: 'http:', host: 'localhost' };
   const socketUrl = options.socketUrl || defaultSocketUrl(locationValue);
   const reconnectDelayMs = Math.max(0, Number(options.reconnectDelayMs ?? DEFAULT_RECONNECT_DELAY_MS));
@@ -48,6 +49,7 @@ export function createPointcloudTransport(options = {}) {
   let requestInFlight = false;
   let binaryHttpAvailable = true;
   let lastSequence = -1;
+  let lastAcceptedAt = -Infinity;
   let streamId = '';
   let destroyed = false;
   let connectionCount = 0;
@@ -95,6 +97,7 @@ export function createPointcloudTransport(options = {}) {
     const dropped = lastSequence > 0 ? Math.max(0, sequence - lastSequence - 1) : 0;
     droppedFrames = Math.min(1_000_000, droppedFrames + dropped);
     lastSequence = sequence;
+    lastAcceptedAt = now();
     dispatch({ ...cloud, transport_metrics: Object.freeze({ decode_ms: decodeMs, dropped_frames: dropped }) });
     return true;
   }
@@ -223,10 +226,10 @@ export function createPointcloudTransport(options = {}) {
     };
   }
 
-  async function fetchLatest() {
+  async function fetchLatest(signal) {
     const query = `since=${encodeURIComponent(lastSequence)}`;
     if (binaryHttpAvailable) {
-      const response = await fetchFn(`/api/v1/pointcloud.bin?${query}`, { cache: 'no-store' });
+      const response = await fetchFn(`/api/v1/pointcloud.bin?${query}`, { cache: 'no-store', signal });
       if (response.status === 204) return null;
       if (response.status !== 404 && response.status !== 415) {
         if (!response.ok) throw new Error(String(response.status));
@@ -234,30 +237,37 @@ export function createPointcloudTransport(options = {}) {
       }
       binaryHttpAvailable = false;
     }
-    const response = await fetchFn(`/api/v1/pointcloud?${query}`, { cache: 'no-store' });
+    const response = await fetchFn(`/api/v1/pointcloud?${query}`, { cache: 'no-store', signal });
     if (response.status === 204) return null;
     if (!response.ok) throw new Error(String(response.status));
     return response.json();
   }
 
   async function poll() {
-    if (!wanted() || socket && [0, 1].includes(socket.readyState) || requestInFlight) return false;
+    // OPEN/CONNECTING is not evidence of delivery. A quiet socket must not
+    // suppress the existing HTTP fallback while its watchdog reconnects.
+    if (!wanted() || requestInFlight
+        || socket && [0, 1].includes(socket.readyState) && now() - lastAcceptedAt < 400) return false;
     requestInFlight = true;
     const generation = requestGeneration;
+    const controller = new (environment.AbortController || globalThis.AbortController)();
+    const timeout = setTimer(() => controller.abort(), 1000);
     try {
-      const cloud = await fetchLatest();
+      const cloud = await fetchLatest(controller.signal);
       if (generation !== requestGeneration || !wanted()) return false;
       return cloud ? acceptCloud(cloud) : false;
     } catch (error) {
       if (generation === requestGeneration) options.onError?.(error);
       return false;
     } finally {
+      clearTimer(timeout);
       requestInFlight = false;
     }
   }
 
   function reset(nextStreamId = '') {
     lastSequence = -1;
+    lastAcceptedAt = -Infinity;
     streamId = String(nextStreamId || '');
     requestGeneration += 1;
   }

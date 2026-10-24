@@ -424,6 +424,39 @@ class RobotTargetSafetyTests(unittest.TestCase):
         self.assertEqual(len(battery), 1)
         self.assertEqual(battery[0]["topic"], "/lowstate")
 
+    def test_slow_health_probe_does_not_block_pose_or_cloud_snapshot(self):
+        entered, release, received = threading.Event(), threading.Event(), threading.Event()
+        states, inputs = [], []
+
+        def slow_health():
+            entered.set()
+            if not release.wait(3):
+                raise TimeoutError("test health probe not released")
+            return {"robot_online": True}
+
+        def read_inputs():
+            inputs.append(self.agent.pose_snapshot())
+            inputs.append(self.agent.pointcloud_binary_snapshot())
+            received.set()
+
+        with patch.object(self.agent, "health_snapshot", side_effect=slow_health):
+            state_thread = threading.Thread(target=lambda: states.append(self.agent.state_snapshot()))
+            input_thread = threading.Thread(target=read_inputs)
+            state_thread.start()
+            try:
+                self.assertTrue(entered.wait(1))
+                input_thread.start()
+                self.assertTrue(received.wait(.5), "health probe held the shared sensor lock")
+            finally:
+                release.set()
+                state_thread.join(2)
+                if input_thread.ident is not None:
+                    input_thread.join(2)
+        self.assertFalse(state_thread.is_alive())
+        self.assertFalse(input_thread.is_alive())
+        self.assertEqual(len(inputs), 2)
+        self.assertEqual(states[0]["health"], {"robot_online": True})
+
     def test_state_and_joint_stream_use_fresh_signed_bridge_joints_without_direct_dds(self):
         now = time.monotonic()
         positions = [0.0, 0.5, -1.2] * 4

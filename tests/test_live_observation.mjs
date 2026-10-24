@@ -672,3 +672,110 @@ test('continuous estimate retains the existing map, stale-result and source-time
   model.setMap({...map, revision:'e'.repeat(64)}, {revision:'e'.repeat(64), frame_id:'map', points:[1,2,3]});
   assert.equal(model.snapshot().pose, null);
 });
+
+function imuConnection() {
+  let now = 0;
+  const model = new LiveMapObservation(() => now);
+  model.enable(true);
+  model.setMap(map, { revision: map.revision, frame_id: 'map', points: [1, 2, 3] });
+  model.setProvenanceMode('subscription_observation'); model.setContinuousEstimate(true, { resumeSameSession: true });
+  const p = (seq, changes = {}) => subscription(pose(seq, {
+    topic: '/Odometry', frame_id: 'camera_init', child_frame_id: 'body', ...changes,
+  }), 'pose');
+  const c = (seq, changes = {}) => subscription(cloud(seq, { frame_id: 'camera_init', ...changes }), 'cloud');
+  model.ingestPose(p(1)); model.ingestCloud(c(1)); model.setAnchor(guess, true);
+  return { model, p, c, setNow: value => { now = value; } };
+}
+
+test('continuous IMU observation hides stale output and resumes only after both same-source inputs advance', () => {
+  const { model, p, c, setNow } = imuConnection();
+  model.registrationEnabled = true;
+  const pending = result(model), oldGeneration = model.generation;
+  assert.equal(model.applyAlignment(pending, oldGeneration), true);
+  const transform = structuredClone(model.anchor.T_map_odom);
+  model.snapshot(); setNow(1001);
+  const stale = model.snapshot();
+  assert.equal(stale.status, 'STALE'); assert.equal(stale.anchor, null);
+  assert.equal(stale.pose, null); assert.equal(stale.points, null);
+  assert.deepEqual(model.exportRecord().samples, []);
+  assert.throws(() => model.alignmentRequest(), /STALE/);
+  model.ingestPose(p(1)); model.ingestCloud(c(1));
+  assert.equal(model.snapshot().pose, null);
+  model.ingestPose(p(2, { position: { x: 2.2, y: 3, z: .5 } }));
+  assert.equal(model.snapshot().pose, null);
+  model.ingestCloud(c(2));
+  const resumed = model.snapshot();
+  assert.ok(resumed.pose); assert.equal(resumed.anchor, model.anchor);
+  assert.deepEqual(model.anchor.T_map_odom, transform);
+  assert.equal(resumed.status, 'RECOVERED_APPROXIMATE_ODOMETRY_ESTIMATE');
+  assert.equal(model.anchor.accepted_registration, false);
+  assert.equal(resumed.source_stamp_ns, String(stamp + 2n));
+  assert.equal(resumed.trail.length, 1); // Do not draw across the unseen interval.
+  assert.equal(model.exportRecord().samples.length, 1);
+  assert.equal(model.applyAlignment(pending, oldGeneration, 0), false);
+  assert.equal(model.registration, null); assert.equal(model.suspendedAnchor, null);
+  assert.equal(model.applyAlignment(result(model), model.generation), true);
+  assert.equal(model.snapshot().status, 'MAP_CORRECTED_ESTIMATE_ACCURACY_UNVERIFIED');
+});
+
+test('resume requires newer source stamps as well as newer sequence numbers', () => {
+  const { model, p, c, setNow } = imuConnection();
+  setNow(1001); model.snapshot();
+  model.ingestPose(p(2, { observation: observation(1, 'f') }));
+  model.ingestCloud(c(2, { observation: observation(1) }));
+  assert.equal(model.snapshot().pose, null); assert.equal(model.anchor, null);
+  model.ingestPose(p(3)); model.ingestCloud(c(3));
+  assert.ok(model.snapshot().pose);
+});
+
+test('a suspended connection cannot survive source changes, reversal, jump, map change or explicit reset', () => {
+  const mutations = [
+    (m,p,c) => m.ingestPose(p(2, { observation: observation(2, 'e') })),
+    (m,p,c) => m.ingestCloud(c(2, { observation: observation(2, 'e') })),
+    (m,p,c) => m.ingestPose(p(2, { observation: { ...observation(2, 'f'), source_stamp_ns: '1' } })),
+    (m,p,c) => m.ingestCloud(c(2, { observation: { ...observation(2), source_stamp_ns: '1' } })),
+    (m,p) => m.ingestPose(p(2, { position: { x: 5, y: 3, z: .5 } })),
+    m => m.setMap({ ...map, revision: 'e'.repeat(64) }, { revision: 'e'.repeat(64), frame_id: 'map', points: [1,2,3] }),
+    m => m.invalidate('CLEARED'), m => m.resetInputs('VIEW_SUSPENDED'),
+    m => m.setContinuousEstimate(false), m => m.enable(false),
+    m => m.setProvenanceMode('native_publisher'),
+  ];
+  for (const mutate of mutations) {
+    const { model, p, c, setNow } = imuConnection();
+    setNow(1001); model.snapshot(); assert.ok(model.suspendedAnchor);
+    mutate(model,p,c); assert.equal(model.suspendedAnchor, null);
+    model.ingestPose(p(3)); model.ingestCloud(c(3));
+    assert.equal(model.snapshot().pose, null); assert.equal(model.anchor, null);
+  }
+});
+
+test('stale graph and explicit invalid sensor data discard a suspended connection', () => {
+  for (const mutate of [
+    (m,p) => m.ingestPose(p(2, { state: 'stale', age_s: 2 })),
+    (m,p,c) => m.ingestCloud(c(2, { points: [] })),
+    (m,p,c) => { const v=p(2); v.observation.subscription_evidence.graph.observed_monotonic_s-=4; m.ingestPose(v); },
+  ]) {
+    const { model, p, c, setNow } = imuConnection();
+    setNow(1001); model.snapshot(); mutate(model,p,c);
+    assert.equal(model.suspendedAnchor, null);
+    model.ingestPose(p(3)); model.ingestCloud(c(3));
+    assert.equal(model.snapshot().pose, null);
+  }
+});
+
+test('default and non-IMU observation still require an explicit anchor after stale input', () => {
+  for (const continuous of [false,true]) {
+    const { model, setNow } = setup();
+    model.setContinuousEstimate(continuous); model.setAnchor(guess,true);
+    setNow(1001); model.snapshot();
+    assert.equal(model.suspendedAnchor,null);
+    model.ingestPose(pose(2)); model.ingestCloud(cloud(2));
+    assert.equal(model.snapshot().pose,null);
+  }
+  const { model, p, c, setNow } = imuConnection();
+  model.setContinuousEstimate(true); model.setAnchor(guess,true);
+  setNow(1001); model.snapshot();
+  assert.equal(model.suspendedAnchor,null);
+  model.ingestPose(p(2)); model.ingestCloud(c(2));
+  assert.equal(model.snapshot().pose,null);
+});

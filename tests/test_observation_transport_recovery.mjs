@@ -68,6 +68,49 @@ function cloudTransport(f, values) {
   });
 }
 
+test('quiet OPEN pointcloud socket uses HTTP without duplicating or refreshing cached frames', async () => {
+  const f = fixture(), values = []; let requests = 0, sequence = 2;
+  const t = createPointcloudTransport({ ...f,
+    fetchFn: async () => { requests++; return { status: 200, ok: true,
+      arrayBuffer: async () => new Uint8Array([sequence]).buffer }; },
+    decodeFrame: buffer => ({ seq: new Uint8Array(buffer)[0], stream_id: 'same-stream',
+      points: [1, 2, 3], observation: { source_stamp_ns: '456', received_monotonic_s: 20 } }),
+  });
+  t.subscribe('test', v => values.push(v)); t.replaceDemand(['maps']);
+  f.sockets[0].onmessage({ data: new Uint8Array([1]).buffer }); f.tick(100);
+  assert.equal(await t.poll(), false); assert.equal(requests, 0);
+  f.tick(400);
+  assert.equal(f.sockets[0].readyState, 1);
+  assert.equal(await t.poll(), true);
+  assert.deepEqual(values.map(v => v.seq), [1, 2]);
+  assert.deepEqual(values[1].observation, { source_stamp_ns: '456', received_monotonic_s: 20 });
+  f.tick(400);
+  assert.equal(await t.poll(), false, 'same HTTP sequence does not renew source freshness');
+  assert.equal(await t.poll(), false);
+  assert.equal(requests, 3, 'duplicate responses do not postpone fallback eligibility');
+  sequence = 3;
+  assert.equal(await t.poll(), true);
+  t.destroy();
+});
+
+test('pointcloud HTTP fallback is single flight, bounded, and rejects responses after demand ends', async () => {
+  const f = fixture(); let requests = 0, complete;
+  const t = createPointcloudTransport({ ...f,
+    fetchFn: (_url, { signal }) => { requests++; return new Promise((resolve, reject) => {
+      complete = () => resolve({ status: 200, ok: true, arrayBuffer: async () => new Uint8Array([1]).buffer });
+      signal.addEventListener('abort', () => reject(new Error('timeout')), { once: true });
+    }); }, decodeFrame: () => ({ seq: 1, points: [1, 2, 3] }),
+  });
+  const values = []; t.subscribe('test', v => values.push(v)); t.replaceDemand(['maps']);
+  const timedOut = t.poll();
+  assert.equal(await t.poll(), false); assert.equal(requests, 1);
+  f.tick(1000); assert.equal(await timedOut, false);
+  assert.equal(t.diagnostics().requestInFlight, false);
+  const late = t.poll(); t.replaceDemand([]); complete();
+  assert.equal(await late, false); assert.deepEqual(values, []);
+  assert.equal(f.timers.size, 0); t.destroy();
+});
+
 test('pointcloud ingestion continues when animation frames are suspended; late RAF does not duplicate delivery', () => {
   const f = fixture(), values = [], t = cloudTransport(f);
   t.subscribe('test', v => values.push(v)); t.replaceDemand(['maps']);

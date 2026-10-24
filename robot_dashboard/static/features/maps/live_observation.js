@@ -64,7 +64,7 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
       <summary><span>고급 관측 옵션</span><small>정합·연속 관측·출처 허용</small></summary>
       <div class="saved-live-details-body saved-live-options">
         <label><input id="savedLiveRegistration" type="checkbox"><span>지도 정합 반복 계산<small>scan-to-map · 최대 1 Hz · 운영 적용 없음</small></span></label>
-        <label><input id="savedLiveContinuous" type="checkbox"><span>동일 시작점 기반 연속 관측<small>정합 실패 시 신선한 odometry 유지</small></span></label>
+        <label><input id="savedLiveContinuous" type="checkbox"><span>근사 연속 관측<small>정합 실패 시 odometry 유지 · 같은 세션의 새 입력이 모두 수신되면 근사 연결 재개</small></span></label>
         <label><input id="savedLiveSourceUnverified" type="checkbox"><span>출처 미검증 관측 후보 허용<small>로컬 subscription·ROS graph 기준 · 주행 적용 없음</small></span></label>
       </div>
     </details>
@@ -155,7 +155,7 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
   });
   el('Confirm').addEventListener('change', () => render());
   el('Continuous').addEventListener('change', () => {
-    model.setContinuousEstimate(el('Continuous').checked); el('Confirm').checked = false;
+    model.setContinuousEstimate(el('Continuous').checked, { resumeSameSession: true }); el('Confirm').checked = false;
     requestController?.abort(); error = ''; clearDynamic(); render();
   });
   el('SourceUnverified').addEventListener('change', () => {
