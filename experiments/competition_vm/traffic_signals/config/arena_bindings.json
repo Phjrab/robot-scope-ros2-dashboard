@@ -1,0 +1,11 @@
+{
+ "schema_version":"0.1", "arena_revision":"rulebook-20261015", "status":"PROPOSED_SIMULATION_ONLY",
+ "bindings":[
+  {"signal_id":"signal_01","zone_id":"stop_zone_01","approach_leg":"leg_01","departure_leg":"leg_02"},
+  {"signal_id":"signal_02","zone_id":"stop_zone_02","approach_leg":"leg_05","departure_leg":"leg_06"}
+ ],
+ "crossing_id_policy":"Create new visit ID on each revisit; IDs are not zone IDs",
+ "pixel_roi_calibration":null,
+ "map_to_arena_transform":null,
+ "qualification":"No physical foot, stop rectangle, lamp position or transform validation"
+}

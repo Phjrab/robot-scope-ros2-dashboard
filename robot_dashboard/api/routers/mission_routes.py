@@ -1,11 +1,14 @@
 """Additive MR facade with fixed actions and existing origin/competition gates."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, HTTPException
+from fastapi.responses import Response
 
 from ..dependencies import require_same_origin, require_component, runtime_from_request, require_competition_unlocked
 from ...application.mission_coordinator import MissionError
-from ...mission_routes.models import CreateRequest, UpdateRequest, RevisionRequest, PreviewRequest, RunActionRequest
+from ...mission_routes.models import CreateRequest, UpdateRequest, RevisionRequest, PreviewRequest, RunActionRequest, FixtureRunRequest
+from ...mission_routes.competition_contract import capabilities, template_visits
+from ...mission_routes.competition_assets import ARENA, arena_manifest, checked_file
 from .missions import _error
 
 router = APIRouter()
@@ -17,6 +20,40 @@ def service(request):
 
 def write_gate(request):
     require_competition_unlocked(runtime_from_request(request), "mission-route mutation")
+
+
+@router.get("/api/v1/mission-competition/capabilities")
+async def competition_capabilities():
+    return capabilities()
+
+
+@router.get("/api/v1/mission-competition/arena")
+async def competition_arena():
+    return arena_manifest()
+
+
+@router.get("/api/v1/mission-competition/arena/asset")
+async def competition_arena_asset():
+    try:
+        data, sha = checked_file(ARENA, "arena.glb")
+    except (OSError, ValueError) as exc:
+        raise HTTPException(503, "VM_ARENA_MISSING_OR_HASH_MISMATCH") from exc
+    return Response(data, media_type="model/gltf-binary", headers={"ETag": '"' + sha + '"', "Cache-Control": "no-cache"})
+
+
+@router.get("/api/v1/mission-competition/template")
+async def competition_template():
+    return template_visits()
+
+
+@router.post("/api/v1/mission-plans/{identifier}/fixture-runs", status_code=201)
+async def fixture_run(identifier: str, body: FixtureRunRequest, request: Request):
+    require_same_origin(request)
+    write_gate(request)
+    try:
+        return await service(request).create_fixture_run(identifier, body)
+    except MissionError as exc:
+        raise _error(exc) from exc
 
 
 @router.get("/api/v1/mission-plans")

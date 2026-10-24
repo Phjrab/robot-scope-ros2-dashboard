@@ -8,6 +8,15 @@ from .service import MissionRoutes
 from ..navigation_policy import RuntimePolicyProvider
 
 
+async def close_mission_routes(runtime, logger):
+    """Stop fixture tasks without skipping the existing motion owner cleanup."""
+    if runtime.mission_routes is not None:
+        try:
+            await runtime.mission_routes.close()
+        except Exception:
+            logger.exception("mission fixture shutdown failed")
+
+
 def configure_mission_routes(runtime, state_root, *, native_planner_window=False, policy_provider=None):
     if runtime.mission is None or runtime.navigation is None or runtime.saved_maps is None or runtime.spatial_routes is None:
         return

@@ -1,0 +1,6 @@
+{
+  "signal_01": "OFF",
+  "signal_02": "OFF",
+  "debug_markers": false,
+  "hard_negatives": false
+}

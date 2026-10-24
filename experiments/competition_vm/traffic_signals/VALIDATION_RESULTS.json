@@ -1,0 +1,187 @@
+{
+  "schema": "robot-scope.vm-handoff-validation.v0.1",
+  "description": "Executed VM-only traffic module validation; synthetic evidence is not field validation.",
+  "created_date": "2026-10-24",
+  "base_commit": "b1077e39e4ee456621c47eada49b1f0c85453661",
+  "workstream": "traffic_signals",
+  "environment": "x86_64 Linux VM; Python 3.12.14; OpenCV 4.10.0; no rclpy or owner weights",
+  "artifact_manifest_sha256": "d32522362c8e89f7a3c510ec70504b0967740c911fbbdea665068c6ff685183c",
+  "tests": [
+    {
+      "test_id": "UNIT_TESTS_67",
+      "evidence_type": "VM_UNIT",
+      "expected_result": "All unit and regression tests pass",
+      "status": "PASS",
+      "observed_result": "67 tests PASS; source rerun after review",
+      "seed": null,
+      "log_path": "results/unit_tests.log",
+      "metrics": {
+        "tests": 67,
+        "failures": 0
+      }
+    },
+    {
+      "test_id": "SYNTHETIC_REPLAY",
+      "evidence_type": "SYNTHETIC",
+      "expected_result": "No false departure intent in defined fixture",
+      "status": "PASS",
+      "observed_result": "100 frames; green stabilization 0.4 seconds",
+      "seed": 0,
+      "log_path": "results/metrics.json",
+      "metrics": {
+        "evidence_type": "SYNTHETIC",
+        "frames": 100,
+        "confusion_by_variant": {
+          "raw": {
+            "RED": {
+              "RED": 30,
+              "GREEN": 0,
+              "UNKNOWN": 0,
+              "AMBIGUOUS": 0
+            },
+            "GREEN": {
+              "RED": 0,
+              "GREEN": 60,
+              "UNKNOWN": 0,
+              "AMBIGUOUS": 0
+            },
+            "UNKNOWN": {
+              "RED": 0,
+              "GREEN": 0,
+              "UNKNOWN": 10,
+              "AMBIGUOUS": 0
+            }
+          },
+          "luminance": {
+            "RED": {
+              "RED": 30,
+              "GREEN": 0,
+              "UNKNOWN": 0,
+              "AMBIGUOUS": 0
+            },
+            "GREEN": {
+              "RED": 0,
+              "GREEN": 60,
+              "UNKNOWN": 0,
+              "AMBIGUOUS": 0
+            },
+            "UNKNOWN": {
+              "RED": 0,
+              "GREEN": 0,
+              "UNKNOWN": 10,
+              "AMBIGUOUS": 0
+            }
+          },
+          "combined": {
+            "RED": {
+              "RED": 30,
+              "GREEN": 0,
+              "UNKNOWN": 0,
+              "AMBIGUOUS": 0
+            },
+            "GREEN": {
+              "RED": 0,
+              "GREEN": 60,
+              "UNKNOWN": 0,
+              "AMBIGUOUS": 0
+            },
+            "UNKNOWN": {
+              "RED": 0,
+              "GREEN": 0,
+              "UNKNOWN": 10,
+              "AMBIGUOUS": 0
+            }
+          }
+        },
+        "false_depart_intent_events": 0,
+        "first_green_s": 4.0,
+        "first_stable_green_s": 4.4,
+        "first_depart_intent_s": 4.4,
+        "green_transition_delay_s": 0.40000000000000036,
+        "p95_core_processing_ms": 2.8925922998723763,
+        "mean_core_processing_ms": 3.494171079987609,
+        "yolo_detection_recall": null,
+        "model_sha256": null,
+        "real_RGB_validated": false,
+        "Jetson_performance": null,
+        "runtime": {
+          "python": "3.12.14",
+          "opencv": "4.10.0",
+          "numpy": "2.5.4",
+          "platform": "Linux-6.18.55-x86_64-with-glibc2.41"
+        },
+        "limits": [
+          "No actual owner weights or RGB clips provided",
+          "Timing excludes detector, IO and render",
+          "No physical safety guarantee; finite fixture only",
+          "Design thresholds not calibrated on field data"
+        ]
+      }
+    },
+    {
+      "test_id": "ROS_ISOLATION_GUARD",
+      "evidence_type": "VM_PROCESS",
+      "expected_result": "Reject missing isolation environment before importing ROS",
+      "status": "PASS",
+      "observed_result": "RuntimeError as expected; no ROS graph started",
+      "seed": null,
+      "log_path": "results/ros_guard.log",
+      "metrics": {}
+    },
+    {
+      "test_id": "YOLO_OWNER_WEIGHTS",
+      "evidence_type": "ACTUAL_MODEL",
+      "expected_result": "Execute owner model with pinned loader and metadata",
+      "status": "BLOCKED",
+      "observed_result": "INPUT_REQUIRED: weights, provenance, SHA256, class mapping and training-compatible loader version missing",
+      "seed": null,
+      "log_path": null,
+      "metrics": {}
+    },
+    {
+      "test_id": "REAL_RGB_VALIDATION",
+      "evidence_type": "RECORDED_REAL_RGB",
+      "expected_result": "Evaluate annotated real RGB with actual detector",
+      "status": "BLOCKED",
+      "observed_result": "INPUT_REQUIRED: RGB clips, labels, source timestamps, camera readback and calibration missing",
+      "seed": null,
+      "log_path": null,
+      "metrics": {}
+    },
+    {
+      "test_id": "NATIVE_ROS",
+      "evidence_type": "NATIVE_ROS",
+      "expected_result": "Run isolated ROS lifecycle/watchdog contract tests",
+      "status": "NOT_RUN",
+      "observed_result": "rclpy absent; only compile and environment guard executed",
+      "seed": null,
+      "log_path": null,
+      "metrics": {}
+    },
+    {
+      "test_id": "JETSON_TARGET",
+      "evidence_type": "TARGET_HARDWARE",
+      "expected_result": "Measure detector latency/memory/thermal and TensorRT parity",
+      "status": "NOT_RUN",
+      "observed_result": "No Jetson access; VM timing must not be substituted",
+      "seed": null,
+      "log_path": null,
+      "metrics": {}
+    },
+    {
+      "test_id": "TRAFFIC_AVOIDANCE_ADAPTER",
+      "evidence_type": "SYNTHETIC_IN_PROCESS",
+      "expected_result": "Validated session-bound hold/release adapter tests pass",
+      "status": "PASS",
+      "observed_result": "16 tests PASS reported in sibling integration evidence; not live ROS",
+      "seed": null,
+      "log_path": "../integration/results/tests.txt",
+      "metrics": {
+        "tests": 16
+      }
+    }
+  ],
+  "robot_execution": "NOT_RUN",
+  "deployment": "NOT_RUN",
+  "artifact_manifest_path": "CHANGED_FILES.txt"
+}

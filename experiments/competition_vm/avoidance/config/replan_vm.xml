@@ -1,0 +1,2 @@
+<!-- PROPOSED/NOT_RUN Humble tree: no spin, backup or destructive clear recovery. -->
+<root main_tree_to_execute="MainTree"><BehaviorTree ID="MainTree"><PipelineSequence name="VmReplan"><RateController hz="2.0"><ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/></RateController><FollowPath path="{path}" controller_id="FollowPath" goal_checker_id="goal_checker"/></PipelineSequence></BehaviorTree></root>

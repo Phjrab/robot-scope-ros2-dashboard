@@ -1,0 +1,6 @@
+{
+  "signal_01": "AMBIGUOUS",
+  "signal_02": "AMBIGUOUS",
+  "debug_markers": false,
+  "hard_negatives": true
+}

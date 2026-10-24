@@ -1,0 +1,56 @@
+{
+  "status": "PASS",
+  "scenarios": [
+    {
+      "straight_reference_contact_samples": 0,
+      "outcome": "GOAL_REACHED",
+      "contacts": 0,
+      "sim_time_s": 14.4,
+      "path_length_m": 2.586192741868737,
+      "min_grid_circumscribed_clearance_proxy_m": 0.08705216631211721,
+      "min_sampled_planar_envelope_edge_clearance_m": 0.31425223653940293,
+      "clearance_sample_hz": 5,
+      "wall_time_s": 2.904937744140625,
+      "expected": "GOAL_REACHED",
+      "pass": true
+    },
+    {
+      "straight_reference_contact_samples": 76,
+      "outcome": "GOAL_REACHED",
+      "contacts": 0,
+      "sim_time_s": 18.6,
+      "path_length_m": 2.7858597410995922,
+      "min_grid_circumscribed_clearance_proxy_m": 0.03225799882150321,
+      "min_sampled_planar_envelope_edge_clearance_m": 0.12696577996627556,
+      "clearance_sample_hz": 5,
+      "wall_time_s": 4.180562257766724,
+      "expected": "GOAL_REACHED",
+      "pass": true
+    },
+    {
+      "straight_reference_contact_samples": 76,
+      "outcome": "SAFE_WAIT",
+      "contacts": 0,
+      "sim_time_s": 6.0,
+      "path_length_m": 0.0,
+      "min_grid_circumscribed_clearance_proxy_m": 0.08705216631211721,
+      "min_sampled_planar_envelope_edge_clearance_m": 0.262,
+      "clearance_sample_hz": 5,
+      "wall_time_s": 1.4790406227111816,
+      "expected": "SAFE_WAIT",
+      "pass": true
+    }
+  ],
+  "unit_tests": 7,
+  "independent_review": {
+    "dense_interpolation_approx_hz": 50,
+    "cone_polygon_overlaps": 0,
+    "floor_corner_exits": 0,
+    "detour_min_sampled_planar_edge_clearance_m": 0.12696577996627556,
+    "limitations": "sampled/interpolated planar envelope, not certified dynamics"
+  },
+  "real_robot": false,
+  "SLAM": false,
+  "physics_dynamics": false,
+  "render_validation": "rendering/output/validation.json or renderer handoff"
+}

@@ -1,0 +1,556 @@
+{
+  "$defs": {
+    "CompetitionAction": {
+      "additionalProperties": false,
+      "description": "PROPOSED v0.1 port, deliberately separate from legacy arrival_action.",
+      "properties": {
+        "schema_version": {
+          "const": "mission-action.v0.1",
+          "default": "mission-action.v0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "step_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Step Id",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "NAVIGATE_ADAPTIVE",
+            "TRAFFIC_STOP_AND_GO",
+            "TRAVERSE_TERRAIN",
+            "PARK_SIT_HOLD",
+            "FINISH_CROSSING"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "zone_id": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Zone Id"
+        },
+        "signal_id": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Signal Id"
+        },
+        "crossing_id": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Crossing Id"
+        },
+        "corridor_id": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Corridor Id"
+        },
+        "avoidance_profile": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Avoidance Profile"
+        },
+        "terrain_segment": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Terrain Segment"
+        },
+        "gait_profile": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gait Profile"
+        },
+        "approach_heading": {
+          "default": 0,
+          "maximum": 3.141592653589793,
+          "minimum": -3.141592653589793,
+          "title": "Approach Heading",
+          "type": "number"
+        },
+        "dwell_seconds": {
+          "default": 2,
+          "maximum": 300,
+          "minimum": 2,
+          "title": "Dwell Seconds",
+          "type": "number"
+        },
+        "sit_seconds": {
+          "default": 5,
+          "maximum": 300,
+          "minimum": 5,
+          "title": "Sit Seconds",
+          "type": "number"
+        },
+        "exit_pose": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Pose"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "timeout_seconds": {
+          "default": 120,
+          "maximum": 3600,
+          "minimum": 10,
+          "title": "Timeout Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "step_id",
+        "type"
+      ],
+      "title": "CompetitionAction",
+      "type": "object"
+    },
+    "CompetitionDefinition": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "competition.v0.1",
+          "default": "competition.v0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "review_status": {
+          "default": "DRAFT",
+          "enum": [
+            "DRAFT",
+            "REVIEWED"
+          ],
+          "title": "Review Status",
+          "type": "string"
+        },
+        "arena_id": {
+          "default": "DRAFT",
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Arena Id",
+          "type": "string"
+        },
+        "arena_revision": {
+          "default": "DRAFT",
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Arena Revision",
+          "type": "string"
+        },
+        "model_revision": {
+          "default": "DRAFT",
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Model Revision",
+          "type": "string"
+        },
+        "profile_revision": {
+          "default": "DRAFT",
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Profile Revision",
+          "type": "string"
+        },
+        "rules_version": {
+          "default": "rulebook-20261015",
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Rules Version",
+          "type": "string"
+        },
+        "maintenance_limit": {
+          "const": 2,
+          "default": 2,
+          "title": "Maintenance Limit",
+          "type": "integer"
+        },
+        "maintenance_counts_in_total": {
+          "const": true,
+          "default": true,
+          "title": "Maintenance Counts In Total",
+          "type": "boolean"
+        },
+        "resume_position_rule": {
+          "default": "PROPOSED: 규정 재개 위치 확인 필요",
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Resume Position Rule",
+          "type": "string"
+        }
+      },
+      "title": "CompetitionDefinition",
+      "type": "object"
+    },
+    "Family": {
+      "additionalProperties": false,
+      "properties": {
+        "family_id": {
+          "pattern": "^[0-9a-f]{24}$",
+          "title": "Family Id",
+          "type": "string"
+        },
+        "family_revision": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Family Revision",
+          "type": "string"
+        },
+        "pcd_map_id": {
+          "pattern": "^[0-9a-f]{24}$",
+          "title": "Pcd Map Id",
+          "type": "string"
+        },
+        "pcd_revision": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Pcd Revision",
+          "type": "string"
+        },
+        "occupancy_map_id": {
+          "pattern": "^[0-9a-f]{24}$",
+          "title": "Occupancy Map Id",
+          "type": "string"
+        },
+        "occupancy_revision": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Occupancy Revision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "family_id",
+        "family_revision",
+        "pcd_map_id",
+        "pcd_revision",
+        "occupancy_map_id",
+        "occupancy_revision"
+      ],
+      "title": "Family",
+      "type": "object"
+    },
+    "Pose": {
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "maximum": 10000,
+          "minimum": -10000,
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "maximum": 10000,
+          "minimum": -10000,
+          "title": "Y",
+          "type": "number"
+        },
+        "yaw": {
+          "maximum": 3.141592653589793,
+          "minimum": -3.141592653589793,
+          "title": "Yaw",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "yaw"
+      ],
+      "title": "Pose",
+      "type": "object"
+    },
+    "RouteRef": {
+      "additionalProperties": false,
+      "properties": {
+        "route_id": {
+          "pattern": "^[0-9a-f]{24}$",
+          "title": "Route Id",
+          "type": "string"
+        },
+        "revision": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Revision",
+          "type": "string"
+        }
+      },
+      "required": [
+        "route_id",
+        "revision"
+      ],
+      "title": "RouteRef",
+      "type": "object"
+    },
+    "Visit": {
+      "additionalProperties": false,
+      "properties": {
+        "visit_id": {
+          "pattern": "^[0-9a-f]{32}$",
+          "title": "Visit Id",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "kind": {
+          "default": "STOP",
+          "enum": [
+            "STOP",
+            "TASK",
+            "PASS_THROUGH"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "target": {
+          "default": "mission_local_pose",
+          "enum": [
+            "annotation_ref",
+            "mission_local_pose",
+            "unplaced"
+          ],
+          "title": "Target",
+          "type": "string"
+        },
+        "annotation_id": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{24}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Annotation Id"
+        },
+        "pose": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Pose"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "heading_yaw": {
+          "anyOf": [
+            {
+              "maximum": 3.141592653589793,
+              "minimum": -3.141592653589793,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Heading Yaw"
+        },
+        "hold_seconds": {
+          "default": 0.0,
+          "maximum": 300,
+          "minimum": 0,
+          "title": "Hold Seconds",
+          "type": "number"
+        },
+        "requires_operator_confirmation": {
+          "default": false,
+          "title": "Requires Operator Confirmation",
+          "type": "boolean"
+        },
+        "after_arrival_confirmation": {
+          "default": false,
+          "title": "After Arrival Confirmation",
+          "type": "boolean"
+        },
+        "arrival_tolerance": {
+          "anyOf": [
+            {
+              "maximum": 2,
+              "minimum": 0.05,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Arrival Tolerance"
+        },
+        "speed": {
+          "default": "DEFAULT",
+          "enum": [
+            "DEFAULT",
+            "SLOW",
+            "NORMAL"
+          ],
+          "title": "Speed",
+          "type": "string"
+        },
+        "action": {
+          "default": "none",
+          "enum": [
+            "none",
+            "photo",
+            "sit_then_rise",
+            "dock"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "mission_action": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CompetitionAction"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "visit_id",
+        "label"
+      ],
+      "title": "Visit",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "label": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Label",
+      "type": "string"
+    },
+    "map_family": {
+      "$ref": "#/$defs/Family"
+    },
+    "annotation_revision": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Annotation Revision",
+      "type": "string"
+    },
+    "mode": {
+      "default": "FLEXIBLE",
+      "enum": [
+        "FLEXIBLE",
+        "CORRIDOR",
+        "STRICT"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "visits": {
+      "items": {
+        "$ref": "#/$defs/Visit"
+      },
+      "maxItems": 32,
+      "minItems": 1,
+      "title": "Visits",
+      "type": "array"
+    },
+    "route_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RouteRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "competition": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CompetitionDefinition"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "label",
+    "map_family",
+    "annotation_revision",
+    "visits"
+  ],
+  "title": "DefinitionInput",
+  "type": "object"
+}

@@ -1,0 +1,35 @@
+test_dropout_never_clears (test_core.CoreTests.test_dropout_never_clears) ... ok
+test_duplicate_rewind_rejected (test_core.CoreTests.test_duplicate_rewind_rejected) ... ok
+test_ground_slope_low_obstacle_unknown_self_invalid (test_core.CoreTests.test_ground_slope_low_obstacle_unknown_self_invalid) ... ok
+test_hold_release_does_not_replay (test_core.CoreTests.test_hold_release_does_not_replay) ... ok
+test_mission_corridor_no_shortcut (test_core.CoreTests.test_mission_corridor_no_shortcut) ... ok
+test_multiple_constraints (test_core.CoreTests.test_multiple_constraints) ... ok
+test_observed_clear_removes (test_core.CoreTests.test_observed_clear_removes) ... ok
+test_occluded_cell_not_clear (test_core.CoreTests.test_occluded_cell_not_clear) ... ok
+test_polygon_not_center_only (test_core.CoreTests.test_polygon_not_center_only) ... ok
+test_ring_sample_preserves_all (test_core.CoreTests.test_ring_sample_preserves_all) ... ok
+test_rotational_sweep (test_core.CoreTests.test_rotational_sweep) ... ok
+test_session_no_automatic_resume (test_core.CoreTests.test_session_no_automatic_resume) ... ok
+test_stale_tf_rejected (test_core.CoreTests.test_stale_tf_rejected) ... ok
+test_static_immutable (test_core.CoreTests.test_static_immutable) ... ok
+test_unknown_blocks_plan (test_core.CoreTests.test_unknown_blocks_plan) ... ok
+test_wrong_frame_clock_rejected (test_core.CoreTests.test_wrong_frame_clock_rejected) ... ok
+test_bad_planner_inputs (test_defensive.DefensiveTests.test_bad_planner_inputs) ... ok
+test_bad_scan_never_mutates (test_defensive.DefensiveTests.test_bad_scan_never_mutates) ... ok
+test_grid_validation (test_defensive.DefensiveTests.test_grid_validation) ... ok
+test_invalid_command_is_stop (test_defensive.DefensiveTests.test_invalid_command_is_stop) ... ok
+test_invalid_sweep_fails_closed (test_defensive.DefensiveTests.test_invalid_sweep_fails_closed) ... ok
+test_offset_map_obstacle_all_observations_kept (test_defensive.DefensiveTests.test_offset_map_obstacle_all_observations_kept) ... ok
+test_retired_epoch_cannot_clear (test_defensive.DefensiveTests.test_retired_epoch_cannot_clear) ... ok
+test_metre_transform_ring_preserved (test_defensive.TransformTests.test_metre_transform_ring_preserved) ... ok
+test_registered_double_transform_rejected (test_defensive.TransformTests.test_registered_double_transform_rejected) ... ok
+test_stale_transform_rejected (test_defensive.TransformTests.test_stale_transform_rejected) ... ok
+test_layer_or_footprint_overwrite_rejected (test_profiles.ProfileTests.test_layer_or_footprint_overwrite_rejected) ... ok
+test_no_hardware_topics (test_profiles.ProfileTests.test_no_hardware_topics) ... ok
+test_silent_rpp_overwrite_rejected (test_profiles.ProfileTests.test_silent_rpp_overwrite_rejected) ... ok
+test_versioned_mppi (test_profiles.ProfileTests.test_versioned_mppi) ... ok
+
+----------------------------------------------------------------------
+Ran 30 tests in 0.330s
+
+OK

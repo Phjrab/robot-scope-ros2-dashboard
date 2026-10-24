@@ -1,0 +1,6 @@
+{
+  "signal_01": "RED",
+  "signal_02": "GREEN",
+  "debug_markers": true,
+  "hard_negatives": false
+}

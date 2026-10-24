@@ -1,0 +1,11 @@
+{
+  "rulebook_sha256": "f10cfe343a1a7803e8fef683a173cd91f88e13d36de5167c3c1240cbfbd129c2",
+  "inspected_pdf_pages": [
+    6,
+    7,
+    8
+  ],
+  "source_document": "rulebook_2026_10_15.pdf",
+  "profile": "RULEBOOK_TEXT_PRIMARY_WITH_UNRESOLVED_CONSTRAINTS",
+  "legacy_source_hashes": "original_asset_sha256.json"
+}

@@ -1,0 +1,33 @@
+{
+  "trace_file": "../results/cone_detour.json",
+  "trace_sha256_at_validation": "cb5b2f31994815c2e61f909931d72442fcf26b8b86f194b446ffcdc669f2518e",
+  "frames_verified": 94,
+  "render_engine": "BLENDER_WORKBENCH",
+  "standing_bounds": {
+    "min_xyz": [
+      -0.35777713663076666,
+      -0.16138000000000002,
+      -0.3340745574124395
+    ],
+    "max_xyz": [
+      0.33068000000000003,
+      0.16142,
+      0.08883
+    ],
+    "root_z_grounded": 0.3340745574124395
+  },
+  "pose_source": "SIM_GT_NOT_SLAM",
+  "static_leg_stance": true,
+  "gait_or_contact_physics": false,
+  "visual_checks": [
+    "oblique midpoint",
+    "oblique final pose",
+    "top midpoint"
+  ],
+  "video_seconds": 18.8,
+  "simulation_seconds": 18.6,
+  "terminal_caption": "GOAL_REACHED",
+  "caption_update": "Final frame terminal condition taken from simulator; geometry not rerendered. Simulator confirms deterministic unchanged poses and points.",
+  "motion_geometry_sha256": "43f74bb0cc7e023c2602eece6262f719b377017fee7aef404bf2c66b1aa99ca4",
+  "simulator_confirmation": "2026-10-24 06:31 UTC: final changes only pose_t, terminal controller/state and scene metadata; poses and points unchanged from passing18.6s run."
+}

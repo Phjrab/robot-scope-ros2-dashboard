@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "evidence_type": "TWO_INDEPENDENT_BLENDER_GENERATIONS",
+  "identical_manifests": {
+    "arena.json": true,
+    "arena.semantic.json": true,
+    "collision/virtual_fences.json": true,
+    "collision/terrain_meshes.json": true,
+    "scenario_narrow_feasible.json": true,
+    "scenario_two_signals.json": true,
+    "scenario_narrow_infeasible.json": true,
+    "scenario_single_cone.json": true,
+    "scenario_parking_boundary.json": true,
+    "scenario_slalom_multi.json": true,
+    "scenario_empty.json": true
+  },
+  "blend_binary_equality_required": false
+}

@@ -1,0 +1,498 @@
+{
+  "$defs": {
+    "Pose": {
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "maximum": 10000,
+          "minimum": -10000,
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "maximum": 10000,
+          "minimum": -10000,
+          "title": "Y",
+          "type": "number"
+        },
+        "yaw": {
+          "maximum": 3.141592653589793,
+          "minimum": -3.141592653589793,
+          "title": "Yaw",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "yaw"
+      ],
+      "title": "Pose",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Trusted adapter input only. No public HTTP observation ingestion.\n\nsource_age_s must be computed by a clock-aware adapter (not subtraction of\nmonotonic clocks on separate hosts); receipt time stays inside the executor.",
+  "properties": {
+    "schema_version": {
+      "const": "competition-evidence.v0.1",
+      "default": "competition-evidence.v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "producer_id": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Producer Id",
+      "type": "string"
+    },
+    "producer_epoch": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Producer Epoch",
+      "type": "string"
+    },
+    "sequence": {
+      "minimum": 0,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "source_stamp_ns": {
+      "pattern": "^[0-9]{1,24}$",
+      "title": "Source Stamp Ns",
+      "type": "string"
+    },
+    "source_clock": {
+      "enum": [
+        "fixture",
+        "synchronized_ros",
+        "synchronized_utc"
+      ],
+      "title": "Source Clock",
+      "type": "string"
+    },
+    "frame_id": {
+      "const": "map",
+      "default": "map",
+      "title": "Frame Id",
+      "type": "string"
+    },
+    "evidence_type": {
+      "enum": [
+        "fixture",
+        "robot_observation"
+      ],
+      "title": "Evidence Type",
+      "type": "string"
+    },
+    "config_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Config Hash",
+      "type": "string"
+    },
+    "source_age_s": {
+      "maximum": 3600,
+      "minimum": 0,
+      "title": "Source Age S",
+      "type": "number"
+    },
+    "owner_id": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Owner Id",
+      "type": "string"
+    },
+    "mission_run_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Mission Run Id",
+      "type": "string"
+    },
+    "step_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Step Id",
+      "type": "string"
+    },
+    "goal_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Goal Id",
+      "type": "string"
+    },
+    "goal_generation": {
+      "minimum": 1,
+      "title": "Goal Generation",
+      "type": "integer"
+    },
+    "goal_state": {
+      "default": "ACTIVE",
+      "enum": [
+        "ACTIVE",
+        "SUCCEEDED",
+        "CANCELED",
+        "FAILED"
+      ],
+      "title": "Goal State",
+      "type": "string"
+    },
+    "cancel_ack": {
+      "default": false,
+      "title": "Cancel Ack",
+      "type": "boolean"
+    },
+    "hold_ack": {
+      "default": false,
+      "title": "Hold Ack",
+      "type": "boolean"
+    },
+    "pose": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Pose"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "path_clear": {
+      "default": false,
+      "title": "Path Clear",
+      "type": "boolean"
+    },
+    "obstacle_state": {
+      "default": "FOLLOWING",
+      "enum": [
+        "FOLLOWING",
+        "REPLANNING",
+        "WAIT_OBSTACLE",
+        "SENSOR_UNAVAILABLE",
+        "GOAL_REACHED",
+        "FAILED"
+      ],
+      "title": "Obstacle State",
+      "type": "string"
+    },
+    "obstacle_source": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Obstacle Source"
+    },
+    "observation_age_s": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Observation Age S"
+    },
+    "planned_path_revision": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Planned Path Revision"
+    },
+    "minimum_clearance_m": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Minimum Clearance M"
+    },
+    "signal_id": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Signal Id"
+    },
+    "crossing_id": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Crossing Id"
+    },
+    "raw_state": {
+      "default": "UNKNOWN",
+      "enum": [
+        "RED",
+        "GREEN",
+        "UNKNOWN",
+        "AMBIGUOUS"
+      ],
+      "title": "Raw State",
+      "type": "string"
+    },
+    "stable_state": {
+      "default": "UNKNOWN",
+      "enum": [
+        "RED",
+        "GREEN",
+        "UNKNOWN",
+        "AMBIGUOUS"
+      ],
+      "title": "Stable State",
+      "type": "string"
+    },
+    "confidence": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Confidence"
+    },
+    "quality_flags": {
+      "items": {
+        "maxLength": 64,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 16,
+      "title": "Quality Flags",
+      "type": "array"
+    },
+    "roi_xyxy_native": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Roi Xyxy Native"
+    },
+    "native_image_size": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Native Image Size"
+    },
+    "exposure_metadata": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "maxProperties": 16,
+      "title": "Exposure Metadata",
+      "type": "object"
+    },
+    "model_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Model Sha256"
+    },
+    "preprocess_profile": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Preprocess Profile"
+    },
+    "native_image": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Native Image"
+    },
+    "processed_image": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Processed Image"
+    },
+    "zone_id": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Zone Id"
+    },
+    "front_left_status": {
+      "default": "UNKNOWN",
+      "enum": [
+        "INSIDE",
+        "OUTSIDE",
+        "UNKNOWN"
+      ],
+      "title": "Front Left Status",
+      "type": "string"
+    },
+    "front_right_status": {
+      "default": "UNKNOWN",
+      "enum": [
+        "INSIDE",
+        "OUTSIDE",
+        "UNKNOWN"
+      ],
+      "title": "Front Right Status",
+      "type": "string"
+    },
+    "feet_evidence_kind": {
+      "default": "PROXY",
+      "enum": [
+        "SIM_GT",
+        "KINEMATIC",
+        "VISUAL",
+        "PROXY"
+      ],
+      "title": "Feet Evidence Kind",
+      "type": "string"
+    },
+    "body_motion_status": {
+      "default": "UNKNOWN",
+      "enum": [
+        "STOPPED",
+        "MOVING",
+        "UNKNOWN"
+      ],
+      "title": "Body Motion Status",
+      "type": "string"
+    },
+    "full_body_inside": {
+      "default": false,
+      "title": "Full Body Inside",
+      "type": "boolean"
+    },
+    "posture": {
+      "default": "UNKNOWN",
+      "enum": [
+        "SIT",
+        "STAND",
+        "UNKNOWN"
+      ],
+      "title": "Posture",
+      "type": "string"
+    },
+    "full_body_crossed": {
+      "default": false,
+      "title": "Full Body Crossed",
+      "type": "boolean"
+    },
+    "terrain_complete": {
+      "default": false,
+      "title": "Terrain Complete",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "producer_id",
+    "producer_epoch",
+    "sequence",
+    "source_stamp_ns",
+    "source_clock",
+    "evidence_type",
+    "config_hash",
+    "source_age_s",
+    "owner_id",
+    "mission_run_id",
+    "step_id",
+    "goal_id",
+    "goal_generation"
+  ],
+  "title": "Evidence",
+  "type": "object"
+}

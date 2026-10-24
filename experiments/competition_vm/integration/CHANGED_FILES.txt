@@ -1,0 +1,6 @@
+HANDOFF.md
+adapter.py
+results/tests.txt
+results/trace.jsonl
+smoke.py
+tests/test_adapter.py

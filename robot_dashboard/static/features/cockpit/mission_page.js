@@ -10,7 +10,7 @@ export function initializeMissionPage({ client, navigationAdapter, getContext, d
   const panel = createMissionWorkspace({ host, client, navigationAdapter, getContext, document: doc });
   const advanced = doc.createElement('details');
   const summary = doc.createElement('summary'); summary.textContent = '기존 주석 미션 · 고급'; advanced.append(summary); host.append(advanced);
-  const legacy = createMissionPanel({ client, navigationAdapter, getContext, document: doc }); legacy.mount(advanced);
+  const legacy = createMissionPanel({ authoring: true, client, navigationAdapter, getContext, document: doc }); legacy.mount(advanced);
   let activePage = '';
   const sync = () => { if (activePage === 'missions' && !doc.hidden) { panel.activate(); legacy.activate(); } else { panel.deactivate(); legacy.deactivate(); } };
   const change = (event) => { activePage = String(event.detail?.activePage || ''); sync(); };

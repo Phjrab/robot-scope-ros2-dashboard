@@ -1,0 +1,22 @@
+{
+  "os": "Linux-6.18.55-x86_64-with-glibc2.41",
+  "python": "3.12.14",
+  "packages": {
+    "numpy": "2.3.5",
+    "scipy": "1.17.0",
+    "Pillow": "12.3.0",
+    "PyYAML": "6.0.3"
+  },
+  "native_tools": {
+    "ros2": null,
+    "docker": null,
+    "podman": null,
+    "proot": null
+  },
+  "native_nav2": {
+    "status": "BLOCKED",
+    "reason": "Debian 13 VM has no ROS/Nav2 or container runtime; no cross-distribution package install or OS upgrade attempted.",
+    "plugin_versions": null
+  },
+  "hardware": "NOT_RUN"
+}

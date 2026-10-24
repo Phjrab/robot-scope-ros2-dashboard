@@ -25,7 +25,9 @@ function createMissionPanelView(options = {}) {
   const route = make(documentValue, 'ol', 'cockpit-mission-route');
   const logs = make(documentValue, 'pre', 'cockpit-mission-logs'); logs.setAttribute('aria-label', 'Bounded mission progress log');
   const error = make(documentValue, 'small', 'cockpit-mission-error');
-  root.append(header, missionSelect, draft, actions, metrics, route, logs, error); options.host.append(root);
+  if (options.authoring === true) root.append(header, missionSelect, draft, actions, metrics, route, logs, error);
+  else { for (const [key, control] of Object.entries(buttons)) if (!['pause', 'abort'].includes(key)) control.remove(); root.append(header, missionSelect, actions, metrics, error); }
+  options.host.append(root);
   let current = null; let draftIds = [];
 
   function context() { return options.getContext?.() || {}; }
@@ -100,7 +102,7 @@ function createMissionPanelView(options = {}) {
     if (move === 'remove') draftIds.splice(index, 1); else { const target = move === 'up' ? index - 1 : index + 1; if (target >= 0 && target < draftIds.length) [draftIds[index], draftIds[target]] = [draftIds[target], draftIds[index]]; } renderDraft();
   });
   root.addEventListener('click', async (event) => {
-    const action = event.target.closest?.('[data-mission-action]')?.dataset.missionAction; if (!action || !current) return;
+    const action = event.target.closest?.('[data-mission-action]')?.dataset.missionAction; if (!action || !current || options.authoring !== true && !['pause', 'abort'].includes(action)) return;
     if (action === 'create') {
       const value = context(); const points = new Map(annotationPoints().map((point) => [point.id, point]));
       await options.client.create({ label: labelInput.value.trim() || 'Competition route', map_id: value.mapMeta.id, map_revision: value.mapMeta.revision, annotation_revision: value.annotations.annotation_revision,

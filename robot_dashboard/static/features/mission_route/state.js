@@ -43,7 +43,7 @@ export function createDraftStore(onChange = () => {}) {
     update(patch) { edit((d) => { const visit = d.visits.find((v) => v.visit_id === selected); if (visit) Object.assign(visit, patch); }); },
     move(delta) { edit((d) => { const i = d.visits.findIndex((v) => v.visit_id === selected), j = i + delta; if (i >= 0 && j >= 0 && j < d.visits.length) [d.visits[i], d.visits[j]] = [d.visits[j], d.visits[i]]; }); },
     remove() { edit((d) => { d.visits = d.visits.filter((v) => v.visit_id !== selected); }); selected = draft?.visits[0]?.visit_id || null; notify(); },
-    duplicate() { const v = draft?.visits.find((v) => v.visit_id === selected); if (v) this.add({ ...clone(v), visit_id: id() }); },
+    duplicate() { const v = draft?.visits.find((v) => v.visit_id === selected); if (v) this.add({ ...clone(v), visit_id: id(), ...(v.mission_action ? {mission_action: {...clone(v.mission_action), step_id: id()}} : {}) }); },
     undo() { if (history.length) { draft = history.pop(); selected = draft.visits.find((v) => v.visit_id === selected)?.visit_id || draft.visits[0]?.visit_id; dirty = true; preview = null; generation++; notify(); } },
     applyPreview(value, expectedGeneration) { if (expectedGeneration !== generation) return false; preview = clone(value); return true; },
     invalidate() { generation++; preview = null; },

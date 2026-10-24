@@ -1,0 +1,334 @@
+{
+  "floor_center_base": {
+    "new_id": "floor_center_base",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "floor_in_bay": {
+    "new_id": "floor_in_bay",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "floor_left_straight": {
+    "new_id": "floor_left_straight",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "floor_ne_diagonal": {
+    "new_id": "floor_ne_diagonal",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "floor_ne_turn": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "floor_nw_diagonal": {
+    "new_id": "floor_nw_diagonal",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "floor_nw_turn": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "floor_out_bay": {
+    "new_id": "floor_out_bay",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "floor_parking_bay": {
+    "new_id": "floor_parking_bay",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "floor_raised_crossing": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "floor_right_straight": {
+    "new_id": "floor_right_straight",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "floor_se_diagonal": {
+    "new_id": "floor_se_diagonal",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "floor_se_turn": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "floor_sw_diagonal": {
+    "new_id": "floor_sw_diagonal",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "floor_sw_turn": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "label_in": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "label_out": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "label_parking": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "label_ramp_ne": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "label_ramp_sw": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "label_slalom": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "marking_parking_outline_1": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "marking_parking_outline_2": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "marking_parking_outline_3": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "marking_parking_outline_4": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "marking_ramp_foot_ne": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "marking_ramp_foot_sw": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "marking_stair_foot_nw": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "marking_stair_foot_se": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "marking_stop_line_01": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "marking_stop_line_02": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "ramp_ne": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "ramp_sw": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "signal_01_base": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "signal_01_housing": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "signal_01_lens_amber": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "signal_01_lens_green": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "signal_01_lens_red_lens": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "signal_01_pole": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "signal_02_base": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "signal_02_housing": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "signal_02_lens_amber": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "signal_02_lens_green": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "signal_02_lens_red_lens": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "signal_02_pole": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "stair_nw_tread_01": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "stair_nw_tread_02": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "stair_se_tread_01": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "stair_se_tread_02": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "wall_left_inner_01": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "wall_left_inner_02": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "wall_left_inner_03": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "wall_left_inner_04": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "wall_left_inner_05": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "wall_outer_01": {
+    "new_id": "wall_outer_01",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "wall_outer_02": {
+    "new_id": "wall_outer_02",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "wall_outer_03": {
+    "new_id": "wall_outer_03",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "wall_outer_04": {
+    "new_id": "wall_outer_04",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "wall_outer_05": {
+    "new_id": "wall_outer_05",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "wall_outer_06": {
+    "new_id": "wall_outer_06",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "wall_outer_07": {
+    "new_id": "wall_outer_07",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "wall_outer_08": {
+    "new_id": "wall_outer_08",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "wall_outer_09": {
+    "new_id": "wall_outer_09",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "wall_outer_10": {
+    "new_id": "wall_outer_10",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "wall_outer_11": {
+    "new_id": "wall_outer_11",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "wall_outer_12": {
+    "new_id": "wall_outer_12",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "wall_outer_13": {
+    "new_id": "wall_outer_13",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "wall_outer_14": {
+    "new_id": "wall_outer_14",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "wall_outer_15": {
+    "new_id": "wall_outer_15",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "wall_outer_16": {
+    "new_id": "wall_outer_16",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "wall_outer_17": {
+    "new_id": "wall_outer_17",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "wall_outer_18": {
+    "new_id": "wall_outer_18",
+    "status": "PRESERVED_ID_REGENERATED_GEOMETRY"
+  },
+  "wall_outer_19": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "wall_outer_20": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "wall_outer_21": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "wall_outer_22": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "wall_right_inner_01": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "wall_right_inner_02": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "wall_right_inner_03": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "zone_in": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "zone_out": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "zone_parking": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  },
+  "zone_slalom": {
+    "new_id": null,
+    "status": "RETIRED_OR_REPLACED_SEE_SEMANTICS"
+  }
+}

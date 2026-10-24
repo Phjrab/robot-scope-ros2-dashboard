@@ -1,0 +1,54 @@
+{
+  "status": "CONTRACT_READ_ONLY_PASS",
+  "revision": "rulebook-20261015-v1",
+  "frame": "arena_design",
+  "scenario_contracts": [
+    {
+      "id": "empty",
+      "sha256": "817a238d712f89db6e060c452c7b9007cfb704c93bf8128eeeca07d25e8157da"
+    },
+    {
+      "id": "narrow_feasible",
+      "sha256": "8135fb55ac9c93cc29bccdb0d81b1edcd68fd785881f0e0543f8b04e9b794811"
+    },
+    {
+      "id": "narrow_infeasible",
+      "sha256": "c5f3292bd5f0aecb4d2f9c8a2f00c159baf21ab018c3e9cc82a70ee25783f3ec"
+    },
+    {
+      "id": "parking_boundary",
+      "sha256": "7490c63b3f567e490fee8d83e9c6d8731c0b597684b2fd7a429458d64dff5631"
+    },
+    {
+      "id": "single_cone",
+      "sha256": "e487ce1130f1dacdcfdce7a70238d6e699505c97b9a899ab2fbe2df083618a03"
+    },
+    {
+      "id": "slalom_multi",
+      "sha256": "f264a9aeff3f2e6f324d64cd64d4bc1fa3c79f2e4e47edb553174a66182aea72"
+    },
+    {
+      "id": "two_signals",
+      "sha256": "3489cc0a382da1ec98282985814551480e0abbba236fb57f78e05c110099ef95"
+    }
+  ],
+  "map_transform": null,
+  "hardware_map_eligibility": false,
+  "reason": "Map transform null, DRAFT course graph and unqualified provisional geometry",
+  "arena_closed_loop": "NOT_RUN",
+  "fixture_footprint_m": [
+    0.5,
+    0.36
+  ],
+  "arena_assumed_footprint_m": [
+    0.6,
+    0.32
+  ],
+  "footprints_interchangeable": false,
+  "blocked_terrain": [
+    "ramp_sw",
+    "ramp_ne",
+    "stairs_nw",
+    "stairs_se"
+  ]
+}
