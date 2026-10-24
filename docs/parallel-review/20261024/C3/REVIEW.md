@@ -1,5 +1,9 @@
 # C3 검토 제출 — Humble Nav2 격리 비교 환경
 
+> 최신 native 결과는 [FOLLOWUP.md](FOLLOWUP.md)를 참조한다. 실제 Humble 8회가
+> 기록됐고 증거/안전 검증은 8/8 PASS, 목표 조건은 7/8 충족했다. 아래 내용은
+> 최초 제출 시점의 기록이며 당시 NOT_RUN 표기를 최신 상태로 해석하지 않는다.
+
 ## A. 기준과 범위
 
 - 역할: C3, 브랜치: `review/20261024-c3-nav2-benchmark`.
