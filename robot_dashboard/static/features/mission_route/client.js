@@ -6,6 +6,8 @@ export function createPlanClient(fetchValue = globalThis.fetch.bind(globalThis))
   }
   const pins = (entry) => ({ revision: entry.revision, request_id: requestId() });
   return {
+    competitionTemplate: () => api('/api/v1/mission-competition/template'),
+    fixtureRun: (entry, scenario) => api(`/api/v1/mission-plans/${entry.id}/fixture-runs`, { ...pins(entry), scenario }),
     list: () => api('/api/v1/mission-plans'), runs: () => api('/api/v1/mission-runs'),
     run: (identifier) => api(`/api/v1/mission-runs/${identifier}`),
     exportRun: (identifier) => api(`/api/v1/mission-runs/${identifier}/export`),

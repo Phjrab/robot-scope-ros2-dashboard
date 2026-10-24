@@ -13,7 +13,7 @@ test('Missions sidebar page creates ordered mission and sends only explicit acti
     const summary = page.getByText(text, { exact: true });
     if (!await summary.evaluate(node => node.parentElement.open)) await summary.click();
   }
-  await expect(page.locator('#pageTitle')).toHaveText('미션');
+  await expect(page.locator('#pageTitle')).toHaveText('경로·미션');
   const panel = page.locator('#dashboardMissionHost');
   await expect(panel.locator('[data-mission-draft-id]')).toHaveCount(2);
   expect(backend.mutations('/api/v1/missions')).toHaveLength(0);

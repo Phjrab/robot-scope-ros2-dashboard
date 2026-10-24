@@ -40,7 +40,7 @@ from .api.routers.mount_calibration import router as mount_calibration_router
 from .api.routers.observation_alignment import router as observation_alignment_router
 from .api.routers.observations import router as observations_router
 from .api.routers.mission_routes import router as mission_routes_router
-from .mission_routes.wiring import configure_mission_routes
+from .mission_routes.wiring import close_mission_routes, configure_mission_routes
 from .api.routers.navigation_presets import router as navigation_presets_router
 from .api.routers.map_families import create_router as create_map_families_router
 from .api.routers.pcd_editing import create_router as create_pcd_editing_router
@@ -180,6 +180,7 @@ async def lifespan(fastapi: FastAPI):
     finally:
         await close_observations(runtime, LOGGER)
         await close_relocalization(runtime, LOGGER)
+        await close_mission_routes(runtime, LOGGER)
         # Mission state is persisted and active goals are canceled before the
         # lower-level navigation owner begins its terminal cleanup.
         if runtime.mission is not None:

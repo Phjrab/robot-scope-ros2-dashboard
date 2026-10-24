@@ -235,7 +235,7 @@ test('MR E1 geometry, planner evidence and light theme remain separate from the 
   await workspace.getByRole('button',{name:'미션 저장',exact:true}).click();
   await workspace.getByRole('button',{name:'FLEXIBLE compile',exact:true}).click(); await expect(workspace.getByRole('status')).toContainText('이동 명령 없음');
   await workspace.getByRole('button',{name:'Nav2 계획 미리보기',exact:true}).click();
-  await expect(workspace.locator('[data-evidence="native_preview"]')).toHaveCount(1);
+  await expect(workspace.locator('[data-evidence="fixture_preview"]')).toHaveCount(1);
   await expect(workspace).toContainText('KEEP_OUT · 작성 checked · 계획 checked_on_result · 실행 unavailable');
   await page.locator('#themeToggle').click(); await expect(page.locator('html')).toHaveAttribute('data-theme','light');
   await testInfo.attach('mission-route-light-synthetic',{body:await page.screenshot({fullPage:true}),contentType:'image/png'});

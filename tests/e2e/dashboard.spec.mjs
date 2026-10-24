@@ -774,6 +774,18 @@ test('Cockpit manual to Nav2 to explicit takeover stays mutually exclusive and n
   expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
 });
 
+async function openFullMissionEditor(page, cockpitPanel) {
+  await expect(cockpitPanel.locator('[data-mission-action="create"]')).toHaveCount(0);
+  await expect(cockpitPanel.locator('[data-mission-action="start"]')).toHaveCount(0);
+  await cockpitPanel.getByRole('link', {name:'경로·미션 지도 편집 열기'}).click();
+  const host=page.locator('#dashboardMissionHost');
+  for (const label of ['기존 주석 미션 · 고급','기존 주석 미션 작성 · 고급']) {
+    const summary=host.getByText(label,{exact:true});
+    if (!await summary.evaluate(node=>node.parentElement.open)) await summary.click();
+  }
+  return host.locator('.cockpit-mission-panel');
+}
+
 test('Cockpit runs a server-owned two-waypoint mission and restores it after reload', async ({ page }) => {
   const backend = await openDashboard(page, { includeSecondAnnotation: true }, 'cockpit');
   await page.locator('#refreshButton').click();
@@ -781,7 +793,7 @@ test('Cockpit runs a server-owned two-waypoint mission and restores it after rel
   await page.locator('.cockpit-launcher-item[data-panel-type="navigation.main"]').click();
   await page.locator('.cockpit-launcher-item[data-panel-type="mission.main"]').click();
   const navigationPanel = page.locator('[data-panel-id="navigation-main"]');
-  const missionPanel = page.locator('[data-panel-id="mission-main"]');
+  let missionPanel = page.locator('[data-panel-id="mission-main"]');
   await expect(missionPanel.locator('.cockpit-mission-panel')).toBeVisible();
   await page.locator('.cockpit-launcher-item[data-panel-type="navigation.main"]').click();
   await page.locator('[data-cockpit-layout-action="apply"]').click();
@@ -791,7 +803,7 @@ test('Cockpit runs a server-owned two-waypoint mission and restores it after rel
   backend.state.navigation.safety.can_send_goal = true;
 
   await page.locator('#cockpitSensorLauncher .cockpit-launcher-toggle').click();
-  await missionPanel.getByText('기존 주석 미션 작성 · 고급', { exact: true }).click();
+  missionPanel = await openFullMissionEditor(page, missionPanel);
   await expect(missionPanel.locator('[data-mission-draft-id]')).toHaveCount(2);
   await missionPanel.locator('[data-mission-draft-id]').nth(0).click();
   await missionPanel.locator('[data-mission-draft-id]').nth(1).click();
@@ -809,6 +821,9 @@ test('Cockpit runs a server-owned two-waypoint mission and restores it after rel
   await expect(missionPanel.locator('.cockpit-mission-route')).toContainText('2. E2E Inspect · RUNNING');
   backend.completeMissionWaypoint();
   await expect(missionPanel.locator('.cockpit-mission-header strong')).toHaveText('MISSION COMPLETED');
+  // Direct route restores this fixture-backed tab; the sidebar link launches
+  // a separate full-window Cockpit (covered by its own navigation tests).
+  await page.goto('/#cockpit');
   // Nav still owns control: selecting an existing panel must remain accessible
   // without entering Layout Edit or creating a stream.
   await expect(page.locator('[data-cockpit-layout-action="edit"]')).toBeDisabled();
@@ -822,8 +837,11 @@ test('Cockpit runs a server-owned two-waypoint mission and restores it after rel
   await page.locator('.cockpit-launcher-item[data-panel-type="mission.main"]').click();
   const restored = page.locator('[data-panel-id="mission-main"]');
   await expect(restored.locator('.cockpit-mission-header strong')).toHaveText('MISSION COMPLETED');
-  await expect(restored.locator('.cockpit-mission-route')).toContainText('E2E Home · COMPLETED');
-  await expect(restored.locator('.cockpit-mission-route')).toContainText('E2E Inspect · COMPLETED');
+  await expect(restored.locator('[data-mission-action="start"]')).toHaveCount(0);
+  await expect(restored.locator('[data-mission-action="abort"]')).toBeVisible();
+  const full = await openFullMissionEditor(page, restored);
+  await expect(full.locator('.cockpit-mission-route')).toContainText('E2E Home · COMPLETED');
+  await expect(full.locator('.cockpit-mission-route')).toContainText('E2E Inspect · COMPLETED');
 });
 
 test('Cockpit mission pause, failure retry, and skips remain explicit and fail closed', async ({ page }) => {
@@ -833,7 +851,7 @@ test('Cockpit mission pause, failure retry, and skips remain explicit and fail c
   await page.locator('.cockpit-launcher-item[data-panel-type="navigation.main"]').click();
   await page.locator('.cockpit-launcher-item[data-panel-type="mission.main"]').click();
   const navigationPanel = page.locator('[data-panel-id="navigation-main"]');
-  const missionPanel = page.locator('[data-panel-id="mission-main"]');
+  let missionPanel = page.locator('[data-panel-id="mission-main"]');
   await page.locator('.cockpit-launcher-item[data-panel-type="navigation.main"]').click();
   await navigationPanel.locator('[data-navigation-action="start"]').click();
   await expect.poll(() => backend.mutations('/api/v1/navigation/start').length).toBe(1);
@@ -842,7 +860,7 @@ test('Cockpit mission pause, failure retry, and skips remain explicit and fail c
   backend.state.navigation.goal = { state: 'idle', goal_id: null };
   backend.state.navigation.safety.can_send_goal = true;
 
-  await missionPanel.getByText('기존 주석 미션 작성 · 고급', { exact: true }).click();
+  missionPanel = await openFullMissionEditor(page, missionPanel);
   await expect(missionPanel.locator('[data-mission-draft-id]')).toHaveCount(2);
   await missionPanel.locator('[data-mission-draft-id]').nth(0).click();
   await missionPanel.locator('[data-mission-draft-id]').nth(1).click();

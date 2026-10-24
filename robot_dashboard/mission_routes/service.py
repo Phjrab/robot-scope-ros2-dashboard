@@ -13,6 +13,8 @@ from ..application.mission_coordinator import MissionConflict, MissionNotFound, 
 from ..spatial_routes import ROBOT_RADIUS_M, SpatialRouteError, select_execution_waypoints, validate_route, route_length
 from .models import DefinitionInput, Pose, digest
 from .store import PlanStore
+from .competition_contract import capabilities, readiness
+from .competition_executor import FixtureRuns, new_fixture_state
 
 
 def utc():
@@ -31,6 +33,7 @@ class MissionRoutes:
         self._preview_active = False
         self._validate_store()
         self._persisted = copy.deepcopy(self.data)
+        self.fixture_runs = FixtureRuns(self)
         self._admission = object()
         self.coordinator._managed_admission = self._admission
         self.coordinator._dispatch_preflight = self.preflight_dispatch
@@ -52,6 +55,17 @@ class MissionRoutes:
                 body = DefinitionInput.model_validate(run["definition"]).model_dump()
                 if digest(body) != run["definition_revision"]:
                     raise ValueError()
+                if "mode" in run or "fixture_state" in run:
+                    state = run["fixture_state"]
+                    if (run.get("mode") != "fixture" or not body.get("competition") or state["id"] != key
+                            or state["state"] not in {"ready", "running", "failed", "completed"}
+                            or not isinstance(state["current_index"], int) or isinstance(state["current_index"], bool)
+                            or not 0 <= state["current_index"] <= len(body["visits"])
+                            or len(state["waypoints"]) != len(body["visits"])
+                            or [v["visit_id"] for v in state["waypoints"]] != [v["visit_id"] for v in body["visits"]]):
+                        raise ValueError()
+                    if state["state"] == "running" and state["current_index"] >= len(body["visits"]):
+                        raise ValueError()
             except (KeyError, ValueError, TypeError) as exc:
                 raise MissionUnavailable("stored run definition is invalid") from exc
         for key, entry in self.data["requests"].items():
@@ -116,7 +130,7 @@ class MissionRoutes:
         return result
 
     def definitions(self):
-        return {"definitions": copy.deepcopy(list(self.data["definitions"].values())), "context": self.context.snapshot()}
+        return {"definitions": copy.deepcopy(list(self.data["definitions"].values())), "context": self.context.snapshot(), "competition_capabilities": capabilities()}
 
     def definition(self, identifier, revision=None):
         value = self.data["definitions"].get(identifier)
@@ -148,7 +162,7 @@ class MissionRoutes:
 
     def _require_definition_idle(self, identifier):
         for run in self.data["runs"].values():
-            if run["definition_id"] == identifier and self.coordinator.snapshot(run["id"])["mission"]["ownership_active"]:
+            if run["definition_id"] == identifier and (self.run(run["id"])["mission"]["ownership_active"] or run.get("fixture_state", {}).get("state") == "running"):
                 raise MissionConflict("DEFINITION_ACTIVE_COPY_REQUIRED")
 
     async def delete_definition(self, identifier, body):
@@ -229,6 +243,8 @@ class MissionRoutes:
         return self._validate_entry(self.definition(identifier, revision))
 
     def _validate_entry(self, entry):
+        if entry["definition"].get("competition"):
+            return self._competition_report(entry)
         revision = entry["revision"]
         definition = entry["definition"]
         geometry, annotations, poses, route = self._resolved(entry)
@@ -267,6 +283,60 @@ class MissionRoutes:
             "execution_readiness": {"status": "BLOCKED" if context["blocking_reasons"] or unsupported or not result["valid"] else "READY", "blocking_reasons": context["blocking_reasons"]+unsupported},
             "resolved_poses": poses,
         }
+
+    def _competition_report(self, entry):
+        definition = entry["definition"]
+        context = self.context.snapshot()
+        execution = readiness(definition)
+        reasons = []
+        validation = {"valid": False, "violations": []}
+        if any(v["target"] == "unplaced" for v in definition["visits"]):
+            reasons.append("STEP_COORDINATES_DRAFT")
+        else:
+            try:
+                geometry, annotations, poses, _ = self._resolved(entry)
+                checks = [self._path_validation(definition, [p], geometry, annotations, ROBOT_RADIUS_M) for p in poses]
+                validation = {"valid": all(c["valid"] for c in checks), "violations": [v for c in checks for v in c["violations"]]}
+                if not validation["valid"]:
+                    reasons.append("AUTHORED_GEOMETRY_INVALID")
+            except MissionConflict as exc:
+                reasons.append(str(exc))
+        if definition["competition"]["review_status"] != "REVIEWED":
+            reasons.append("COURSE_ORDER_AND_COORDINATES_DRAFT")
+        pins = {"definition_revision": entry["revision"], "map_family": definition["map_family"],
+                "annotation_revision": definition["annotation_revision"], "route_ref": definition["route_ref"],
+                "context_revision": context["navigation_context_revision"], "competition": definition["competition"],
+                "planner_config_digest": context.get("planner_config_digest"), "footprint_revision": context.get("footprint_revision")}
+        return {"status": "BLOCKED", "scope": "competition_contract", "contract_status": "PROPOSED",
+                "evidence_type": "software", "actual_nav2_run": False, "validation": validation,
+                "authoring_reasons": reasons, "blocking_reasons": reasons + execution["blocking_reasons"],
+                "execution_readiness": {**execution, "blocking_reasons": execution["blocking_reasons"] + context["blocking_reasons"]},
+                "snapshot_pins": pins, "notice": "저장·fixture 검증 가능. 각 단계의 실장비 adapter 연결·검증이 필요합니다."}
+
+    async def create_fixture_run(self, identifier, body):
+        async def operation():
+            entry = self.definition(identifier, body.revision)
+            if not entry["definition"].get("competition"):
+                raise MissionConflict("COMPETITION_DEFINITION_REQUIRED")
+            if len(self.data["runs"]) >= 32:
+                raise MissionConflict("RUN_HISTORY_FULL")
+            identity = secrets.token_hex(16)
+            # Authoring coordinates may still be DRAFT. Synthetic observations
+            # never claim to validate this map, path or a physical maneuver.
+            pins = self._competition_report(entry)["snapshot_pins"]
+            run = {"id": identity, "mode": "fixture", "scenario": body.scenario,
+                   "definition_id": identifier, "definition_revision": body.revision,
+                   "definition": entry["definition"], "snapshot_pins": pins, "created_at": utc(),
+                   "events": [], "trajectory": [], "preview": None,
+                   "live_plan": {"status": "unavailable", "reason": "FIXTURE_NO_NATIVE_PATH"},
+                   "fixture_state": new_fixture_state(identity, entry["definition"])}
+            self.data["runs"][identity] = run
+            self._save()
+            return self.run(identity)
+        return await self._transaction(body.request_id, {"fixture_run": identifier, **body.model_dump()}, operation)
+
+    async def close(self):
+        await self.fixture_runs.close()
 
     async def preview(self, identifier, body):
         # Native planning shares the map/resource window, but claims no motion
@@ -373,11 +443,14 @@ class MissionRoutes:
         run = self.data["runs"].get(identifier)
         if run is None:
             raise MissionNotFound("mission run was not found")
-        return {"run": copy.deepcopy(run), "mission": self.coordinator.snapshot(identifier)["mission"]}
+        mission = self.fixture_runs.snapshot(run) if run.get("mode") == "fixture" else self.coordinator.snapshot(identifier)["mission"]
+        return {"run": copy.deepcopy(run), "mission": mission}
 
     def export_run(self, identifier):
         # History is a read-only artifact, never executable resume state.
         result = self.run(identifier)
+        if result["run"].get("mode") == "fixture":
+            return {"schema": "competition-fixture-history.v0.1", "executable": False, "actual_nav2_run": False, **result}
         run_fields = {"id", "definition_id", "definition_revision", "definition", "snapshot_pins", "created_at", "source_sha", "runtime_sha", "provenance_status", "events", "trajectory", "preview", "live_plan", "last_state", "last_phase", "visit_results", "started_at", "completed_at", "outcome", "logs"}
         mission_fields = {"id", "label", "state", "phase", "outcome", "current_index", "completed_count", "waypoints", "started_at", "completed_at", "hold_remaining", "pause_reason", "error", "logs"}
         return {"schema": "mission-history.v1", "executable": False, "run": {k:v for k,v in result["run"].items() if k in run_fields}, "mission": {k:v for k,v in result["mission"].items() if k in mission_fields}}
@@ -480,6 +553,9 @@ class MissionRoutes:
             run = self.data["runs"].get(identifier)
             if run is None:
                 raise MissionNotFound("mission run was not found")
+            if run.get("mode") == "fixture":
+                await self.fixture_runs.action(identifier, action)
+                return self.run(identifier)
             mission = self.coordinator.snapshot(identifier)["mission"]
             if action in {"start", "resume", "retry", "skip"}:
                 self.require_run_context(mission)

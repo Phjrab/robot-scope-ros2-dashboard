@@ -54,3 +54,9 @@
   .mr-workspace aside[data-drawer-hidden=true]{display:none}
   .mr-workspace svg{height:32dvh;min-height:240px}
 }
+
+.mr-workspace [data-competition-summary]{grid-column:1/-1;margin:0;padding:12px;border:1px solid var(--line);border-radius:var(--radius);font:inherit;color:var(--text);background:var(--panel)}
+.mr-workspace [hidden]{display:none!important}
+.mr-workspace [data-arena-status]{padding:8px;border:1px dashed var(--line-strong);color:var(--muted)}
+.mr-workspace .mr-inspector>details{width:100%}.mr-workspace .mr-image-evidence{display:grid;gap:8px}.mr-workspace .mr-image-evidence p{border:1px dashed var(--line);padding:14px;color:var(--muted)}
+.mr-workspace canvas[data-arena-glb]{width:100%;height:auto;border:1px solid var(--line);border-radius:var(--radius)}
