@@ -48,3 +48,44 @@ From this revision directory, first restore the baseline lossless fixtures:
 Fresh scenario traces are synthetic VM output, not real robot measurements.
 Full-course or articulated rendering is not repeated in this bounded collision
 rebuild. Tight SAFE_WAIT is a preserved limitation, not proof of impossibility.
+
+## Summed-area refinement
+
+The first generic vector SAT rebuild was geometrically correct but slower than
+the original buggy predicate. Its fresh paired timings are retained separately
+in validation/benchmark_generic.json. `fast_snapshot.py` adds a per-snapshot
+summed-area table ONLY for verified axis-aligned rectangles at exact quarter-turn
+headings. All other convex geometry and every swept command guard still use the
+reviewed closed-cell SAT. Both boundaries of the rectangle query include the same
+metric tolerance. Immutable mask ownership and cache lifetime are unchanged.
+
+## Fresh finalized results
+
+- 34 focused tests + 15 unchanged watchdog tests freshly rerun pass.
+- Generic oracle: 12,900 cases, zero false-clears; final accelerated oracle:
+  21,240 cases, zero generic differences and zero physical false-clears.
+- Five final replays independently pass. OPEN reaches goal stopped at 57.4 s;
+  tight remains SAFE_WAIT at 24.1 s; delay/dropout at 7.2 s; blocked at 3.1 s.
+- Full actual poses/commands/states and deterministic metrics exactly match
+  frozen baseline. Corrected tight XY planned paths differ only in 20 frames.
+  Final acceleration exactly matches the generic-corrected traces including paths.
+- Independent continuous interpolation clearance bound is at least 35.507 mm
+  across these cases; not dynamics, articulated envelope, or hardware validation.
+- Paired five-run medians: original buggy 2.046928 s; corrected uncached
+  generic 8.203918 s; corrected accelerated 0.693391 s. Some runs overlapped
+  repository checks on the shared VM. These are not real-time or hardware claims.
+  0.693 s still exceeds both experimental .1 s tick and .25 s freshness budgets.
+- Bulk synthetic point/mesh traces remain local. The small lossless
+  validation/execution_samples.json.gz retains every execution sample plus path
+  hashes; execution_manifest.json records full local raw trace hashes.
+  Re-run run_candidate.py to generate full replay inputs, then run
+  review/independent_review_scenarios.py (generic comparison requires the earlier
+  generic run in results/generic_candidate02; documented in that review).
+- User ROUND3 shifts priority to shared native-C3 inputs and feasibility, not
+  further planner tuning. No installation, full-course rendering, or RL performed.
+
+To regenerate the optional generic reference without editing any source, run
+`python -B replay_generic.py` before the independent scenario reviewer. This is
+slow and is not a prerequisite for C3 consuming ROUND3 shared inputs. The default
+CI currently does not discover these nested experiment tests automatically; the
+explicit commands/reports, not the repository CI badge, establish their result.

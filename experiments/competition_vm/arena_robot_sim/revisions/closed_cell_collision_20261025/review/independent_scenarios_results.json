@@ -1,0 +1,602 @@
+{
+  "generated_utc": "2026-10-25T04:37:00.900823+00:00",
+  "fresh_input_directory": "results/candidate02",
+  "source_sha256": {
+    "collision.py": "b86817c2ccfaa8456f8ccd3e3b40866fd545e92c8f00419caefbef5c3b5baad2",
+    "fast_snapshot.py": "1aec487744f4009046232cc4ced208316d0acc5c0650989467ff8940a099b182",
+    "simulate_curved.py": "8eccfbbd4df5a2caf2b30a8f59171e9fd34b4ad21fa19698c06025227a743fff",
+    "run_candidate.py": "12f43f7ad28ffdfc9975f27ead95072a971d9c0d609cc8df20e7f4e67bd03559"
+  },
+  "all_pass": true,
+  "scenarios": {
+    "open_normal": {
+      "sha256": "4a220677baa85aa65955d5f31b7303d7583399d48b336507c1e464ec74cd661d",
+      "frozen_sha256": "869276f6c3fb43c4dd36ea879f8601a0941f795e6ac1f88954ec15987ff740cf",
+      "pass": true,
+      "checks": {
+        "full_body_081_by_056_unchanged": true,
+        "margin_003_unchanged": true,
+        "padded_body_unchanged": true,
+        "cones_unchanged": true,
+        "floor_unchanged": true,
+        "zero_sampled_polygon_contacts": true,
+        "continuous_margin_at_least_003": true,
+        "kinematic_identity": true,
+        "both_ages_gate_freshness": true,
+        "stale_always_zero": true,
+        "terminal_zero": true,
+        "expected_outcome": true,
+        "terminal_state_matches_outcome": true,
+        "normal_linear_slew": true,
+        "normal_angular_slew": true,
+        "speed_limit": true,
+        "yaw_rate_limit": true,
+        "reported_zero_contacts": true,
+        "emergency_override_count_consistent": true,
+        "delay_rejected_when_applicable": true,
+        "fault_cases_become_stale": true,
+        "generic_execution_equivalence": true
+      },
+      "outcome": "GOAL_REACHED",
+      "geometry": {
+        "poses_checked": 6314,
+        "wall_contacts": 0,
+        "cone_contacts": 0,
+        "sampled_clearance_m": 0.045705372426308344,
+        "continuous_clearance_lower_bound_m": 0.045281822244904284
+      },
+      "motion": {
+        "frames": 574,
+        "normal_max_linear_accel": 0.20000000000000012,
+        "normal_max_angular_accel": 0.35000000000001985,
+        "emergency_max_linear_accel": 0.0,
+        "emergency_max_angular_accel": 0.0,
+        "emergency_slew_exceeding_frames": 0,
+        "reported_emergency_overrides": 0,
+        "stale_frames": 0,
+        "first_stale_t": null,
+        "rejected_delayed_samples": 0,
+        "goal_error_m": 0.0041823058001775725
+      },
+      "comparison": {
+        "actual_poses_commands_states": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 574,
+          "frozen_frames": 574
+        },
+        "sensing": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 574,
+          "frozen_frames": 574
+        },
+        "paths_separate": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 574,
+          "frozen_frames": 574
+        },
+        "path_xy_only": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 574,
+          "frozen_frames": 574
+        },
+        "path_yaw_only": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 574,
+          "frozen_frames": 574
+        },
+        "scene_equal": true,
+        "scene_changed_keys": [],
+        "deterministic_metrics_equal": true
+      },
+      "generic_sha256": "15702be99b3dd89800dc2c63ae96864de97c4635441e22c4466ed5edd8e8c452",
+      "comparison_vs_generic": {
+        "actual_poses_commands_states": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 574,
+          "frozen_frames": 574
+        },
+        "paths_separate": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 574,
+          "frozen_frames": 574
+        },
+        "sensing": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 574,
+          "frozen_frames": 574
+        },
+        "scene_equal": true,
+        "deterministic_metrics_equal": true
+      }
+    },
+    "tight_normal": {
+      "sha256": "36cf4498b7669f3a88dbe468601f2f4b828f062f5e747a1255d73b4716404c9f",
+      "frozen_sha256": "5b4b3759342135800dd5acf8b3d55bba3cf86231ce80f6286f3710d21a1c7da7",
+      "pass": true,
+      "checks": {
+        "full_body_081_by_056_unchanged": true,
+        "margin_003_unchanged": true,
+        "padded_body_unchanged": true,
+        "cones_unchanged": true,
+        "floor_unchanged": true,
+        "zero_sampled_polygon_contacts": true,
+        "continuous_margin_at_least_003": true,
+        "kinematic_identity": true,
+        "both_ages_gate_freshness": true,
+        "stale_always_zero": true,
+        "terminal_zero": true,
+        "expected_outcome": true,
+        "terminal_state_matches_outcome": true,
+        "normal_linear_slew": true,
+        "normal_angular_slew": true,
+        "speed_limit": true,
+        "yaw_rate_limit": true,
+        "reported_zero_contacts": true,
+        "emergency_override_count_consistent": true,
+        "delay_rejected_when_applicable": true,
+        "fault_cases_become_stale": true,
+        "generic_execution_equivalence": true
+      },
+      "outcome": "SAFE_WAIT",
+      "geometry": {
+        "poses_checked": 2651,
+        "wall_contacts": 0,
+        "cone_contacts": 0,
+        "sampled_clearance_m": 0.03603238523588011,
+        "continuous_clearance_lower_bound_m": 0.03550696364253237
+      },
+      "motion": {
+        "frames": 241,
+        "normal_max_linear_accel": 0.2000000000000043,
+        "normal_max_angular_accel": 0.3500000000000004,
+        "emergency_max_linear_accel": 0.6413922561608386,
+        "emergency_max_angular_accel": 0.07902484115058338,
+        "emergency_slew_exceeding_frames": 1,
+        "reported_emergency_overrides": 1,
+        "stale_frames": 0,
+        "first_stale_t": null,
+        "rejected_delayed_samples": 0,
+        "goal_error_m": 2.6649133051333247
+      },
+      "comparison": {
+        "actual_poses_commands_states": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 241,
+          "frozen_frames": 241
+        },
+        "sensing": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 241,
+          "frozen_frames": 241
+        },
+        "paths_separate": {
+          "equal": false,
+          "different_common_frames": 20,
+          "first_different_frame": 160,
+          "new_frames": 241,
+          "frozen_frames": 241
+        },
+        "path_xy_only": {
+          "equal": false,
+          "different_common_frames": 20,
+          "first_different_frame": 160,
+          "new_frames": 241,
+          "frozen_frames": 241
+        },
+        "path_yaw_only": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 241,
+          "frozen_frames": 241
+        },
+        "scene_equal": true,
+        "scene_changed_keys": [],
+        "deterministic_metrics_equal": true
+      },
+      "generic_sha256": "6728fbbd12d8bdbef5351125bbd966d341899f554b5a7cad89829b3de3f4ae70",
+      "comparison_vs_generic": {
+        "actual_poses_commands_states": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 241,
+          "frozen_frames": 241
+        },
+        "paths_separate": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 241,
+          "frozen_frames": 241
+        },
+        "sensing": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 241,
+          "frozen_frames": 241
+        },
+        "scene_equal": true,
+        "deterministic_metrics_equal": true
+      }
+    },
+    "open_dropout": {
+      "sha256": "64b4cb1cdd89ddcb3d658c4cb5bb60457d722e98d5b7045125f557df29244582",
+      "frozen_sha256": "bc28b42ea65593d9062ef6e6898526af291b8228e4f0801a0e0f50168db1f646",
+      "pass": true,
+      "checks": {
+        "full_body_081_by_056_unchanged": true,
+        "margin_003_unchanged": true,
+        "padded_body_unchanged": true,
+        "cones_unchanged": true,
+        "floor_unchanged": true,
+        "zero_sampled_polygon_contacts": true,
+        "continuous_margin_at_least_003": true,
+        "kinematic_identity": true,
+        "both_ages_gate_freshness": true,
+        "stale_always_zero": true,
+        "terminal_zero": true,
+        "expected_outcome": true,
+        "terminal_state_matches_outcome": true,
+        "normal_linear_slew": true,
+        "normal_angular_slew": true,
+        "speed_limit": true,
+        "yaw_rate_limit": true,
+        "reported_zero_contacts": true,
+        "emergency_override_count_consistent": true,
+        "delay_rejected_when_applicable": true,
+        "fault_cases_become_stale": true,
+        "generic_execution_equivalence": true
+      },
+      "outcome": "SAFE_WAIT",
+      "geometry": {
+        "poses_checked": 792,
+        "wall_contacts": 0,
+        "cone_contacts": 0,
+        "sampled_clearance_m": 0.0511126523699013,
+        "continuous_clearance_lower_bound_m": 0.05061036453686456
+      },
+      "motion": {
+        "frames": 72,
+        "normal_max_linear_accel": 0.20000000000000012,
+        "normal_max_angular_accel": 0.3500000000000012,
+        "emergency_max_linear_accel": 0.7497682286636328,
+        "emergency_max_angular_accel": 0.517515543208697,
+        "emergency_slew_exceeding_frames": 1,
+        "reported_emergency_overrides": 1,
+        "stale_frames": 31,
+        "first_stale_t": 4.1,
+        "rejected_delayed_samples": 0,
+        "goal_error_m": 3.8397667479488056
+      },
+      "comparison": {
+        "actual_poses_commands_states": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 72,
+          "frozen_frames": 72
+        },
+        "sensing": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 72,
+          "frozen_frames": 72
+        },
+        "paths_separate": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 72,
+          "frozen_frames": 72
+        },
+        "path_xy_only": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 72,
+          "frozen_frames": 72
+        },
+        "path_yaw_only": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 72,
+          "frozen_frames": 72
+        },
+        "scene_equal": true,
+        "scene_changed_keys": [],
+        "deterministic_metrics_equal": true
+      },
+      "generic_sha256": "eba78aadbb05759ee74fed7aae0b19133e2806ee353c1f2237aa15e4d51e562b",
+      "comparison_vs_generic": {
+        "actual_poses_commands_states": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 72,
+          "frozen_frames": 72
+        },
+        "paths_separate": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 72,
+          "frozen_frames": 72
+        },
+        "sensing": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 72,
+          "frozen_frames": 72
+        },
+        "scene_equal": true,
+        "deterministic_metrics_equal": true
+      }
+    },
+    "open_delay": {
+      "sha256": "d709d75bbc26d671092471f6145078792b9c5572cbde03e7c63295651e345387",
+      "frozen_sha256": "6752ab77959941a15bb8c6d92966fb2e2833a50a026e8d50f0be2877b0930635",
+      "pass": true,
+      "checks": {
+        "full_body_081_by_056_unchanged": true,
+        "margin_003_unchanged": true,
+        "padded_body_unchanged": true,
+        "cones_unchanged": true,
+        "floor_unchanged": true,
+        "zero_sampled_polygon_contacts": true,
+        "continuous_margin_at_least_003": true,
+        "kinematic_identity": true,
+        "both_ages_gate_freshness": true,
+        "stale_always_zero": true,
+        "terminal_zero": true,
+        "expected_outcome": true,
+        "terminal_state_matches_outcome": true,
+        "normal_linear_slew": true,
+        "normal_angular_slew": true,
+        "speed_limit": true,
+        "yaw_rate_limit": true,
+        "reported_zero_contacts": true,
+        "emergency_override_count_consistent": true,
+        "delay_rejected_when_applicable": true,
+        "fault_cases_become_stale": true,
+        "generic_execution_equivalence": true
+      },
+      "outcome": "SAFE_WAIT",
+      "geometry": {
+        "poses_checked": 792,
+        "wall_contacts": 0,
+        "cone_contacts": 0,
+        "sampled_clearance_m": 0.0511126523699013,
+        "continuous_clearance_lower_bound_m": 0.05061036453686456
+      },
+      "motion": {
+        "frames": 72,
+        "normal_max_linear_accel": 0.20000000000000012,
+        "normal_max_angular_accel": 0.3500000000000012,
+        "emergency_max_linear_accel": 0.7497682286636328,
+        "emergency_max_angular_accel": 0.517515543208697,
+        "emergency_slew_exceeding_frames": 1,
+        "reported_emergency_overrides": 1,
+        "stale_frames": 31,
+        "first_stale_t": 4.1,
+        "rejected_delayed_samples": 14,
+        "goal_error_m": 3.8397667479488056
+      },
+      "comparison": {
+        "actual_poses_commands_states": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 72,
+          "frozen_frames": 72
+        },
+        "sensing": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 72,
+          "frozen_frames": 72
+        },
+        "paths_separate": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 72,
+          "frozen_frames": 72
+        },
+        "path_xy_only": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 72,
+          "frozen_frames": 72
+        },
+        "path_yaw_only": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 72,
+          "frozen_frames": 72
+        },
+        "scene_equal": true,
+        "scene_changed_keys": [],
+        "deterministic_metrics_equal": true
+      },
+      "generic_sha256": "d39117183747e8470fb6465a2ff60f51602cd5dcef9fe8e3e118c703b05aecb7",
+      "comparison_vs_generic": {
+        "actual_poses_commands_states": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 72,
+          "frozen_frames": 72
+        },
+        "paths_separate": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 72,
+          "frozen_frames": 72
+        },
+        "sensing": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 72,
+          "frozen_frames": 72
+        },
+        "scene_equal": true,
+        "deterministic_metrics_equal": true
+      }
+    },
+    "blocked_5": {
+      "sha256": "82fc0cf1a64a708c308baaed676b86ef5aa152d1a6e119986dc0ad526ab9c040",
+      "frozen_sha256": "74be19a01ab7fbf535f097d37f768089abfab93facd3968ce932bd4ec460bd60",
+      "pass": true,
+      "checks": {
+        "full_body_081_by_056_unchanged": true,
+        "margin_003_unchanged": true,
+        "padded_body_unchanged": true,
+        "cones_unchanged": true,
+        "floor_unchanged": true,
+        "zero_sampled_polygon_contacts": true,
+        "continuous_margin_at_least_003": true,
+        "kinematic_identity": true,
+        "both_ages_gate_freshness": true,
+        "stale_always_zero": true,
+        "terminal_zero": true,
+        "expected_outcome": true,
+        "terminal_state_matches_outcome": true,
+        "normal_linear_slew": true,
+        "normal_angular_slew": true,
+        "speed_limit": true,
+        "yaw_rate_limit": true,
+        "reported_zero_contacts": true,
+        "emergency_override_count_consistent": true,
+        "delay_rejected_when_applicable": true,
+        "fault_cases_become_stale": true,
+        "generic_execution_equivalence": true
+      },
+      "outcome": "SAFE_WAIT",
+      "geometry": {
+        "poses_checked": 341,
+        "wall_contacts": 0,
+        "cone_contacts": 0,
+        "sampled_clearance_m": 0.05399999999999994,
+        "continuous_clearance_lower_bound_m": 0.05399999999999994
+      },
+      "motion": {
+        "frames": 31,
+        "normal_max_linear_accel": 0.0,
+        "normal_max_angular_accel": 0.0,
+        "emergency_max_linear_accel": 0.0,
+        "emergency_max_angular_accel": 0.0,
+        "emergency_slew_exceeding_frames": 0,
+        "reported_emergency_overrides": 0,
+        "stale_frames": 0,
+        "first_stale_t": null,
+        "rejected_delayed_samples": 0,
+        "goal_error_m": 4.1
+      },
+      "comparison": {
+        "actual_poses_commands_states": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 31,
+          "frozen_frames": 31
+        },
+        "sensing": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 31,
+          "frozen_frames": 31
+        },
+        "paths_separate": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 31,
+          "frozen_frames": 31
+        },
+        "path_xy_only": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 31,
+          "frozen_frames": 31
+        },
+        "path_yaw_only": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 31,
+          "frozen_frames": 31
+        },
+        "scene_equal": true,
+        "scene_changed_keys": [],
+        "deterministic_metrics_equal": true
+      },
+      "generic_sha256": "a64af10fe4d72df9449558c57c50eafc9e7663b92d7abcc913658934daed7b05",
+      "comparison_vs_generic": {
+        "actual_poses_commands_states": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 31,
+          "frozen_frames": 31
+        },
+        "paths_separate": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 31,
+          "frozen_frames": 31
+        },
+        "sensing": {
+          "equal": true,
+          "different_common_frames": 0,
+          "first_different_frame": null,
+          "new_frames": 31,
+          "frozen_frames": 31
+        },
+        "scene_equal": true,
+        "deterministic_metrics_equal": true
+      }
+    }
+  },
+  "limitations": [
+    "Only newly executed closed_cell_collision_20261025 traces are audited; frozen traces are comparison references, not fresh tests.",
+    "Full body planar rectangle and exact cone base/floor polygons; not articulated-mesh, dynamics, real-robot or physical gait validation.",
+    "Continuous bound uses commanded linear position/yaw integration and 11 samples per interval.",
+    "Closed-cell corrections may change planned paths. Actual poses, commands and states are compared separately without assuming equivalence.",
+    "Wall-clock/planning timing metrics excluded from deterministic comparison; concurrent scenario/test workload is not a performance benchmark.",
+    "No real-time capability is inferred from this replay or its wall times.",
+    "A tight-normal SAFE_WAIT is a safe unresolved case, not proof that the course is infeasible."
+  ]
+}

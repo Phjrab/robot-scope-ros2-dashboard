@@ -1,0 +1,56 @@
+{
+  "seed": 2026102502,
+  "sha256": {
+    "collision.py": "b86817c2ccfaa8456f8ccd3e3b40866fd545e92c8f00419caefbef5c3b5baad2",
+    "fast_snapshot.py": "1aec487744f4009046232cc4ced208316d0acc5c0650989467ff8940a099b182"
+  },
+  "groups": {
+    "edges_and_gaps": {
+      "cases": 1944,
+      "false_clears": 0,
+      "generic_differences": 0,
+      "conservative_differences": 518
+    },
+    "map_edges": {
+      "cases": 504,
+      "false_clears": 0,
+      "generic_differences": 0,
+      "conservative_differences": 100
+    },
+    "tolerance_boundary_ulps": {
+      "cases": 504,
+      "false_clears": 0,
+      "generic_differences": 0,
+      "conservative_differences": 248
+    },
+    "random_rectangle_or_fallback": {
+      "cases": 18000,
+      "false_clears": 0,
+      "generic_differences": 0,
+      "conservative_differences": 0
+    },
+    "tiny_resolution_and_interior": {
+      "cases": 288,
+      "false_clears": 0,
+      "generic_differences": 0,
+      "conservative_differences": 32
+    }
+  },
+  "total_cases": 21240,
+  "false_clears": 0,
+  "generic_differences": 0,
+  "lifecycle": {
+    "clear_before": true,
+    "old_snapshot_stays_clear": true,
+    "new_snapshot_sees_addition": true,
+    "new_snapshot_owns_blocked_copy": true,
+    "latest_snapshot_sees_removal": true,
+    "template_cache_not_shared": true,
+    "integral_cache_not_shared": true,
+    "source_not_shared": true,
+    "all_malformed_fail_closed": true
+  },
+  "issues": [],
+  "differences": [],
+  "limitations": "Finite sampling, not proof; generic fallback and longdouble all-cell SAT are independent comparisons. No scenario or hardware claims."
+}

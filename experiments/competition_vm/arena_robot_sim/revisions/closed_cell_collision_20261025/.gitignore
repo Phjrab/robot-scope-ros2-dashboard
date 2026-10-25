@@ -1,3 +1,5 @@
 __pycache__/
 *.py[cod]
 /results/candidate02/*.json
+
+/results/generic_candidate02/

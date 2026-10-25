@@ -1,0 +1,19 @@
+{
+  "checks": [
+    {
+      "name": "repository_python",
+      "sha256": "2d55fcce02f49c0ffca5930e8803bd7714620e8c4ff83795c3d7f5807a491b5b",
+      "summary": "rrno 1] Operation not permitted\n\n======================================================================\nFAIL: test_vm_manifest_uses_published_hashes_without_registration_or_native_promotion (test_competition_mission.CompetitionContractTests.test_vm_manifest_uses_published_hashes_without_registration_or_native_promotion)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/scratch/b09eacf6919d/robot-scope-collision-20261025/tests/test_competition_mission.py\", line 97, in test_vm_manifest_uses_published_hashes_without_registration_or_native_promotion\n    self.assertEqual(vm_evidence()['traffic_signals']['scope'], 'SYNTHETIC_ONLY')\nAssertionError: 'UNAVAILABLE_OR_CHANGED' != 'SYNTHETIC_ONLY'\n- UNAVAILABLE_OR_CHANGED\n+ SYNTHETIC_ONLY\n\n\n----------------------------------------------------------------------\nRan 2691 tests in 89.252s\n\nFAILED (failures=1, errors=25, skipped=1)\n{\"status\": \"BLOCKED\", \"output\": \"/tmp/tmpt8174rm4/blocked.json\"}\n{\"status\": \"COMPUTED_DECLARED_INPUTS\", \"output\": \"/tmp/tmp_q8ymazy/result.json\"}\n"
+    },
+    {
+      "name": "repository_js",
+      "sha256": "e548ebb5f394c2705cee32ab5814b903a4602b72a8112b1c2b3a96a357edb641",
+      "summary": "ol typography scale (1.540688ms)\n\u2714 all workspaces share the scale while canvas HUD remains compact (0.52512ms)\n(node:3546) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/scratch/b09eacf6919d/robot-scope-collision-20261025/robot_dashboard/static/features/cockpit/status_labels.js is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to /workspace/scratch/b09eacf6919d/robot-scope-collision-20261025/package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)\n\u2714 waiting, disconnected, stale and unknown remain distinct in Korean (0.951432ms)\n\u2714 unknown state and blocker codes stay verbatim instead of acquiring an invented cause (0.204437ms)\n\u2714 synthetic and replay labels never describe live data (0.129344ms)\n\u2714 navigation blockers identify only their reported condition and a relevant check (0.182535ms)\n\u2139 tests 660\n\u2139 suites 0\n\u2139 pass 660\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 1915.493992\n"
+    }
+  ],
+  "python_failure": "Existing immutable VM publication manifest mismatch, not changed here",
+  "python_errors": "25 AF_UNIX PermissionError in restricted VM",
+  "js_syntax": "104 modules checked successfully",
+  "secret_scan": "passed at checkpoint; repeated before final staged commit",
+  "limitations": "Full suite is not green. C1 integration revision owns shared manifest selection."
+}

@@ -7,7 +7,8 @@ HERE=Path(__file__).resolve().parent
 sys.path.insert(0,str(HERE.parent/'left_slalom_20261024'))
 import simulate_slalom as base
 from core import Occupancy,Scan,plan
-from collision import Snapshot,polygon_collision
+from collision import polygon_collision
+from fast_snapshot import Snapshot
 from functools import lru_cache
 DT=.1;RES=.01; base.RES=RES; BODY=base.BODY
 CLEARANCE=.03; CHECK_BODY=[[-.435,-.31],[.435,-.31],[.435,.31],[-.435,.31]]

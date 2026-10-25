@@ -56,4 +56,21 @@ class ClosedCells(unittest.TestCase):
         for res in [0,-.1,float('nan')]:
             with self.assertRaises(ValueError):Snapshot(np.zeros((10,10)),res)
 
+class FastClosedCells(ClosedCells):
+    def test_tolerance_boundary_equivalent_to_generic(self):
+        from collision import Snapshot as Generic
+        from fast_snapshot import Snapshot as Fast
+        a=np.zeros((12,12),bool);a[5,5]=1
+        shape=[[-.25,-.25],[.25,-.25],[.25,.25],[-.25,.25]]
+        for origin,pose in [((-8,-12),(-1.7499999999988296,-6.5,0)),
+                            ((1e8,-1e8),(100000006.25000142,-99999994.5,0))]:
+            self.assertEqual(Fast(a,1.,origin).collides(pose,shape),Generic(a,1.,origin).collides(pose,shape))
+
+    def setUp(self):
+        from unittest.mock import patch
+        from fast_snapshot import Snapshot as FastSnapshot
+        self.patch = patch(__name__ + '.Snapshot', FastSnapshot)
+        self.patch.start()
+        self.addCleanup(self.patch.stop)
+
 if __name__=='__main__':unittest.main()
