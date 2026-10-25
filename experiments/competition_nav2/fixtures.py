@@ -1,6 +1,7 @@
 """Immutable fixture generator. Static prior never contains hidden obstacles."""
 
 import argparse
+import copy
 import hashlib
 import importlib.util
 import json
@@ -109,6 +110,25 @@ def diagnostic_cases(seed=20261024):
     return [fixture]
 
 
+def extension_cases(seed=20261024):
+    """Explicit new diagnostics; retain the exact original baseline and policies."""
+    late = copy.deepcopy(diagnostic_cases(seed)[0])
+    late.update(scenario="diagnostic_appearing_obstacle", replan_evidence_required=True)
+    late["obstacles"][0]["appears_s"] = 3.0
+    two = copy.deepcopy(diagnostic_cases(seed)[0])
+    two.update(scenario="diagnostic_two_obstacles")
+    two["obstacles"].append(dict(polygon=rectangle(5.0, 2.7, 5.3, 3.3), appears_s=0.0))
+    two["reference_waypoints"] = [
+        [2.0, 3.0],
+        [3.0, 3.0],
+        [3.0, 2.0],
+        [5.8, 2.0],
+        [5.8, 3.0],
+        [6.0, 3.0],
+    ]
+    return [late, two]
+
+
 def reference_feasibility(fixture):
     """Sweep rotate-in-place and straight segments at <=5 mm corner displacement."""
     from core import propagate, swept_poses
@@ -126,10 +146,16 @@ def reference_feasibility(fixture):
         pose = propagate(pose, distance, 0.0, 1.0)
     rotation = (fixture["goal"][2] - pose[2] + math.pi) % (2 * math.pi) - math.pi
     poses.extend(swept_poses(pose, 0.0, rotation, 1.0))
+    # Feasibility includes every eventual obstacle, even before its appearance.
+    final_scene = max((o["appears_s"] for o in fixture["obstacles"]), default=0.0)
     return dict(
-        status="PASS" if all(not world.collision(p, 0.0) for p in poses) else "FAIL",
+        status="PASS"
+        if all(not world.collision(p, final_scene) for p in poses)
+        else "FAIL",
         samples=len(poses),
-        min_conservative_clearance_m=min(world.clearance(p, 0.0) for p in poses),
+        min_conservative_clearance_m=min(
+            world.clearance(p, final_scene) for p in poses
+        ),
         usage=fixture["reference_usage"],
         fixture_sha256=digest(fixture),
     )

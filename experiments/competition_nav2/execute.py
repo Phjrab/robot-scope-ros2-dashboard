@@ -12,7 +12,15 @@ import time
 import yaml
 
 from configure import candidate, validate_config
-from fixtures import ROOT, World, cases, diagnostic_cases, digest, reference_feasibility
+from fixtures import (
+    ROOT,
+    World,
+    cases,
+    diagnostic_cases,
+    extension_cases,
+    digest,
+    reference_feasibility,
+)
 from preflight import require_isolated
 from validate import validate_directory, sha
 
@@ -59,7 +67,9 @@ def execute(args):
     out.mkdir(parents=True, exist_ok=False)
     fixture = next(
         f
-        for f in cases(args.seed) + diagnostic_cases(args.seed)
+        for f in cases(args.seed)
+        + diagnostic_cases(args.seed)
+        + extension_cases(args.seed)
         if f["scenario"] == args.scenario
     )
     if fixture.get("reference_waypoints"):
@@ -228,6 +238,7 @@ def execute(args):
         "raw_commands.jsonl",
         "trace.jsonl",
         "scans.jsonl",
+        "observations.jsonl",
         "fixture.json",
         "params.yaml",
         "environment.json",
@@ -250,7 +261,9 @@ if __name__ == "__main__":
     p.add_argument("--variant", choices=["baseline", "tuned"], default="baseline")
     p.add_argument(
         "--scenario",
-        choices=[f["scenario"] for f in cases() + diagnostic_cases()],
+        choices=[
+            f["scenario"] for f in cases() + diagnostic_cases() + extension_cases()
+        ],
         required=True,
     )
     p.add_argument("--seed", type=int, default=20261024)

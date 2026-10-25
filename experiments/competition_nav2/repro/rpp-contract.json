@@ -1,0 +1,102 @@
+{
+  "schema": "c3-rpp-isolated-contract.v1",
+  "pose_source": "SIM_GT",
+  "live_import_allowed": false,
+  "scope": "Offline flat DiffDrive simulation only; no robot, live pose or production publisher binding",
+  "controller_plugin": "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController",
+  "config_variant": "baseline",
+  "candidate_config_sha256": "bb719015548368ccecd87784d3090c70198cab4eb7aca42b1ad9a1b288984e9b",
+  "native_config_file": "repro/rpp-native-params.yaml",
+  "image_lock": "repro/image-lock.json",
+  "runtime": {
+    "os": "Ubuntu 22.04",
+    "ros": "Humble",
+    "nav2": "1.1.20",
+    "rclpy": "3.3.22",
+    "network": "none",
+    "ROS_DOMAIN_ID": 193,
+    "ROS_LOCALHOST_ONLY": 1
+  },
+  "frames": {
+    "global_frame": "map",
+    "odometry_frame": "odom",
+    "body_frame": "base_link",
+    "identity_map_to_odom": "simulation only"
+  },
+  "topics": {
+    "clock": "/clock",
+    "scan": "/c3_nav2/scan",
+    "odometry": "/c3_nav2/odom",
+    "native_controller": "/c3_nav2/raw/controller_server",
+    "native_behavior": "/c3_nav2/raw/behavior_server",
+    "final_simulated_actuator": "/c3_nav2/sim_actuator_cmd",
+    "native_plan": "/c3_nav2/plan",
+    "native_global_costmap": "/c3_nav2/global_costmap/costmap"
+  },
+  "goal": {
+    "action": "/c3_nav2/navigate_to_pose",
+    "type": "nav2_msgs/action/NavigateToPose",
+    "frame": "map",
+    "xy_tolerance_m": 0.12,
+    "yaw_tolerance_rad": 0.2,
+    "success_requires": "accepted UUID, native terminal status 4, measured SIM_GT goal tolerances",
+    "cancellation": "actual terminal status 5 or 6; two-second zero tail required for SAFE_WAIT"
+  },
+  "command": {
+    "type": "geometry_msgs/msg/Twist",
+    "axes": [
+      "linear.x",
+      "angular.z"
+    ],
+    "vy": 0,
+    "limits": {
+      "v": 0.18,
+      "w": 0.6,
+      "a": 0.3,
+      "alpha": 1.2,
+      "command_ttl": 0.25,
+      "sensor_ttl": 0.3
+    },
+    "arbitration": "Exactly one active native action owner; epoch fencing, source/receipt TTL, HOLD and latched faults before simulated actuator",
+    "production_consumer": null
+  },
+  "footprint": [
+    [
+      -0.358,
+      -0.162
+    ],
+    [
+      0.358,
+      -0.162
+    ],
+    [
+      0.358,
+      0.162
+    ],
+    [
+      -0.358,
+      0.162
+    ]
+  ],
+  "footprint_qualification": "Standing visual mesh only; physical feet/gait envelope and braking NOT_RUN",
+  "scenarios": [
+    "diagnostic_single_obstacle",
+    "diagnostic_appearing_obstacle",
+    "diagnostic_two_obstacles",
+    "fully_blocked",
+    "sensor_stale"
+  ],
+  "cli": {
+    "inspect": "python3 experiments/competition_nav2/rpp_contract.py manifest",
+    "run": "python3 experiments/competition_nav2/rpp_contract.py run --mode isolated-sim --scenario diagnostic_single_obstacle --lock IMAGE_LOCK --output NEW_DIRECTORY"
+  },
+  "files_sha256": {
+    "configure.py": "e659b5d12908a766420e34a4638640cb64bffe8c8c72f4a45d2487fccf88b439",
+    "core.py": "afc2b772cdd905834d50bd0a64e4507d4c35ae8c55b539ea6133ce9b92e3fefc",
+    "fixtures.py": "d2f0b3fb063abe1d16ba2ccad5dac39c7f67e72ccbaaa9ebb6ae4643e5b1c099",
+    "config/replan.xml": "45aa6b81b500d9d28a791f558543597f2cd151342dee0bb7ab8bc7d829a10efa",
+    "config/replan_through_poses.xml": "23a9eaeed1767cec9b245939027a6baf7dd9b5dfcf26e4fc931e8bded86da639",
+    "repro/rpp-native-params.yaml": "8c19af531917d1163b97972dda8fe61d4fbd7df9145d3a7637f31fb04828717b",
+    "repro/image-lock.json": "631e8525fcd52b0b50850aac93b811fed682e311fa8d76cd144b25553a336d7e"
+  }
+}

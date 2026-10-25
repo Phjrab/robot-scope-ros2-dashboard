@@ -11,6 +11,7 @@ import yaml
 from configure import NODES, PLUGINS
 from core import LIMITS, propagate, swept_poses
 from fixtures import World, digest
+from observations import read_jsonl, replan_evidence
 
 
 def sha(path):
@@ -102,6 +103,28 @@ def validate_directory(directory):
         "resources.jsonl",
     ]
     hashes = record.get("artifact_hashes", {})
+    if (
+        record.get("observation_schema")
+        or record.get("scenario") == "diagnostic_appearing_obstacle"
+    ):
+        required.append("observations.jsonl")
+        owners = {
+            "/c3_nav2/plan": ["/c3_nav2/planner_server"],
+            "/c3_nav2/global_costmap/costmap": [
+                "/c3_nav2/global_costmap/global_costmap"
+            ],
+        }
+        snapshots = [
+            s
+            for s in record.get("graph_snapshots", [])
+            if s.get("owners_required") is True
+        ]
+        if not snapshots or any(
+            s.get("publishers", {}).get(t) != owner
+            for s in snapshots
+            for t, owner in owners.items()
+        ):
+            errors.append("native observation publisher proof missing/mismatched")
     for name in required:
         file = directory / name
         if not file.is_file() or hashes.get(name) != sha(file):
@@ -250,10 +273,24 @@ def validate_directory(directory):
             or cleanup.get("graceful") is not True
         ):
             errors.append("child process cleanup incomplete/non-graceful")
+    replan = None
+    if (directory / "fixture.json").exists():
+        fixture = json.loads((directory / "fixture.json").read_text())
+        if fixture.get("replan_evidence_required"):
+            try:
+                replan = replan_evidence(
+                    fixture,
+                    read_jsonl(directory / "observations.jsonl"),
+                    read_jsonl(directory / "scans.jsonl"),
+                )
+                errors.extend(replan["errors"])
+            except (OSError, ValueError, KeyError, TypeError) as exc:
+                errors.append("invalid replan evidence: " + str(exc))
     return dict(
         status="PASS" if not errors else "FAIL",
         backend="nav2_native_sim",
         errors=errors,
+        replan=replan,
     )
 
 

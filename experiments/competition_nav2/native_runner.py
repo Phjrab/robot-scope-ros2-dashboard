@@ -18,6 +18,7 @@ from core import Boundary, Command, LIMITS, propagate, swept_poses
 from fixtures import World, digest
 from preflight import require_isolated
 from humble_executor import metadata_executor_type
+from observations import grid_payload
 
 
 def publisher_owners_match(observed, owner, endpoint_count=1):
@@ -63,7 +64,7 @@ def main(directory):
     from lifecycle_msgs.srv import GetState
     from nav2_msgs.action import NavigateToPose, Spin
     from nav2_msgs.srv import ManageLifecycleNodes
-    from nav_msgs.msg import Odometry
+    from nav_msgs.msg import Odometry, OccupancyGrid, Path as NativePath
     from rcl_interfaces.srv import GetParameters
     from rosgraph_msgs.msg import Clock as ClockMessage
     from sensor_msgs.msg import LaserScan
@@ -96,6 +97,8 @@ def main(directory):
             self.trace = (directory / "trace.jsonl").open("w")
             self.raw = (directory / "raw_commands.jsonl").open("w")
             self.scans = (directory / "scans.jsonl").open("w")
+            self.observations = (directory / "observations.jsonl").open("w")
+            self.appeared = set()
             self.action_events = []
             self.deadline_miss = 0
             self.periods = []
@@ -121,6 +124,15 @@ def main(directory):
             self.scan_pub = self.create_publisher(LaserScan, "scan", 10)
             self.final_pub = self.create_publisher(Twist, "sim_actuator_cmd", 10)
             self.subscriptions_raw = []
+            self.subscriptions_observed = [
+                self.create_subscription(
+                    OccupancyGrid,
+                    "global_costmap/costmap",
+                    self.observe_costmap,
+                    static_qos,
+                ),
+                self.create_subscription(NativePath, "plan", self.observe_path, 10),
+            ]
 
             def bind_callback(owner):
                 def callback(msg, info):
@@ -163,6 +175,43 @@ def main(directory):
             from builtin_interfaces.msg import Time
 
             return Time(sec=int(seconds), nanosec=int((seconds - int(seconds)) * 1e9))
+
+        def observe(self, kind, msg, **data):
+            source = msg.header.stamp.sec + msg.header.stamp.nanosec / 1e9
+            self.observations.write(
+                json.dumps(
+                    dict(
+                        kind=kind,
+                        sim_t=self.sim_t,
+                        receipt_monotonic=time.monotonic(),
+                        source_sim_s=source,
+                        source_elapsed_s=source - self.goal_start
+                        if self.goal_start is not None
+                        else -1.0,
+                        frame=msg.header.frame_id,
+                        **data,
+                    )
+                )
+                + "\n"
+            )
+
+        def observe_costmap(self, msg):
+            self.observe(
+                "costmap",
+                msg,
+                width=msg.info.width,
+                height=msg.info.height,
+                resolution=msg.info.resolution,
+                origin=[msg.info.origin.position.x, msg.info.origin.position.y],
+                data_zlib_base64=grid_payload(msg.data),
+            )
+
+        def observe_path(self, msg):
+            self.observe(
+                "path",
+                msg,
+                points=[[p.pose.position.x, p.pose.position.y] for p in msg.poses],
+            )
 
         def receive_command(self, msg, info, owner):
             now, wall_ns = time.monotonic(), time.time_ns()
@@ -270,6 +319,20 @@ def main(directory):
             )
             self.sim_t += dt
             elapsed = 0.0 if self.goal_start is None else self.sim_t - self.goal_start
+            for index, obstacle in enumerate(fixture["obstacles"]):
+                if elapsed >= obstacle["appears_s"] and index not in self.appeared:
+                    self.appeared.add(index)
+                    self.observations.write(
+                        json.dumps(
+                            dict(
+                                kind="appearance",
+                                obstacle=index,
+                                sim_t=self.sim_t,
+                                elapsed_s=elapsed,
+                            )
+                        )
+                        + "\n"
+                    )
             clock = ClockMessage()
             clock.clock = self.stamp(self.sim_t)
             self.clock_pub.publish(clock)
@@ -308,10 +371,18 @@ def main(directory):
                     msg.scan_time = fixture["sensor_period_s"]
                     msg.ranges = self.world.scan(self.pose, elapsed)
                     self.pending_scans.append(
-                        (now + fixture["sensor_delay_s"], now, msg)
+                        (
+                            now + fixture["sensor_delay_s"],
+                            now,
+                            msg,
+                            list(self.pose),
+                            elapsed,
+                        )
                     )
             while self.pending_scans and self.pending_scans[0][0] <= now:
-                _, source_mono, scan = self.pending_scans.pop(0)
+                _, source_mono, scan, source_pose, source_elapsed = (
+                    self.pending_scans.pop(0)
+                )
                 self.scan_pub.publish(scan)
                 self.boundary.sensor(now, now - source_mono)
                 self.scans.write(
@@ -323,6 +394,9 @@ def main(directory):
                             receipt_monotonic=now,
                             source_age_s=now - source_mono,
                             min_range_m=min(scan.ranges),
+                            source_pose=source_pose,
+                            source_elapsed_s=source_elapsed,
+                            ranges=list(scan.ranges),
                         )
                     )
                     + "\n"
@@ -463,6 +537,8 @@ def main(directory):
                 "/c3_nav2/sim_actuator_cmd": "bench_plant",
                 "/c3_nav2/raw/controller_server": "controller_server",
                 "/c3_nav2/raw/behavior_server": "behavior_server",
+                "/c3_nav2/plan": "planner_server",
+                "/c3_nav2/global_costmap/costmap": "global_costmap/global_costmap",
             }
             for topic, owner in expected_owners.items():
                 pubs = self.get_publishers_info_by_topic(topic)
@@ -488,7 +564,11 @@ def main(directory):
                         + str(ownership[topic])
                     )
             snapshot = dict(
-                nodes=names, topics=topics, publishers=ownership, sim_t=self.sim_t
+                nodes=names,
+                topics=topics,
+                publishers=ownership,
+                sim_t=self.sim_t,
+                owners_required=require_owners,
             )
             self.graph_snapshots.append(snapshot)
             return snapshot
@@ -798,8 +878,9 @@ def main(directory):
             action_events=node.action_events,
             graph_snapshots=node.graph_snapshots,
             terminal_fault=terminal_fault,
+            observation_schema="c3-native-observations.v1",
         )
-        for file in (node.trace, node.raw, node.scans):
+        for file in (node.trace, node.raw, node.scans, node.observations):
             file.close()
         raw = [
             json.loads(line)
