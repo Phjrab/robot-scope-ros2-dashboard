@@ -91,7 +91,7 @@
     "run": "python3 experiments/competition_nav2/rpp_contract.py run --mode isolated-sim --scenario diagnostic_single_obstacle --lock IMAGE_LOCK --output NEW_DIRECTORY"
   },
   "files_sha256": {
-    "configure.py": "b686135c0497b03155cc9da4ca92ff2d1f88711c1f79a52c1fe0b7e910a89318",
+    "configure.py": "48605451b39c267577b904a94bcfe63f771253277f4869c1e61e76e17d9550e0",
     "core.py": "75f3c997c3ea7325d6dace4b9a4aa57800e02836eb35b5cc8d152cafd99b8d81",
     "fixtures.py": "bdc6a9c0cfa844c3f1978da7904cf1cd14aa34f98125f02778b809d31a3c5560",
     "config/replan.xml": "45aa6b81b500d9d28a791f558543597f2cd151342dee0bb7ab8bc7d829a10efa",

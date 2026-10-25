@@ -39,7 +39,10 @@ def plugin_library_names(share, plugin):
     for xml in Path(share).rglob("*.xml"):
         root = ET.parse(xml).getroot()
         for library in root.iter("library"):
-            if any(cls.get("type") == plugin for cls in library.iter("class")):
+            if any(
+                plugin in (cls.get("type"), cls.get("name"))
+                for cls in library.iter("class")
+            ):
                 base = Path(library.attrib["path"]).name
                 names.add(
                     (base if base.startswith("lib") else "lib" + base)
@@ -60,7 +63,7 @@ def main(directory):
     from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
     from ament_index_python.packages import get_package_share_directory
     from action_msgs.msg import GoalStatusArray
-    from geometry_msgs.msg import TransformStamped, Twist
+    from geometry_msgs.msg import TransformStamped, Twist, PointStamped
     from lifecycle_msgs.srv import GetState
     from nav2_msgs.action import NavigateToPose, Spin
     from nav2_msgs.srv import ManageLifecycleNodes
@@ -135,6 +138,33 @@ def main(directory):
                 ),
                 self.create_subscription(NativePath, "plan", self.observe_path, 10),
             ]
+            if fixture.get("world_kind") == "d0_shared":
+                # Read-only native diagnostics: no replacement path or command.
+                self.subscriptions_observed += [
+                    self.create_subscription(
+                        OccupancyGrid,
+                        "local_costmap/costmap",
+                        lambda msg: self.observe_costmap(msg, "local_costmap"),
+                        static_qos,
+                    ),
+                    self.create_subscription(
+                        NativePath,
+                        "lookahead_collision_arc",
+                        lambda msg: self.observe_path(msg, "rpp_collision_arc"),
+                        10,
+                    ),
+                    self.create_subscription(
+                        PointStamped,
+                        "lookahead_point",
+                        lambda msg: self.observe(
+                            "rpp_carrot",
+                            msg,
+                            point=[msg.point.x, msg.point.y],
+                            receipt_pose=list(self.pose),
+                        ),
+                        10,
+                    ),
+                ]
 
             def bind_callback(owner):
                 def callback(msg, info):
@@ -197,9 +227,9 @@ def main(directory):
                 + "\n"
             )
 
-        def observe_costmap(self, msg):
+        def observe_costmap(self, msg, kind="costmap"):
             self.observe(
-                "costmap",
+                kind,
                 msg,
                 width=msg.info.width,
                 height=msg.info.height,
@@ -208,11 +238,22 @@ def main(directory):
                 data_zlib_base64=grid_payload(msg.data),
             )
 
-        def observe_path(self, msg):
+        def observe_path(self, msg, kind="path"):
             self.observe(
-                "path",
+                kind,
                 msg,
                 points=[[p.pose.position.x, p.pose.position.y] for p in msg.poses],
+                quaternions=[
+                    [
+                        p.pose.orientation.x,
+                        p.pose.orientation.y,
+                        p.pose.orientation.z,
+                        p.pose.orientation.w,
+                    ]
+                    for p in msg.poses
+                ],
+                # Humble RPP arc messages leave quaternion zero: do not call it yaw.
+                receipt_pose=list(self.pose),
             )
 
         def receive_command(self, msg, info, owner):
@@ -568,6 +609,14 @@ def main(directory):
                 "/c3_nav2/plan": "planner_server",
                 "/c3_nav2/global_costmap/costmap": "global_costmap/global_costmap",
             }
+            if fixture.get("world_kind") == "d0_shared":
+                expected_owners.update(
+                    {
+                        "/c3_nav2/local_costmap/costmap": "local_costmap/local_costmap",
+                        "/c3_nav2/lookahead_point": "controller_server",
+                        "/c3_nav2/lookahead_collision_arc": "controller_server",
+                    }
+                )
             for topic, owner in expected_owners.items():
                 pubs = self.get_publishers_info_by_topic(topic)
                 ownership[topic] = [
@@ -705,6 +754,23 @@ def main(directory):
             report["parameters"][name] = actual
             if actual != flat[name]:
                 raise RuntimeError("parameter mismatch: " + name)
+        flat_planner = flatten(expected["planner_server"]["ros__parameters"])
+        request.names = list(flat_planner)
+        values = node.service(
+            GetParameters, "planner_server/get_parameters", request
+        ).values
+        report["planner_parameters"] = {}
+        if fixture.get("world_kind") == "d0_shared":
+            report["narrow_diagnostics_schema"] = "c3-native-narrow-observations.v1"
+        for name, value in zip(request.names, values):
+            actual = (
+                getattr(value, fields[value.type]) if value.type in fields else None
+            )
+            if value.type >= 5:
+                actual = list(actual)
+            report["planner_parameters"][name] = actual
+            if actual != flat_planner[name]:
+                raise RuntimeError("planner parameter mismatch: " + name)
         report["costmap_parameters"] = {}
         shared_keys = [
             "footprint",
@@ -783,6 +849,40 @@ def main(directory):
             name: hashlib.sha256(Path(name).read_bytes()).hexdigest()
             for name in report["loaded_libraries"]
         }
+        planner_plugin = flat_planner["GridBased.plugin"]
+        planner_package = planner_plugin.split("/")[0].split("::")[0]
+        planner_share = Path(get_package_share_directory(planner_package))
+        report["package_versions"][planner_package] = (
+            ET.parse(planner_share / "package.xml").getroot().findtext("version")
+        )
+        planner_libraries = plugin_library_names(planner_share, planner_plugin)
+        report["planner_plugin_export_library_names"] = sorted(planner_libraries)
+        report["planner_loaded_library_sha256"] = {}
+        for proc in Path("/proc").glob("[0-9]*"):
+            try:
+                command = (proc / "cmdline").read_bytes().replace(b"\0", b" ").decode()
+                if command.startswith(
+                    "/opt/ros/humble/lib/nav2_planner/planner_server "
+                ):
+                    report["planner_process"] = dict(
+                        pid=int(proc.name), command=command
+                    )
+                    paths = {
+                        line.split()[-1]
+                        for line in (proc / "maps").read_text().splitlines()
+                        if "/opt/ros/humble/" in line
+                        and Path(line.split()[-1]).name in planner_libraries
+                    }
+                    report["planner_loaded_library_sha256"].update(
+                        {
+                            p: hashlib.sha256(Path(p).read_bytes()).hexdigest()
+                            for p in paths
+                        }
+                    )
+            except (OSError, UnicodeError):
+                continue
+        if not report["planner_loaded_library_sha256"]:
+            raise RuntimeError("no native planner shared library found in process maps")
         action = ActionClient(node, NavigateToPose, "navigate_to_pose")
         if not action.wait_for_server(timeout_sec=10.0):
             raise TimeoutError("NavigateToPose action server absent")

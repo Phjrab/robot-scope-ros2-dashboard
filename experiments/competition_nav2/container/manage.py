@@ -205,7 +205,9 @@ if __name__ == "__main__":
     p.add_argument("--lock", type=Path, required=True)
     p.add_argument("--output", type=Path)
     p.add_argument("--controller", choices=["rpp", "mppi"], default="rpp")
-    p.add_argument("--variant", choices=["baseline", "tuned"], default="baseline")
+    p.add_argument(
+        "--variant", choices=["baseline", "tuned", "se2_rpp"], default="baseline"
+    )
     selection = p.add_mutually_exclusive_group()
     selection.add_argument("--scenario")
     selection.add_argument("--fixture", type=Path)

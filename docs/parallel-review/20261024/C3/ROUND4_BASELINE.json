@@ -1,0 +1,162 @@
+{
+  "schema": "c3-round4-baseline-analysis.v1",
+  "artifact_run": 40164154349,
+  "tested_source": "5eacacf42378ad91319a5de323df7844f34ea33b",
+  "analysis_before_new_native": true,
+  "artifact_hashes": {
+    "trace.jsonl": "dd2640fdc080121ad180efd232b645557799cf5e3d5038c2e17dfcb7dabb8b85",
+    "observations.jsonl": "3e7ff8870fa1cb985da864979dd1a803dbe13aeb2fcaf6333b23420d0fd7addf",
+    "native.log": "f8321e21d1ddfd1382c9f143af21be339221d12f3726e045f378d1a0d0a966db",
+    "params.yaml": "52c942954b83dd2aff2bab1ea6a6b60b2245b37afdd4dd90e7ce4c53420c29cd"
+  },
+  "first_failure_log_wall_s": 1792904808.5401063,
+  "last_controller_zero_source_timestamp_ns": 1792904808540151104,
+  "nearest_trace": {
+    "sim_t": 6.399999999999985,
+    "elapsed_s": 4.8499999999999845,
+    "pose": [
+      0.5167972571840633,
+      1.7462801514863986,
+      1.5282629698786039
+    ],
+    "applied_previous": [
+      0.18,
+      -0.017287863270686446
+    ],
+    "actuator": [
+      0.18,
+      -0.01558637696076498
+    ],
+    "held": false,
+    "reason": "RELEASE",
+    "raw_sequence": 96,
+    "epoch": 2,
+    "monotonic": 250.295808521,
+    "command_source_age_s": 0.027204079000000547,
+    "command_receipt_age_s": 0.018255304999996724,
+    "sensor_source_age_s": 0.15227498100000503,
+    "sensor_receipt_age_s": 0.13569132099999592,
+    "published_ros": {
+      "clock_s": 6.399999999999985,
+      "tf_stamp_s": 6.399999999999985,
+      "odom_stamp_s": 6.399999999999985,
+      "tf_frames": [
+        "map",
+        "odom",
+        "base_link"
+      ]
+    },
+    "action_owners": {
+      "controller_server": true,
+      "behavior_server": false
+    },
+    "wall_gap_s": 0.0499792740000089,
+    "collision_count": 0,
+    "boundary_count": 0
+  },
+  "footprint_corners": [
+    [
+      0.8080204589147642,
+      1.2984922030401285
+    ],
+    [
+      0.8450133231957608,
+      2.167705369065752
+    ],
+    [
+      0.2255740554533625,
+      2.194068099932669
+    ],
+    [
+      0.18858119117236588,
+      1.3248549339070455
+    ]
+  ],
+  "obstacle": {
+    "appears_s": 0.0,
+    "cone": {
+      "appears_s": 0.0,
+      "base_height_m": 0.04,
+      "base_side_m": 0.26,
+      "height_m": 0.32,
+      "id": "cone_01",
+      "radius_m": 0.12,
+      "xy": [
+        0.18,
+        2.5
+      ]
+    },
+    "id": "cone_01",
+    "polygon": [
+      [
+        0.04999999999999999,
+        2.37
+      ],
+      [
+        0.31,
+        2.37
+      ],
+      [
+        0.31,
+        2.63
+      ],
+      [
+        0.04999999999999999,
+        2.63
+      ]
+    ]
+  },
+  "native_readback": {
+    "global_costmap": {
+      "footprint": "[[-0.43500000000000005, -0.31000000000000005], [0.43500000000000005, -0.31000000000000005], [0.43500000000000005, 0.31000000000000005], [-0.43500000000000005, 0.31000000000000005]]",
+      "footprint_padding": 0.0,
+      "resolution": 0.02,
+      "track_unknown_space": true,
+      "inflation_layer.inflation_radius": 0.4,
+      "inflation_layer.cost_scaling_factor": 5.0,
+      "obstacle_layer.scan.topic": "/c3_nav2/scan",
+      "obstacle_layer.scan.expected_update_rate": 0.25
+    },
+    "local_costmap": {
+      "footprint": "[[-0.43500000000000005, -0.31000000000000005], [0.43500000000000005, -0.31000000000000005], [0.43500000000000005, 0.31000000000000005], [-0.43500000000000005, 0.31000000000000005]]",
+      "footprint_padding": 0.0,
+      "resolution": 0.02,
+      "track_unknown_space": true,
+      "inflation_layer.inflation_radius": 0.4,
+      "inflation_layer.cost_scaling_factor": 5.0,
+      "obstacle_layer.scan.topic": "/c3_nav2/scan",
+      "obstacle_layer.scan.expected_update_rate": 0.25
+    }
+  },
+  "latest_path_sim_s": 6.349999999,
+  "latest_global_grid_sim_s": 6.149999999,
+  "path_center_hard_cells": 0,
+  "path_tangent_body_collisions": 80,
+  "path_north_body_collisions": 59,
+  "first_tangent_collision": {
+    "xy": [
+      0.5158475760553571,
+      1.9545850698370089
+    ],
+    "tangent_yaw_rad": 1.401993995443007,
+    "center_occupancy": 0,
+    "tangent_body_collision": true,
+    "north_body_collision": true
+  },
+  "first_north_collision": {
+    "xy": [
+      0.5174483755801234,
+      1.9447140068252224
+    ],
+    "tangent_yaw_rad": 1.7315676161237097,
+    "center_occupancy": 0,
+    "tangent_body_collision": false,
+    "north_body_collision": true
+  },
+  "limitation": "Original artifact has no local grid/carrot/arc or path orientation. Tangent/north are explicit independent hypotheses, not measured native yaw. One bounded feasible1 diagnostic collects missing native messages.",
+  "spin_final_pose": [
+    0.5171834457111764,
+    1.75527186179768,
+    1.8684751770580479
+  ]
+}

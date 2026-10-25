@@ -11,7 +11,13 @@ SCENARIOS = ("empty", "diagnostic_single_obstacle", "fully_blocked", "sensor_sta
 
 
 def execute(
-    lock, output, order=None, summary_name="minimum-summary.json", fixtures=None
+    lock,
+    output,
+    order=None,
+    summary_name="minimum-summary.json",
+    fixtures=None,
+    variant="baseline",
+    expected_outcomes=None,
 ):
     extension = order is not None
     if order is None:
@@ -49,7 +55,7 @@ def execute(
                     else ["--scenario", scenario]
                 ),
                 "--variant",
-                "baseline",
+                variant,
                 "--seed",
                 "20261024",
                 "--repeat",
@@ -73,8 +79,10 @@ def execute(
             in ("fully_blocked", "sensor_stale", "d0_blocked", "d0_sensor_dropout")
             else "GOAL_REACHED"
         )
+        expected = (expected_outcomes or {}).get(scenario, expected)
         row = dict(
             controller=controller,
+            variant=variant,
             scenario=scenario,
             repeat=repeat,
             returncode=process.returncode,

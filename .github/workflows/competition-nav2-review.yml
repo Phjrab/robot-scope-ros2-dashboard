@@ -37,10 +37,10 @@ jobs:
         run: |
           cp experiments/competition_nav2/repro/image-lock.json "$RUNNER_TEMP/c3-evidence/image-lock.json"
           python3 experiments/competition_nav2/container/manage.py build --lock "$RUNNER_TEMP/c3-evidence/image-lock.json"
-      - name: One preserved RPP regression and six D0 shared-input cases (network none)
+      - name: One feasible1 diagnostic and bounded SE2/RPP candidate (network none)
         timeout-minutes: 20
         run: |
-          python3 experiments/competition_nav2/run_d0.py --lock "$RUNNER_TEMP/c3-evidence/image-lock.json" --output "$RUNNER_TEMP/c3-evidence/d0"
+          python3 experiments/competition_nav2/run_narrow.py --baseline-debug --lock "$RUNNER_TEMP/c3-evidence/image-lock.json" --output "$RUNNER_TEMP/c3-evidence/narrow"
       - name: Preserve native evidence even after failure
         if: always()
         uses: actions/upload-artifact@v4

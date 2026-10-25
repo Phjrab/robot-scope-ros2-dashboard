@@ -137,6 +137,16 @@ def validate_directory(directory):
                 "/c3_nav2/global_costmap/global_costmap"
             ],
         }
+        if record.get("narrow_diagnostics_schema"):
+            owners.update(
+                {
+                    "/c3_nav2/local_costmap/costmap": [
+                        "/c3_nav2/local_costmap/local_costmap"
+                    ],
+                    "/c3_nav2/lookahead_point": ["/c3_nav2/controller_server"],
+                    "/c3_nav2/lookahead_collision_arc": ["/c3_nav2/controller_server"],
+                }
+            )
         snapshots = [
             s
             for s in record.get("graph_snapshots", [])
@@ -162,6 +172,19 @@ def validate_directory(directory):
         config = yaml.safe_load((directory / "params.yaml").read_text())
         if digest(config) != record.get("config_sha256"):
             errors.append("config hash mismatch")
+        if record.get("variant") == "se2_rpp":
+            planner = config["planner_server"]["ros__parameters"]["GridBased"]
+            if any(
+                record.get("planner_parameters", {}).get("GridBased." + k) != v
+                for k, v in planner.items()
+            ):
+                errors.append("SE2 planner readback missing/mismatched")
+            if (
+                not record.get("planner_loaded_library_sha256")
+                or record.get("package_versions", {}).get("nav2_smac_planner")
+                != "1.1.20"
+            ):
+                errors.append("installed Humble SE2 planner proof absent")
         for name in ("global_costmap", "local_costmap"):
             applied = record.get("costmap_parameters", {}).get(name, {})
             requested = config[name][name]["ros__parameters"]

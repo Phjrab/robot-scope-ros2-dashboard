@@ -24,6 +24,12 @@ NAMESPACE = "c3_nav2"
 
 
 def candidate(controller, variant="baseline", fixture=None):
+    if variant not in ("baseline", "tuned", "se2_rpp"):
+        raise ValueError("unknown candidate revision: " + variant)
+    if variant == "se2_rpp" and (
+        controller != "rpp" or not fixture or fixture.get("world_kind") != "d0_shared"
+    ):
+        raise ValueError("se2_rpp is an isolated D0/RPP candidate only")
     cfg = yaml.safe_load(
         (
             REPO
@@ -139,6 +145,25 @@ def candidate(controller, variant="baseline", fixture=None):
             cm["obstacle_layer"]["scan"]["expected_update_rate"] = fixture[
                 "sensor_ttl_s"
             ]
+    if variant == "se2_rpp":
+        # Humble 1.1.20 exports this slash-form plugin name. Preserve the RPP,
+        # footprint, padding, costmaps, sensor, bounds, goal and recovery settings.
+        cfg["planner_server"]["ros__parameters"]["GridBased"] = dict(
+            plugin="nav2_smac_planner/SmacPlannerHybrid",
+            tolerance=0.0,
+            allow_unknown=False,
+            downsample_costmap=False,
+            angle_quantization_bins=72,
+            motion_model_for_search="DUBIN",
+            minimum_turning_radius=0.8,
+            smooth_path=False,
+            max_iterations=500000,
+            max_on_approach_iterations=1000,
+            max_planning_time=1.0,
+            lookup_table_size=5.0,
+            analytic_expansion_max_length=3.2,
+            cache_obstacle_heuristic=False,
+        )
     return cfg
 
 
