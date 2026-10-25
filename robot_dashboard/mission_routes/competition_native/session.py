@@ -102,9 +102,12 @@ class DurableNavigation:
 class SoftwareNativeSession:
     @classmethod
     async def create(cls, service, *, scope, action, legs, policy, bindings,
-                     activation, clock, traffic_config_hash, worker=None, signal_binding=None):
+                     activation, clock, traffic_config_hash, inference_settings_sha256,
+                     worker=None, signal_binding=None):
         if not activation.synthetic or not activation.enabled:
             raise ValueError('EXPLICIT_SOFTWARE_TEST_ACTIVATION_REQUIRED')
+        if worker is not None and getattr(worker.pipeline.detector, 'inference_settings_sha256', None) != inference_settings_sha256:
+            raise ValueError('WORKER_INFERENCE_SETTINGS_MISMATCH')
         self = cls()
         self.service, self.clock, self.worker = service, clock, worker
         self.token = object()
@@ -117,7 +120,8 @@ class SoftwareNativeSession:
             'same-host-' + secrets.token_hex(8), activation),
             RuntimePorts(DurableNavigation(service, self.port), self.gate), clock=clock)
         self.adapter = self.runtime.adapter
-        self.ingress = CompetitionIngress(self.adapter, traffic_config_hash=traffic_config_hash, signal_binding=signal_binding)
+        self.ingress = CompetitionIngress(self.adapter, traffic_config_hash=traffic_config_hash,
+            inference_settings_sha256=inference_settings_sha256, signal_binding=signal_binding)
         self.closed = False
         self._finished = False
         self._operation_lock = asyncio.Lock()
@@ -163,6 +167,10 @@ class SoftwareNativeSession:
                 packet = self.ingress.join(packet, sample, now=self.clock())
         except BaseException:
             self.gate.retire()
+            if sample is not None and sample.observation.context.get('inference_settings_sha256') != self.ingress.inference_settings_sha256:
+                # A changed profile needs a new explicitly bound session. Fence
+                # ownership before awaiting IO; never resume prior GREEN/dwell.
+                await self.stop('inference-change-' + secrets.token_hex(12))
             raise
         payload = {'native': self.adapter.scope.mission_run_id,
                    'event': asdict(packet) if packet is not None else None}

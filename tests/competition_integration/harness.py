@@ -25,6 +25,18 @@ from robot_dashboard.mission_routes.competition_native.authority import Command
 from robot_dashboard.mission_routes.competition_native.observations import Extras
 
 
+class PinnedDetector(Detector):
+    """Detector stub with the actual C4 canonical profile contract."""
+    def __init__(self, profile='full640'):
+        super().__init__()
+        self.select_profile(profile)
+
+    def select_profile(self, profile):
+        from robot_dashboard.competition_traffic.inference import settings
+        self.inference_settings, self.inference_settings_sha256 = settings(
+            profile, confidence_floor=.25, model_sha256=self.sha256)
+
+
 class SoftwareHarness:
     source_clock = "fixture"
     async def asyncSetUp(self):
@@ -54,20 +66,22 @@ class SoftwareHarness:
         bindings = dict(self.rig.bindings)
         bindings['signal'] = replace(bindings['signal'], producer_id='camera-1', source_clock=self.source_clock)
         self.cfg = config()
-        self.worker = TrafficWorker(TrafficPipeline(self.cfg, Detector(), clock=self.clock), clock=self.clock)
+        detector = PinnedDetector()
+        self.worker = TrafficWorker(TrafficPipeline(self.cfg, detector, clock=self.clock), clock=self.clock)
         self.worker.start()
         self.session = await self.service.create_software_native_session(scope=scope, action=action,
             legs={(scope.step_id, leg): LegBinding(v, tuple(POSE.values()))
                   for leg, v in zip(('approach', 'exit'), self.visits)},
             policy=TimingPolicy(.25, .25, .25, .25), bindings=bindings,
             activation=Activation(True, True, 'isolated-test-ports', 'synthetic-only', ALL_CAPS),
-            clock=self.clock, traffic_config_hash=self.cfg.sha256, worker=self.worker)
+            clock=self.clock, traffic_config_hash=self.cfg.sha256, worker=self.worker,
+            inference_settings_sha256=detector.inference_settings_sha256)
         if self.source_clock != 'fixture':
             from robot_dashboard.mission_routes.competition_native.fragments import SignalBinding
             self.session.ingress.signal_binding = SignalBinding('camera-1', 'epoch-1', self.source_clock,
                 self.cfg.sha256, self.cfg.document['association']['binding_id'],
                 self.cfg.document['model']['sha256'], 'signal_01', 'crossing_01',
-                self.session.adapter.receiver_clock_id)
+                self.session.adapter.receiver_clock_id, detector.inference_settings_sha256)
         self.rig.adapter = self.session.adapter
         self.number = 0
         self.command_seq = 0

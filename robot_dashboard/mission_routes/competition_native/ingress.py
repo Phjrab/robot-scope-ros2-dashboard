@@ -4,15 +4,34 @@ No feet, stop, pose, path or goal evidence originates in the image pipeline.
 The caller is trusted binding code, not a public JSON endpoint.
 """
 from dataclasses import replace
+import re
 
 from .observations import ComponentStamp, FIELDS, ObservationRejected
 
 
 class CompetitionIngress:
-    def __init__(self, adapter, *, traffic_config_hash, signal_binding=None):
+    def __init__(self, adapter, *, traffic_config_hash, inference_settings_sha256, signal_binding=None):
+        if not isinstance(inference_settings_sha256, str) or not re.fullmatch(r'[0-9a-f]{64}', inference_settings_sha256):
+            raise ValueError('EXPLICIT_INFERENCE_SETTINGS_PIN_REQUIRED')
         self.adapter = adapter
         self.traffic_config_hash = traffic_config_hash
         self.signal_binding = signal_binding
+        self.inference_settings_sha256 = inference_settings_sha256
+
+    @staticmethod
+    def review(sample, *, now, inference_settings_sha256):
+        """Read-only C4 projection diagnostics; never create independent facts."""
+        from ...competition_traffic.projection import signal_fragment
+        observation = sample.observation
+        matches = observation.context.get('inference_settings_sha256') == inference_settings_sha256
+        reasons = [] if matches else ['C4_INFERENCE_SETTINGS_MISMATCH']
+        try:
+            signal_fragment(observation, now_s=now, received_s=sample.frame.received_s)
+        except ValueError as exc:
+            reasons.append(str(exc))
+        return {'inference_binding_matches': matches, 'projection_reasons': reasons,
+                'departure_authorized': False, 'complete_mission_evidence': False,
+                'independent_facts': {'feet': None, 'physical_stop': None, 'path': None, 'departure': None}}
 
     def join(self, packet, sample, *, now):
         from ...competition_traffic.projection import signal_fragment
@@ -21,6 +40,10 @@ class CompetitionIngress:
             raise ObservationRejected('INGRESS_SCOPE_MISMATCH')
         frame, observation = sample.frame, sample.observation
         context = observation.context
+        if context.get('inference_settings_sha256') != self.inference_settings_sha256:
+            raise ObservationRejected('C4_INFERENCE_SETTINGS_MISMATCH')
+        if context.get('observation_mode') != 'mission':
+            raise ObservationRejected('C4_MISSION_OBSERVATION_REQUIRED')
         binding = self.adapter.bindings['signal']
         if ((frame.source_id, frame.producer_epoch, frame.source_clock) !=
                 (binding.producer_id, binding.epoch, binding.source_clock)

@@ -10,7 +10,8 @@ import yaml
 
 from configure import NODES, PLUGINS
 from core import LIMITS, propagate, swept_poses
-from fixtures import World, digest
+from fixtures import make_world, digest
+from observations import read_jsonl, replan_evidence
 
 
 def sha(path):
@@ -77,7 +78,7 @@ def validate_record(record):
     ):
         errors.append("native recovery output while held was not exercised")
     if (
-        record.get("scenario") == "sensor_stale"
+        record.get("scenario") in ("sensor_stale", "d0_sensor_dropout")
         and record.get("terminal_fault") != "SENSOR_STALE"
     ):
         errors.append("stale response not exercised")
@@ -90,6 +91,12 @@ def validate_directory(directory):
     directory = Path(directory)
     record = json.loads((directory / "result.json").read_text())
     errors = validate_record(record)
+    fixture_data = (
+        json.loads((directory / "fixture.json").read_text())
+        if (directory / "fixture.json").exists()
+        else {}
+    )
+    sensor_ttl = fixture_data.get("sensor_ttl_s", LIMITS["sensor_ttl"])
     required = [
         "native.log",
         "raw_commands.jsonl",
@@ -101,7 +108,46 @@ def validate_directory(directory):
         "cleanup.json",
         "resources.jsonl",
     ]
+    if fixture_data.get("d0_bundle"):
+        from d0_adapter import verify_bundle
+
+        try:
+            verify_bundle(fixture_data["d0_bundle"])
+            conformance = json.loads((directory / "d0_conformance.json").read_text())
+            if (
+                conformance.get("status") != "PASS"
+                or conformance.get("manifest_sha256")
+                != fixture_data["d0_manifest_sha256"]
+            ):
+                errors.append("D0 sensor conformance proof missing")
+        except (OSError, ValueError, KeyError) as exc:
+            errors.append("D0 provenance failure: " + str(exc))
+        required.append("d0_conformance.json")
+        if sensor_ttl != 0.25 or fixture_data.get("sensor_period_s") != 0.2:
+            errors.append("D0 sensor timing policy mismatch")
     hashes = record.get("artifact_hashes", {})
+    if (
+        record.get("observation_schema")
+        or record.get("scenario") == "diagnostic_appearing_obstacle"
+    ):
+        required.append("observations.jsonl")
+        owners = {
+            "/c3_nav2/plan": ["/c3_nav2/planner_server"],
+            "/c3_nav2/global_costmap/costmap": [
+                "/c3_nav2/global_costmap/global_costmap"
+            ],
+        }
+        snapshots = [
+            s
+            for s in record.get("graph_snapshots", [])
+            if s.get("owners_required") is True
+        ]
+        if not snapshots or any(
+            s.get("publishers", {}).get(t) != owner
+            for s in snapshots
+            for t, owner in owners.items()
+        ):
+            errors.append("native observation publisher proof missing/mismatched")
     for name in required:
         file = directory / name
         if not file.is_file() or hashes.get(name) != sha(file):
@@ -119,6 +165,13 @@ def validate_directory(directory):
         for name in ("global_costmap", "local_costmap"):
             applied = record.get("costmap_parameters", {}).get(name, {})
             requested = config[name][name]["ros__parameters"]
+            if fixture_data.get("d0_bundle") and (
+                json.loads(requested["footprint"])
+                != fixture_data["effective_footprint"]
+                or requested["footprint_padding"] != 0.0
+                or requested["resolution"] != fixture_data["resolution_m"]
+            ):
+                errors.append("D0 native body/padding/grid policy mismatch")
             for key in (
                 "footprint",
                 "footprint_padding",
@@ -170,8 +223,8 @@ def validate_directory(directory):
                 for key, limit in (
                     ("command_source_age_s", LIMITS["command_ttl"]),
                     ("command_receipt_age_s", LIMITS["command_ttl"]),
-                    ("sensor_source_age_s", LIMITS["sensor_ttl"]),
-                    ("sensor_receipt_age_s", LIMITS["sensor_ttl"]),
+                    ("sensor_source_age_s", sensor_ttl),
+                    ("sensor_receipt_age_s", sensor_ttl),
                 ):
                     age = row.get(key)
                     if age is None or not 0 <= age <= limit:
@@ -186,7 +239,7 @@ def validate_directory(directory):
             claimed = fixture.pop("fixture_sha256", None)
             if digest(fixture) != claimed or claimed != record.get("fixture_sha256"):
                 errors.append("fixture hash mismatch")
-            world = World(fixture)
+            world = make_world(fixture)
             previous_pose = fixture["start"]
             previous_t = 0.0
             previous_actuator = [0.0, 0.0]
@@ -203,7 +256,7 @@ def validate_directory(directory):
                 if any(abs(a - b) > 1e-6 for a, b in zip(predicted, row["pose"])):
                     errors.append("pose not explained by actual actuator commands")
                     break
-                samples = swept_poses(previous_pose, v, w, dt)
+                samples = swept_poses(previous_pose, v, w, dt, radius=world.radius)
                 if any(
                     world.collision(p, max(0.0, row["elapsed_s"] - dt)) for p in samples
                 ):
@@ -232,7 +285,7 @@ def validate_directory(directory):
                 or any(r["actuator"] != [0.0, 0.0] for r in tail)
             ):
                 errors.append("safe wait lacks two-second zero-command evidence")
-        if record.get("scenario") == "sensor_stale":
+        if record.get("scenario") in ("sensor_stale", "d0_sensor_dropout"):
             stale = [r for r in trace if r["reason"] == "SENSOR_STALE"]
             if not stale or not any(
                 r["actuator"][0] > 0 for r in trace if r["sim_t"] < stale[0]["sim_t"]
@@ -243,6 +296,29 @@ def validate_directory(directory):
                 "final_output"
             ) != [0.0, 0.0]:
                 errors.append("dropout latched zero evidence missing")
+    if fixture_data.get("d0_bundle") and (directory / "scans.jsonl").exists():
+        scans = read_jsonl(directory / "scans.jsonl")
+        for scan in scans:
+            observation = scan.get("sensor_observation") or {}
+            if (
+                observation.get("source") != "D0_VIRTUAL_TRIANGLE_RAYCAST"
+                or observation.get("source_epoch") != 1
+                or observation.get("source_stamp_s") != scan.get("source_elapsed_s")
+                or observation.get("acquisition_pose_sim") != scan.get("source_pose")
+                or len(observation.get("ranges_m", [])) != 360
+                or any(
+                    abs(a - b) > 5e-7
+                    for a, b in zip(observation.get("ranges_m", []), scan["ranges"])
+                )
+            ):
+                errors.append("D0 live acquisition/range provenance mismatch")
+                break
+            if (
+                fixture_data.get("sensor_dropout_s") is not None
+                and scan["source_elapsed_s"] >= fixture_data["sensor_dropout_s"]
+            ):
+                errors.append("D0 dropout scan was published")
+                break
     if (directory / "cleanup.json").exists():
         cleanup = json.loads((directory / "cleanup.json").read_text())
         if (
@@ -250,10 +326,24 @@ def validate_directory(directory):
             or cleanup.get("graceful") is not True
         ):
             errors.append("child process cleanup incomplete/non-graceful")
+    replan = None
+    if (directory / "fixture.json").exists():
+        fixture = json.loads((directory / "fixture.json").read_text())
+        if fixture.get("replan_evidence_required"):
+            try:
+                replan = replan_evidence(
+                    fixture,
+                    read_jsonl(directory / "observations.jsonl"),
+                    read_jsonl(directory / "scans.jsonl"),
+                )
+                errors.extend(replan["errors"])
+            except (OSError, ValueError, KeyError, TypeError) as exc:
+                errors.append("invalid replan evidence: " + str(exc))
     return dict(
         status="PASS" if not errors else "FAIL",
         backend="nav2_native_sim",
         errors=errors,
+        replan=replan,
     )
 
 

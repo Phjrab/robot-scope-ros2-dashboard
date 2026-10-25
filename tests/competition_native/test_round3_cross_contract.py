@@ -134,6 +134,10 @@ class C4CrossTests(unittest.TestCase):
                 clock_verified=True, identity_verified=True, provenance="SYNTHETIC_C2_CROSS_TEST",
                 binding_id=self.f.binding.binding_id)
             observed = pipeline.process(image, now_s=first)
+            # Historical C4 predates profile metadata. Only this synthetic stub
+            # fixture supplies a declared pin; no production legacy fallback.
+            observed.context.update(observation_mode="mission",
+                inference_settings_sha256=self.f.binding.inference_settings_sha256)
             p = self.project(now=clock[0], observation=observed)
             self.f.normalizer.receive(p, clock[0])
         self.assertEqual(observed.signal["stable_state"], "GREEN")

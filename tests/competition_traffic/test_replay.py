@@ -126,7 +126,7 @@ class ReplayTests(unittest.TestCase):
         detector.sha256 = digest
         with patch("robot_dashboard.competition_traffic.model.OwnerModel", return_value=detector):
             self.assertEqual(self.cli("--model", str(model), "--config", str(cfg)), 0)
-        self.assertEqual(len(list((self.root / "output/frames").glob("*.png"))), 3)
+        self.assertEqual(len(list((self.root / "output/frames").glob("*.png"))), 4)
         obs = json.loads((self.root / "output/observations.jsonl").read_text())
         self.assertFalse(obs["context"]["departure_authorized"])
 

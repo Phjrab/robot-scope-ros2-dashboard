@@ -148,8 +148,11 @@ def run(args):
         script,
         "--controller",
         args.controller,
-        "--scenario",
-        args.scenario,
+        *(
+            ["--fixture", "/repo/" + str(args.fixture.resolve().relative_to(REPO))]
+            if args.fixture
+            else ["--scenario", args.scenario or "empty"]
+        ),
         "--variant",
         args.variant,
         "--repeat",
@@ -203,7 +206,9 @@ if __name__ == "__main__":
     p.add_argument("--output", type=Path)
     p.add_argument("--controller", choices=["rpp", "mppi"], default="rpp")
     p.add_argument("--variant", choices=["baseline", "tuned"], default="baseline")
-    p.add_argument("--scenario", default="empty")
+    selection = p.add_mutually_exclusive_group()
+    selection.add_argument("--scenario")
+    selection.add_argument("--fixture", type=Path)
     p.add_argument("--seed", type=int, default=20261024)
     p.add_argument("--repeat", type=int, default=0)
     args = p.parse_args()

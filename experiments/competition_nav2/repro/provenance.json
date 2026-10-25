@@ -1,0 +1,362 @@
+{
+  "schema": "c3-preserved-native.v1",
+  "source_sha": "afe02f38d8396d11d786d39452ac572f27d72c22",
+  "run_id": 40099437117,
+  "artifact_id": 12562342808,
+  "artifact_expired": false,
+  "expires_at": "2026-11-07T13:49:59Z",
+  "availability_checked_utc": "2026-10-25T04:39:40Z",
+  "validation": [
+    {
+      "case": "mppi-diagnostic_single_obstacle",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": []
+      },
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          41,
+          62,
+          11,
+          218,
+          176,
+          141,
+          77,
+          73,
+          183,
+          31,
+          83,
+          14,
+          3,
+          115,
+          49,
+          8
+        ],
+        "cancel_ack_count": 1,
+        "status": 5
+      },
+      "outcome": "SAFE_WAIT",
+      "terminal_fault": null,
+      "artifact_hashes": {
+        "native.log": "bf33ba661e29420c7032b7f840c9feea8025d6c9872fbc82034ce5b3634e8232",
+        "raw_commands.jsonl": "171fbee16573edd70442feb40883ef70c36ec57228ae37ac9a5d8b311dbf9833",
+        "trace.jsonl": "b5b7433e705107a0369e81ca26d20936cfd720237327bd841645e5ad5440314c",
+        "scans.jsonl": "df6f2e9c432027b5191bc3da4ec8e2cdd408ce65ea845c77cefd206de6ecb0ee",
+        "fixture.json": "46f4047decbeeb2decd31d9c3d8fc4f3c1de87506080290abd21e2fe0f24540a",
+        "params.yaml": "c19897d78f9a36eb44d3bfa66ea34796ed75cfe18461590d545cd8c4868e0997",
+        "environment.json": "b031bd358d64c47eabb913a4ebeb58dfea77823488c3e46f701c071940c721df",
+        "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+        "resources.jsonl": "17fe472ed14f578e23055326bad2d3bcfa384ccdea7745a19b3cbfcc72c9feb5"
+      }
+    },
+    {
+      "case": "mppi-empty",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": []
+      },
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          145,
+          59,
+          95,
+          30,
+          212,
+          239,
+          70,
+          36,
+          143,
+          37,
+          47,
+          42,
+          238,
+          9,
+          156,
+          118
+        ],
+        "status": 4
+      },
+      "outcome": "GOAL_REACHED",
+      "terminal_fault": null,
+      "artifact_hashes": {
+        "native.log": "79f875a8406d6e6c69ec53ff9348378f526c233c3f4047c5161242108af5b375",
+        "raw_commands.jsonl": "5afd13f48122e9898c9380dec4ee87b1b6a4e796ac825b1bf2b5ae3e1908561b",
+        "trace.jsonl": "57d5f88a470bf0bd6db62316c588063254c974c9c6a52b9651c7226fcac1372c",
+        "scans.jsonl": "1b93fe5d3c3c27a7168aeb2eb802bd3b2d066b181aa8cbcf23bb6e10c7f71578",
+        "fixture.json": "d98f1d013b7c5b098233c47e58f1d87adb19017df49148858659c4f97816c01b",
+        "params.yaml": "c19897d78f9a36eb44d3bfa66ea34796ed75cfe18461590d545cd8c4868e0997",
+        "environment.json": "161a52cc269e585da1bf192361d0d055baf3fed2bb18cbf93ef5daea8d4c781d",
+        "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+        "resources.jsonl": "8bfa84564c25279e13725447957e18cc3fc0017fa8d7e032c3ebf3f213741a6a"
+      }
+    },
+    {
+      "case": "mppi-fully_blocked",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": []
+      },
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          105,
+          83,
+          85,
+          72,
+          6,
+          190,
+          65,
+          176,
+          141,
+          128,
+          122,
+          119,
+          161,
+          153,
+          154,
+          26
+        ],
+        "status": 6
+      },
+      "outcome": "SAFE_WAIT",
+      "terminal_fault": null,
+      "artifact_hashes": {
+        "native.log": "963adb488f78dbe1c55637ca68326358b6ad0e006c15930f9f16d60997a97bfd",
+        "raw_commands.jsonl": "5c334ff131cf6c45ae62bdd891afc3ff4b790941ca2067fbe9a13dd79df673e6",
+        "trace.jsonl": "f5466e7f482a23ac4d462e37ad361ebddc3b88e6aae040da2dc0195fe6e231e9",
+        "scans.jsonl": "3ac5997415ae8be61cee4423afd95eb31a559753bf0720b20a4a8af8ebcd2903",
+        "fixture.json": "018d525b9bdeff06e77fdcae9898f83cc571f964bef1d16082570d754368cf96",
+        "params.yaml": "c19897d78f9a36eb44d3bfa66ea34796ed75cfe18461590d545cd8c4868e0997",
+        "environment.json": "161a52cc269e585da1bf192361d0d055baf3fed2bb18cbf93ef5daea8d4c781d",
+        "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+        "resources.jsonl": "7cb58eacb30a320cc755518f0f57b734b6c8db605c2985980640e80321c6832e"
+      }
+    },
+    {
+      "case": "mppi-sensor_stale",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": []
+      },
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          224,
+          156,
+          34,
+          43,
+          35,
+          168,
+          66,
+          243,
+          151,
+          79,
+          61,
+          182,
+          112,
+          50,
+          28,
+          232
+        ],
+        "cancel_ack_count": 1,
+        "status": 5
+      },
+      "outcome": "SAFE_WAIT",
+      "terminal_fault": "SENSOR_STALE",
+      "artifact_hashes": {
+        "native.log": "779c6accdb846ca73352bed715d770209ab498839e9ece244e70bb54f0c3bb62",
+        "raw_commands.jsonl": "6352478649ce4ee4ea5ae12c8a02c37b399a724d7ce5261f1a5b2e54956b2dc0",
+        "trace.jsonl": "dc21d133c46d98c106229d67cf175f417a11523e46e973b60d540584f490a6b7",
+        "scans.jsonl": "c3e00c92edc19e5b66b4872ac6699b5064b4c56985ec4e5d8718c3653495c4a1",
+        "fixture.json": "1705705c11485b3b3dccabceaa94f1804b140ba798081e0fd35755f457dab218",
+        "params.yaml": "c19897d78f9a36eb44d3bfa66ea34796ed75cfe18461590d545cd8c4868e0997",
+        "environment.json": "b031bd358d64c47eabb913a4ebeb58dfea77823488c3e46f701c071940c721df",
+        "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+        "resources.jsonl": "af63f0497f2ce67edba487b704af1da2ebb28a5e60f20c1e540cd2ccb2015b84"
+      }
+    },
+    {
+      "case": "rpp-diagnostic_single_obstacle",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": []
+      },
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          252,
+          155,
+          7,
+          98,
+          89,
+          236,
+          71,
+          219,
+          135,
+          242,
+          231,
+          75,
+          115,
+          56,
+          61,
+          154
+        ],
+        "status": 4
+      },
+      "outcome": "GOAL_REACHED",
+      "terminal_fault": null,
+      "artifact_hashes": {
+        "native.log": "6a0b9a9d1fa5ccd0d10fdd309cde1071a9a8cc34d7f4add2830bdfa0d05bee0b",
+        "raw_commands.jsonl": "5cf037fd3e96513d4085da93dc7b10c1c960a6aab5a7498c71650078e868da31",
+        "trace.jsonl": "cdad181e6e5caef736f0dec5a76173857774790da32e5a462df71b03e3514f78",
+        "scans.jsonl": "0139c2fb8e71be9a4e83f761b3cbd8cf249f467e56aaab281d69da54d900d506",
+        "fixture.json": "46f4047decbeeb2decd31d9c3d8fc4f3c1de87506080290abd21e2fe0f24540a",
+        "params.yaml": "8c19af531917d1163b97972dda8fe61d4fbd7df9145d3a7637f31fb04828717b",
+        "environment.json": "bd6f4a2e4f413e9486934856961f2e7131e55769446c67763bc2e7004216e141",
+        "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+        "resources.jsonl": "6305df06c17d0e48c5694d1e838fd8ee5a08a31e0b365ca3a130b6e58acb5e03"
+      }
+    },
+    {
+      "case": "rpp-empty",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": []
+      },
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          105,
+          138,
+          55,
+          88,
+          186,
+          54,
+          64,
+          68,
+          165,
+          82,
+          243,
+          37,
+          168,
+          194,
+          219,
+          156
+        ],
+        "status": 4
+      },
+      "outcome": "GOAL_REACHED",
+      "terminal_fault": null,
+      "artifact_hashes": {
+        "native.log": "4c000e9ac57addf9f9d6b0430ab027ef37aadaa00c20b97d61d3095b5086805f",
+        "raw_commands.jsonl": "9fc21ee90736a6cd0a4c21f692ce7eef9bbd40aa1564e8a9d681339f537cd4b7",
+        "trace.jsonl": "33d49e3465e2e223aa7239fe90b593fa0831f431606d9b89138e6c56d7cd6b38",
+        "scans.jsonl": "d12433f28e32a6408e40a81dc1a7f16d9412fb691b591cdeee5bf871d520da56",
+        "fixture.json": "d98f1d013b7c5b098233c47e58f1d87adb19017df49148858659c4f97816c01b",
+        "params.yaml": "8c19af531917d1163b97972dda8fe61d4fbd7df9145d3a7637f31fb04828717b",
+        "environment.json": "bd6f4a2e4f413e9486934856961f2e7131e55769446c67763bc2e7004216e141",
+        "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+        "resources.jsonl": "d55845875a0655aae4f0202b1fc5173980c3607325b599b64ab4e0f06d64c639"
+      }
+    },
+    {
+      "case": "rpp-fully_blocked",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": []
+      },
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          175,
+          23,
+          59,
+          189,
+          221,
+          82,
+          77,
+          174,
+          144,
+          202,
+          17,
+          98,
+          80,
+          237,
+          228,
+          197
+        ],
+        "status": 6
+      },
+      "outcome": "SAFE_WAIT",
+      "terminal_fault": null,
+      "artifact_hashes": {
+        "native.log": "eb7c94ab27dc43dae2a9df6576244bb96b7e9a419a708b5486aa5ac48860a47f",
+        "raw_commands.jsonl": "ebfa97698363d9e4c2eb98fdb6b9f3ccf93fe7ff9c0652b60b68ea0cc71750f6",
+        "trace.jsonl": "ce0427923fade649cc984a084c48ed91dfbb123d2be630db2f25676579c53706",
+        "scans.jsonl": "0290100ef46a78777b311d4897afc4c5ad2c7005f74208d368ce56355319492a",
+        "fixture.json": "018d525b9bdeff06e77fdcae9898f83cc571f964bef1d16082570d754368cf96",
+        "params.yaml": "8c19af531917d1163b97972dda8fe61d4fbd7df9145d3a7637f31fb04828717b",
+        "environment.json": "161a52cc269e585da1bf192361d0d055baf3fed2bb18cbf93ef5daea8d4c781d",
+        "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+        "resources.jsonl": "197bc18b84b23e6cd9c5e35c541b2851978f51fe25bf02d8b666bec5b84a4f47"
+      }
+    },
+    {
+      "case": "rpp-sensor_stale",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": []
+      },
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          78,
+          202,
+          50,
+          151,
+          51,
+          9,
+          79,
+          26,
+          128,
+          244,
+          155,
+          131,
+          183,
+          11,
+          28,
+          122
+        ],
+        "cancel_ack_count": 1,
+        "status": 5
+      },
+      "outcome": "SAFE_WAIT",
+      "terminal_fault": "SENSOR_STALE",
+      "artifact_hashes": {
+        "native.log": "24af269b47157ec8ff55558299515dc8ab0695871ac5bac3f26a65c928613fae",
+        "raw_commands.jsonl": "e3576bee4fd8bf1fb2676e4a79b3f6a028e796692a1b8b002a76750c5381d47b",
+        "trace.jsonl": "18b7c73712dce4bcadb35445dc5a203ef1cb4eb27be5231b59a055caece0dfc2",
+        "scans.jsonl": "b220a8cf0637471808d8cfab823e312b32ec81411471ec83397dd088e0034f8c",
+        "fixture.json": "1705705c11485b3b3dccabceaa94f1804b140ba798081e0fd35755f457dab218",
+        "params.yaml": "8c19af531917d1163b97972dda8fe61d4fbd7df9145d3a7637f31fb04828717b",
+        "environment.json": "b031bd358d64c47eabb913a4ebeb58dfea77823488c3e46f701c071940c721df",
+        "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+        "resources.jsonl": "2e11503836227578e0bf5fa54409459cdaf55c8a3f14a1798cdcc81255c970e9"
+      }
+    }
+  ],
+  "files": {
+    "rpp-native-params.yaml": "8c19af531917d1163b97972dda8fe61d4fbd7df9145d3a7637f31fb04828717b",
+    "image-lock.json": "631e8525fcd52b0b50850aac93b811fed682e311fa8d76cd144b25553a336d7e"
+  }
+}

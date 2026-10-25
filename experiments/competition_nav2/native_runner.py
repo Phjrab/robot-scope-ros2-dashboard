@@ -15,9 +15,10 @@ import xml.etree.ElementTree as ET
 
 from configure import NODES, PLUGINS
 from core import Boundary, Command, LIMITS, propagate, swept_poses
-from fixtures import World, digest
+from fixtures import make_world, digest
 from preflight import require_isolated
 from humble_executor import metadata_executor_type
+from observations import grid_payload
 
 
 def publisher_owners_match(observed, owner, endpoint_count=1):
@@ -63,7 +64,7 @@ def main(directory):
     from lifecycle_msgs.srv import GetState
     from nav2_msgs.action import NavigateToPose, Spin
     from nav2_msgs.srv import ManageLifecycleNodes
-    from nav_msgs.msg import Odometry
+    from nav_msgs.msg import Odometry, OccupancyGrid, Path as NativePath
     from rcl_interfaces.srv import GetParameters
     from rosgraph_msgs.msg import Clock as ClockMessage
     from sensor_msgs.msg import LaserScan
@@ -78,8 +79,10 @@ def main(directory):
     class Plant(Node):
         def __init__(self):
             super().__init__("bench_plant", namespace="c3_nav2")
-            self.world = World(fixture)
-            self.boundary = Boundary()
+            self.world = make_world(fixture)
+            if hasattr(self.world, "start_sensor"):
+                self.world.start_sensor()
+            self.boundary = Boundary(fixture.get("sensor_ttl_s", LIMITS["sensor_ttl"]))
             self.pose = tuple(fixture["start"])
             self.sim_t = 0.0
             self.goal_start = None
@@ -96,6 +99,8 @@ def main(directory):
             self.trace = (directory / "trace.jsonl").open("w")
             self.raw = (directory / "raw_commands.jsonl").open("w")
             self.scans = (directory / "scans.jsonl").open("w")
+            self.observations = (directory / "observations.jsonl").open("w")
+            self.appeared = set()
             self.action_events = []
             self.deadline_miss = 0
             self.periods = []
@@ -121,6 +126,15 @@ def main(directory):
             self.scan_pub = self.create_publisher(LaserScan, "scan", 10)
             self.final_pub = self.create_publisher(Twist, "sim_actuator_cmd", 10)
             self.subscriptions_raw = []
+            self.subscriptions_observed = [
+                self.create_subscription(
+                    OccupancyGrid,
+                    "global_costmap/costmap",
+                    self.observe_costmap,
+                    static_qos,
+                ),
+                self.create_subscription(NativePath, "plan", self.observe_path, 10),
+            ]
 
             def bind_callback(owner):
                 def callback(msg, info):
@@ -163,6 +177,43 @@ def main(directory):
             from builtin_interfaces.msg import Time
 
             return Time(sec=int(seconds), nanosec=int((seconds - int(seconds)) * 1e9))
+
+        def observe(self, kind, msg, **data):
+            source = msg.header.stamp.sec + msg.header.stamp.nanosec / 1e9
+            self.observations.write(
+                json.dumps(
+                    dict(
+                        kind=kind,
+                        sim_t=self.sim_t,
+                        receipt_monotonic=time.monotonic(),
+                        source_sim_s=source,
+                        source_elapsed_s=source - self.goal_start
+                        if self.goal_start is not None
+                        else -1.0,
+                        frame=msg.header.frame_id,
+                        **data,
+                    )
+                )
+                + "\n"
+            )
+
+        def observe_costmap(self, msg):
+            self.observe(
+                "costmap",
+                msg,
+                width=msg.info.width,
+                height=msg.info.height,
+                resolution=msg.info.resolution,
+                origin=[msg.info.origin.position.x, msg.info.origin.position.y],
+                data_zlib_base64=grid_payload(msg.data),
+            )
+
+        def observe_path(self, msg):
+            self.observe(
+                "path",
+                msg,
+                points=[[p.pose.position.x, p.pose.position.y] for p in msg.poses],
+            )
 
         def receive_command(self, msg, info, owner):
             now, wall_ns = time.monotonic(), time.time_ns()
@@ -256,7 +307,7 @@ def main(directory):
             )
             # Integrate actual previous simulated actuator command, never desired/raw input.
             v, w = self.previous_output
-            samples = swept_poses(before, v, w, dt)
+            samples = swept_poses(before, v, w, dt, radius=self.world.radius)
             if any(self.world.collision(p, scene_time) for p in samples):
                 self.collision_count += 1
                 self.boundary.stop("FOOTPRINT_CONTACT")
@@ -270,6 +321,20 @@ def main(directory):
             )
             self.sim_t += dt
             elapsed = 0.0 if self.goal_start is None else self.sim_t - self.goal_start
+            for index, obstacle in enumerate(fixture["obstacles"]):
+                if elapsed >= obstacle["appears_s"] and index not in self.appeared:
+                    self.appeared.add(index)
+                    self.observations.write(
+                        json.dumps(
+                            dict(
+                                kind="appearance",
+                                obstacle=index,
+                                sim_t=self.sim_t,
+                                elapsed_s=elapsed,
+                            )
+                        )
+                        + "\n"
+                    )
             clock = ClockMessage()
             clock.clock = self.stamp(self.sim_t)
             self.clock_pub.publish(clock)
@@ -278,6 +343,15 @@ def main(directory):
             identity.header.frame_id, identity.child_frame_id = "map", "odom"
             identity.transform.rotation.w = 1.0
             self.static_pub.publish(TFMessage(transforms=[identity]))
+            if fixture.get("sensor_frame"):
+                sensor_tf = TransformStamped()
+                sensor_tf.header.stamp = clock.clock
+                sensor_tf.header.frame_id, sensor_tf.child_frame_id = (
+                    "base_link",
+                    fixture["sensor_frame"],
+                )
+                sensor_tf.transform.rotation.w = 1.0
+                self.static_pub.publish(TFMessage(transforms=[identity, sensor_tf]))
             transform = TransformStamped()
             transform.header.stamp = clock.clock
             transform.header.frame_id, transform.child_frame_id = "odom", "base_link"
@@ -294,13 +368,19 @@ def main(directory):
             odom.pose.pose.orientation = transform.transform.rotation
             odom.twist.twist.linear.x, odom.twist.twist.angular.z = v, w
             self.odom_pub.publish(odom)
-            if self.sim_t >= self.next_scan:
+            if (
+                self.sim_t + (1e-9 if fixture.get("d0_bundle") else 0.0)
+                >= self.next_scan
+            ):
                 self.next_scan = self.sim_t + fixture["sensor_period_s"]
                 if self.goal_start is None or elapsed < fixture.get(
                     "sensor_dropout_s", math.inf
                 ):
                     msg = LaserScan()
-                    msg.header.frame_id, msg.header.stamp = "base_link", clock.clock
+                    msg.header.frame_id, msg.header.stamp = (
+                        fixture.get("sensor_frame", "base_link"),
+                        clock.clock,
+                    )
                     msg.angle_min = -math.pi
                     msg.angle_increment = 2 * math.pi / fixture["scan_beams"]
                     msg.angle_max = math.pi - msg.angle_increment
@@ -308,10 +388,28 @@ def main(directory):
                     msg.scan_time = fixture["sensor_period_s"]
                     msg.ranges = self.world.scan(self.pose, elapsed)
                     self.pending_scans.append(
-                        (now + fixture["sensor_delay_s"], now, msg)
+                        (
+                            now + fixture["sensor_delay_s"],
+                            now,
+                            msg,
+                            list(self.pose),
+                            elapsed,
+                            getattr(self.world, "last_observation", None),
+                        )
                     )
+            if fixture.get("d0_bundle"):
+                now = (
+                    time.monotonic()
+                )  # Include synchronous sensor computation in source/receipt age.
             while self.pending_scans and self.pending_scans[0][0] <= now:
-                _, source_mono, scan = self.pending_scans.pop(0)
+                (
+                    _,
+                    source_mono,
+                    scan,
+                    source_pose,
+                    source_elapsed,
+                    sensor_observation,
+                ) = self.pending_scans.pop(0)
                 self.scan_pub.publish(scan)
                 self.boundary.sensor(now, now - source_mono)
                 self.scans.write(
@@ -323,6 +421,10 @@ def main(directory):
                             receipt_monotonic=now,
                             source_age_s=now - source_mono,
                             min_range_m=min(scan.ranges),
+                            source_pose=source_pose,
+                            source_elapsed_s=source_elapsed,
+                            ranges=list(scan.ranges),
+                            sensor_observation=sensor_observation,
                         )
                     )
                     + "\n"
@@ -463,6 +565,8 @@ def main(directory):
                 "/c3_nav2/sim_actuator_cmd": "bench_plant",
                 "/c3_nav2/raw/controller_server": "controller_server",
                 "/c3_nav2/raw/behavior_server": "behavior_server",
+                "/c3_nav2/plan": "planner_server",
+                "/c3_nav2/global_costmap/costmap": "global_costmap/global_costmap",
             }
             for topic, owner in expected_owners.items():
                 pubs = self.get_publishers_info_by_topic(topic)
@@ -488,7 +592,11 @@ def main(directory):
                         + str(ownership[topic])
                     )
             snapshot = dict(
-                nodes=names, topics=topics, publishers=ownership, sim_t=self.sim_t
+                nodes=names,
+                topics=topics,
+                publishers=ownership,
+                sim_t=self.sim_t,
+                owners_required=require_owners,
             )
             self.graph_snapshots.append(snapshot)
             return snapshot
@@ -798,8 +906,9 @@ def main(directory):
             action_events=node.action_events,
             graph_snapshots=node.graph_snapshots,
             terminal_fault=terminal_fault,
+            observation_schema="c3-native-observations.v1",
         )
-        for file in (node.trace, node.raw, node.scans):
+        for file in (node.trace, node.raw, node.scans, node.observations):
             file.close()
         raw = [
             json.loads(line)
@@ -819,6 +928,8 @@ def main(directory):
         (directory / "result.json").write_text(
             json.dumps(report, indent=2, allow_nan=False) + "\n"
         )
+        if hasattr(node.world, "close"):
+            node.world.close()
         node.destroy_node()
         executor.shutdown()
         rclpy.shutdown()

@@ -1,0 +1,813 @@
+{
+  "schema": "c3-native-extension.v1",
+  "planned": 7,
+  "attempted": 7,
+  "native_recorded": 7,
+  "cases": [
+    {
+      "controller": "rpp",
+      "scenario": "diagnostic_single_obstacle",
+      "repeat": 0,
+      "returncode": 0,
+      "status": "NATIVE_RECORDED",
+      "outcome": "GOAL_REACHED",
+      "expected": "GOAL_REACHED",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "error": null,
+      "terminal_fault": null,
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          132,
+          23,
+          112,
+          15,
+          37,
+          175,
+          76,
+          195,
+          130,
+          196,
+          232,
+          153,
+          67,
+          214,
+          34,
+          245
+        ],
+        "status": 4
+      },
+      "metrics": {
+        "footprint_collision_count": 0,
+        "boundary_violation_count": 0,
+        "min_conservative_clearance_m": 0.27891543675279523,
+        "path_length_m": 4.275053358413165,
+        "sim_time_s": 30.5500000000003,
+        "wall_time_s": 30.683549476999985,
+        "plant_deadline_misses": 1,
+        "plant_max_wall_gap_s": 0.13701825999999073,
+        "runner_cpu_s": 5.43283869,
+        "runner_peak_rss_kib": 92436,
+        "hold_nonzero_count": 0
+      },
+      "goal_distance_m": 0.11557563770843933,
+      "goal_yaw_error_rad": 0.17089140015814763,
+      "package_versions": {
+        "nav2_controller": "1.1.20",
+        "nav2_planner": "1.1.20",
+        "nav2_bt_navigator": "1.1.20",
+        "rclpy": "3.3.22",
+        "nav2_regulated_pure_pursuit_controller": "1.1.20"
+      },
+      "loaded_library_sha256": {
+        "/opt/ros/humble/lib/libnav2_regulated_pure_pursuit_controller.so": "d63cca14c5cd1f5d85b61d2d37e40f70c1cba0133fe2dcd574595386b969f497"
+      },
+      "raw_command_counts": {
+        "controller_server": 568,
+        "behavior_server": 0
+      },
+      "map_sha256": "faa47a95e1be2ebf3400918df2c2f717a68c8294b2b49aa365f4baba754c620f",
+      "fixture_sha256": "631f19f08a426f4ba91666fadea3b38488580259fabde589b8532854a7ba873a",
+      "config_sha256": "ea1e0668db1e54cd6d31082317b3d3889843a3efa1377ba9d22bfb8c0a06f3b2",
+      "source_sha": "7a220d458fe8bce8cdd366caa4e9a546bddebd60",
+      "image_id": "sha256:1ac54ef5801af2bb84e4669cbe0231fe1447ccbf8b701a29fcfb12a865d7bf78",
+      "expectation_met": true,
+      "independent_validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "independent_swept_clearance_m": 0.27891543675279523,
+      "clearance_resampling_delta_m": 0.0,
+      "raw_native_samples": 568,
+      "accepted_raw_samples": 567,
+      "final_actuator_samples": 611,
+      "nonzero_final_samples": 566,
+      "shutdown_actuator": [
+        0.0,
+        0.0
+      ],
+      "evidence_gate": "PASS",
+      "safety_gate": "PASS",
+      "liveness_gate": "PASS",
+      "artifact_hashes": {
+        "native.log": "23fc1b33da7cdacb7232261e856788833f907633964e841da8835c1e3e69a5d8",
+        "raw_commands.jsonl": "b41a869adc0b35e4884902fc506ff6e32fbb50a47d776a2fd9e65336f7aed267",
+        "trace.jsonl": "472b8c51f8889485fe4864b36ad8a4b9b7c0bde07c88475335af0d89b81dc6de",
+        "scans.jsonl": "9cfd5bffbc4eafe912c7741e22310a18b2461e515479a768af86f23fe5149c93",
+        "observations.jsonl": "5f7bbc0da7f79da89f8d32be81a0a51cf9134ad4796241d8ba361ff6393738e9",
+        "fixture.json": "46f4047decbeeb2decd31d9c3d8fc4f3c1de87506080290abd21e2fe0f24540a",
+        "params.yaml": "8c19af531917d1163b97972dda8fe61d4fbd7df9145d3a7637f31fb04828717b",
+        "environment.json": "88238541c1a8344ff42913ebeaa121a54775b7f19ca2a031debc6ac0467c77c4",
+        "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+        "resources.jsonl": "e51bdded7a6604f762b4c64cb9d78a9bf389e1e5f131cbbbcc07c06dba26a965"
+      }
+    },
+    {
+      "controller": "rpp",
+      "scenario": "diagnostic_single_obstacle",
+      "repeat": 1,
+      "returncode": 0,
+      "status": "NATIVE_RECORDED",
+      "outcome": "GOAL_REACHED",
+      "expected": "GOAL_REACHED",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "error": null,
+      "terminal_fault": null,
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          142,
+          95,
+          94,
+          37,
+          21,
+          26,
+          69,
+          222,
+          137,
+          6,
+          81,
+          57,
+          98,
+          48,
+          148,
+          104
+        ],
+        "status": 4
+      },
+      "metrics": {
+        "footprint_collision_count": 0,
+        "boundary_violation_count": 0,
+        "min_conservative_clearance_m": 0.2793061155022428,
+        "path_length_m": 4.266980996592521,
+        "sim_time_s": 30.200000000000294,
+        "wall_time_s": 30.278819943999963,
+        "plant_deadline_misses": 1,
+        "plant_max_wall_gap_s": 0.08772707200000696,
+        "runner_cpu_s": 5.320757893,
+        "runner_peak_rss_kib": 92916,
+        "hold_nonzero_count": 0
+      },
+      "goal_distance_m": 0.11665248022965442,
+      "goal_yaw_error_rad": 0.15808845709156882,
+      "package_versions": {
+        "nav2_controller": "1.1.20",
+        "nav2_planner": "1.1.20",
+        "nav2_bt_navigator": "1.1.20",
+        "rclpy": "3.3.22",
+        "nav2_regulated_pure_pursuit_controller": "1.1.20"
+      },
+      "loaded_library_sha256": {
+        "/opt/ros/humble/lib/libnav2_regulated_pure_pursuit_controller.so": "d63cca14c5cd1f5d85b61d2d37e40f70c1cba0133fe2dcd574595386b969f497"
+      },
+      "raw_command_counts": {
+        "controller_server": 560,
+        "behavior_server": 0
+      },
+      "map_sha256": "faa47a95e1be2ebf3400918df2c2f717a68c8294b2b49aa365f4baba754c620f",
+      "fixture_sha256": "631f19f08a426f4ba91666fadea3b38488580259fabde589b8532854a7ba873a",
+      "config_sha256": "ea1e0668db1e54cd6d31082317b3d3889843a3efa1377ba9d22bfb8c0a06f3b2",
+      "source_sha": "7a220d458fe8bce8cdd366caa4e9a546bddebd60",
+      "image_id": "sha256:1ac54ef5801af2bb84e4669cbe0231fe1447ccbf8b701a29fcfb12a865d7bf78",
+      "expectation_met": true,
+      "independent_validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "independent_swept_clearance_m": 0.2793061155022428,
+      "clearance_resampling_delta_m": 0.0,
+      "raw_native_samples": 560,
+      "accepted_raw_samples": 558,
+      "final_actuator_samples": 604,
+      "nonzero_final_samples": 557,
+      "shutdown_actuator": [
+        0.0,
+        0.0
+      ],
+      "evidence_gate": "PASS",
+      "safety_gate": "PASS",
+      "liveness_gate": "PASS",
+      "artifact_hashes": {
+        "native.log": "021bc0d905e383b9f8a479b823963e5a8744a22f5b79223439957ac25a71104d",
+        "raw_commands.jsonl": "09300acf117dbb17526e30177b7afa24fcf67cda331eacd8b512960fb5c8ee50",
+        "trace.jsonl": "ad642c7cc8bf9073c373648917f723584aff920fd61909615d8698376cfffce6",
+        "scans.jsonl": "41e6622bdb8c9961c3074b86dacd543b37c2122ae7bacf812da3804f260cf088",
+        "observations.jsonl": "bf1e4cf428372f4847f879514109b3b45c59e76001c8d1510bd33b8032ff74b5",
+        "fixture.json": "46f4047decbeeb2decd31d9c3d8fc4f3c1de87506080290abd21e2fe0f24540a",
+        "params.yaml": "8c19af531917d1163b97972dda8fe61d4fbd7df9145d3a7637f31fb04828717b",
+        "environment.json": "ca443ed5d6306b3a0aa950e77b5e3ab8cef2ce2a8ac32a277bf9e19f3749f509",
+        "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+        "resources.jsonl": "e07cd00991561fa9f81cdafd933a5c42c690452bd72e50749be6eb8b993b3846"
+      }
+    },
+    {
+      "controller": "rpp",
+      "scenario": "diagnostic_single_obstacle",
+      "repeat": 2,
+      "returncode": 0,
+      "status": "NATIVE_RECORDED",
+      "outcome": "GOAL_REACHED",
+      "expected": "GOAL_REACHED",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "error": null,
+      "terminal_fault": null,
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          198,
+          68,
+          116,
+          162,
+          98,
+          226,
+          70,
+          171,
+          146,
+          44,
+          64,
+          91,
+          116,
+          211,
+          62,
+          197
+        ],
+        "status": 4
+      },
+      "metrics": {
+        "footprint_collision_count": 0,
+        "boundary_violation_count": 0,
+        "min_conservative_clearance_m": 0.27522315557988747,
+        "path_length_m": 4.272705541522612,
+        "sim_time_s": 30.6000000000003,
+        "wall_time_s": 30.65951183499999,
+        "plant_deadline_misses": 1,
+        "plant_max_wall_gap_s": 0.08904157999995732,
+        "runner_cpu_s": 5.164018221999999,
+        "runner_peak_rss_kib": 93088,
+        "hold_nonzero_count": 0
+      },
+      "goal_distance_m": 0.116042011542354,
+      "goal_yaw_error_rad": 0.14310656258768928,
+      "package_versions": {
+        "nav2_controller": "1.1.20",
+        "nav2_planner": "1.1.20",
+        "nav2_bt_navigator": "1.1.20",
+        "rclpy": "3.3.22",
+        "nav2_regulated_pure_pursuit_controller": "1.1.20"
+      },
+      "loaded_library_sha256": {
+        "/opt/ros/humble/lib/libnav2_regulated_pure_pursuit_controller.so": "d63cca14c5cd1f5d85b61d2d37e40f70c1cba0133fe2dcd574595386b969f497"
+      },
+      "raw_command_counts": {
+        "controller_server": 569,
+        "behavior_server": 0
+      },
+      "map_sha256": "faa47a95e1be2ebf3400918df2c2f717a68c8294b2b49aa365f4baba754c620f",
+      "fixture_sha256": "631f19f08a426f4ba91666fadea3b38488580259fabde589b8532854a7ba873a",
+      "config_sha256": "ea1e0668db1e54cd6d31082317b3d3889843a3efa1377ba9d22bfb8c0a06f3b2",
+      "source_sha": "7a220d458fe8bce8cdd366caa4e9a546bddebd60",
+      "image_id": "sha256:1ac54ef5801af2bb84e4669cbe0231fe1447ccbf8b701a29fcfb12a865d7bf78",
+      "expectation_met": true,
+      "independent_validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "independent_swept_clearance_m": 0.27522315557988747,
+      "clearance_resampling_delta_m": 0.0,
+      "raw_native_samples": 569,
+      "accepted_raw_samples": 567,
+      "final_actuator_samples": 612,
+      "nonzero_final_samples": 566,
+      "shutdown_actuator": [
+        0.0,
+        0.0
+      ],
+      "evidence_gate": "PASS",
+      "safety_gate": "PASS",
+      "liveness_gate": "PASS",
+      "artifact_hashes": {
+        "native.log": "c464d6598ac8d445f1fad401ce1fca7b494f9e169e85de7af5af9142b9fd3134",
+        "raw_commands.jsonl": "43df6dbd11f4828bf6eb9caa4f60d0cf320d0337082df4fb2f9b17b8e6fed8cc",
+        "trace.jsonl": "ddb6373a2f01d4615cc83cdea3d82ff7801a849a151b4c5e5a78bae9b3eacc8a",
+        "scans.jsonl": "ccc86fd6572830e0d05ee52f0382003cdf1e766439f4d434546fa0d499d39fa6",
+        "observations.jsonl": "be047dbe1769121dd5aebc74f7bf7cb084be0141e169a9fae1bb7d1ac94fa243",
+        "fixture.json": "46f4047decbeeb2decd31d9c3d8fc4f3c1de87506080290abd21e2fe0f24540a",
+        "params.yaml": "8c19af531917d1163b97972dda8fe61d4fbd7df9145d3a7637f31fb04828717b",
+        "environment.json": "05ddf6ccb1316a91f61780acf4ff4950efdf7bb726a675c1689dd7aa9dd9078b",
+        "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+        "resources.jsonl": "947ac17f56aceb1e6097e154850d623ada197d677c4d060c4d3d3ec242c28006"
+      }
+    },
+    {
+      "controller": "rpp",
+      "scenario": "diagnostic_appearing_obstacle",
+      "repeat": 0,
+      "returncode": 0,
+      "status": "NATIVE_RECORDED",
+      "outcome": "GOAL_REACHED",
+      "expected": "GOAL_REACHED",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": {
+          "status": "PASS",
+          "errors": [],
+          "requested_appearance_elapsed_s": 3.0,
+          "actual_appearance_elapsed_s": 3.0499999999999896,
+          "first_scan_elapsed_s": 3.0999999999999894,
+          "first_scan_receipt_sim_s": 4.99999999999999,
+          "first_costmap_elapsed_s": 3.349999998999999,
+          "first_detour_path_elapsed_s": 3.7499999989999986,
+          "first_scan_hit_beams": 27,
+          "inserted_lethal_cells": 16,
+          "initial_path_points": 199,
+          "detour_path_points": 191,
+          "scope": "Native centerline path change; body safety is independently swept from actuator trace"
+        }
+      },
+      "error": null,
+      "terminal_fault": null,
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          12,
+          47,
+          29,
+          158,
+          182,
+          148,
+          65,
+          213,
+          129,
+          215,
+          229,
+          179,
+          156,
+          132,
+          224,
+          122
+        ],
+        "status": 4
+      },
+      "metrics": {
+        "footprint_collision_count": 0,
+        "boundary_violation_count": 0,
+        "min_conservative_clearance_m": 0.26883660869742054,
+        "path_length_m": 4.377173629304885,
+        "sim_time_s": 32.600000000000286,
+        "wall_time_s": 32.657571727000004,
+        "plant_deadline_misses": 1,
+        "plant_max_wall_gap_s": 0.08669407200000023,
+        "runner_cpu_s": 5.701101016000001,
+        "runner_peak_rss_kib": 93240,
+        "hold_nonzero_count": 0
+      },
+      "goal_distance_m": 0.1157745945116421,
+      "goal_yaw_error_rad": 0.15774374806211622,
+      "package_versions": {
+        "nav2_controller": "1.1.20",
+        "nav2_planner": "1.1.20",
+        "nav2_bt_navigator": "1.1.20",
+        "rclpy": "3.3.22",
+        "nav2_regulated_pure_pursuit_controller": "1.1.20"
+      },
+      "loaded_library_sha256": {
+        "/opt/ros/humble/lib/libnav2_regulated_pure_pursuit_controller.so": "d63cca14c5cd1f5d85b61d2d37e40f70c1cba0133fe2dcd574595386b969f497"
+      },
+      "raw_command_counts": {
+        "controller_server": 605,
+        "behavior_server": 0
+      },
+      "map_sha256": "faa47a95e1be2ebf3400918df2c2f717a68c8294b2b49aa365f4baba754c620f",
+      "fixture_sha256": "d217b3f69ab571ed1111bc2d65c0b510939e0d7211c64cee85581c1cec8e7303",
+      "config_sha256": "ea1e0668db1e54cd6d31082317b3d3889843a3efa1377ba9d22bfb8c0a06f3b2",
+      "source_sha": "7a220d458fe8bce8cdd366caa4e9a546bddebd60",
+      "image_id": "sha256:1ac54ef5801af2bb84e4669cbe0231fe1447ccbf8b701a29fcfb12a865d7bf78",
+      "expectation_met": true,
+      "independent_validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": {
+          "status": "PASS",
+          "errors": [],
+          "requested_appearance_elapsed_s": 3.0,
+          "actual_appearance_elapsed_s": 3.0499999999999896,
+          "first_scan_elapsed_s": 3.0999999999999894,
+          "first_scan_receipt_sim_s": 4.99999999999999,
+          "first_costmap_elapsed_s": 3.349999998999999,
+          "first_detour_path_elapsed_s": 3.7499999989999986,
+          "first_scan_hit_beams": 27,
+          "inserted_lethal_cells": 16,
+          "initial_path_points": 199,
+          "detour_path_points": 191,
+          "scope": "Native centerline path change; body safety is independently swept from actuator trace"
+        }
+      },
+      "independent_swept_clearance_m": 0.26883660869742054,
+      "clearance_resampling_delta_m": 0.0,
+      "raw_native_samples": 605,
+      "accepted_raw_samples": 604,
+      "final_actuator_samples": 652,
+      "nonzero_final_samples": 602,
+      "shutdown_actuator": [
+        0.0,
+        0.0
+      ],
+      "evidence_gate": "PASS",
+      "safety_gate": "PASS",
+      "liveness_gate": "PASS",
+      "artifact_hashes": {
+        "native.log": "33a18c245d40d9b2b2bce3a87c3157069740cb7f65cd5f2b7ae34c2f9debedd5",
+        "raw_commands.jsonl": "e66eb6784bf44b42f55170d690251b6d244841d68f14f91661b031418fffdbb1",
+        "trace.jsonl": "c34ea51724ad9f1a18234f5d02ae788caba4faac781eff452bdc038b1552decd",
+        "scans.jsonl": "9ca4cc8b84bc53db08ac47bdef6c4a42bb5ac3e03932addc4629c16707d2730a",
+        "observations.jsonl": "bd505f21f57b53436108e282189948acce9fdc9598e93456557c8ca7d7748822",
+        "fixture.json": "c42f9606679179a25db9d0b916a6235b852d62b86746763883f98e815506607d",
+        "params.yaml": "8c19af531917d1163b97972dda8fe61d4fbd7df9145d3a7637f31fb04828717b",
+        "environment.json": "319a0c76c455e2e21761ed2c626a2251be1afad49f76a7fb8cf3f5eff41f636b",
+        "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+        "resources.jsonl": "6a03506a5e316d26330a9a05b84f31d4ab783c681b4cc8b39edfdeeee76b2bcc"
+      },
+      "commands_after_detour": {
+        "native_raw": 531,
+        "nonzero_final": 530
+      }
+    },
+    {
+      "controller": "rpp",
+      "scenario": "diagnostic_two_obstacles",
+      "repeat": 0,
+      "returncode": 0,
+      "status": "NATIVE_RECORDED",
+      "outcome": "GOAL_REACHED",
+      "expected": "GOAL_REACHED",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "error": null,
+      "terminal_fault": null,
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          164,
+          109,
+          80,
+          61,
+          147,
+          145,
+          74,
+          176,
+          143,
+          227,
+          40,
+          203,
+          67,
+          34,
+          133,
+          63
+        ],
+        "status": 4
+      },
+      "metrics": {
+        "footprint_collision_count": 0,
+        "boundary_violation_count": 0,
+        "min_conservative_clearance_m": 0.2574073585234187,
+        "path_length_m": 4.457154673302569,
+        "sim_time_s": 32.55000000000029,
+        "wall_time_s": 32.62934068999999,
+        "plant_deadline_misses": 1,
+        "plant_max_wall_gap_s": 0.08734170799999674,
+        "runner_cpu_s": 5.939300484,
+        "runner_peak_rss_kib": 93328,
+        "hold_nonzero_count": 0
+      },
+      "goal_distance_m": 0.11524060759436197,
+      "goal_yaw_error_rad": 0.1588115749639405,
+      "package_versions": {
+        "nav2_controller": "1.1.20",
+        "nav2_planner": "1.1.20",
+        "nav2_bt_navigator": "1.1.20",
+        "rclpy": "3.3.22",
+        "nav2_regulated_pure_pursuit_controller": "1.1.20"
+      },
+      "loaded_library_sha256": {
+        "/opt/ros/humble/lib/libnav2_regulated_pure_pursuit_controller.so": "d63cca14c5cd1f5d85b61d2d37e40f70c1cba0133fe2dcd574595386b969f497"
+      },
+      "raw_command_counts": {
+        "controller_server": 611,
+        "behavior_server": 0
+      },
+      "map_sha256": "faa47a95e1be2ebf3400918df2c2f717a68c8294b2b49aa365f4baba754c620f",
+      "fixture_sha256": "1da5d7ed38070548212ee5953fdc86f29879f936ca203fcdfcba98e78905ea55",
+      "config_sha256": "ea1e0668db1e54cd6d31082317b3d3889843a3efa1377ba9d22bfb8c0a06f3b2",
+      "source_sha": "7a220d458fe8bce8cdd366caa4e9a546bddebd60",
+      "image_id": "sha256:1ac54ef5801af2bb84e4669cbe0231fe1447ccbf8b701a29fcfb12a865d7bf78",
+      "expectation_met": true,
+      "independent_validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "independent_swept_clearance_m": 0.2574070078176849,
+      "clearance_resampling_delta_m": -3.5070573378703784e-07,
+      "raw_native_samples": 611,
+      "accepted_raw_samples": 609,
+      "final_actuator_samples": 651,
+      "nonzero_final_samples": 607,
+      "shutdown_actuator": [
+        0.0,
+        0.0
+      ],
+      "evidence_gate": "PASS",
+      "safety_gate": "PASS",
+      "liveness_gate": "PASS",
+      "artifact_hashes": {
+        "native.log": "5bf18077ba11651d05359a3c9080168a6ef118ece93f82dc2d9ae302b0257854",
+        "raw_commands.jsonl": "c795b8342360154d0582e75a08c80e5c48d45bb6353376fc0263eae5ad42abe4",
+        "trace.jsonl": "d0afe897d12d1b39599e3b5a9e411cf3468ec0e8a0af7f6031af196cc9821968",
+        "scans.jsonl": "6cf2cb0757e1cab49d95710910b5bdc3ea0386e8f81f61160a8a9399c0807707",
+        "observations.jsonl": "1aa9cc38baf5a5f70727fea81b5a6fc5384eb9ad6e788392fb2e0d36ecdf58d5",
+        "fixture.json": "69d5ccee78352a21aa3c4a2e7c7204ee3bc31a6e73fbf62bb2db47bdb44696e6",
+        "params.yaml": "8c19af531917d1163b97972dda8fe61d4fbd7df9145d3a7637f31fb04828717b",
+        "environment.json": "319a0c76c455e2e21761ed2c626a2251be1afad49f76a7fb8cf3f5eff41f636b",
+        "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+        "resources.jsonl": "f216758c794e883b8938f5a4e853b26783c27c166ef1f39b99a5774783f5137a"
+      }
+    },
+    {
+      "controller": "rpp",
+      "scenario": "fully_blocked",
+      "repeat": 0,
+      "returncode": 0,
+      "status": "NATIVE_RECORDED",
+      "outcome": "SAFE_WAIT",
+      "expected": "SAFE_WAIT",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "error": null,
+      "terminal_fault": null,
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          159,
+          49,
+          183,
+          233,
+          202,
+          204,
+          75,
+          121,
+          187,
+          80,
+          64,
+          212,
+          198,
+          118,
+          235,
+          205
+        ],
+        "status": 6
+      },
+      "metrics": {
+        "footprint_collision_count": 0,
+        "boundary_violation_count": 0,
+        "min_conservative_clearance_m": 0.0,
+        "path_length_m": 0.0,
+        "sim_time_s": 9.099999999999994,
+        "wall_time_s": 9.159807148000027,
+        "plant_deadline_misses": 1,
+        "plant_max_wall_gap_s": 0.0888624220000338,
+        "runner_cpu_s": 1.462940207,
+        "runner_peak_rss_kib": 92448,
+        "hold_nonzero_count": 0
+      },
+      "goal_distance_m": 2.6999999999999997,
+      "goal_yaw_error_rad": 0.8339491561648935,
+      "package_versions": {
+        "nav2_controller": "1.1.20",
+        "nav2_planner": "1.1.20",
+        "nav2_bt_navigator": "1.1.20",
+        "rclpy": "3.3.22",
+        "nav2_regulated_pure_pursuit_controller": "1.1.20"
+      },
+      "loaded_library_sha256": {
+        "/opt/ros/humble/lib/libnav2_regulated_pure_pursuit_controller.so": "d63cca14c5cd1f5d85b61d2d37e40f70c1cba0133fe2dcd574595386b969f497"
+      },
+      "raw_command_counts": {
+        "controller_server": 0,
+        "behavior_server": 43
+      },
+      "map_sha256": "5bbd3ddfdbd1175b1681e0c837bcb4f07902cb2ba77e457bbac9d0084cf4a986",
+      "fixture_sha256": "bba0caa89f1e18cb4383f9c25af54ca83fc916d5c75a39622ee4573b20cb886b",
+      "config_sha256": "ea1e0668db1e54cd6d31082317b3d3889843a3efa1377ba9d22bfb8c0a06f3b2",
+      "source_sha": "7a220d458fe8bce8cdd366caa4e9a546bddebd60",
+      "image_id": "sha256:1ac54ef5801af2bb84e4669cbe0231fe1447ccbf8b701a29fcfb12a865d7bf78",
+      "expectation_met": true,
+      "independent_validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "independent_swept_clearance_m": 0.0,
+      "clearance_resampling_delta_m": 0.0,
+      "raw_native_samples": 43,
+      "accepted_raw_samples": 42,
+      "final_actuator_samples": 182,
+      "nonzero_final_samples": 40,
+      "shutdown_actuator": [
+        0.0,
+        0.0
+      ],
+      "evidence_gate": "PASS",
+      "safety_gate": "PASS",
+      "liveness_gate": "PASS",
+      "artifact_hashes": {
+        "native.log": "d2ae8fb9ca12a6e04250061da00f77cc1fb55f722502814788d03ff0477ceb07",
+        "raw_commands.jsonl": "3c9a650380f6a51f3c5e3868a8ffadcbc974d42293fff1a68231b0c4e44812f8",
+        "trace.jsonl": "9d647862ad97620023966ad869f215f48d8fae1d02a0d1f9c3ed534f3ca0298c",
+        "scans.jsonl": "06b97ee8337a4042a858d10b12f0e0d094ee9a8b79d45df6f1ac63cc85675893",
+        "observations.jsonl": "b3c1a9dd3fa471d5a205fe3300a77806bf4a04b43892f2c12bbfb76fb9632633",
+        "fixture.json": "018d525b9bdeff06e77fdcae9898f83cc571f964bef1d16082570d754368cf96",
+        "params.yaml": "8c19af531917d1163b97972dda8fe61d4fbd7df9145d3a7637f31fb04828717b",
+        "environment.json": "1c2199c28d04f8ccfb1021dcbfb3f96c1b170ea8a6e964cd25f39bae0e84769d",
+        "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+        "resources.jsonl": "edc58861083fd30e65142dcaccdc08f84b88dd4d6d5546ee458f2d2eb5760945"
+      }
+    },
+    {
+      "controller": "rpp",
+      "scenario": "sensor_stale",
+      "repeat": 0,
+      "returncode": 0,
+      "status": "NATIVE_RECORDED",
+      "outcome": "SAFE_WAIT",
+      "expected": "SAFE_WAIT",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "error": null,
+      "terminal_fault": "SENSOR_STALE",
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          198,
+          51,
+          72,
+          134,
+          234,
+          130,
+          75,
+          111,
+          155,
+          134,
+          113,
+          26,
+          188,
+          123,
+          34,
+          206
+        ],
+        "cancel_ack_count": 1,
+        "status": 5
+      },
+      "metrics": {
+        "footprint_collision_count": 0,
+        "boundary_violation_count": 0,
+        "min_conservative_clearance_m": 0.0,
+        "path_length_m": 0.3194999940718508,
+        "sim_time_s": 6.8999999999999835,
+        "wall_time_s": 6.9396198300000265,
+        "plant_deadline_misses": 1,
+        "plant_max_wall_gap_s": 0.0891433569999549,
+        "runner_cpu_s": 0.8065973449999997,
+        "runner_peak_rss_kib": 92924,
+        "hold_nonzero_count": 0
+      },
+      "goal_distance_m": 2.3805240221279895,
+      "goal_yaw_error_rad": 0.004515438798034843,
+      "package_versions": {
+        "nav2_controller": "1.1.20",
+        "nav2_planner": "1.1.20",
+        "nav2_bt_navigator": "1.1.20",
+        "rclpy": "3.3.22",
+        "nav2_regulated_pure_pursuit_controller": "1.1.20"
+      },
+      "loaded_library_sha256": {
+        "/opt/ros/humble/lib/libnav2_regulated_pure_pursuit_controller.so": "d63cca14c5cd1f5d85b61d2d37e40f70c1cba0133fe2dcd574595386b969f497"
+      },
+      "raw_command_counts": {
+        "controller_server": 45,
+        "behavior_server": 0
+      },
+      "map_sha256": "5bbd3ddfdbd1175b1681e0c837bcb4f07902cb2ba77e457bbac9d0084cf4a986",
+      "fixture_sha256": "18f21411987f2bfc3f792536c8e825cc54d5634c2d1f9d52dadc1569019eba25",
+      "config_sha256": "ea1e0668db1e54cd6d31082317b3d3889843a3efa1377ba9d22bfb8c0a06f3b2",
+      "source_sha": "7a220d458fe8bce8cdd366caa4e9a546bddebd60",
+      "image_id": "sha256:1ac54ef5801af2bb84e4669cbe0231fe1447ccbf8b701a29fcfb12a865d7bf78",
+      "expectation_met": true,
+      "independent_validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "independent_swept_clearance_m": 0.0,
+      "clearance_resampling_delta_m": 0.0,
+      "raw_native_samples": 45,
+      "accepted_raw_samples": 42,
+      "final_actuator_samples": 138,
+      "nonzero_final_samples": 41,
+      "shutdown_actuator": [
+        0.0,
+        0.0
+      ],
+      "evidence_gate": "PASS",
+      "safety_gate": "PASS",
+      "liveness_gate": "PASS",
+      "artifact_hashes": {
+        "native.log": "50ca8720a6195275a794004124f1e35cadaaa2ee9f42f50263381d42fa91d42d",
+        "raw_commands.jsonl": "ab9d3511e65ac329b36135dccd3c0d0f74c741bfac712f54f9f1f21f98afedae",
+        "trace.jsonl": "897529aca585431f582968e6d958778674a551a346e03a84caae3249d4e65b84",
+        "scans.jsonl": "e4bc1c95757fd7f6ae8d90c3d46b81e63543566d2218ea2b3dcbbb404f02ffe4",
+        "observations.jsonl": "4cc8b9b04bf657aaf09cd320b3163c9b2743771bfea004233d168a1856216a28",
+        "fixture.json": "1705705c11485b3b3dccabceaa94f1804b140ba798081e0fd35755f457dab218",
+        "params.yaml": "8c19af531917d1163b97972dda8fe61d4fbd7df9145d3a7637f31fb04828717b",
+        "environment.json": "264440cf2e03c283c91a9e233166870d93ee513bb26503f2e721218e42ddaddd",
+        "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+        "resources.jsonl": "3419ef8d72e790c478e71dec1f30b819b2ac0ac34ee7f388171c207145e0930d"
+      },
+      "first_stale_elapsed_s": 2.199999999999994,
+      "stale_nonzero_samples": 0
+    }
+  ],
+  "status": "PASS",
+  "repeatability": {
+    "status": "PASS",
+    "fields": [
+      "source_sha",
+      "image_id",
+      "fixture_sha256",
+      "config_sha256"
+    ]
+  },
+  "source_sha": "7a220d458fe8bce8cdd366caa4e9a546bddebd60",
+  "workflow_run_id": 40162921802,
+  "workflow_conclusion": "success",
+  "artifact_id": 12586694269,
+  "artifact_url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40162921802/artifacts/12586694269",
+  "artifact_expires_at": "2026-11-08T04:48:29Z",
+  "artifact_digest": "sha256:3c593948490bfdfb8cf46a35ccc5e45ef24edb912202d1eb07c974e1878d7427",
+  "base_digest": "ros@sha256:566b87e6dfc48392189a9c32e594e84060fa9948de93b04e536f39475a1f6963",
+  "image_id": "sha256:1ac54ef5801af2bb84e4669cbe0231fe1447ccbf8b701a29fcfb12a865d7bf78",
+  "packages_sha256": "45f626571f4fd5388d7bc174cae017e5482a4c2396254a5adfb461342076a5de",
+  "common_ci": {
+    "run_id": 40162921767,
+    "conclusion": "failure",
+    "stage": "browser E2E collection",
+    "error": "Named export GO2_JOINT_NAMES not found; observed_joints.js treated as CommonJS",
+    "python_js_static_audits": "PASS both jobs",
+    "owner": "C1"
+  },
+  "local_checks": {
+    "c3-round3-focused.log": "41aa921f76af1dbf95c4587400fd983b00bc5d406595cc8ce58ba096e846b2b5",
+    "c3-round3-full.log": "d04f19e048b94f4e0262d6bd2817966ab6d4fff26745e36757c3d4ea1372c4fe",
+    "c3-round3-js.log": "5a8035233dbb085a89637d357cb424093004f790aab368d2a4304b9e64e14819",
+    "c3-round3-historical-revalidation.json": "3e211dff90148fd322a9241b6ff85b3252840ccbb0348401cefe686efdac31e3",
+    "c3-round3-live-rejection.log": "e892a4ec9a009a2c1a233d8478e5d792da0f3210a94cc238bcaaf12403172b72"
+  }
+}

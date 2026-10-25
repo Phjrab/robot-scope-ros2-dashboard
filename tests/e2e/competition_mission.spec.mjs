@@ -2,6 +2,34 @@ import {expect, test} from '@playwright/test';
 import {writeFile} from 'node:fs/promises';
 import {installDashboardBackend} from './dashboard_backend.mjs';
 
+test('stored RGB inspector is server-owned, retains diagnostics and cannot provide motion facts', async ({page}, info) => {
+  await installDashboardBackend(page);
+  await page.route(/\/__fixture\//, route => route.continue());
+  await page.goto('/?rgb_review=1#missions');
+  const review = page.locator('[data-rgb-review]');
+  await expect(review).toHaveAttribute('data-state', 'COMPLETE');
+  await expect(review).toContainText('SYNTHETIC_RGB_REVIEW');
+  await expect(review).toContainText('detection-only');
+  await expect(review).toContainText('raw GREEN');
+  await expect(review).toContainText('출발 허가 없음');
+  await expect(review).toContainText('false GREEN 3개');
+  await expect.poll(() => review.locator('img').evaluateAll(images => images.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
+  const before = await (await page.request.get('/__fixture/rgb-review')).json();
+  expect(before.departure_authorized).toBe(false);
+  expect(Object.values(before.observation.independent_facts).every(v => v === null)).toBe(true);
+  expect((await page.request.post('/__fixture/rgb-review', {data:{input:'/etc/passwd'}})).status()).toBe(405);
+  expect((await page.request.get('/__fixture/rgb-review?input=/etc/passwd')).status()).toBe(400);
+  expect((await page.request.get('/__fixture/rgb-review', {headers:{Origin:'https://untrusted.invalid'}})).status()).toBe(403);
+  await page.reload();
+  await expect(review).toHaveAttribute('data-state', 'COMPLETE');
+  const after = await (await page.request.get('/__fixture/rgb-review')).json();
+  expect(after).toEqual(before);
+  // This fixture is generated synthetic RGB only; private runs use separate paths.
+  const path = info.outputPath('synthetic-rgb-review.png');
+  await review.screenshot({path});
+  await info.attach('synthetic RGB review', {path, contentType:'image/png'});
+});
+
 async function connect(page) {
   const backend = await installDashboardBackend(page);
   // All mission authoring/execution requests reach the real local Python API.

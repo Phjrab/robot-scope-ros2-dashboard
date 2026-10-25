@@ -6,3 +6,5 @@ generated/
 *.pgm
 *.pcd
 *.npy
+
+d0_input/

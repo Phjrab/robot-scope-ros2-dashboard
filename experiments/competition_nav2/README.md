@@ -138,3 +138,89 @@ and resource samples separately. VM/host timings are never converted to Jetson s
 
 See `docs/HANDOFF.md` for integration boundaries and the role review document at
 `docs/parallel-review/20261024/C3/REVIEW.md` in the repository root.
+
+## Round 3: preserved RPP and observed replanning
+
+`repro/image-lock.json` preserves the **executed** Humble 1.1.20/rclpy 3.3.22
+package graph and base digest from native run 40099437117, not an untested tag.
+`repro/rpp-native-params.yaml` is its actual RPP config; the new tests compare it
+against the unchanged candidate. `repro/provenance.json` retains action terminals,
+validation and evidence hashes before the remote artifact expires.
+
+The existing executor now records the native planner's `Path`, native global
+costmap messages (lossless zlib occupancy bytes), and source-pose-tagged scans.
+These are subscribers only. The plant still moves exclusively from gated native
+commands. The appearance proof reconstructs scan hits, new lethal costmap cells,
+and a changed native path avoiding the obstacle. The independent actuator replay
+continues checking swept full-footprint contact, freshness, HOLD and final ZERO.
+
+The new cases preserve start `[2,3,0]`, goal `[6,3,0]`, 65 s budget, body, sensor
+and parking/terrain policy of the separate diagnostic room. The appearing case
+changes only appearance to 3 s. The two-obstacle case adds `[5.0,2.7]–[5.3,3.3]`
+to the original `[3.7,2.7]–[4.3,3.3]` obstacle. Offline witness paths only prove
+feasibility and are never supplied to Nav2 or the plant. These are not competition
+geometry or physical feet/gait clearance claims. Original strict cases and
+historical MPPI failures remain available and unchanged.
+
+C1 can inspect the ROS-free machine-readable contract or invoke the existing
+isolated executor. The CLI has no live mode or production consumer:
+
+```sh
+python3 experiments/competition_nav2/rpp_contract.py manifest
+cp experiments/competition_nav2/repro/image-lock.json /tmp/c3-lock.json
+python3 experiments/competition_nav2/container/manage.py build --lock /tmp/c3-lock.json
+python3 experiments/competition_nav2/rpp_contract.py run --mode isolated-sim \
+  --scenario diagnostic_single_obstacle --lock /tmp/c3-lock.json --output /tmp/c3-new-run
+python3 experiments/competition_nav2/run_extension.py --lock /tmp/c3-lock.json \
+  --output /tmp/c3-new-extension
+```
+
+The build rejects transitive package drift. Hosted runners need to reconstruct
+the image because prior local image IDs do not survive a job; this reuses the
+existing build harness and exact lock. Execution always uses network-none.
+`run_extension.py` schedules three identical RPP baselines, appearing and two
+obstacles, then blocked/dropout (seven runs). It retains evidence/safety and
+expected-outcome gates separately; no MPPI success condition is imposed on RPP.
+Results and exact tested source are recorded in `docs/parallel-review/20261024/C3/ROUND3.md`.
+
+### Pinned D0 shared-input adapter
+
+D0 submitted its common inputs while ROUND3 was running. The opt-in `--fixture`
+path now reuses the same native executor with D0's original body and sensor. First
+materialize only the pinned small inputs and unchanged sensor dependencies:
+
+```sh
+git fetch --no-tags --depth=1 origin 83f4ee8d6971d00ab31b2de0eeebf329542dd5d6
+python3 experiments/competition_nav2/prepare_d0.py
+python3 experiments/competition_nav2/rpp_contract.py run --mode isolated-sim \
+  --fixture experiments/competition_nav2/d0_input/experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/empty.truth.json \
+  --lock /tmp/c3-lock.json --output /tmp/c3-d0-empty
+python3 experiments/competition_nav2/run_d0.py --lock /tmp/c3-lock.json \
+  --output /tmp/c3-d0-suite
+```
+
+`repro/d0-source.json` pins all 24 file hashes and the canonical manifest. The
+ignored `d0_input/` tree is reconstructed from those Git objects; no foreign role
+files are edited or copied into the C3 implementation. Witness files and D0
+controllers are never executed. Only D0's original `observe(scene, pose, stamp)`
+is called in its own process, isolating its module globals and `core` import from
+C3. All 360 ranges at the three fixed-pose conformance probes are checked before
+ROS launch. Actual runs sample current plant poses, never replay those probes.
+
+The 0.81 x 0.56 m raw body is axis-padded by 0.03 m once to 0.87 x 0.62 m for both
+native costmaps (padding=0) and independent sweep. Corner sweep spacing uses the
+larger body's radius. Collision evaluation uses exact cone bases, declared route
+boundary and forbidden polygons; native prior uses conservative 20 mm cells and
+contains no hidden cones. Original C3 40 mm/standing-mesh fixtures are unchanged.
+D0 design coordinates are an explicit identity **simulation** mapping to map;
+real registration remains unavailable. The four-height triangle sensor uses its
+0.2 s acquisition schedule, 0.25 s freshness, source epoch/pose/stamp and dropout.
+A sensor response deadline prevents an unbounded read from blocking the plant.
+
+The new suite runs one existing C3 baseline regression, then D0 empty, feasible1,
+feasible2, original_tight5, blocked and dropout. The geometric witness is holonomic;
+RPP remains DiffDrive/vy=0. A native SAFE_WAIT in a witness case is retained as a
+failure to reach, not geometric impossibility or a setup failure. The native
+workflow retains a nonzero exit for missed goal expectations. The earlier same-
+source three-repeat and appearance/two-obstacle proof stays pinned to its actual
+source/run instead of being silently reassigned to this adapter's source.

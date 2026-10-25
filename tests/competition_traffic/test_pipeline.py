@@ -255,7 +255,7 @@ class PipelineTests(unittest.TestCase):
         obs = self.pipeline.process(f, now_s=0.)
         with tempfile.TemporaryDirectory() as tmp:
             assets = save_images(tmp, f, obs)
-            self.assertEqual(set(assets), {"decoded_original_bgr", "native_roi_crop", "processed_color_mask"})
+            self.assertEqual(set(assets), {"decoded_original_bgr", "native_roi_crop", "processed_color_mask", "detection_only_overlay"})
             self.assertNotEqual(obs.signal["native_image"], obs.signal["processed_image"])
             self.assertNotEqual(assets["decoded_original_bgr"]["sha256"], assets["processed_color_mask"]["sha256"])
 

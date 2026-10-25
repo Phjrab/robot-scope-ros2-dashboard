@@ -16,6 +16,7 @@ import unittest
 
 C1_SHA = "765622ecbe20dd29b40296dd2ad24fa508ac9443"
 C4_SHA = "380800ca9e211495769fe60ee8221e3f4fb40f16"
+C4_PROFILE_SHA = "9e9ebcc0cbc613d5b0a7f50a27a7b256c3f829bd"
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -38,14 +39,14 @@ def module(name, path):
 
 
 @contextmanager
-def pinned_dependencies():
+def pinned_dependencies(*, c4_sha=C4_SHA, c4_modules=()):
     saved = set(sys.modules)
     native = "robot_dashboard.mission_routes.competition_native"
     previous_ingress = sys.modules.get(native + ".ingress")
     with tempfile.TemporaryDirectory(prefix="c2-round3-readonly-") as directory:
         root = Path(directory)
-        for name in ("config", "projection", "pipeline", "frames"):
-            (root / f"{name}.py").write_bytes(blob(C4_SHA, f"robot_dashboard/competition_traffic/{name}.py"))
+        for name in ("config", "projection", "pipeline", "frames", *c4_modules):
+            (root / f"{name}.py").write_bytes(blob(c4_sha, f"robot_dashboard/competition_traffic/{name}.py"))
         for name, path in {
             "c1_coordinator": "robot_dashboard/application/mission_coordinator.py",
             "c1_session": "robot_dashboard/mission_routes/competition_native/session.py",

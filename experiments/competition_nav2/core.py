@@ -63,11 +63,11 @@ def propagate(pose, v, w, dt):
     )
 
 
-def swept_poses(pose, v, w, dt):
+def swept_poses(pose, v, w, dt, radius=RADIUS):
     """<=5 mm footprint-corner displacement and <=0.01 rad per sample."""
     n = max(
         1,
-        math.ceil((abs(v) + RADIUS * abs(w)) * dt / 0.005),
+        math.ceil((abs(v) + radius * abs(w)) * dt / 0.005),
         math.ceil(abs(w) * dt / 0.01),
     )
     return [propagate(pose, v, w, dt * i / n) for i in range(n + 1)]
@@ -91,7 +91,10 @@ class Boundary:
     This is an experimental gate, not a second production arbiter.
     """
 
-    def __init__(self):
+    def __init__(self, sensor_ttl=LIMITS["sensor_ttl"]):
+        if not 0 < sensor_ttl <= LIMITS["sensor_ttl"]:
+            raise ValueError("sensor TTL may only become stricter")
+        self.sensor_ttl = sensor_ttl
         self.epoch = 0
         self.hold = True
         self.fault = None
@@ -124,7 +127,7 @@ class Boundary:
     def sensor(self, received, source_age):
         if (
             not all(math.isfinite(x) for x in (received, source_age))
-            or not 0 <= source_age <= LIMITS["sensor_ttl"]
+            or not 0 <= source_age <= self.sensor_ttl
         ):
             self.stop("SENSOR_SOURCE_STALE_OR_INVALID")
             return False
@@ -164,7 +167,7 @@ class Boundary:
         if not reason and (
             self.scan_received is None
             or now < self.scan_received
-            or now - self.scan_received + self.scan_source > LIMITS["sensor_ttl"]
+            or now - self.scan_received + self.scan_source > self.sensor_ttl
         ):
             self.stop("SENSOR_STALE")
             reason = self.fault

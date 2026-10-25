@@ -34,9 +34,11 @@ class SignalDemo:
                 raise ValueError('EXISTING_OFFLINE_RUN_ACTIVE')
             if self.harness:
                 await self.harness.asyncTearDown()
-            self.harness = SoftwareHarness()
-            self.harness.source_clock = "synchronized_ros"  # verified virtual clock; still SYNTHETIC
-            await self.harness.asyncSetUp()
+            harness = SoftwareHarness()
+            harness.source_clock = "synchronized_ros"  # verified virtual clock; still SYNTHETIC
+            await harness.asyncSetUp()
+            # A concurrent read must never see a partially initialized session.
+            self.harness = harness
             self.scenario, self.trace, self.error = scenario, [], None
             self.requests[request_id] = scenario
             self.release_plan = asyncio.Event()
