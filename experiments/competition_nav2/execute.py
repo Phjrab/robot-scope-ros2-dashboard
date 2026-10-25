@@ -14,7 +14,7 @@ import yaml
 from configure import candidate, validate_config
 from fixtures import (
     ROOT,
-    World,
+    make_world,
     cases,
     diagnostic_cases,
     extension_cases,
@@ -65,25 +65,35 @@ def execute(args):
     isolation = require_isolated()
     out = args.output.resolve()
     out.mkdir(parents=True, exist_ok=False)
-    fixture = next(
-        f
-        for f in cases(args.seed)
-        + diagnostic_cases(args.seed)
-        + extension_cases(args.seed)
-        if f["scenario"] == args.scenario
-    )
+    if args.fixture:
+        from d0_adapter import load_fixture, sensor_conformance
+
+        fixture = load_fixture(args.fixture)
+        (out / "d0_conformance.json").write_text(
+            json.dumps(sensor_conformance(fixture), indent=2) + "\n"
+        )
+    else:
+        fixture = next(
+            f
+            for f in cases(args.seed)
+            + diagnostic_cases(args.seed)
+            + extension_cases(args.seed)
+            if f["scenario"] == args.scenario
+        )
     if fixture.get("reference_waypoints"):
         feasibility = reference_feasibility(fixture)
         (out / "reference_feasibility.json").write_text(
             json.dumps(feasibility, indent=2) + "\n"
         )
         assert feasibility["status"] == "PASS"
-    world = World(fixture)
+    world = make_world(fixture)
     fixture["map_sha256"] = world.write_map(out)
     fixture["fixture_sha256"] = digest(fixture)
     (out / "fixture.json").write_text(json.dumps(fixture, indent=2) + "\n")
-    cfg = candidate(args.controller, args.variant)
-    assert not validate_config(cfg, args.controller)
+    cfg = candidate(args.controller, args.variant, fixture)
+    assert not validate_config(
+        cfg, args.controller, fixture.get("effective_footprint", fixture["footprint"])
+    )
     cfg["map_server"]["ros__parameters"]["yaml_filename"] = str(out / "map.yaml")
     cfg["bt_navigator"]["ros__parameters"]["default_nav_to_pose_bt_xml"] = str(
         ROOT / "config/replan.xml"
@@ -245,6 +255,8 @@ def execute(args):
         "cleanup.json",
         "resources.jsonl",
     ]
+    if fixture.get("d0_bundle"):
+        names.append("d0_conformance.json")
     result["artifact_hashes"] = {
         name: sha(out / name) for name in names if (out / name).exists()
     }
@@ -259,12 +271,13 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--controller", choices=["rpp", "mppi"], required=True)
     p.add_argument("--variant", choices=["baseline", "tuned"], default="baseline")
-    p.add_argument(
+    selection = p.add_mutually_exclusive_group(required=True)
+    selection.add_argument("--fixture", type=Path)
+    selection.add_argument(
         "--scenario",
         choices=[
             f["scenario"] for f in cases() + diagnostic_cases() + extension_cases()
         ],
-        required=True,
     )
     p.add_argument("--seed", type=int, default=20261024)
     p.add_argument("--repeat", type=int, default=0)

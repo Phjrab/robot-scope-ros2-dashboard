@@ -91,12 +91,34 @@
     "run": "python3 experiments/competition_nav2/rpp_contract.py run --mode isolated-sim --scenario diagnostic_single_obstacle --lock IMAGE_LOCK --output NEW_DIRECTORY"
   },
   "files_sha256": {
-    "configure.py": "e659b5d12908a766420e34a4638640cb64bffe8c8c72f4a45d2487fccf88b439",
-    "core.py": "afc2b772cdd905834d50bd0a64e4507d4c35ae8c55b539ea6133ce9b92e3fefc",
-    "fixtures.py": "d2f0b3fb063abe1d16ba2ccad5dac39c7f67e72ccbaaa9ebb6ae4643e5b1c099",
+    "configure.py": "b686135c0497b03155cc9da4ca92ff2d1f88711c1f79a52c1fe0b7e910a89318",
+    "core.py": "75f3c997c3ea7325d6dace4b9a4aa57800e02836eb35b5cc8d152cafd99b8d81",
+    "fixtures.py": "bdc6a9c0cfa844c3f1978da7904cf1cd14aa34f98125f02778b809d31a3c5560",
     "config/replan.xml": "45aa6b81b500d9d28a791f558543597f2cd151342dee0bb7ab8bc7d829a10efa",
     "config/replan_through_poses.xml": "23a9eaeed1767cec9b245939027a6baf7dd9b5dfcf26e4fc931e8bded86da639",
     "repro/rpp-native-params.yaml": "8c19af531917d1163b97972dda8fe61d4fbd7df9145d3a7637f31fb04828717b",
-    "repro/image-lock.json": "631e8525fcd52b0b50850aac93b811fed682e311fa8d76cd144b25553a336d7e"
+    "repro/image-lock.json": "631e8525fcd52b0b50850aac93b811fed682e311fa8d76cd144b25553a336d7e",
+    "repro/d0-source.json": "3f7ec39505daa13a8c73ab56427d3164766d0b082fecbc04c03ca3eddb0ea93d"
+  },
+  "external_fixture": {
+    "schema": "d0-scene-truth.v1",
+    "source_pin": "repro/d0-source.json",
+    "option": "--fixture prepared/path/SCENARIO.truth.json",
+    "pose_source": "SIM_GT",
+    "default_builtin_config_unchanged": true,
+    "raw_body_m": [
+      0.81,
+      0.56
+    ],
+    "effective_padded_body_m": [
+      0.87,
+      0.62
+    ],
+    "margin_m": 0.03,
+    "padding_applied": "Once in effective footprint; native padding=0",
+    "sensor_source": "Process-isolated original D0 export_fixtures.observe",
+    "sensor_period_s": 0.2,
+    "sensor_ttl_s": 0.25,
+    "grid_resolution_m": 0.02
   }
 }

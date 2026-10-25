@@ -182,3 +182,45 @@ existing build harness and exact lock. Execution always uses network-none.
 obstacles, then blocked/dropout (seven runs). It retains evidence/safety and
 expected-outcome gates separately; no MPPI success condition is imposed on RPP.
 Results and exact tested source are recorded in `docs/parallel-review/20261024/C3/ROUND3.md`.
+
+### Pinned D0 shared-input adapter
+
+D0 submitted its common inputs while ROUND3 was running. The opt-in `--fixture`
+path now reuses the same native executor with D0's original body and sensor. First
+materialize only the pinned small inputs and unchanged sensor dependencies:
+
+```sh
+git fetch --no-tags --depth=1 origin 83f4ee8d6971d00ab31b2de0eeebf329542dd5d6
+python3 experiments/competition_nav2/prepare_d0.py
+python3 experiments/competition_nav2/rpp_contract.py run --mode isolated-sim \
+  --fixture experiments/competition_nav2/d0_input/experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/empty.truth.json \
+  --lock /tmp/c3-lock.json --output /tmp/c3-d0-empty
+python3 experiments/competition_nav2/run_d0.py --lock /tmp/c3-lock.json \
+  --output /tmp/c3-d0-suite
+```
+
+`repro/d0-source.json` pins all 24 file hashes and the canonical manifest. The
+ignored `d0_input/` tree is reconstructed from those Git objects; no foreign role
+files are edited or copied into the C3 implementation. Witness files and D0
+controllers are never executed. Only D0's original `observe(scene, pose, stamp)`
+is called in its own process, isolating its module globals and `core` import from
+C3. All 360 ranges at the three fixed-pose conformance probes are checked before
+ROS launch. Actual runs sample current plant poses, never replay those probes.
+
+The 0.81 x 0.56 m raw body is axis-padded by 0.03 m once to 0.87 x 0.62 m for both
+native costmaps (padding=0) and independent sweep. Corner sweep spacing uses the
+larger body's radius. Collision evaluation uses exact cone bases, declared route
+boundary and forbidden polygons; native prior uses conservative 20 mm cells and
+contains no hidden cones. Original C3 40 mm/standing-mesh fixtures are unchanged.
+D0 design coordinates are an explicit identity **simulation** mapping to map;
+real registration remains unavailable. The four-height triangle sensor uses its
+0.2 s acquisition schedule, 0.25 s freshness, source epoch/pose/stamp and dropout.
+A sensor response deadline prevents an unbounded read from blocking the plant.
+
+The new suite runs one existing C3 baseline regression, then D0 empty, feasible1,
+feasible2, original_tight5, blocked and dropout. The geometric witness is holonomic;
+RPP remains DiffDrive/vy=0. A native SAFE_WAIT in a witness case is retained as a
+failure to reach, not geometric impossibility or a setup failure. The native
+workflow retains a nonzero exit for missed goal expectations. The earlier same-
+source three-repeat and appearance/two-obstacle proof stays pinned to its actual
+source/run instead of being silently reassigned to this adapter's source.

@@ -161,7 +161,17 @@ def reference_feasibility(fixture):
     )
 
 
+def make_world(fixture):
+    if fixture.get("world_kind") == "d0_shared":
+        from d0_adapter import D0World
+
+        return D0World(fixture)
+    return World(fixture)
+
+
 class World:
+    radius = RADIUS
+
     def __init__(self, fixture):
         self.fixture = fixture
         self.res = RESOLUTION
@@ -293,7 +303,7 @@ class World:
             f"P5\n{self.width} {self.height}\n255\n".encode() + image.tobytes()
         )
         (directory / "map.yaml").write_text(
-            "image: map.pgm\nmode: trinary\nresolution: 0.04\norigin: [0.0, 0.0, 0.0]\nnegate: 0\noccupied_thresh: 0.65\nfree_thresh: 0.196\n"
+            f"image: map.pgm\nmode: trinary\nresolution: {self.res}\norigin: [0.0, 0.0, 0.0]\nnegate: 0\noccupied_thresh: 0.65\nfree_thresh: 0.196\n"
         )
         return hashlib.sha256((directory / "map.pgm").read_bytes()).hexdigest()
 

@@ -23,7 +23,7 @@ NODES = [
 NAMESPACE = "c3_nav2"
 
 
-def candidate(controller, variant="baseline"):
+def candidate(controller, variant="baseline", fixture=None):
     cfg = yaml.safe_load(
         (
             REPO
@@ -131,10 +131,18 @@ def candidate(controller, variant="baseline"):
     cfg["lifecycle_manager_navigation"]["ros__parameters"].update(
         autostart=False, node_names=NODES
     )
+    if fixture and fixture.get("world_kind") == "d0_shared":
+        for name in ("global_costmap", "local_costmap"):
+            cm = cfg[name][name]["ros__parameters"]
+            cm["footprint"] = json.dumps(fixture["effective_footprint"])
+            cm["resolution"] = fixture["resolution_m"]
+            cm["obstacle_layer"]["scan"]["expected_update_rate"] = fixture[
+                "sensor_ttl_s"
+            ]
     return cfg
 
 
-def validate_config(cfg, controller):
+def validate_config(cfg, controller, footprint=FOOTPRINT):
     errors = []
     cp = cfg["controller_server"]["ros__parameters"]
     follow = cp["FollowPath"]
@@ -147,7 +155,7 @@ def validate_config(cfg, controller):
         errors.append("Humble MPPI model_dt must equal controller period")
     for name in ("global_costmap", "local_costmap"):
         cm = cfg[name][name]["ros__parameters"]
-        if json.loads(cm["footprint"]) != [list(p) for p in FOOTPRINT]:
+        if json.loads(cm["footprint"]) != [list(p) for p in footprint]:
             errors.append("footprint mismatch")
         if not cm["track_unknown_space"] or "static_layer" not in cm["plugins"]:
             errors.append("unknown/static policy violated")

@@ -15,7 +15,7 @@ import xml.etree.ElementTree as ET
 
 from configure import NODES, PLUGINS
 from core import Boundary, Command, LIMITS, propagate, swept_poses
-from fixtures import World, digest
+from fixtures import make_world, digest
 from preflight import require_isolated
 from humble_executor import metadata_executor_type
 from observations import grid_payload
@@ -79,8 +79,10 @@ def main(directory):
     class Plant(Node):
         def __init__(self):
             super().__init__("bench_plant", namespace="c3_nav2")
-            self.world = World(fixture)
-            self.boundary = Boundary()
+            self.world = make_world(fixture)
+            if hasattr(self.world, "start_sensor"):
+                self.world.start_sensor()
+            self.boundary = Boundary(fixture.get("sensor_ttl_s", LIMITS["sensor_ttl"]))
             self.pose = tuple(fixture["start"])
             self.sim_t = 0.0
             self.goal_start = None
@@ -305,7 +307,7 @@ def main(directory):
             )
             # Integrate actual previous simulated actuator command, never desired/raw input.
             v, w = self.previous_output
-            samples = swept_poses(before, v, w, dt)
+            samples = swept_poses(before, v, w, dt, radius=self.world.radius)
             if any(self.world.collision(p, scene_time) for p in samples):
                 self.collision_count += 1
                 self.boundary.stop("FOOTPRINT_CONTACT")
@@ -341,6 +343,15 @@ def main(directory):
             identity.header.frame_id, identity.child_frame_id = "map", "odom"
             identity.transform.rotation.w = 1.0
             self.static_pub.publish(TFMessage(transforms=[identity]))
+            if fixture.get("sensor_frame"):
+                sensor_tf = TransformStamped()
+                sensor_tf.header.stamp = clock.clock
+                sensor_tf.header.frame_id, sensor_tf.child_frame_id = (
+                    "base_link",
+                    fixture["sensor_frame"],
+                )
+                sensor_tf.transform.rotation.w = 1.0
+                self.static_pub.publish(TFMessage(transforms=[identity, sensor_tf]))
             transform = TransformStamped()
             transform.header.stamp = clock.clock
             transform.header.frame_id, transform.child_frame_id = "odom", "base_link"
@@ -357,13 +368,19 @@ def main(directory):
             odom.pose.pose.orientation = transform.transform.rotation
             odom.twist.twist.linear.x, odom.twist.twist.angular.z = v, w
             self.odom_pub.publish(odom)
-            if self.sim_t >= self.next_scan:
+            if (
+                self.sim_t + (1e-9 if fixture.get("d0_bundle") else 0.0)
+                >= self.next_scan
+            ):
                 self.next_scan = self.sim_t + fixture["sensor_period_s"]
                 if self.goal_start is None or elapsed < fixture.get(
                     "sensor_dropout_s", math.inf
                 ):
                     msg = LaserScan()
-                    msg.header.frame_id, msg.header.stamp = "base_link", clock.clock
+                    msg.header.frame_id, msg.header.stamp = (
+                        fixture.get("sensor_frame", "base_link"),
+                        clock.clock,
+                    )
                     msg.angle_min = -math.pi
                     msg.angle_increment = 2 * math.pi / fixture["scan_beams"]
                     msg.angle_max = math.pi - msg.angle_increment
@@ -377,12 +394,22 @@ def main(directory):
                             msg,
                             list(self.pose),
                             elapsed,
+                            getattr(self.world, "last_observation", None),
                         )
                     )
+            if fixture.get("d0_bundle"):
+                now = (
+                    time.monotonic()
+                )  # Include synchronous sensor computation in source/receipt age.
             while self.pending_scans and self.pending_scans[0][0] <= now:
-                _, source_mono, scan, source_pose, source_elapsed = (
-                    self.pending_scans.pop(0)
-                )
+                (
+                    _,
+                    source_mono,
+                    scan,
+                    source_pose,
+                    source_elapsed,
+                    sensor_observation,
+                ) = self.pending_scans.pop(0)
                 self.scan_pub.publish(scan)
                 self.boundary.sensor(now, now - source_mono)
                 self.scans.write(
@@ -397,6 +424,7 @@ def main(directory):
                             source_pose=source_pose,
                             source_elapsed_s=source_elapsed,
                             ranges=list(scan.ranges),
+                            sensor_observation=sensor_observation,
                         )
                     )
                     + "\n"
@@ -900,6 +928,8 @@ def main(directory):
         (directory / "result.json").write_text(
             json.dumps(report, indent=2, allow_nan=False) + "\n"
         )
+        if hasattr(node.world, "close"):
+            node.world.close()
         node.destroy_node()
         executor.shutdown()
         rclpy.shutdown()

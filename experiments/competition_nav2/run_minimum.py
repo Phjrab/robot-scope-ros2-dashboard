@@ -10,7 +10,9 @@ ROOT = Path(__file__).resolve().parent
 SCENARIOS = ("empty", "diagnostic_single_obstacle", "fully_blocked", "sensor_stale")
 
 
-def execute(lock, output, order=None, summary_name="minimum-summary.json"):
+def execute(
+    lock, output, order=None, summary_name="minimum-summary.json", fixtures=None
+):
     extension = order is not None
     if order is None:
         order = [("rpp", "empty", 0)] + [
@@ -41,8 +43,11 @@ def execute(lock, output, order=None, summary_name="minimum-summary.json"):
                 str(lock),
                 "--controller",
                 controller,
-                "--scenario",
-                scenario,
+                *(
+                    ["--fixture", str(fixtures[scenario])]
+                    if fixtures and scenario in fixtures
+                    else ["--scenario", scenario]
+                ),
                 "--variant",
                 "baseline",
                 "--seed",
@@ -64,7 +69,8 @@ def execute(lock, output, order=None, summary_name="minimum-summary.json"):
         ]
         expected = (
             "SAFE_WAIT"
-            if scenario in ("fully_blocked", "sensor_stale")
+            if scenario
+            in ("fully_blocked", "sensor_stale", "d0_blocked", "d0_sensor_dropout")
             else "GOAL_REACHED"
         )
         row = dict(
@@ -86,6 +92,8 @@ def execute(lock, output, order=None, summary_name="minimum-summary.json"):
             loaded_library_sha256=result.get("loaded_library_sha256"),
             raw_command_counts=result.get("raw_command_counts"),
             map_sha256=read("fixture.json").get("map_sha256"),
+            d0_scene_sha256=read("fixture.json").get("d0_scene_sha256"),
+            d0_source_commit=read("fixture.json").get("d0_source_commit"),
             fixture_sha256=result.get("fixture_sha256"),
             config_sha256=result.get("config_sha256"),
             source_sha=environment.get("source_sha"),
@@ -128,7 +136,7 @@ def execute(lock, output, order=None, summary_name="minimum-summary.json"):
             if all(r["expectation_met"] for r in summary["cases"])
             else "COMPLETED_WITH_FAILURES"
         )
-    if extension:
+    if extension and all(s == "diagnostic_single_obstacle" for _, s, _ in order[:3]):
         repeats = summary["cases"][:3]
         summary["repeatability"] = dict(
             status="PASS"

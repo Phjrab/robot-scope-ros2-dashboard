@@ -22,7 +22,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("operation", choices=["manifest", "run"])
     parser.add_argument("--mode", choices=["isolated-sim"])
-    parser.add_argument("--scenario", default="diagnostic_single_obstacle")
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument("--scenario")
+    selection.add_argument("--fixture", type=Path)
     parser.add_argument("--lock", type=Path)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
@@ -34,7 +36,10 @@ def main():
         parser.error(
             "run requires --mode isolated-sim, --lock and --output; no live mode exists"
         )
-    if args.scenario not in contract["scenarios"]:
+    if (
+        not args.fixture
+        and (args.scenario or "diagnostic_single_obstacle") not in contract["scenarios"]
+    ):
         parser.error("scenario outside reviewed contract")
     return subprocess.run(
         [
@@ -45,8 +50,11 @@ def main():
             "rpp",
             "--variant",
             "baseline",
-            "--scenario",
-            args.scenario,
+            *(
+                ["--fixture", str(args.fixture)]
+                if args.fixture
+                else ["--scenario", args.scenario or "diagnostic_single_obstacle"]
+            ),
             "--lock",
             str(args.lock),
             "--output",
