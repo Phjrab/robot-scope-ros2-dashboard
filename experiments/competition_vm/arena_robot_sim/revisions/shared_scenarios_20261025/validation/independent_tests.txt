@@ -1,0 +1,10 @@
+test_collinear_contact (__main__.AuditControls.test_collinear_contact) ... ok
+test_crossing_without_contained_vertices (__main__.AuditControls.test_crossing_without_contained_vertices) ... ok
+test_distinct_feasible_inputs_and_scene_links (__main__.AuditControls.test_distinct_feasible_inputs_and_scene_links) ... ok
+test_mutated_witness_rejected (__main__.AuditControls.test_mutated_witness_rejected) ... ok
+test_nested_obstacle_containment (__main__.AuditControls.test_nested_obstacle_containment) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.634s
+
+OK

@@ -1,0 +1,41 @@
+{
+  "scope": "Fresh ROUND3 local required aggregate checks; not native/robot execution",
+  "checks": [
+    {
+      "name": "full_python",
+      "sha256": "b1d2a70826fb94d2b2067c67ed6e221486264c695349c5c9c5906bcb1bfee9e1",
+      "summary": "===\nFAIL: test_vm_manifest_uses_published_hashes_without_registration_or_native_promotion (test_competition_mission.CompetitionContractTests.test_vm_manifest_uses_published_hashes_without_registration_or_native_promotion)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/workspace/scratch/b09eacf6919d/robot-scope-collision-20261025/tests/test_competition_mission.py\", line 97, in test_vm_manifest_uses_published_hashes_without_registration_or_native_promotion\n    self.assertEqual(vm_evidence()['traffic_signals']['scope'], 'SYNTHETIC_ONLY')\nAssertionError: 'UNAVAILABLE_OR_CHANGED' != 'SYNTHETIC_ONLY'\n- UNAVAILABLE_OR_CHANGED\n+ SYNTHETIC_ONLY\n\n\n----------------------------------------------------------------------\nRan 2691 tests in 85.339s\n\nFAILED (failures=1, errors=25, skipped=1)\n{\"status\": \"BLOCKED\", \"output\": \"/tmp/tmpg4nm15ac/blocked.json\"}\n{\"status\": \"COMPUTED_DECLARED_INPUTS\", \"output\": \"/tmp/tmpli5b89c0/result.json\"}\n"
+    },
+    {
+      "name": "full_javascript",
+      "sha256": "eab16c775675f5f786fc46285df95ee140908c8269c9a0c51c3094fe0e285be3",
+      "summary": "(0.51863ms)\n(node:3544) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///workspace/scratch/b09eacf6919d/robot-scope-collision-20261025/robot_dashboard/static/features/cockpit/status_labels.js is not specified and it doesn't parse as CommonJS.\nReparsing as ES module because module syntax was detected. This incurs a performance overhead.\nTo eliminate this warning, add \"type\": \"module\" to /workspace/scratch/b09eacf6919d/robot-scope-collision-20261025/package.json.\n(Use `node --trace-warnings ...` to show where the warning was created)\n\u2714 waiting, disconnected, stale and unknown remain distinct in Korean (0.712461ms)\n\u2714 unknown state and blocker codes stay verbatim instead of acquiring an invented cause (0.251007ms)\n\u2714 synthetic and replay labels never describe live data (0.13287ms)\n\u2714 navigation blockers identify only their reported condition and a relevant check (0.174873ms)\n\u2139 tests 660\n\u2139 suites 0\n\u2139 pass 660\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 1739.431044\n"
+    }
+  ],
+  "python": {
+    "ran": 2691,
+    "failures": 1,
+    "errors": 25,
+    "skipped": 1,
+    "known_failure": "test_vm_manifest_uses_published_hashes_without_registration_or_native_promotion: original frozen publication hash mismatch; C1 revision integration owns resolution",
+    "environment_errors": "25 PermissionError at AF_UNIX socket.bind in restricted VM; no broker tests skipped to claim success"
+  },
+  "javascript": {
+    "tests": 660,
+    "passed": 660,
+    "failed": 0
+  },
+  "syntax": {
+    "modules": 104,
+    "status": "PASS"
+  },
+  "focused": {
+    "exporter": 15,
+    "feasibility": 7,
+    "independent_controls": 5,
+    "saved_witnesses": 6
+  },
+  "secret_scan": "PASS repeated on staged source before commit",
+  "status": "FOCUSED_PASS_AGGREGATE_NOT_GREEN",
+  "ci": "Exact final hosted CI result is in submission reply; no recursive final-SHA report commits"
+}

@@ -1,0 +1,330 @@
+{
+  "scope": "OFFLINE_GEOMETRIC_FEASIBILITY_ONLY_NOT_NATIVE_NAV2",
+  "search_note": "Lattice candidate edges require independent continuous certification; search timeout is checked between expansions, not hard process preemption. No witness is not a continuous impossibility proof.",
+  "results": {
+    "empty": {
+      "status": "CERTIFIED_FEASIBLE_WITNESS",
+      "expanded_states": 165,
+      "valid_states": 23148,
+      "lattice_states": 405216,
+      "elapsed_s": 3.9914314729999205,
+      "position_resolution_m": [
+        0.025,
+        0.025
+      ],
+      "yaw_bins": 36,
+      "yaw_resolution_degrees": 10.0,
+      "yaw_extent_radians": [
+        0,
+        6.283185307179586
+      ],
+      "xy_extent_m": [
+        [
+          0.0,
+          1.375
+        ],
+        [
+          0.5,
+          5.5
+        ]
+      ],
+      "time_limit_s": 90.0,
+      "start_valid": true,
+      "goal_valid": true,
+      "input_sha256": "bc8a9e3a728d6ce96d078a2d9e2ab167f90e17e5172069e28d79e72c4e262bdd",
+      "independent_sweep": {
+        "certified": true,
+        "minimum_continuous_clearance_lower_bound_m": 0.05350000000000028,
+        "samples": 4322,
+        "max_vertex_motion_per_sample_m": 0.001,
+        "method": "independent segment distance + containment; translation plus corner-radius*yaw Lipschitz bound"
+      },
+      "witness": "witnesses/empty.json"
+    },
+    "feasible1": {
+      "status": "CERTIFIED_FEASIBLE_WITNESS",
+      "expanded_states": 1372,
+      "valid_states": 19026,
+      "lattice_states": 405216,
+      "elapsed_s": 5.681911550000223,
+      "position_resolution_m": [
+        0.025,
+        0.025
+      ],
+      "yaw_bins": 36,
+      "yaw_resolution_degrees": 10.0,
+      "yaw_extent_radians": [
+        0,
+        6.283185307179586
+      ],
+      "xy_extent_m": [
+        [
+          0.0,
+          1.375
+        ],
+        [
+          0.5,
+          5.5
+        ]
+      ],
+      "time_limit_s": 90.0,
+      "start_valid": true,
+      "goal_valid": true,
+      "input_sha256": "339a754ab4dd636092aa9b3aceb777ea43684c47519f661576e161f822a0affc",
+      "independent_sweep": {
+        "certified": true,
+        "minimum_continuous_clearance_lower_bound_m": 0.03449999999999992,
+        "samples": 4590,
+        "max_vertex_motion_per_sample_m": 0.001,
+        "method": "independent segment distance + containment; translation plus corner-radius*yaw Lipschitz bound"
+      },
+      "witness": "witnesses/feasible1.json"
+    },
+    "feasible2": {
+      "status": "CERTIFIED_FEASIBLE_WITNESS",
+      "expanded_states": 1018,
+      "valid_states": 14662,
+      "lattice_states": 405216,
+      "elapsed_s": 5.616777956000078,
+      "position_resolution_m": [
+        0.025,
+        0.025
+      ],
+      "yaw_bins": 36,
+      "yaw_resolution_degrees": 10.0,
+      "yaw_extent_radians": [
+        0,
+        6.283185307179586
+      ],
+      "xy_extent_m": [
+        [
+          0.0,
+          1.375
+        ],
+        [
+          0.5,
+          5.5
+        ]
+      ],
+      "time_limit_s": 90.0,
+      "start_valid": true,
+      "goal_valid": true,
+      "input_sha256": "4c39f22b058538de7b6626d024d353bb6327892fdb03c74ffb339b1d274dacc7",
+      "independent_sweep": {
+        "certified": true,
+        "minimum_continuous_clearance_lower_bound_m": 0.03449999999999992,
+        "samples": 4590,
+        "max_vertex_motion_per_sample_m": 0.001,
+        "method": "independent segment distance + containment; translation plus corner-radius*yaw Lipschitz bound"
+      },
+      "witness": "witnesses/feasible2.json"
+    },
+    "original_tight5": {
+      "status": "CERTIFIED_FEASIBLE_WITNESS",
+      "expanded_states": 984,
+      "valid_states": 5450,
+      "lattice_states": 405216,
+      "elapsed_s": 5.743262184000287,
+      "position_resolution_m": [
+        0.025,
+        0.025
+      ],
+      "yaw_bins": 36,
+      "yaw_resolution_degrees": 10.0,
+      "yaw_extent_radians": [
+        0,
+        6.283185307179586
+      ],
+      "xy_extent_m": [
+        [
+          0.0,
+          1.375
+        ],
+        [
+          0.5,
+          5.5
+        ]
+      ],
+      "time_limit_s": 90.0,
+      "start_valid": true,
+      "goal_valid": true,
+      "input_sha256": "4485bc958ed0894f4a8a33767cf6fbe55ae4c3f42382b010f0ff7cd18bbab605",
+      "independent_sweep": {
+        "certified": true,
+        "minimum_continuous_clearance_lower_bound_m": 0.03449999999999992,
+        "samples": 5124,
+        "max_vertex_motion_per_sample_m": 0.001,
+        "method": "independent segment distance + containment; translation plus corner-radius*yaw Lipschitz bound"
+      },
+      "witness": "witnesses/original_tight5.json"
+    },
+    "blocked": {
+      "status": "NO_WITNESS_WITHIN_BOUNDS",
+      "expanded_states": 0,
+      "valid_states": 8264,
+      "lattice_states": 405216,
+      "elapsed_s": 5.048789456000122,
+      "position_resolution_m": [
+        0.025,
+        0.025
+      ],
+      "yaw_bins": 36,
+      "yaw_resolution_degrees": 10.0,
+      "yaw_extent_radians": [
+        0,
+        6.283185307179586
+      ],
+      "xy_extent_m": [
+        [
+          0.0,
+          1.375
+        ],
+        [
+          0.5,
+          5.5
+        ]
+      ],
+      "time_limit_s": 90.0,
+      "start_valid": true,
+      "goal_valid": false,
+      "input_sha256": "f2861ed1ba6ce252c5fc019fe9ef62f2de6342602b798881affcde1f1c59d3a0",
+      "independent_sweep": {
+        "certified": false,
+        "reason": "need at least two witness poses"
+      }
+    },
+    "sensor_dropout": {
+      "status": "CERTIFIED_FEASIBLE_WITNESS",
+      "expanded_states": 165,
+      "valid_states": 23148,
+      "lattice_states": 405216,
+      "elapsed_s": 3.774855878999915,
+      "position_resolution_m": [
+        0.025,
+        0.025
+      ],
+      "yaw_bins": 36,
+      "yaw_resolution_degrees": 10.0,
+      "yaw_extent_radians": [
+        0,
+        6.283185307179586
+      ],
+      "xy_extent_m": [
+        [
+          0.0,
+          1.375
+        ],
+        [
+          0.5,
+          5.5
+        ]
+      ],
+      "time_limit_s": 90.0,
+      "start_valid": true,
+      "goal_valid": true,
+      "input_sha256": "3f2bf3000a84ee5795aeb4e77acd13ada0c09262dcbe0ecb0af86d1a05f80e34",
+      "independent_sweep": {
+        "certified": true,
+        "minimum_continuous_clearance_lower_bound_m": 0.05350000000000028,
+        "samples": 4322,
+        "max_vertex_motion_per_sample_m": 0.001,
+        "method": "independent segment distance + containment; translation plus corner-radius*yaw Lipschitz bound"
+      },
+      "witness": "witnesses/sensor_dropout.json"
+    },
+    "open_diagnostic": {
+      "status": "CERTIFIED_FEASIBLE_WITNESS",
+      "expanded_states": 1990,
+      "valid_states": 9140,
+      "lattice_states": 405216,
+      "elapsed_s": 7.161217996000232,
+      "position_resolution_m": [
+        0.025,
+        0.025
+      ],
+      "yaw_bins": 36,
+      "yaw_resolution_degrees": 10.0,
+      "yaw_extent_radians": [
+        0,
+        6.283185307179586
+      ],
+      "xy_extent_m": [
+        [
+          0.0,
+          1.375
+        ],
+        [
+          0.5,
+          5.5
+        ]
+      ],
+      "time_limit_s": 90.0,
+      "start_valid": true,
+      "goal_valid": true,
+      "input_sha256": "834a0b584fe96ac096f1bae35a3e8ba891cdea99df588ae878e381b31f730697",
+      "independent_sweep": {
+        "certified": true,
+        "minimum_continuous_clearance_lower_bound_m": 0.03449999999999992,
+        "samples": 4857,
+        "max_vertex_motion_per_sample_m": 0.001,
+        "method": "independent segment distance + containment; translation plus corner-radius*yaw Lipschitz bound"
+      },
+      "witness": "witnesses/open_diagnostic.json"
+    }
+  },
+  "circumscribed_circle_diagnostic": {
+    "status": "NO_WITNESS_WITHIN_BOUNDS",
+    "expanded_states": 0,
+    "valid_states": 0,
+    "lattice_states": 405216,
+    "elapsed_s": 20.494896028000312,
+    "position_resolution_m": [
+      0.025,
+      0.025
+    ],
+    "yaw_bins": 36,
+    "yaw_resolution_degrees": 10.0,
+    "yaw_extent_radians": [
+      0,
+      6.283185307179586
+    ],
+    "xy_extent_m": [
+      [
+        0.0,
+        1.375
+      ],
+      [
+        0.5,
+        5.5
+      ]
+    ],
+    "time_limit_s": 90.0,
+    "start_valid": false,
+    "goal_valid": false,
+    "input_sha256": "4485bc958ed0894f4a8a33767cf6fbe55ae4c3f42382b010f0ff7cd18bbab605",
+    "radius_m": 0.49236673323854857
+  },
+  "clearance_accounting": {
+    "actual_rectangle_m": [
+      0.81,
+      0.56
+    ],
+    "padded_rectangle_m": [
+      0.87,
+      0.62
+    ],
+    "margin_once_m": 0.03,
+    "raw_circumscribed_radius_m": 0.49236673323854857,
+    "radius_plus_margin_m": 0.5223667332385485,
+    "padded_rectangle_circumscribed_radius_m": 0.5341582162618114,
+    "corridor_width_m": 1.0,
+    "cone_base_width_m": 0.26,
+    "fixed_yaw_passage_after_left_cone_m": 0.69,
+    "padded_transverse_width_m": 0.62,
+    "remaining_fixed_yaw_lateral_slack_m": 0.07,
+    "cone_pair_free_longitudinal_gap_m": 0.9100000000000001,
+    "padded_body_longitudinal_length_m": 0.87,
+    "remaining_switch_y_slack_m": 0.04,
+    "warning": "Do not apply circumscribed robot inflation, padded footprint, and .03 clearance cumulatively. Existing rectangular grid expansion is configuration-space candidate generation; full polygon validation does not itself add another margin. .01m closed-cell rasterization and EDT threshold add discretization conservatism, not physical geometry."
+  }
+}

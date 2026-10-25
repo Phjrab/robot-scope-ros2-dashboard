@@ -1,0 +1,55 @@
+{
+  "scope": "OFFLINE_STATIC_PREPARATION_VS_CURRENT_SENSOR_UPDATE",
+  "scene_sha256": "339a754ab4dd636092aa9b3aceb777ea43684c47519f661576e161f822a0affc",
+  "geometry_sha256": "6b5d78393dadd6db0921fe11c108be88529503608c6d26192d2da86bacab3422",
+  "fence_sha256": "dc6827fc3b8f2c5043cbdf39d0ba74fee85f3bda621a28e0a79958dfab79fb0d",
+  "static_geometry_load_s": 0.0002706579998630332,
+  "static_fence_mesh_s": 0.0002517590000934433,
+  "static_triangles": 48,
+  "samples": [
+    {
+      "source_stamp_s": 0.0,
+      "pose": [
+        0.5,
+        0.95,
+        1.5707963267948966
+      ],
+      "dynamic_triangle_assembly_s": 0.00010840300001291325,
+      "current_pose_raycast_s": 0.009575672000210034,
+      "ranges_equal_to_exporter": true,
+      "ranges_sha256": "c2ae69c49c2417cc2d4c4d8e54d3237564c8644efe4abe429089ecc2574ccee8"
+    },
+    {
+      "source_stamp_s": 0.2,
+      "pose": [
+        0.5,
+        0.982,
+        1.5707963267948966
+      ],
+      "dynamic_triangle_assembly_s": 8.471799992548767e-05,
+      "current_pose_raycast_s": 0.008770238999659341,
+      "ranges_equal_to_exporter": true,
+      "ranges_sha256": "08851a2ad111220da2d83783c10b7f9aa97957f30486589f1d3a3b42e01a8c4e"
+    },
+    {
+      "source_stamp_s": 0.4,
+      "pose": [
+        0.5,
+        1.014,
+        1.5707963267948966
+      ],
+      "dynamic_triangle_assembly_s": 6.669100002909545e-05,
+      "current_pose_raycast_s": 0.008041481999953248,
+      "ranges_equal_to_exporter": true,
+      "ranges_sha256": "41e1329f7fec1acf990fdf02ddb8d4e353210b4746cd3f6bb145178bf29cded9"
+    }
+  ],
+  "dropout_returns_no_observation": true,
+  "limits": [
+    "Not a runtime/global cache or planner benchmark; three probe poses only.",
+    "A geometry hash/epoch change must rebuild static data; dynamic active cones and sensor pose/source stamp are recomputed.",
+    "No occupancy/command is reused. Sensor freshness, path validity, receiver/source age and watchdog gates remain independent.",
+    "Synchronous raycast wrapper temporarily sets frozen simulator geometry; native C3 adapter must isolate or serialize its sensor instance, not share mutable globals between scenes.",
+    "No native execution, scheduling deadline, physical stopping or calibrated sensor claim."
+  ]
+}

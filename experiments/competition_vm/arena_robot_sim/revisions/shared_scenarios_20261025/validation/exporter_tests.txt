@@ -1,0 +1,23 @@
+/workspace/scratch/b09eacf6919d/robot-scope-collision-20261025/experiments/competition_vm/arena_robot_sim/simulate.py:30: ResourceWarning: unclosed file <_io.TextIOWrapper name='/workspace/scratch/b09eacf6919d/robot-scope-collision-20261025/assets/competition-arena/revisions/rulebook-20261015/collision/virtual_fences.json' mode='r' encoding='UTF-8'>
+  walls=json.load(open(Path(geometry.__file__).parent/'collision/virtual_fences.json'))['walls'];tris=[]
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+test_body_and_visual_envelope_distinct (__main__.SharedFixtureTests.test_body_and_visual_envelope_distinct) ... ok
+test_cone_sizes_and_original_positions_unchanged (__main__.SharedFixtureTests.test_cone_sizes_and_original_positions_unchanged) ... ok
+test_coordinate_roundtrip_and_real_registration_unknown (__main__.SharedFixtureTests.test_coordinate_roundtrip_and_real_registration_unknown) ... ok
+test_deterministic_semantic_hashes (__main__.SharedFixtureTests.test_deterministic_semantic_hashes) ... ok
+test_dropout_absent_observation_not_restamped_clear_scan (__main__.SharedFixtureTests.test_dropout_absent_observation_not_restamped_clear_scan) ... ok
+test_export_roundtrip_and_check (__main__.SharedFixtureTests.test_export_roundtrip_and_check) ... ok
+test_first_hit_occlusion_and_square_base (__main__.SharedFixtureTests.test_first_hit_occlusion_and_square_base) ... ok
+test_minimum_cases_and_separate_open (__main__.SharedFixtureTests.test_minimum_cases_and_separate_open) ... ok
+test_open_changes_obstacle_spacing_not_floor (__main__.SharedFixtureTests.test_open_changes_obstacle_spacing_not_floor) ... ok
+test_original_and_approved_revisions_not_conflated (__main__.SharedFixtureTests.test_original_and_approved_revisions_not_conflated) ... ok
+test_original_full_geometry_and_strict_forbidden_retained (__main__.SharedFixtureTests.test_original_full_geometry_and_strict_forbidden_retained) ... ok
+test_sensor_does_not_leak_global_module_mutation (__main__.SharedFixtureTests.test_sensor_does_not_leak_global_module_mutation) ... ok
+test_sensor_origin_fov_range_and_stamps (__main__.SharedFixtureTests.test_sensor_origin_fov_range_and_stamps) ... ok
+test_spawn_schedule_not_baked_into_prior (__main__.SharedFixtureTests.test_spawn_schedule_not_baked_into_prior) ... ok
+test_truth_observations_separate_and_linked (__main__.SharedFixtureTests.test_truth_observations_separate_and_linked) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 1.665s
+
+OK

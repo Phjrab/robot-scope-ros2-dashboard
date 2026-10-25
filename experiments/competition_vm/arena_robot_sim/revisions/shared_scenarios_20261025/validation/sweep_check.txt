@@ -1,0 +1,67 @@
+{
+  "scope": "INDEPENDENT_GEOMETRY_ONLY_NOT_NATIVE_NAV2",
+  "method": "Complex winding and independent edge geometry; 0.5mm motion samples minus half-step Hausdorff bound",
+  "manifest_sha256": "1e995e63e9e601433399f052d6a9630b4d5fb53081cfd1b00003aae2b16ef84e",
+  "results": {
+    "empty": {
+      "pass_": true,
+      "samples": 8422,
+      "sampled_clearance_m": 0.05399999999999994,
+      "continuous_clearance_lower_bound_m": 0.05375000000000028,
+      "max_vertex_step_m": 0.0005,
+      "lateral_translation_edges": 0,
+      "witness_sha256": "269c40e6f91479f9f24ec5ea88e09eebdeeb8680298756462508ca832c517da2",
+      "truth_sha256": "970cbf64ddd6de74069bc3fc5db76c2d5298a32fb55ca99df84c283cbb301a8f"
+    },
+    "feasible1": {
+      "pass_": true,
+      "samples": 8940,
+      "sampled_clearance_m": 0.03499999999999992,
+      "continuous_clearance_lower_bound_m": 0.03474999999999992,
+      "max_vertex_step_m": 0.0005,
+      "lateral_translation_edges": 10,
+      "witness_sha256": "355b3a0f15a438e5e10fccadf9494b92a80a6f8fbc0b255ede048dd93dd64a91",
+      "truth_sha256": "f95fdbc90becfa9967d717aba8d37fc66f221fc434948de45f789fcdfb4b5dc5"
+    },
+    "feasible2": {
+      "pass_": true,
+      "samples": 8940,
+      "sampled_clearance_m": 0.03499999999999992,
+      "continuous_clearance_lower_bound_m": 0.03474999999999992,
+      "max_vertex_step_m": 0.0005,
+      "lateral_translation_edges": 10,
+      "witness_sha256": "2e9484c067961b09435325a46643ed33b0a0f0c8e696fc75d7cbd41f1b4984f3",
+      "truth_sha256": "6fc0e983700fbb46427cebffdc4960c04341a4f51ad581c07f50161d633b3b26"
+    },
+    "open_diagnostic": {
+      "pass_": true,
+      "samples": 9457,
+      "sampled_clearance_m": 0.03499999999999992,
+      "continuous_clearance_lower_bound_m": 0.03474999999999992,
+      "max_vertex_step_m": 0.0005,
+      "lateral_translation_edges": 20,
+      "witness_sha256": "c9adc7e7a486f00b0698a58c145f77c739b6fe44ac17ade1e7811a3772497ee7",
+      "truth_sha256": "a4bff23e3db2e808803df8fe82964a059a6eff877537af67c5cbf04a02e4e343"
+    },
+    "original_tight5": {
+      "pass_": true,
+      "samples": 9974,
+      "sampled_clearance_m": 0.03499999999999992,
+      "continuous_clearance_lower_bound_m": 0.03474999999999992,
+      "max_vertex_step_m": 0.0005,
+      "lateral_translation_edges": 30,
+      "witness_sha256": "1ac578c1309bbdb6a2aac2bdd9fb24ab52462f311427aba637ec5d9011c65672",
+      "truth_sha256": "1063b7ca704eda9578a135d4d0fbe396a9a033915cc947e2868115fc30c74c80"
+    },
+    "sensor_dropout": {
+      "pass_": true,
+      "samples": 8422,
+      "sampled_clearance_m": 0.05399999999999994,
+      "continuous_clearance_lower_bound_m": 0.05375000000000028,
+      "max_vertex_step_m": 0.0005,
+      "lateral_translation_edges": 0,
+      "witness_sha256": "f335b57ff78a0a3c75c741f648dca0912144c4e545aef006adcf2c05ece99fca",
+      "truth_sha256": "8d8bf48583ab4a5ea58937486bd584717b3667a1bcca8975659cbd6e038418be"
+    }
+  }
+}

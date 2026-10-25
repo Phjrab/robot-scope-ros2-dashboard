@@ -1,0 +1,1 @@
+{"status": "PASS", "scenarios": 7, "manifest_sha256": "1e995e63e9e601433399f052d6a9630b4d5fb53081cfd1b00003aae2b16ef84e", "native_consumption": "ADAPTER_REQUIRED"}
