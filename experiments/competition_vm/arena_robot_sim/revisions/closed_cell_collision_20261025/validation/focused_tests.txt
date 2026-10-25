@@ -1,0 +1,24 @@
+test_bottom_contact_includes_previous_cell (test_collision.ClosedCells.test_bottom_contact_includes_previous_cell) ... ok
+test_guard_always_current_mask (test_collision.ClosedCells.test_guard_always_current_mask) ... ok
+test_invalid_geometry_fails_closed (test_collision.ClosedCells.test_invalid_geometry_fails_closed) ... ok
+test_invalid_resolution_raises (test_collision.ClosedCells.test_invalid_resolution_raises) ... ok
+test_left_contact_includes_previous_cell (test_collision.ClosedCells.test_left_contact_includes_previous_cell) ... ok
+test_microscopic_gap_conservative (test_collision.ClosedCells.test_microscopic_gap_conservative) ... ok
+test_negative_world_origin (test_collision.ClosedCells.test_negative_world_origin) ... ok
+test_new_snapshot_sees_mutation_old_does_not (test_collision.ClosedCells.test_new_snapshot_sees_mutation_old_does_not) ... ok
+test_positive_resolved_gap_is_clear (test_collision.ClosedCells.test_positive_resolved_gap_is_clear) ... ok
+test_removed_obstacle_not_cached (test_collision.ClosedCells.test_removed_obstacle_not_cached) ... ok
+test_rotated_contact (test_collision.ClosedCells.test_rotated_contact) ... ok
+test_self_crossing_star_rejected (test_collision.ClosedCells.test_self_crossing_star_rejected) ... ok
+test_upper_roundoff_contact (test_collision.ClosedCells.test_upper_roundoff_contact) ... ok
+test_world_edges_closed (test_collision.ClosedCells.test_world_edges_closed) ... ok
+test_body_and_margin_unchanged (test_progress.Target.test_body_and_margin_unchanged) ... ok
+test_clamps_goal (test_progress.Target.test_clamps_goal) ... ok
+test_corner_arclength (test_progress.Target.test_corner_arclength) ... ok
+test_duplicate_segment_finite (test_progress.Target.test_duplicate_segment_finite) ... ok
+test_straight_exact_lookahead (test_progress.Target.test_straight_exact_lookahead) ... ok
+
+----------------------------------------------------------------------
+Ran 19 tests in 0.005s
+
+OK

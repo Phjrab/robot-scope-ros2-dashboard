@@ -1,0 +1,20 @@
+test_cancel_during_receive_not_overwritten (__main__.Runtime.test_cancel_during_receive_not_overwritten) ... ok
+test_command_lease_survives_controller_stall (__main__.Runtime.test_command_lease_survives_controller_stall) ... ok
+test_completed_but_source_stale_result_rejected (__main__.Runtime.test_completed_but_source_stale_result_rejected) ... ok
+test_cpu_planner_gil_isolated (__main__.Runtime.test_cpu_planner_gil_isolated) ... ok
+test_duplicate_command_rejected (__main__.Runtime.test_duplicate_command_rejected) ... ok
+test_explicit_cancel (__main__.Runtime.test_explicit_cancel) ... ok
+test_identity_change_cancels_worker (__main__.Runtime.test_identity_change_cancels_worker) ... ok
+test_identity_invalidates_old_sensor (__main__.Runtime.test_identity_invalidates_old_sensor) ... ok
+test_observation_gap_independent (__main__.Runtime.test_observation_gap_independent) ... ok
+test_old_source_new_receipt_rejected (__main__.Runtime.test_old_source_new_receipt_rejected) ... ok
+test_planner_timeout_does_not_replay (__main__.Runtime.test_planner_timeout_does_not_replay) ... ok
+test_ready_still_requires_new_command (__main__.Runtime.test_ready_still_requires_new_command) ... ok
+test_receive_delay_cannot_commit_late_result (__main__.Runtime.test_receive_delay_cannot_commit_late_result) ... ok
+test_receiver_expiry_even_command_new (__main__.Runtime.test_receiver_expiry_even_command_new) ... ok
+test_stale_snapshot_launch_rejected (__main__.Runtime.test_stale_snapshot_launch_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 1.216s
+
+OK

@@ -1,0 +1,8 @@
+2026-10-25 fresh rebuild checkpoint, before completing scenario and benchmark reports.
+19 collision/progress unit tests PASS.
+15 unchanged watchdog tests freshly rerun PASS.
+Independent 12,900 geometry comparisons: zero false-clears; 237 conservative differences within documented tolerance.
+Full repository Python: 2691 ran, failure 1 (existing immutable manifest mismatch), errors 25 (AF_UNIX PermissionError in this VM), skipped 1.
+JavaScript: 660 PASS; syntax: 104 modules PASS.
+Not a clean aggregate/full CI pass. CI remote outcome tracked separately.
+Original frozen files unchanged. No deployment or robot connection.

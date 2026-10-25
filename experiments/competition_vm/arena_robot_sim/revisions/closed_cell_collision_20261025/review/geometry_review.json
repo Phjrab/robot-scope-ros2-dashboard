@@ -1,0 +1,1291 @@
+{
+  "candidate_sha256": "b86817c2ccfaa8456f8ccd3e3b40866fd545e92c8f00419caefbef5c3b5baad2",
+  "seed": 20261025,
+  "groups": {
+    "cell_edge_gap": {
+      "cases": 768,
+      "oracle_collisions": 343,
+      "false_clears": 0,
+      "conservative_differences": 201
+    },
+    "map_edge_gap": {
+      "cases": 84,
+      "oracle_collisions": 36,
+      "false_clears": 0,
+      "conservative_differences": 20
+    },
+    "cell_corner_gap": {
+      "cases": 48,
+      "oracle_collisions": 16,
+      "false_clears": 0,
+      "conservative_differences": 16
+    },
+    "random_convex": {
+      "cases": 12000,
+      "oracle_collisions": 9261,
+      "false_clears": 0,
+      "conservative_differences": 0
+    }
+  },
+  "total_cases": 12900,
+  "false_clears": 0,
+  "conservative_differences": 237,
+  "max_conservative_gap_m": 1.0708026820793748e-07,
+  "lifecycle": {
+    "clear_before": true,
+    "source_mutation_does_not_change_snapshot": true,
+    "new_snapshot_sees_added_obstacle": true,
+    "new_snapshot_sees_removed_obstacle": true,
+    "borrowed_guard_sees_added_obstacle": true,
+    "borrowed_guard_sees_removed_obstacle": true
+  },
+  "malformed": [
+    {
+      "input": "array([[ 1.        ,  0.        ],\n       [-0.80901699,  0.58778525],\n       [ 0.30901699, -0.95105652],\n       [ 0.30901699,  0.95105652],\n       [-0.80901699, -0.58778525]])",
+      "fails_closed": true,
+      "exception": null
+    },
+    {
+      "input": "'bad'",
+      "fails_closed": true,
+      "exception": null
+    },
+    {
+      "input": "[[0, 0], [1, 0], [0, 1, 2]]",
+      "fails_closed": true,
+      "exception": null
+    },
+    {
+      "input": "[[0, 0], [1, 0], [2, 0]]",
+      "fails_closed": true,
+      "exception": null
+    },
+    {
+      "input": "[[0, 0], [1, 0], [1, 0], [0, 1]]",
+      "fails_closed": true,
+      "exception": null
+    },
+    {
+      "input": "[[0, 0], [1, 0], [nan, 1]]",
+      "fails_closed": true,
+      "exception": null
+    }
+  ],
+  "issues": [],
+  "conservative_examples": [
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000004.72121611,
+        -99999994.5,
+        0.123
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 1.0708026820793748e-07,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.4210865421654303e-06
+    },
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000006.27878389,
+        -99999994.5,
+        0.123
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 1.0708026820793748e-07,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.4210865642997997e-06
+    },
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000005.5,
+        -99999995.27878389,
+        0.123
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 1.0708026820793748e-07,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.421086553232615e-06
+    },
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000005.5,
+        -99999993.72121611,
+        0.123
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 1.0708026820793748e-07,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.421086553232615e-06
+    },
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000004.7499999,
+        -99999994.5,
+        0.0
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 1.043081283569336e-07,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.4210865425744725e-06
+    },
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000006.2500001,
+        -99999994.5,
+        0.0
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 1.043081283569336e-07,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.4210865638907575e-06
+    },
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000005.5,
+        -99999995.2500001,
+        0.0
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 1.043081283569336e-07,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.421086553232615e-06
+    },
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000005.5,
+        -99999993.7499999,
+        0.0
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 1.043081283569336e-07,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.421086553232615e-06
+    },
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000004.7499999,
+        -99999994.5,
+        1.5707963267948966
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 1.043081283569336e-07,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.4210865425744725e-06
+    },
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000006.2500001,
+        -99999994.5,
+        1.5707963267948966
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 1.043081283569336e-07,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.4210865638907575e-06
+    },
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000005.5,
+        -99999995.2500001,
+        1.5707963267948966
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 1.043081283569336e-07,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.421086553232615e-06
+    },
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000005.5,
+        -99999993.7499999,
+        1.5707963267948966
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 1.043081283569336e-07,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.421086553232615e-06
+    },
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000004.7499999,
+        -99999994.5,
+        3.141592653589793
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 1.043081283569336e-07,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.4210865425744725e-06
+    },
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000006.2500001,
+        -99999994.5,
+        3.141592653589793
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 1.043081283569336e-07,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.4210865638907575e-06
+    },
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000005.5,
+        -99999995.2500001,
+        3.141592653589793
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 1.043081283569336e-07,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.421086553232615e-06
+    },
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000005.5,
+        -99999993.7499999,
+        3.141592653589793
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 1.043081283569336e-07,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.421086553232615e-06
+    },
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000004.7499999,
+        -99999994.5,
+        6.283185307179586
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 1.043081283569336e-07,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.4210865425744725e-06
+    },
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000006.2500001,
+        -99999994.5,
+        6.283185307179586
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 1.043081283569336e-07,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.4210865638907575e-06
+    },
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000005.5,
+        -99999995.2500001,
+        6.283185307179586
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 1.043081283569336e-07,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.421086553232615e-06
+    },
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000005.5,
+        -99999993.7499999,
+        6.283185307179586
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 1.043081283569336e-07,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.421086553232615e-06
+    },
+    {
+      "group": "map_edge_gap",
+      "pose": [
+        100000000.2500001,
+        -99999994.0,
+        0.0
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 1.043081283569336e-07,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [],
+      "documented_tolerance_m": 1.4210864786256292e-06
+    },
+    {
+      "group": "map_edge_gap",
+      "pose": [
+        100000011.7499999,
+        -99999994.0,
+        0.0
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 1.043081283569336e-07,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [],
+      "documented_tolerance_m": 1.4210866420504555e-06
+    },
+    {
+      "group": "map_edge_gap",
+      "pose": [
+        100000006.0,
+        -99999999.7499999,
+        0.0
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 1.043081283569336e-07,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [],
+      "documented_tolerance_m": 1.4210865603380424e-06
+    },
+    {
+      "group": "map_edge_gap",
+      "pose": [
+        100000006.0,
+        -99999988.2500001,
+        0.0
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 1.043081283569336e-07,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [],
+      "documented_tolerance_m": 1.4210865603380424e-06
+    },
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000004.64644651,
+        -99999994.5,
+        0.7853981633974483
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 9.825453162193298e-08,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.4210865411028904e-06
+    },
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000006.35355349,
+        -99999994.5,
+        0.7853981633974483
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 9.825453162193298e-08,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.4210865653623396e-06
+    },
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000005.5,
+        -99999995.35355349,
+        0.7853981633974483
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 9.825453162193298e-08,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.421086553232615e-06
+    },
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000005.5,
+        -99999993.64644651,
+        0.7853981633974483
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 9.825453162193298e-08,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.421086553232615e-06
+    },
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000004.64644651,
+        -99999994.5,
+        -0.7853981633974483
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 9.825453162193298e-08,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.4210865411028904e-06
+    },
+    {
+      "group": "cell_edge_gap",
+      "pose": [
+        100000006.35355349,
+        -99999994.5,
+        -0.7853981633974483
+      ],
+      "footprint": [
+        [
+          -0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          -0.25
+        ],
+        [
+          0.25,
+          0.25
+        ],
+        [
+          -0.25,
+          0.25
+        ]
+      ],
+      "resolution": 1.0,
+      "origin": [
+        100000000.0,
+        -100000000.0
+      ],
+      "gap_m": 9.825453162193298e-08,
+      "actual": true,
+      "oracle": false,
+      "occupied_cells": [
+        [
+          5,
+          5
+        ]
+      ],
+      "documented_tolerance_m": 1.4210865653623396e-06
+    }
+  ],
+  "max_conservative_gap_to_tolerance_ratio": 0.8546530446816792,
+  "conservative_beyond_tolerance": 0,
+  "oracle": "Exhaustive occupied-cell SAT, normalized axes, longdouble arithmetic, no broadphase or geometric tolerance",
+  "limitations": "Finite sampled validation, not a formal proof. Input float representation and trigonometric rounding can shift intended mathematical contacts."
+}
