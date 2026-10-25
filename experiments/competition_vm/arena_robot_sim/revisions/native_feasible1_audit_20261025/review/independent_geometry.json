@@ -1,0 +1,358 @@
+{
+  "evidence": "Recorded native trace and global path XY; derived geometry only",
+  "current_sim_t": 6.399999999999985,
+  "current_pose": [
+    0.5167972571840633,
+    1.7462801514863986,
+    1.5282629698786039
+  ],
+  "next_recorded_sim_t": 6.449999999999985,
+  "next_recorded_pose": [
+    0.5171834457111764,
+    1.75527186179768,
+    1.5274836510305656
+  ],
+  "path_source_sim_s": 6.349999999,
+  "path_receipt_monotonic": 250.276560407,
+  "path_index_zero_based": 21,
+  "path_derived_pose": [
+    0.5158475760553571,
+    1.9545850698370089,
+    1.401993995443007
+  ],
+  "path_yaw_method": "forward segment, not recorded native yaw",
+  "central_chord_yaw_sensitivity_rad": 1.5667803695454525,
+  "global_grid_source_sim_s": 6.149999999,
+  "path_center_grid_cell": [
+    25,
+    97
+  ],
+  "path_center_occupancy_value": 0,
+  "raw": {
+    "current": {
+      "boundary_inside": true,
+      "boundary_clearance_m": 0.18623516060791578,
+      "obstacles": [
+        {
+          "name": "cone_01",
+          "overlap": false,
+          "clearance_m": 0.207180383871008
+        },
+        {
+          "name": "forbidden_0",
+          "overlap": false,
+          "clearance_m": 0.18623516060791578
+        },
+        {
+          "name": "forbidden_1",
+          "overlap": false,
+          "clearance_m": 3.307376570536058
+        },
+        {
+          "name": "forbidden_2",
+          "overlap": false,
+          "clearance_m": 5.687318304769229
+        },
+        {
+          "name": "forbidden_3",
+          "overlap": false,
+          "clearance_m": 1.9765132968360546
+        },
+        {
+          "name": "forbidden_4",
+          "overlap": false,
+          "clearance_m": 1.0047594455659645
+        },
+        {
+          "name": "forbidden_5",
+          "overlap": false,
+          "clearance_m": 2.939438499711128
+        },
+        {
+          "name": "forbidden_6",
+          "overlap": false,
+          "clearance_m": 1.872801182639605
+        },
+        {
+          "name": "forbidden_7",
+          "overlap": false,
+          "clearance_m": 2.490992954288828
+        }
+      ],
+      "minimum_clearance_m": 0.18623516060791578
+    },
+    "path_point21": {
+      "boundary_inside": true,
+      "boundary_clearance_m": 0.140091413581091,
+      "obstacles": [
+        {
+          "name": "cone_01",
+          "overlap": true,
+          "clearance_m": 0.0
+        },
+        {
+          "name": "forbidden_0",
+          "overlap": false,
+          "clearance_m": 0.140091413581091
+        },
+        {
+          "name": "forbidden_1",
+          "overlap": false,
+          "clearance_m": 3.2226385344234747
+        },
+        {
+          "name": "forbidden_2",
+          "overlap": false,
+          "clearance_m": 5.640091413581091
+        },
+        {
+          "name": "forbidden_3",
+          "overlap": false,
+          "clearance_m": 1.866488248695407
+        },
+        {
+          "name": "forbidden_4",
+          "overlap": false,
+          "clearance_m": 0.9589068987284461
+        },
+        {
+          "name": "forbidden_5",
+          "overlap": false,
+          "clearance_m": 2.8133500190825385
+        },
+        {
+          "name": "forbidden_6",
+          "overlap": false,
+          "clearance_m": 1.7316315964079567
+        },
+        {
+          "name": "forbidden_7",
+          "overlap": false,
+          "clearance_m": 2.440130975213709
+        }
+      ],
+      "minimum_clearance_m": 0.0
+    },
+    "central_chord_sensitivity": {
+      "boundary_inside": true,
+      "boundary_clearance_m": 0.202528223535256,
+      "obstacles": [
+        {
+          "name": "cone_01",
+          "overlap": false,
+          "clearance_m": 0.009293731053616305
+        },
+        {
+          "name": "forbidden_0",
+          "overlap": false,
+          "clearance_m": 0.202528223535256
+        },
+        {
+          "name": "forbidden_1",
+          "overlap": false,
+          "clearance_m": 3.2731229505635753
+        },
+        {
+          "name": "forbidden_2",
+          "overlap": false,
+          "clearance_m": 5.702528223535256
+        },
+        {
+          "name": "forbidden_3",
+          "overlap": false,
+          "clearance_m": 1.9065977923033444
+        },
+        {
+          "name": "forbidden_4",
+          "overlap": false,
+          "clearance_m": 1.0181430494333035
+        },
+        {
+          "name": "forbidden_5",
+          "overlap": false,
+          "clearance_m": 2.8427984148870933
+        },
+        {
+          "name": "forbidden_6",
+          "overlap": false,
+          "clearance_m": 1.7519131344633705
+        },
+        {
+          "name": "forbidden_7",
+          "overlap": false,
+          "clearance_m": 2.5027713452798466
+        }
+      ],
+      "minimum_clearance_m": 0.009293731053616305
+    }
+  },
+  "padded": {
+    "current": {
+      "boundary_inside": true,
+      "boundary_clearance_m": 0.15498667680423917,
+      "obstacles": [
+        {
+          "name": "cone_01",
+          "overlap": false,
+          "clearance_m": 0.17593190006733161
+        },
+        {
+          "name": "forbidden_0",
+          "overlap": false,
+          "clearance_m": 0.15498667680423917
+        },
+        {
+          "name": "forbidden_1",
+          "overlap": false,
+          "clearance_m": 3.269793478149669
+        },
+        {
+          "name": "forbidden_2",
+          "overlap": false,
+          "clearance_m": 5.655585444594933
+        },
+        {
+          "name": "forbidden_3",
+          "overlap": false,
+          "clearance_m": 1.935923160196832
+        },
+        {
+          "name": "forbidden_4",
+          "overlap": false,
+          "clearance_m": 0.9715909080334286
+        },
+        {
+          "name": "forbidden_5",
+          "overlap": false,
+          "clearance_m": 2.8977088002292124
+        },
+        {
+          "name": "forbidden_6",
+          "overlap": false,
+          "clearance_m": 1.8304048548816587
+        },
+        {
+          "name": "forbidden_7",
+          "overlap": false,
+          "clearance_m": 2.4581764747492754
+        }
+      ],
+      "minimum_clearance_m": 0.15498667680423917
+    },
+    "path_point21": {
+      "boundary_inside": true,
+      "boundary_clearance_m": 0.10547775832832718,
+      "obstacles": [
+        {
+          "name": "cone_01",
+          "overlap": true,
+          "clearance_m": 0.0
+        },
+        {
+          "name": "forbidden_0",
+          "overlap": false,
+          "clearance_m": 0.10547775832832718
+        },
+        {
+          "name": "forbidden_1",
+          "overlap": false,
+          "clearance_m": 3.18360066094063
+        },
+        {
+          "name": "forbidden_2",
+          "overlap": false,
+          "clearance_m": 5.605477758328327
+        },
+        {
+          "name": "forbidden_3",
+          "overlap": false,
+          "clearance_m": 1.8252656323702905
+        },
+        {
+          "name": "forbidden_4",
+          "overlap": false,
+          "clearance_m": 0.9270006137729241
+        },
+        {
+          "name": "forbidden_5",
+          "overlap": false,
+          "clearance_m": 2.7711203153500055
+        },
+        {
+          "name": "forbidden_6",
+          "overlap": false,
+          "clearance_m": 1.6892282100456602
+        },
+        {
+          "name": "forbidden_7",
+          "overlap": false,
+          "clearance_m": 2.405784694212726
+        }
+      ],
+      "minimum_clearance_m": 0.0
+    },
+    "central_chord_sensitivity": {
+      "boundary_inside": true,
+      "boundary_clearance_m": 0.17240798705998173,
+      "obstacles": [
+        {
+          "name": "cone_01",
+          "overlap": true,
+          "clearance_m": 0.0
+        },
+        {
+          "name": "forbidden_0",
+          "overlap": false,
+          "clearance_m": 0.17240798705998173
+        },
+        {
+          "name": "forbidden_1",
+          "overlap": false,
+          "clearance_m": 3.2378150431454924
+        },
+        {
+          "name": "forbidden_2",
+          "overlap": false,
+          "clearance_m": 5.672407987059982
+        },
+        {
+          "name": "forbidden_3",
+          "overlap": false,
+          "clearance_m": 1.8682666939116768
+        },
+        {
+          "name": "forbidden_4",
+          "overlap": false,
+          "clearance_m": 0.9881430494333033
+        },
+        {
+          "name": "forbidden_5",
+          "overlap": false,
+          "clearance_m": 2.802134185965106
+        },
+        {
+          "name": "forbidden_6",
+          "overlap": false,
+          "clearance_m": 1.7101682112725662
+        },
+        {
+          "name": "forbidden_7",
+          "overlap": false,
+          "clearance_m": 2.4727713452798463
+        }
+      ],
+      "minimum_clearance_m": 0.0
+    }
+  },
+  "counterfactual": {
+    "not_native_prediction": true,
+    "v": 0.18,
+    "w": -0.01558637696076498,
+    "constant_twist_horizon_s": 1,
+    "padded_contact_bracket_s": [
+      0.9547991679462591,
+      0.9547991679462592
+    ]
+  },
+  "causal_verdict": "UNCONFIRMED: local costmap, recorded Path yaw, carrot, rejected twist and native collision arc are absent."
+}

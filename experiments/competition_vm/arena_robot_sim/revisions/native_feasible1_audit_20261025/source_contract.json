@@ -1,0 +1,188 @@
+{
+  "schema": "d0-native-feasible1-source-contract.v1",
+  "scenario": "d0_feasible1",
+  "native_source_sha": "5eacacf42378ad91319a5de323df7844f34ea33b",
+  "c3_report_sha": "32914885d84b9bf98e799492366aeab0f908f547",
+  "run_id": 40164154349,
+  "artifact_id": 12588085458,
+  "artifact_sha256": "c2d20937c7e2d7d2d20527994e8eaa116d2fab1d556638562ce688972317d8cb",
+  "first_collision": {
+    "native_log_line_1based": 144,
+    "wall_epoch_s": 1792904808.5401063,
+    "approx_monotonic_s": 250.3182623386383,
+    "alignment_method": "nearest post-error zero DDS source_timestamp_ns + source_age_s - receipt_monotonic estimates host wall-minus-monotonic; clock calls not atomic",
+    "trace_before": {
+      "sim_t": 6.399999999999985,
+      "elapsed_s": 4.8499999999999845,
+      "pose": [
+        0.5167972571840633,
+        1.7462801514863986,
+        1.5282629698786039
+      ],
+      "applied_previous": [
+        0.18,
+        -0.017287863270686446
+      ],
+      "actuator": [
+        0.18,
+        -0.01558637696076498
+      ],
+      "held": false,
+      "reason": "RELEASE",
+      "raw_sequence": 96,
+      "epoch": 2,
+      "monotonic": 250.295808521,
+      "command_source_age_s": 0.027204079000000547,
+      "command_receipt_age_s": 0.018255304999996724,
+      "sensor_source_age_s": 0.15227498100000503,
+      "sensor_receipt_age_s": 0.13569132099999592,
+      "published_ros": {
+        "clock_s": 6.399999999999985,
+        "tf_stamp_s": 6.399999999999985,
+        "odom_stamp_s": 6.399999999999985,
+        "tf_frames": [
+          "map",
+          "odom",
+          "base_link"
+        ]
+      },
+      "action_owners": {
+        "controller_server": true,
+        "behavior_server": false
+      },
+      "wall_gap_s": 0.0499792740000089,
+      "collision_count": 0,
+      "boundary_count": 0
+    },
+    "trace_after": {
+      "sim_t": 6.449999999999985,
+      "elapsed_s": 4.899999999999984,
+      "pose": [
+        0.5171834457111764,
+        1.75527186179768,
+        1.5274836510305656
+      ],
+      "applied_previous": [
+        0.18,
+        -0.01558637696076498
+      ],
+      "actuator": [
+        0.0,
+        0.0
+      ],
+      "held": false,
+      "reason": "RELEASE",
+      "raw_sequence": 97,
+      "epoch": 2,
+      "monotonic": 250.360957353,
+      "command_source_age_s": 0.04265012100000831,
+      "command_receipt_age_s": 0.04210298899999998,
+      "sensor_source_age_s": 0.017425368000004937,
+      "sensor_receipt_age_s": 0.0,
+      "published_ros": {
+        "clock_s": 6.449999999999985,
+        "tf_stamp_s": 6.449999999999985,
+        "odom_stamp_s": 6.449999999999985,
+        "tf_frames": [
+          "map",
+          "odom",
+          "base_link"
+        ]
+      },
+      "action_owners": {
+        "controller_server": false,
+        "behavior_server": false
+      },
+      "wall_gap_s": 0.05001330999999709,
+      "collision_count": 0,
+      "boundary_count": 0
+    },
+    "post_error_zero": {
+      "sim_t": 6.399999999999985,
+      "receipt_monotonic": 250.318854364,
+      "source_timestamp_ns": 1792904808540151104,
+      "dds_received_timestamp_ns": 1792904808540201254,
+      "source_age_s": 0.000547132,
+      "owner": "controller_server",
+      "v": 0.0,
+      "w": 0.0,
+      "accepted": true,
+      "epoch": 2,
+      "fault": null,
+      "held": false,
+      "active_action_owners": [
+        "controller_server"
+      ],
+      "origin": "native_nav2"
+    },
+    "spin_start_wall_epoch_s": 1792904809.5986004,
+    "spin_failure_wall_epoch_s": 1792904810.4490592
+  },
+  "latest_path_metadata": {
+    "kind": "path",
+    "sim_t": 6.349999999999985,
+    "receipt_monotonic": 250.276560407,
+    "source_sim_s": 6.349999999,
+    "source_elapsed_s": 4.799999998999999,
+    "frame": "map"
+  },
+  "latest_costmap_metadata": {
+    "kind": "costmap",
+    "sim_t": 6.149999999999986,
+    "receipt_monotonic": 250.083082094,
+    "source_sim_s": 6.149999999,
+    "source_elapsed_s": 4.599999999,
+    "frame": "map",
+    "width": 400,
+    "height": 300,
+    "resolution": 0.019999999552965164,
+    "origin": [
+      0.0,
+      0.0
+    ]
+  },
+  "counts": {
+    "appearance": 1,
+    "costmap": 11,
+    "path": 10
+  },
+  "recorded_costmap_topic": "/c3_nav2/global_costmap/costmap",
+  "recorded_costmap_type": "nav_msgs/msg/OccupancyGrid",
+  "costmap_encoding": {
+    "free": 0,
+    "ordinary_inflation": [
+      1,
+      98
+    ],
+    "inscribed": 99,
+    "lethal": 100,
+    "unknown_signed": -1,
+    "unknown_encoded_unsigned_byte": 255
+  },
+  "missing": [
+    "controller input pose/TF lookup timestamp",
+    "full path pose orientation and per-pose headers",
+    "transformed/pruned received_global_plan",
+    "lookahead_point",
+    "lookahead_collision_arc",
+    "candidate Twist rejected by collision checker",
+    "local_costmap/costmap_raw at failing control cycle",
+    "collision checker sampled pose/index and raw perimeter cost"
+  ],
+  "installed_rpp_package": "1.1.20-1jammy.20260915.232155",
+  "upstream_source_attestation": "Version-matched upstream tag 1.1.20, not a binary/source digest attestation",
+  "footprint": {
+    "raw_body_m": [
+      0.81,
+      0.56
+    ],
+    "effective_body_m": [
+      0.87,
+      0.62
+    ],
+    "margin_m": 0.03,
+    "native_padding_m": 0,
+    "resolution_m": 0.02
+  },
+  "status": "RECORDED_EVENT_PINNED_EXACT_REJECTED_ARC_NOT_RECORDED"
+}

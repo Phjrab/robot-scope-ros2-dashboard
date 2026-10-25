@@ -1,0 +1,248 @@
+{
+  "scope": "RECORDED_NATIVE_NAV2_WITH_VIRTUAL_SENSOR; ONE_FEASIBLE1_FAILURE_OFFLINE_AUDIT",
+  "source_commit": "5eacacf42378ad91319a5de323df7844f34ea33b",
+  "artifact_id": 12588085458,
+  "run_id": 40164154349,
+  "artifact_sha256": "c2d20937c7e2d7d2d20527994e8eaa116d2fab1d556638562ce688972317d8cb",
+  "input_hashes": {
+    "fixture.json": "7f6104bf116e83de4be5882fef6ca15a3270bc90df606a3c73e8576b116a2bf5",
+    "params.yaml": "52c942954b83dd2aff2bab1ea6a6b60b2245b37afdd4dd90e7ce4c53420c29cd",
+    "trace.jsonl": "dd2640fdc080121ad180efd232b645557799cf5e3d5038c2e17dfcb7dabb8b85",
+    "raw_commands.jsonl": "2e554f6ef730b200a159119ca444808874f2013ceedddedefe2cf48a5cbd9472",
+    "observations.jsonl": "3e7ff8870fa1cb985da864979dd1a803dbe13aeb2fcaf6333b23420d0fd7addf",
+    "native.log": "f8321e21d1ddfd1382c9f143af21be339221d12f3726e045f378d1a0d0a966db",
+    "result.json": "4661af8354bed138ff81b25fd4b637a9e9bdc19aa85762b97a4847ded8f0a35f",
+    "validation.json": "b424413121a9187ce729e62c78318cc78265871d00266449a233e4b06ea2e0a5"
+  },
+  "scene_sha256": "339a754ab4dd636092aa9b3aceb777ea43684c47519f661576e161f822a0affc",
+  "frozen_geometry_helper_sha256": "622affddb852bb8fdfb03467ab90e640adf91e7b92f95570c1c66384db6287df",
+  "first_event": {
+    "native_log_line": 144,
+    "text": "[controller_server-3] [ERROR] [1792904808.540106401] [c3_nav2.controller_server]: RegulatedPurePursuitController detected collision ahead!",
+    "wall_epoch_s": 1792904808.5401063,
+    "estimated_monotonic_s": 250.31826240930712,
+    "clock_method": "Zero command DDS source wall stamp + recorded source age / receipt monotonic; brackets saved ticks, not exact control TF input",
+    "latest_before_trace": {
+      "sim_t": 6.399999999999985,
+      "elapsed_s": 4.8499999999999845,
+      "pose": [
+        0.5167972571840633,
+        1.7462801514863986,
+        1.5282629698786039
+      ],
+      "applied_previous": [
+        0.18,
+        -0.017287863270686446
+      ],
+      "actuator": [
+        0.18,
+        -0.01558637696076498
+      ],
+      "held": false,
+      "reason": "RELEASE",
+      "raw_sequence": 96,
+      "epoch": 2,
+      "monotonic": 250.295808521,
+      "command_source_age_s": 0.027204079000000547,
+      "command_receipt_age_s": 0.018255304999996724,
+      "sensor_source_age_s": 0.15227498100000503,
+      "sensor_receipt_age_s": 0.13569132099999592,
+      "published_ros": {
+        "clock_s": 6.399999999999985,
+        "tf_stamp_s": 6.399999999999985,
+        "odom_stamp_s": 6.399999999999985,
+        "tf_frames": [
+          "map",
+          "odom",
+          "base_link"
+        ]
+      },
+      "action_owners": {
+        "controller_server": true,
+        "behavior_server": false
+      },
+      "wall_gap_s": 0.0499792740000089,
+      "collision_count": 0,
+      "boundary_count": 0
+    },
+    "first_after_trace": {
+      "sim_t": 6.449999999999985,
+      "elapsed_s": 4.899999999999984,
+      "pose": [
+        0.5171834457111764,
+        1.75527186179768,
+        1.5274836510305656
+      ],
+      "applied_previous": [
+        0.18,
+        -0.01558637696076498
+      ],
+      "actuator": [
+        0.0,
+        0.0
+      ],
+      "held": false,
+      "reason": "RELEASE",
+      "raw_sequence": 97,
+      "epoch": 2,
+      "monotonic": 250.360957353,
+      "command_source_age_s": 0.04265012100000831,
+      "command_receipt_age_s": 0.04210298899999998,
+      "sensor_source_age_s": 0.017425368000004937,
+      "sensor_receipt_age_s": 0.0,
+      "published_ros": {
+        "clock_s": 6.449999999999985,
+        "tf_stamp_s": 6.449999999999985,
+        "odom_stamp_s": 6.449999999999985,
+        "tf_frames": [
+          "map",
+          "odom",
+          "base_link"
+        ]
+      },
+      "action_owners": {
+        "controller_server": false,
+        "behavior_server": false
+      },
+      "wall_gap_s": 0.05001330999999709,
+      "collision_count": 0,
+      "boundary_count": 0
+    },
+    "first_zero_command": {
+      "sim_t": 6.399999999999985,
+      "receipt_monotonic": 250.318854364,
+      "source_timestamp_ns": 1792904808540151104,
+      "dds_received_timestamp_ns": 1792904808540201254,
+      "source_age_s": 0.000547132,
+      "owner": "controller_server",
+      "v": 0.0,
+      "w": 0.0,
+      "accepted": true,
+      "epoch": 2,
+      "fault": null,
+      "held": false,
+      "active_action_owners": [
+        "controller_server"
+      ],
+      "origin": "native_nav2"
+    },
+    "previous_accepted_command": {
+      "sim_t": 6.349999999999985,
+      "receipt_monotonic": 250.277553216,
+      "source_timestamp_ns": 1792904808490448345,
+      "dds_received_timestamp_ns": 1792904808490593348,
+      "source_age_s": 0.008948774,
+      "owner": "controller_server",
+      "v": 0.18,
+      "w": -0.01558637696076498,
+      "accepted": true,
+      "epoch": 2,
+      "fault": null,
+      "held": false,
+      "active_action_owners": [
+        "controller_server"
+      ],
+      "origin": "native_nav2"
+    },
+    "later_spin_failure_wall_s": 1792904810.4490592,
+    "spin_delay_after_first_s": 1.9089529514312744
+  },
+  "native_input": {
+    "raw_body_m": [
+      0.81,
+      0.56
+    ],
+    "padded_body_m": [
+      0.87,
+      0.62
+    ],
+    "clearance_applied_once_m": 0.03,
+    "native_footprint_padding_m": 0.0,
+    "grid_resolution_m": 0.02,
+    "latest_path_source_sim_s": 6.349999999,
+    "latest_path_receipt_monotonic": 250.276560407,
+    "path_points": 254,
+    "path_yaw_recorded": false,
+    "costmap_scope": "GLOBAL OccupancyGrid ONLY; not exact LOCAL RPP costmap",
+    "latest_costmap_source_sim_s": 6.149999999,
+    "costmap_age_in_recorded_sim_s": 0.250000000999985,
+    "classes": {
+      "free": 2248,
+      "unknown": 0,
+      "lethal": 106724,
+      "inscribed": 8500,
+      "inflation_cost": 2528
+    },
+    "cost_encoding": "Occupancy100 = raw254 lethal;99 = raw253 inscribed;1..98 lossy inflation; -1 = raw255 unknown. Inflation99 is NOT by itself RPP lethal threshold."
+  },
+  "current_recorded_geometry": {
+    "pose_kind": "latest saved pre-event SIM_GT pose, not logged RPP TF pose",
+    "pose": [
+      0.5167972571840633,
+      1.7462801514863986,
+      1.5282629698786039
+    ],
+    "minimum_clearance_m": {
+      "raw_body": 0.18623516060791578,
+      "padded_body": 0.15498667680423917
+    },
+    "current_physical_contact": false
+  },
+  "path_tangent_diagnostic": {
+    "status": "GEOMETRIC_COUNTEREXAMPLE_UNDER_DERIVED_HEADING_NOT_RECORDED_NATIVE_YAW",
+    "heading_definition": "outgoing forward-segment tangent, not recorded yaw",
+    "central_chord_sensitivity": {
+      "heading_definition": "central chord between preceding and following points",
+      "pose": [
+        0.5158475760553571,
+        1.9545850698370089,
+        1.5667803695454525
+      ],
+      "raw_clearance_m": 0.009293731053616305,
+      "padded_clearance_m": 0.0
+    },
+    "first_intersecting_point_index": 21,
+    "pose_with_derived_yaw": [
+      0.5158475760553571,
+      1.9545850698370089,
+      1.401993995443007
+    ],
+    "raw_body_clearance_m": 0.0,
+    "global_center_cell_value": 0,
+    "global_center_cell_class": "free",
+    "intersecting_samples": 60,
+    "meaning": "A free centerline cell does not certify this full rectangular body oriented along path tangent; exact RPP rejected yaw/path transform remains missing."
+  },
+  "previous_command_counterfactual": {
+    "status": "NOT_THE_REJECTED_CANDIDATE",
+    "v": 0.18,
+    "w": -0.01558637696076498,
+    "horizon_s": 1.0,
+    "sample_dt_s": 0.001,
+    "first_padded_contact_sample_s": 0.9550000000000001,
+    "minimum_raw_clearance_m": 0.02336903623877884,
+    "minimum_padded_clearance_m": 0.0,
+    "meaning": "Independent constant-twist projection of last published accepted command only; not actual future execution or reconstructed RPP failure arc."
+  },
+  "witness_comparison": {
+    "scope": "Original holonomic feasibility only; not fed to native planner",
+    "sha256": "281d25f6195eff98217e61d2f67ac0826a418c3afbbfe103d8300d82533a6072",
+    "lateral_translation_m": 0.2500000000000001,
+    "lateral_edges": 10
+  },
+  "hypotheses": {
+    "current_physical_geometry_contact": "EXCLUDED_AT_SAVED_PRE_EVENT_POSE; raw clearance exceeds .03m",
+    "native_footprint_padding_double_application": "EXCLUDED_BY_CAPTURED_YAML; .87x.62 with padding0 in both maps; inflation remains a distinct cost policy",
+    "centerline_vs_full_body_heading": "NUMERICALLY_SUPPORTED_CANDIDATE; tangent-derived sample intersects despite free center cell, not exact rejected-yaw proof",
+    "raster_conservatism": "UNRESOLVED; only older global map recorded, exact local cell/perimeter absent",
+    "inflation_cost_alone": "NOT_SUFFICIENT_FOR_RPP_LETHAL_TEST; exact returned cell max unavailable",
+    "exact_rejected_sweep_cause": "NOT_RUN_MISSING_SIGNALS"
+  },
+  "minimum_next_action": "C3 records one first-warning packet: controller input pose/TF stamp, local raw costmap+footprint, rejected v/w, first failed projected pose/raw cost, and transformed path/carrot; rerun feasible1 only with unchanged geometry/config.",
+  "not_run": [
+    "Exact local checker replay",
+    "Nonholonomic search (not needed for bounded minimum diagnosis)",
+    "Native rerun or parameter modification",
+    "feasible2/tight5/full-course/gait/physical validation"
+  ]
+}
