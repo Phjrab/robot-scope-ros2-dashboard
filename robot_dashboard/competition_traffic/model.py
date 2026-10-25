@@ -3,15 +3,18 @@ from __future__ import annotations
 
 from pathlib import Path
 import os
+import math
+import time
 from experiments.competition_vm.traffic_signals.detector import Detection, LocalUltralytics
 
 from .config import sha256_file
+from .inference import settings, regions, interior_edge, native_nms
 
 
 class OwnerModel:
     """The caller must establish trust independently; a hash is not provenance."""
 
-    def __init__(self, path, config, *, acknowledge_trusted_pickle=False):
+    def __init__(self, path, config, *, acknowledge_trusted_pickle=False, inference_profile="full640"):
         path = Path(path).resolve(strict=True)
         model = config.document["model"]
         if path.suffix.lower() not in (".pt", ".onnx") or not path.is_file():
@@ -47,24 +50,48 @@ class OwnerModel:
         self.model_size = None
         self.last_diagnostics = {}
         self.confidence_floor = min(.25, config.document["min_confidence"])
+        self.inference_settings, self.inference_settings_sha256 = settings(
+            inference_profile, confidence_floor=self.confidence_floor, model_sha256=self.sha256)
 
     def infer(self, bgr):
-        # Reuse the VM-loaded model and its identical CPU prediction path. Capture
-        # post-NMS diagnostics before its allowlist filter would discard objects.
-        r = self.adapter.model.predict(source=bgr, device="cpu", verbose=False,
-                                       conf=self.confidence_floor)[0]
-        boxes = [Detection(tuple(box), float(conf), int(cls), f"detection-{idx}")
-                 for idx, (box, conf, cls) in enumerate(zip(
-                     r.boxes.xyxy.tolist(), r.boxes.conf.tolist(), r.boxes.cls.tolist()))]
-        selected = [d for d in boxes if d.class_id in self.adapter.allowed]
+        start = time.monotonic()
+        h, w = bgr.shape[:2]
+        selected, post_nms, non_allowlist, edge_rejected = [], 0, 0, 0
+        views = regions((w, h), self.inference_settings)
+        for view_index, region in enumerate(views):
+            x1, y1, x2, y2 = region
+            source = bgr if view_index == 0 else bgr[y1:y2, x1:x2]
+            r = self.adapter.model.predict(
+                source=source, device="cpu", verbose=False, conf=self.confidence_floor,
+                imgsz=self.inference_settings["imgsz"], rect=True, iou=.7, max_det=300)[0]
+            if list(r.orig_shape) != list(source.shape[:2]):
+                raise ValueError("MODEL_ORIGINAL_SHAPE_MISMATCH")
+            for idx, (box, conf, cls) in enumerate(zip(
+                    r.boxes.xyxy.tolist(), r.boxes.conf.tolist(), r.boxes.cls.tolist())):
+                post_nms += 1
+                if not all(math.isfinite(x) for x in box + [conf, cls]):
+                    raise ValueError("MODEL_NONFINITE_DETECTION")
+                if int(cls) not in self.adapter.allowed:
+                    non_allowlist += 1
+                    continue
+                if view_index and interior_edge(box, region, (w, h)):
+                    edge_rejected += 1
+                    continue
+                native = (box[0]+x1, box[1]+y1, box[2]+x1, box[3]+y1)
+                selected.append(Detection(native, float(conf), int(cls), f"view-{view_index}-detection-{idx}"))
+        before = len(selected)
+        if len(views) > 1:
+            selected = native_nms(selected)
         self.last_diagnostics = {
-            "post_nms_boxes": len(boxes), "allowlist_boxes": len(selected),
-            "non_allowlist_boxes": len(boxes) - len(selected),
+            "post_nms_boxes": post_nms, "allowlist_boxes": len(selected),
+            "non_allowlist_boxes": non_allowlist, "tile_edge_rejected": edge_rejected,
+            "native_fusion_removed": before-len(selected), "views": len(views),
             "model_confidence_floor": self.confidence_floor,
             "below_model_floor": "NOT_OBSERVABLE_AFTER_NMS",
-            "input_encoding": "bgr8", "result_original_shape_hw": list(r.orig_shape),
+            "input_encoding": "bgr8", "result_original_shape_hw": [h, w],
             "coordinate_space": "native_xyxy", "inverse_letterbox_applied": False,
+            "inference_profile": self.inference_settings,
+            "inference_settings_sha256": self.inference_settings_sha256,
+            "inference_wall_s": time.monotonic()-start,
         }
-        if list(r.orig_shape) != list(bgr.shape[:2]):
-            raise ValueError("MODEL_ORIGINAL_SHAPE_MISMATCH")
         return selected

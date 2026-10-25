@@ -138,6 +138,9 @@ class DiagnosisTests(unittest.TestCase):
             return [result]
         model.adapter = SimpleNamespace(model=SimpleNamespace(predict=predict), allowed={0})
         model.confidence_floor = .25
+        from robot_dashboard.competition_traffic.inference import settings
+        model.inference_settings, model.inference_settings_sha256 = settings(
+            "full640", confidence_floor=.25, model_sha256="a"*64)
         detections = model.infer(image)
         self.assertIs(calls[0]["source"], image)
         self.assertEqual(calls[0]["device"], "cpu")

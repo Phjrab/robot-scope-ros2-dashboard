@@ -39,6 +39,10 @@ def parser():
     p.add_argument("--model", help="Explicit owner-supplied local PT/ONNX; never downloaded")
     p.add_argument("--config", help="Explicit model/class-map/association JSON")
     p.add_argument("--fps", type=float, help="Required virtual replay rate; not a sensor clock")
+    p.add_argument("--inference-profile", choices=("full640", "full960", "full1280", "upper-overlap640"), default="full640")
+    p.add_argument("--observation-mode", choices=("mission", "detection-only"), default="mission")
+    p.add_argument("--lamp-experiment", action="store_true")
+    p.add_argument("--no-image-artifacts", action="store_true", help="Keep JSON diagnostics without writing decoded PNG copies")
     p.add_argument("--clock-mode", choices=("source-timeline", "wall-clock"), default="source-timeline")
     p.add_argument("--max-frames", type=int, default=10000)
     p.add_argument("--dry-run", action="store_true", help="Hash and decode inputs without loading a model")
@@ -90,13 +94,17 @@ def run(args, output):
         if missing:
             return 2
         from .model import OwnerModel
-        detector = OwnerModel(args.model, config, acknowledge_trusted_pickle=args.acknowledge_trusted_pickle)
+        detector = OwnerModel(args.model, config, acknowledge_trusted_pickle=args.acknowledge_trusted_pickle,
+                              inference_profile=args.inference_profile)
         manifest["loaded_model_class_names"] = detector.names
+        manifest["inference_settings_sha256"] = getattr(detector, "inference_settings_sha256", None)
+        manifest["inference_settings"] = getattr(detector, "inference_settings", None)
         write_json(output / "manifest.json", manifest)
     from .artifacts import save_images
     from .pipeline import TrafficPipeline
     timeline = ReplayClock(args.clock_mode)
-    pipeline = TrafficPipeline(config, detector, measure_wall_latency=args.clock_mode == "wall-clock") if config else None
+    pipeline = TrafficPipeline(config, detector, measure_wall_latency=args.clock_mode == "wall-clock",
+                               observation_mode=args.observation_mode, lamp_experiment=args.lamp_experiment) if config else None
     counts, states, terminal, passes = Counter(), Counter(), Counter(), Counter()
     latencies = []
     binding = config.document["association"]["binding_id"] if config else "unbound-inspection"
@@ -129,7 +137,7 @@ def run(args, output):
                                "readable_raw_color": int(obs.signal["raw_state"] in ("RED", "GREEN")),
                                "binding_verified": int(d["crop_selected"] and obs.context["association_verified"]),
                                "stable_color": int(obs.signal["stable_state"] in ("RED", "GREEN"))})
-                assets = save_images(output / "frames", f, obs)
+                assets = {} if args.no_image_artifacts else save_images(output / "frames", f, obs)
                 counts.update(obs.signal["quality_flags"])
                 states.update([obs.signal["stable_state"]])
                 record = {**obs.json_record(), "images": assets}

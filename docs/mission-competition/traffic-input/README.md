@@ -218,7 +218,7 @@ python - <<'PYTEST'
 import unittest
 suite = unittest.defaultTestLoader.discover('tests/competition_traffic', top_level_dir='tests')
 result = unittest.TextTestRunner(verbosity=2).run(suite)
-raise SystemExit(0 if result.wasSuccessful() and result.testsRun >= 69 and not result.skipped else 1)
+raise SystemExit(0 if result.wasSuccessful() and result.testsRun >= 81 and not result.skipped else 1)
 PYTEST
 ```
 
@@ -229,3 +229,67 @@ algorithm timing from local workload, then the labeled audit. Keep image artifac
 private. Exit 0 verifies execution, not green performance or robot readiness.
 The base CI installs neither cv2 nor jsonschema and may SKIP these optional
 modules; that is not a perception test PASS. No CI/shared requirement was edited.
+
+## Round 3: fixed search profiles and bounded image association
+
+The default remains `full640`. Opt-in `--inference-profile full960`, `full1280`
+or `upper-overlap640` uses the same frozen CPU weights. The last profile combines
+one full image and three predefined overlapping upper tiles, each at imgsz 640:
+normalized xyxy `[0,0,.5,.6]`, `[.25,0,.75,.6]`, `[.5,0,1,.6]`. Internal crop-edge
+boxes are rejected, offsets map to native pixels once, and class-aware native
+NMS uses IoU .5. Tile positions never depend on a label, target ROI or color.
+The canonical `inference_settings_sha256` covers model, resolution, tile geometry,
+confidence floor and fusion settings; keep it alongside config/model/binding hashes.
+
+`--observation-mode detection-only` records each detector box and raw color in
+`context.free_observations`. These have no mission identity or stable state.
+The separate `detection_only_overlay` PNG labels raw boxes and the observation
+stage. It is never used as `processed_image` or as a canonical signal ROI.
+`observation_stage` distinguishes detection-only, verified associated, and stable.
+A diagnostic fixed ROI remains unverified even when a box overlaps it.
+
+In mission mode, bounded image association requires a unique expected-region
+match and geometric continuity; it ignores transient detector IDs and color.
+After occlusion, ambiguity, geometry jump, invalid input, model failure or stale
+processing, two fresh consistent detections must re-establish association.
+Temporal stability then starts again. This is an image-space constraint, not
+moving-camera pose/crossing calibration. `verified` must come from the trusted
+camera/crossing/approach binding, never be set from this match alone.
+
+`--lamp-experiment` appends diagnostic measurements for UNKNOWN/AMBIGUOUS detector
+crops: whole housing, fixed upper 55% combined color, and upper raw HSV. It does
+not change the VM core, mission color, minimum pixels or TTL. The required real
+samples did not improve, so this experiment is not an adopted classifier.
+`--no-image-artifacts` retains JSON without writing PNG copies during timing runs.
+
+```sh
+python -m robot_dashboard.competition_traffic.experiments \
+  --input-root /absolute/private/work \
+  --labels docs/mission-competition/traffic-input/real-labels.json \
+  --config /absolute/owner-v3-config.json --model /absolute/yolov8n.pt \
+  --output /absolute/new-search-comparison \
+  --include-confidence-ablation --acknowledge-trusted-pickle
+python -m robot_dashboard.competition_traffic.replay \
+  --input /absolute/private/frames.jsonl --fps 5 \
+  --config /absolute/owner-v3-config.json --model /absolute/yolov8n.pt \
+  --inference-profile upper-overlap640 --observation-mode detection-only \
+  --output /absolute/new-free-observation --acknowledge-trusted-pickle
+```
+
+The comparison uses already viewed exploratory labels, not an independent test.
+Confidence .10 is a separately reported ablation; no gain justified adoption.
+A recovered GREEN target does not qualify a profile for deployment: the full
+session also exposes false GREEN on bus-stop signs and unreadable signal backs.
+See [ROUND3](../../parallel-review/20261024/C4/ROUND3.md),
+[results](round3-results.json), [post-selection audit](round3-green-audit.json),
+and the [synthetic timing I/O example](round3-timing-example.json).
+
+C1/C2 must call `signal_fragment(obs, now_s=now)` or confirm
+`received_s=obs.context['first_received_s']`. The previous instruction
+`received_s=processed_s` is invalid and raises `FIRST_RECEIPT_MISMATCH`.
+Preserve source age at first receipt separately from age at completion;
+`queue_residence_s`, `processing_started_s`, `processed_s`, `pipeline_wall_s`
+and detector `inference_wall_s` expose delay. Source age at use is
+`source_age_at_first_receipt_s + now - first_received_s` on the same host.
+No completion timestamp, polling time or new inference profile refreshes TTL.
+An inference beyond .25 s remains inspectable but cannot supply fresh GREEN.

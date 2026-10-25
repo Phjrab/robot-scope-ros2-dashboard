@@ -1,0 +1,490 @@
+{
+  "schema_version": "c4-post-selection-green-audit.v1",
+  "selection": "ALL 34 raw GREEN boxes returned by upper-overlap640 on 255 v3 images",
+  "independent_test": false,
+  "reviewer": "Codex visual review of original scene and nearest-neighbor detector crop; no independent adjudication",
+  "label_scope": "detector bbox, not whole image; unreadable housing state is not assigned RED/NO_LIGHT",
+  "counts": {
+    "UNREADABLE_BACK_OR_CLIPPED_HOUSING": 28,
+    "VISIBLE_GREEN_OTHER_CROSSING": 3,
+    "NON_SIGNAL_BUS_STOP_SIGN_FALSE_GREEN": 3
+  },
+  "records": [
+    {
+      "sample": 14,
+      "sha256": "1acc11ecc1cbfef26ab5cc5d15a2e5a4d7527816df9c3bba6b44f81bd1410865",
+      "bbox_xyxy_native": [
+        751,
+        32,
+        787,
+        105
+      ],
+      "confidence": 0.37520986795425415,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 15,
+      "sha256": "da6a3307d1af99508e5700532398a846e5adecf10ab99452f6420adac9aeb05c",
+      "bbox_xyxy_native": [
+        755,
+        35,
+        791,
+        111
+      ],
+      "confidence": 0.2532271146774292,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 17,
+      "sha256": "3e6ce8b3d8af4e3a070c10b40652a972e7fc54b88e0e82fb8e4f6b7abba5e316",
+      "bbox_xyxy_native": [
+        776,
+        57,
+        813,
+        123
+      ],
+      "confidence": 0.5766972303390503,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 18,
+      "sha256": "c4fc0b0b090b2ec53876240c799ff3b862ba1a1c44654bfd5775980d6dc60c7d",
+      "bbox_xyxy_native": [
+        778,
+        61,
+        813,
+        133
+      ],
+      "confidence": 0.28436464071273804,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 20,
+      "sha256": "74b120803fde9b0a20ab826879e8ec7191c7cdf25ac671ce036a018f5ef34cbd",
+      "bbox_xyxy_native": [
+        780,
+        67,
+        818,
+        139
+      ],
+      "confidence": 0.4142770767211914,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 31,
+      "sha256": "2697c9e0acd8a1a1ef1fd3090f77c79231a967949204e14c77f754313bac4b21",
+      "bbox_xyxy_native": [
+        811,
+        44,
+        848,
+        129
+      ],
+      "confidence": 0.27069810032844543,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 32,
+      "sha256": "83125c846c9502348040f619e18bf2c9824fde35f2e4646e5b0aa78474bd8a81",
+      "bbox_xyxy_native": [
+        739,
+        46,
+        773,
+        129
+      ],
+      "confidence": 0.35530713200569153,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 33,
+      "sha256": "c3d5c3eec988aa2eee53335552c4b78a85273820fcedf5761205b2e2b95efbe3",
+      "bbox_xyxy_native": [
+        700,
+        60,
+        739,
+        134
+      ],
+      "confidence": 0.4635585844516754,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 38,
+      "sha256": "df471ab9caafa942fa80e3e547ebd078c09428ea0aa2af94c608ecd942f1c31d",
+      "bbox_xyxy_native": [
+        703,
+        13,
+        742,
+        104
+      ],
+      "confidence": 0.3964419960975647,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 39,
+      "sha256": "24d80bc01ecf8bc0df7ed809a39e1521fd6d433e28a9d56370aa77229d22b025",
+      "bbox_xyxy_native": [
+        708,
+        23,
+        742,
+        113
+      ],
+      "confidence": 0.4108728766441345,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 40,
+      "sha256": "6ec6df2e23fbd136626b84bfce4dbefc902152845fe8ac652d0a692a17d7d748",
+      "bbox_xyxy_native": [
+        704,
+        24,
+        741,
+        113
+      ],
+      "confidence": 0.37856990098953247,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 41,
+      "sha256": "893c49db78b5477e461ee6ef9134978b77bfcfe7997523d0c9193a2041468d51",
+      "bbox_xyxy_native": [
+        701,
+        24,
+        740,
+        114
+      ],
+      "confidence": 0.4568023979663849,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 44,
+      "sha256": "c1adfe91f42f0e6307731df915fcb174fcc4180f8917c86e51366c15f57405d4",
+      "bbox_xyxy_native": [
+        702,
+        37,
+        736,
+        130
+      ],
+      "confidence": 0.2914791405200958,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 51,
+      "sha256": "183a9e19ec09155b4705081d920aba89a532c184f80d2cd8721fd8660616f9c1",
+      "bbox_xyxy_native": [
+        1142,
+        102,
+        1173,
+        154
+      ],
+      "confidence": 0.31893542408943176,
+      "raw_state": "GREEN",
+      "visual_review": "VISIBLE_GREEN_OTHER_CROSSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 68,
+      "sha256": "945cc36fafd90a989abfc05318ae625ade4a3cc4d9a946bfbdffc9c0ebb47c4b",
+      "bbox_xyxy_native": [
+        1092,
+        95,
+        1134,
+        153
+      ],
+      "confidence": 0.3473008871078491,
+      "raw_state": "GREEN",
+      "visual_review": "VISIBLE_GREEN_OTHER_CROSSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 181,
+      "sha256": "4e11113ca8587fcfe4a3e262cde3197b22661a6621ed0943030617187c9375b9",
+      "bbox_xyxy_native": [
+        951,
+        1,
+        1048,
+        83
+      ],
+      "confidence": 0.28692886233329773,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 183,
+      "sha256": "1a804b94801f044556311a148ece0f650fe8d9a8b626c586c9a3a8cb4187fd01",
+      "bbox_xyxy_native": [
+        968,
+        1,
+        1062,
+        92
+      ],
+      "confidence": 0.6028873324394226,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 184,
+      "sha256": "a6825f510c36d037b3663296919f457101e640453eab0ec2fb05e0f05eaec453",
+      "bbox_xyxy_native": [
+        966,
+        1,
+        1061,
+        93
+      ],
+      "confidence": 0.628145694732666,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 185,
+      "sha256": "8ebea69d1a04f58e9c5ad697454751ecf843109c89504c46286b90e420f6dca7",
+      "bbox_xyxy_native": [
+        966,
+        1,
+        1061,
+        93
+      ],
+      "confidence": 0.6942284107208252,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 186,
+      "sha256": "0779779cafe5324bf92d370620c722cf8927109be1b640df0a124f11d6e2acc2",
+      "bbox_xyxy_native": [
+        951,
+        1,
+        1045,
+        96
+      ],
+      "confidence": 0.7442613244056702,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 187,
+      "sha256": "a1ee86d15298a7d369dbb1992fa0516ccf87e6b816c6a1b78e91b8d46a205fab",
+      "bbox_xyxy_native": [
+        951,
+        1,
+        1046,
+        96
+      ],
+      "confidence": 0.6850420236587524,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 188,
+      "sha256": "af91aac2ae497719c6e821c6a9628f8c838bb51ef447c656c3e4ef9c33d1190d",
+      "bbox_xyxy_native": [
+        955,
+        1,
+        1050,
+        96
+      ],
+      "confidence": 0.5340929627418518,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 189,
+      "sha256": "bd115f3c45f33d3dbc2d20112e82ae84fa9322c2a93ebef9512ca6abbfe2e5dc",
+      "bbox_xyxy_native": [
+        957,
+        1,
+        1052,
+        95
+      ],
+      "confidence": 0.46945253014564514,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 190,
+      "sha256": "374e8108d1b22452e82ca440b9d8075e47d7f5227773b48b3440edbb0b694a37",
+      "bbox_xyxy_native": [
+        959,
+        1,
+        1054,
+        96
+      ],
+      "confidence": 0.42054519057273865,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 191,
+      "sha256": "4bd0816810395c7a3eb4b67d76ae34be08f3d6c62dc69dfcc40f31ea53574056",
+      "bbox_xyxy_native": [
+        964,
+        2,
+        1059,
+        99
+      ],
+      "confidence": 0.6968746781349182,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 192,
+      "sha256": "c220fbd1d5a95fea9cdc23da75df5278877275c00b2913e4059a0165bc7a6c55",
+      "bbox_xyxy_native": [
+        967,
+        1,
+        1062,
+        101
+      ],
+      "confidence": 0.7167634963989258,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 193,
+      "sha256": "91e847736687a92bec2f5a05c14a9dd75c737fb9cf4016c770cf419dc23b88dc",
+      "bbox_xyxy_native": [
+        967,
+        1,
+        1062,
+        102
+      ],
+      "confidence": 0.7078039050102234,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 194,
+      "sha256": "4338d5c7e9781a1e2f14ec64f1adaf1df8a2956f0519c7981bb5c4fd92c0d1d4",
+      "bbox_xyxy_native": [
+        969,
+        1,
+        1063,
+        102
+      ],
+      "confidence": 0.5650461316108704,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 195,
+      "sha256": "49ae32576b20cd60b162187b74d90579da07a84b89d621dffea894e2e4317e62",
+      "bbox_xyxy_native": [
+        978,
+        2,
+        1069,
+        90
+      ],
+      "confidence": 0.32044917345046997,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 196,
+      "sha256": "a37127946f5bd07a8841c0e1fdce65ef5e90d5b618b12ec099c67528b9e2ceee",
+      "bbox_xyxy_native": [
+        962,
+        1,
+        1055,
+        63
+      ],
+      "confidence": 0.4638282358646393,
+      "raw_state": "GREEN",
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 222,
+      "sha256": "dd9bd54a7a8bf74623c07b3aa7059887e68a789478af3d3451f6fee5d3398dfb",
+      "bbox_xyxy_native": [
+        1217,
+        162,
+        1248,
+        210
+      ],
+      "confidence": 0.37501275539398193,
+      "raw_state": "GREEN",
+      "visual_review": "VISIBLE_GREEN_OTHER_CROSSING",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 223,
+      "sha256": "5f248e12b04f90d4077fbc26bf3f2d88e699c2e7cdc814f2965bd5f2b60a812b",
+      "bbox_xyxy_native": [
+        134,
+        139,
+        202,
+        370
+      ],
+      "confidence": 0.2579987049102783,
+      "raw_state": "GREEN",
+      "visual_review": "NON_SIGNAL_BUS_STOP_SIGN_FALSE_GREEN",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 224,
+      "sha256": "3faedd3024c0490b2050f31ce166a9b6a269777f578777858027ea3b405690c6",
+      "bbox_xyxy_native": [
+        134,
+        136,
+        202,
+        370
+      ],
+      "confidence": 0.2808862030506134,
+      "raw_state": "GREEN",
+      "visual_review": "NON_SIGNAL_BUS_STOP_SIGN_FALSE_GREEN",
+      "mission_identity_verified": false
+    },
+    {
+      "sample": 226,
+      "sha256": "f403ac3001c5020ea3cf876158b067bf7244dae343c5970d5a74e2f9d5e607f0",
+      "bbox_xyxy_native": [
+        114,
+        134,
+        188,
+        371
+      ],
+      "confidence": 0.49752718210220337,
+      "raw_state": "GREEN",
+      "visual_review": "NON_SIGNAL_BUS_STOP_SIGN_FALSE_GREEN",
+      "mission_identity_verified": false
+    }
+  ]
+}

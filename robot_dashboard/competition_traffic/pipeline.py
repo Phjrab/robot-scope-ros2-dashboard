@@ -10,9 +10,11 @@ import numpy as np
 from experiments.competition_vm.traffic_signals.core import (
     ColorProfile, TemporalFilter, classify_roi, inverse_letterbox,
 )
-from experiments.competition_vm.traffic_signals.detector import Association, Detection, iou
+from experiments.competition_vm.traffic_signals.detector import Detection, iou
 
 from .config import finite
+from .association import BoundedAssociation
+from .lamp import lamp_diagnostic
 
 
 @dataclass
@@ -27,16 +29,21 @@ class Observation:
 
 
 class TrafficPipeline:
-    def __init__(self, config, detector=None, *, clock=time.monotonic, measure_wall_latency=False):
+    def __init__(self, config, detector=None, *, clock=time.monotonic, measure_wall_latency=False, observation_mode="mission", lamp_experiment=False):
+        if observation_mode not in ("mission", "detection-only"):
+            raise ValueError("OBSERVATION_MODE_INVALID")
+        self.observation_mode = observation_mode
+        self.lamp_experiment = lamp_experiment
         self.config = config
         self.detector = detector
+        self.last_inference_settings_hash = getattr(detector, "inference_settings_sha256", None)
         self.clock = clock
         self.measure_wall_latency = measure_wall_latency
         self.last_valid_observation_s = None
         self.receiver_highwater = None
         self.detection_diagnostics = {}
         self.temporal = TemporalFilter()  # VM defaults: stability .4s, TTL .25s
-        self.association = Association()
+        self.association = BoundedAssociation()
         self.epoch = None
         self.retired = set()
         self.last_seq = -1
@@ -63,7 +70,7 @@ class TrafficPipeline:
             self.last_seq = self.last_stamp = -1
             self.last_receipt = self.last_handle = None
             self.temporal.reset()
-            self.association = Association()
+            self.association = BoundedAssociation()
         stamp = int(f.source_stamp_ns)
         if (f.sequence <= self.last_seq or stamp <= self.last_stamp
                 or (self.last_receipt is not None and f.received_s <= self.last_receipt)):
@@ -140,6 +147,8 @@ class TrafficPipeline:
             return [], "MODEL_EXCEPTION"
 
     def process(self, f, *, now_s):
+        processing_wall_start = time.monotonic()
+        processing_started_s = now_s
         if not finite(now_s, 0, 1e16):
             self.invalidate()
             raise ValueError("RECEIVER_CLOCK_INVALID")
@@ -155,6 +164,12 @@ class TrafficPipeline:
         same_content = f.image_handle == self.last_handle
         flags = self._clock_gate(f, now_s)
         clock_flags = list(flags)
+        settings_hash = getattr(self.detector, "inference_settings_sha256", None)
+        if settings_hash != self.last_inference_settings_hash:
+            flags.append("INFERENCE_SETTINGS_CHANGED")
+            self.last_inference_settings_hash = settings_hash
+        if flags:
+            self.association.invalidate("SOURCE_CONTINUITY_OR_FRESHNESS_REJECTED")
         self.detection_diagnostics = {"status": "NOT_RUN"}
         a = self.config.document["association"]
         bgr = f.bgr
@@ -164,20 +179,43 @@ class TrafficPipeline:
         size = [bgr.shape[1], bgr.shape[0]] if valid_image else None
         if not valid_image:
             flags.append("IMAGE_DECODE_FAILED")
-        elif size != a["native_image_size"]:
+        elif self.observation_mode == "mission" and size != a["native_image_size"]:
             flags.append("BINDING_IMAGE_SIZE_MISMATCH")
-        if f.binding_id != a["binding_id"]:
+        if self.observation_mode == "mission" and f.binding_id != a["binding_id"]:
             flags.append("SIGNAL_BINDING_MISMATCH")
+        if {"IMAGE_DECODE_FAILED", "BINDING_IMAGE_SIZE_MISMATCH", "SIGNAL_BINDING_MISMATCH"}.intersection(flags):
+            self.association.invalidate("INPUT_OR_BINDING_REJECTED")
         color = {"raw_state": "UNKNOWN", "quality_flags": [], "score": 0., "metrics": {}, "mask": None}
         chosen = None
         detections = []
         association_error = None
-        if (valid_image and size == a["native_image_size"] and f.binding_id == a["binding_id"]
+        free_observations = []
+        if (valid_image and (self.observation_mode == "detection-only" or
+                            (size == a["native_image_size"] and f.binding_id == a["binding_id"]))
                 and not {"REPEATED_OR_REVERSED_FRAME", "RETIRED_EPOCH", "RECEIVER_CLOCK_INVALID"}.intersection(flags)):
             detections, error = self._detect(bgr, size)
             if error:
                 flags.append(error)
+                self.association.invalidate("DETECTOR_REJECTED")
             else:
+                for detection in detections:
+                    try:
+                        raw = classify_roi(bgr, detection.bbox, exposure_settling=f.exposure_settling)
+                    except Exception:
+                        raw = {"raw_state": "UNKNOWN", "quality_flags": ["COLOR_ANALYSIS_EXCEPTION"], "metrics": {}}
+                        flags.append("COLOR_ANALYSIS_EXCEPTION")
+                    record = {"stage": "detection-only", "bbox_xyxy_native": list(detection.bbox),
+                              "confidence": detection.confidence, "class_id": detection.class_id,
+                              "raw_state": raw["raw_state"], "quality_flags": raw["quality_flags"],
+                              "color_metrics": raw["metrics"], "stable_state": None,
+                              "mission_identity": None}
+                    if self.lamp_experiment and raw["raw_state"] in ("UNKNOWN", "AMBIGUOUS"):
+                        try:
+                            record["lamp_diagnostic"] = lamp_diagnostic(bgr, detection.bbox)
+                        except Exception:
+                            record["lamp_diagnostic"] = {"diagnostic_only": True, "error": "LAMP_DIAGNOSTIC_EXCEPTION"}
+                    free_observations.append(record)
+            if not error and self.observation_mode == "mission":
                 chosen, error = self.association.select(
                     detections, a["expected_roi_native"],
                     (f.source_id, f.producer_epoch, f.binding_id),
@@ -196,6 +234,8 @@ class TrafficPipeline:
                         flags.extend(color["quality_flags"])
                     except Exception:
                         flags.append("COLOR_ANALYSIS_EXCEPTION")
+        if self.observation_mode == "detection-only":
+            flags.append("DETECTION_ONLY")
         if not a["verified"]:
             flags.append("ASSOCIATION_UNVERIFIED")
         # Account for inference latency on the receiving host. Offline virtual
@@ -211,6 +251,8 @@ class TrafficPipeline:
                 if f.source_age_s is not None and f.source_age_s + now_s - f.received_s > .25:
                     flags.append("SOURCE_STALE")
         flags = list(dict.fromkeys(flags))
+        if {"RECEIPT_EXPIRED", "SOURCE_STALE", "RECEIVER_CLOCK_INVALID", "COLOR_ANALYSIS_EXCEPTION"}.intersection(flags):
+            self.association.invalidate("PROCESSING_OR_FRESHNESS_REJECTED")
         age = None if first_age is None else first_age + max(0., now_s - first_receipt)
         stable = self.temporal.update(
             color["raw_state"], identity=(f.producer_epoch, f.source_id, f.binding_id),
@@ -237,10 +279,19 @@ class TrafficPipeline:
             "source_clock": f.source_clock, "clock_verified": f.clock_verified,
             "identity_verified": f.identity_verified,
             "first_received_s": first_receipt, "processed_s": now_s,
+            "processing_started_s": processing_started_s,
+            "queue_residence_s": max(0., processing_started_s-first_receipt),
+            "pipeline_wall_s": time.monotonic()-processing_wall_start,
             "source_age_at_first_receipt_s": first_age,
             "source_age_s": age, "receiver_age_s": max(0., now_s - first_receipt),
             "config_hash": self.config.sha256, "binding_id": f.binding_id,
-            "association_verified": a["verified"],
+            "association_verified": a["verified"] and self.observation_mode == "mission",
+            "observation_mode": self.observation_mode,
+            "observation_stage": ("stable" if stable in ("RED", "GREEN") and not flags else
+                                  "associated" if chosen and a["verified"] else "detection-only"),
+            "image_association": self.association.snapshot(),
+            "free_observations": free_observations,
+            "inference_settings_sha256": getattr(self.detector, "inference_settings_sha256", None),
             "detection_candidates": [{"bbox_xyxy_native": list(d.bbox), "confidence": d.confidence,
                                       "class_id": d.class_id, "transient_index": d.track_id} for d in detections],
             "diagnostics": {
@@ -259,7 +310,7 @@ class TrafficPipeline:
                                        "SOURCE_IDENTITY_REJECTED" if {"REPEATED_OR_REVERSED_FRAME", "RETIRED_EPOCH", "RECEIVER_CLOCK_INVALID"}.intersection(flags) else
                                        "BINDING_REJECTED" if {"BINDING_IMAGE_SIZE_MISMATCH", "SIGNAL_BINDING_MISMATCH"}.intersection(flags) else
                                        "DETECTION_REJECTED" if not detections else
-                                       association_error if chosen is None else
+                                       (association_error or "DETECTION_ONLY") if chosen is None else
                                        "COLOR_REJECTED" if color["raw_state"] not in ("RED", "GREEN") else
                                        "ASSOCIATION_UNVERIFIED" if not a["verified"] else
                                        "TEMPORAL_OR_FRESHNESS_REJECTED" if stable == "UNKNOWN" else None),
@@ -277,6 +328,7 @@ class TrafficPipeline:
         return obs
 
     def invalidate(self):
+        self.association.invalidate("PIPELINE_INVALIDATED")
         self.temporal.reset()
         self.latest = None
 
