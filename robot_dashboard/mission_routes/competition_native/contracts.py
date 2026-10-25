@@ -179,3 +179,13 @@ class ContinuationRequest:
     native_barrier_token: str
     cancel_request_id: str | None
     request_id: str
+
+
+@dataclass(frozen=True)
+class CommandContext:
+    """C2 input verdict; C1 still checks current coordinator/nav ownership."""
+    scope: Scope
+    inputs_fresh: bool
+    goal_receipt_s: float | None
+    estop: bool = False
+    collision: bool = False

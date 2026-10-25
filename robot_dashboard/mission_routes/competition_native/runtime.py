@@ -48,6 +48,21 @@ class NativeRuntime:
             posture=ports.posture, terrain=ports.terrain, clock=clock,
             event_binding=config.event_binding, receiver_clock_id=config.receiver_clock_id)
 
+    @property
+    def scope(self):
+        return self.adapter.scope
+
+    def continuation_proven(self, *, starting=False, completed=False):
+        return self.adapter.continuation_proven(starting=starting, completed=completed)
+
+    def require_dispatch_authorized(self, *, starting=False):
+        """C1 calls at the END of existing awaited preflight, under its lock."""
+        if not self.continuation_proven(starting=starting):
+            raise ValueError("NATIVE_DISPATCH_NOT_PROVEN")
+
+    def command_context(self):
+        return self.adapter.command_context()
+
     def snapshot(self):
         return {**self.adapter.snapshot(), "live_ready": False,
                 "execution_mode": "OFFLINE_CONTRACT" if self.config.activation.synthetic else "UNCONNECTED"}

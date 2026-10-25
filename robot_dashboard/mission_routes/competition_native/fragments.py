@@ -19,14 +19,13 @@ class SignalBinding:
 
 
 def join_signal(packet: Packet, *, fragment, context, binding: SignalBinding,
-                first_received_s, processed_s, now_s, receiver_clock_id):
-    """C4 exact e2e9c50 projection output + trusted SAME-HOST arrival metadata.
+                now_s, receiver_clock_id, first_received_s=None,
+                source_age_at_first_receipt_s=None, processed_s=None):
+    """Join C4 380800c's explicit first-receipt contract on the SAME host.
 
-    Call C4 signal_fragment(observation, now_s=now, received_s=processed_s).
-    C4 context.source_age_s already includes processing residence. Recover age
-    at the ORIGINAL arrival, so C2 adds that residence exactly once. Cross-host
-    callers must supply a locally revalidated clock/age envelope instead; remote
-    monotonic subtraction is never allowed here.
+    Optional time arguments can only confirm the context, never replace it.
+    Legacy completed-age fields, when present, must agree with explicit first
+    age. They are consistency checks, not the default source of first age.
     """
     def reject(reason):
         raise ObservationRejected(reason)
@@ -35,6 +34,7 @@ def join_signal(packet: Packet, *, fragment, context, binding: SignalBinding,
             or binding.source_clock not in {"synchronized_ros", "synchronized_utc"}
             or context.get("schema_version") != "traffic-observation-sidecar.v0.1"
             or context.get("clock_verified") is not True
+            or context.get("identity_verified") is not True
             or context.get("association_verified") is not True
             or context.get("complete_mission_evidence") is not False
             or context.get("departure_authorized") is not False):
@@ -46,16 +46,33 @@ def join_signal(packet: Packet, *, fragment, context, binding: SignalBinding,
         reject("C4_SOURCE_OR_ASSOCIATION_MISMATCH")
     if any(fragment.get(k) != getattr(binding, k) for k in ("signal_id", "crossing_id", "model_sha256")):
         reject("C4_SIGNAL_OR_MODEL_MISMATCH")
-    age, residence = context.get("source_age_s"), context.get("receiver_age_s")
+    supplied = {"first_received_s": first_received_s,
+                "source_age_at_first_receipt_s": source_age_at_first_receipt_s,
+                "processed_s": processed_s}
+    times = {key: context.get(key) for key in supplied}
     if any(type(v) not in (int, float) or not math.isfinite(v) or v < 0
-           for v in (first_received_s, processed_s, now_s, age, residence)):
-        reject("C4_INVALID_TIME")
-    if (not first_received_s <= processed_s <= now_s
-            or not math.isclose(processed_s - first_received_s, residence, abs_tol=1e-9, rel_tol=0)
-            or age < residence):
+           for v in (*times.values(), now_s)):
+        reject("C4_EXPLICIT_FIRST_RECEIPT_REQUIRED")
+    for key, value in supplied.items():
+        if value is not None and (type(value) not in (int, float) or value != times[key]):
+            reject("C4_FIRST_RECEIPT_ARGUMENT_MISMATCH")
+    first = times["first_received_s"]
+    initial_age = times["source_age_at_first_receipt_s"]
+    processed = times["processed_s"]
+    if not first <= processed <= now_s:
         reject("C4_AGE_ANCHOR_MISMATCH")
-    initial_age = age - residence
-    if now_s - first_received_s > .25 or initial_age + now_s - first_received_s > .25:
+    residence = processed - first
+    for key, expected_age in (("receiver_age_s", residence), ("source_age_s", initial_age + residence)):
+        if key in context:
+            value = context[key]
+            if (type(value) not in (int, float) or not math.isfinite(value) or value < 0
+                    or not math.isclose(value, expected_age, abs_tol=1e-9, rel_tol=0)):
+                reject("C4_CONTRADICTORY_AGE")
+    sequence, stamp = context.get("sequence"), context.get("source_stamp_ns")
+    if (type(sequence) is not int or sequence < 0 or not isinstance(stamp, str)
+            or not stamp.isascii() or not stamp.isdigit() or not 1 <= len(stamp) <= 24):
+        reject("C4_INVALID_SOURCE_IDENTITY")
+    if now_s - first > .25 or now_s > first + .25 - initial_age:
         reject("C4_SIGNAL_EXPIRED")
     fields = FIELDS["signal"]
     if any(k not in fragment for k in fields):
@@ -69,6 +86,21 @@ def join_signal(packet: Packet, *, fragment, context, binding: SignalBinding,
     scope = Scope(**{k: data[k] for k in Scope.__dataclass_fields__})
     stamp = ComponentStamp(scope, binding.producer_id, binding.epoch,
                            context["sequence"], context["source_stamp_ns"], initial_age,
-                           binding.source_clock, first_received_s, receiver_clock_id, .25)
+                           binding.source_clock, first, receiver_clock_id, .25)
     components = {**packet.components, "signal": stamp}
     return Packet(data, components, packet.extras, packet.receiver_session_id)
+
+
+def project_signal(packet, *, observation, projection, binding, now_s, receiver_clock_id,
+                   first_received_s=None, source_age_at_first_receipt_s=None, processed_s=None):
+    """Call the injected actual C4 signal_fragment, then join independent facts.
+
+    Inject competition_traffic.projection.signal_fragment. Injection keeps this
+    package importable without the optional C4 package or image dependencies.
+    """
+    fragment = projection(observation, now_s=now_s,
+                          received_s=observation.context.get("first_received_s"))
+    return join_signal(packet, fragment=fragment, context=observation.context,
+                       binding=binding, now_s=now_s, receiver_clock_id=receiver_clock_id,
+                       first_received_s=first_received_s, processed_s=processed_s,
+                       source_age_at_first_receipt_s=source_age_at_first_receipt_s)

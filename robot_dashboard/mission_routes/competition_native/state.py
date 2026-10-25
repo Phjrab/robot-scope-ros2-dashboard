@@ -9,6 +9,7 @@ class ActionState:
     started_s: float = 0.0
     dwell_start: float | None = None
     last_valid_s: float | None = None
+    dwell_source_start: tuple[tuple[str, int], ...] = ()
     departed: bool = False
     attempted_steps: tuple[str, ...] = ()
     traversed_segments: tuple[str, ...] = ()
@@ -111,13 +112,21 @@ def decide(state, action, frame, *, now, hold_ack, synthetic=False, hold_ack_s=N
         sample_time = frame.supported_end(*needed)
         if hold_ack_s is None or sample_time <= hold_ack_s:
             return result(reason="STOP_OBSERVATION_PRECEDES_HOLD_ACK", dwell_start=None, last_valid_s=None)
+        source_times = {name: int(frame.components[name].stamp.source_stamp_ns) for name in needed}
+        source_start = dict(state.dwell_source_start)
         start = state.dwell_start
         if (start is None or state.last_valid_s is None or sample_time < state.last_valid_s
                 or sample_time - state.last_valid_s > frame.policy.continuity_gap_s):
             # Start no earlier than the first receipt that supports ALL inputs.
             start = max(frame.components[name].receipt_s for name in needed)
-        updated = replace(state, dwell_start=start, last_valid_s=sample_time)
-        if sample_time - start < duration:
+            source_start = source_times
+        # Preserve C1 r2's source progression check, in each producer's clock.
+        # Receipt/age changes alone cannot manufacture physical observation time.
+        source_duration = min((source_times[name] - source_start.get(name, source_times[name])) / 1e9
+                              for name in needed)
+        updated = replace(state, dwell_start=start, last_valid_s=sample_time,
+                          dwell_source_start=tuple(source_start.items()))
+        if sample_time < start + duration or source_duration < duration:
             return Decision(replace(updated, reason="DWELL_IN_PROGRESS"))
         if state.phase == "PARK_HOLD":
             return Decision(replace(updated, phase="SUCCEEDED", reason="PARK_EVIDENCE_COMPLETE"))

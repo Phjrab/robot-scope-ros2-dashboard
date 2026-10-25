@@ -8,7 +8,7 @@ import secrets
 import time
 
 from ..models import CompetitionAction, Pose
-from .contracts import ActionEvent, Activation, ConstraintAck, ConstraintRequest, ExitAuthorization, GoalReceipt, Scope
+from .contracts import ActionEvent, Activation, CommandContext, ConstraintAck, ConstraintRequest, ExitAuthorization, GoalReceipt, Scope
 from .observations import Normalizer, ObservationRejected
 from .state import ActionState, TERMINAL, decide
 
@@ -30,6 +30,7 @@ class NativeActionAdapter:
         self._event_sequence = -1
         self._events = {}
         self._exit_previous_scope = None
+        self._exit_proof = None
         self._goal_request_id = None
         self._goal_requested_s = None
         self._goal_ack_s = None
@@ -56,6 +57,9 @@ class NativeActionAdapter:
         # Read-only: no owner creation, clock sampling, port calls, or imports.
         return {"state": dict(vars(self.state)), "scope": dict(vars(self.scope)),
                 "capabilities": self.activation.report(self.action),
+                "stop_requested": self._stop_requested,
+                "request_counts": {"action": len(self._requests), "effects": len(self._effects),
+                                   "events": len(self._events)},
                 "actual_goal_id": self._goal.actual_goal_id if self._goal else None,
                 "receiver_session_id": self.receiver_session_id,
                 "receiver_clock_id": self.receiver_clock_id,
@@ -201,6 +205,7 @@ class NativeActionAdapter:
     async def _fail(self, reason, *, interrupted=False):
         self.state = replace(self.state, phase="INTERRUPTED" if interrupted else "FAILED",
                              reason=reason, dwell_start=None, last_valid_s=None, departed=False)
+        self._exit_proof = None
         if self.normalizer is not None:
             self.normalizer.invalidate()
         errors = []
@@ -229,6 +234,11 @@ class NativeActionAdapter:
                         if self._valid_ack() and self._constraint_ack_s is None:
                             self._constraint_ack_s = now
                 if self.state.phase == "EXIT_PREPARE":
+                    if packet is not None:
+                        update = self.normalizer.receive(packet, now)
+                        if not self._exit_frame_valid(update):
+                            await self._fail("EXIT_PROOF_INVALIDATED")
+                            return self.snapshot()
                     if self._valid_ack():
                         await self._finish_exit()
                     elif now - self._constraint_requested_s > self.policy.command_ttl_s:
@@ -242,6 +252,8 @@ class NativeActionAdapter:
                                   exit_ack_s=self._goal_ack_s,
                                   release_ack_s=(self._constraint_ack_s if self._valid_ack()
                                                  and self._constraint.mode == "RELEASE" else None))
+                if "EXIT" in decision.effects:
+                    self._exit_proof = frame
                 self.state = decision.state
                 for effect in decision.effects:
                     await self._effect(effect)
@@ -299,12 +311,85 @@ class NativeActionAdapter:
                 await self.posture.request(self.scope, posture=effect, request_id=secrets.token_hex(16))
 
     async def _finish_exit(self):
+        if not self.continuation_proven():
+            raise ValueError("EXIT_CONTINUATION_NOT_PROVEN")
         prepare = getattr(self.navigation, "prepare_exit", None)
         if prepare is not None:
             prepare(ExitAuthorization(self._exit_previous_scope, self.scope,
                                       self._constraint, self._constraint_ack))
         await self._dispatch("exit", self.action.exit_pose.model_dump())
         self.state = replace(self.state, phase="EXIT_PENDING", reason="EXIT_GOAL_DISPATCHED")
+
+    def _read_time(self):
+        now = self.clock()
+        if (type(now) not in (int, float) or not math.isfinite(now)
+                or (self._last_now is not None and now < self._last_now)):
+            raise ValueError("INVALID_RECEIVER_CLOCK")
+        return now
+
+    def _exit_frame_valid(self, frame):
+        e = frame.evidence
+        return (frame.fresh("safety", "feet", "motion", "signal", "pose", "path")
+                and not frame.extras.estop and not frame.extras.collision
+                and e.zone_id == self.action.zone_id
+                and e.front_left_status == e.front_right_status == "INSIDE"
+                and e.body_motion_status == "STOPPED" and e.pose is not None and e.path_clear
+                and e.signal_id == self.action.signal_id and e.crossing_id == self.action.crossing_id
+                and e.raw_state == e.stable_state == "GREEN" and not e.quality_flags
+                and e.obstacle_state in {"FOLLOWING", "GOAL_REACHED"})
+
+    def continuation_proven(self, *, starting=False, completed=False):
+        """Public synchronous C1 owner guard; no IO effects or new receipts.
+
+        It must also be checked after awaited planning, before goal submission.
+        C1 still enforces its own owner token, external pause and STOP fences.
+        """
+        if self._stop_requested or (starting and completed):
+            return False
+        if starting:
+            return self.state.phase == "APPROACH"
+        try:
+            now = self._read_time()
+            request = self._constraint
+            ack = self.constraints.ack(request) if request is not None else None
+            if (request is None or request.mode != "HOLD" or not self._valid_ack()
+                    or not isinstance(ack, ConstraintAck) or not ack.matches(request)):
+                return False
+            if completed:
+                frame = self.normalizer.current(now) if self.normalizer else None
+                return (self.state.phase == "SUCCEEDED" and self.state.departed
+                        and frame is not None and frame.fresh("navigation", "safety")
+                        and frame.evidence.goal_state == "SUCCEEDED"
+                        and not frame.extras.estop and not frame.extras.collision)
+            if self.state.phase != "EXIT_PREPARE" or self._exit_proof is None:
+                return False
+            frame = replace(self._exit_proof, now=now)
+            update = self.normalizer.current(now) if self.normalizer else None
+            return (self._exit_previous_scope.matches(frame.evidence)
+                    and self.scope.goal_generation == frame.evidence.goal_generation + 1
+                    and self._exit_frame_valid(frame)
+                    and (update is None or self._exit_frame_valid(update)))
+        except (ValueError, TypeError, AttributeError):
+            return False
+
+    def command_context(self):
+        """Read current input validity for C1's ONE consumer, not a command."""
+        try:
+            frame = self.normalizer.current(self._read_time()) if self.normalizer else None
+            fresh = (not self._stop_requested and self.state.phase not in TERMINAL
+                     and frame is not None and frame.fresh("safety", "navigation", "pose", "path")
+                     and frame.evidence.pose is not None and frame.evidence.path_clear
+                     and frame.evidence.obstacle_state in {"FOLLOWING", "GOAL_REACHED"})
+            if fresh and self.state.phase in {"EXIT_PENDING", "DEPARTING"} and not self.state.departed:
+                e = frame.evidence
+                fresh = (self._goal_ack_s is not None and frame.fresh("signal", "motion")
+                         and e.signal_id == self.action.signal_id and e.crossing_id == self.action.crossing_id
+                         and e.raw_state == e.stable_state == "GREEN" and not e.quality_flags)
+            return CommandContext(self.scope, bool(fresh),
+                                  frame.components["navigation"].receipt_s if fresh else None,
+                                  bool(frame and frame.extras.estop), bool(frame and frame.extras.collision))
+        except (ValueError, TypeError, AttributeError):
+            return CommandContext(self.scope, False, None)
 
     async def tick(self):
         """Call from the existing owner loop; no new receipt or sequence."""

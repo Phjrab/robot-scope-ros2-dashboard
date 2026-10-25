@@ -3,7 +3,7 @@
 기준: `7f2a7070a17975d2a5f123cbf6aab0f99f04bf8a`, 2026-10-24 KST.
 제출: `review/20261024-c2-mission-adapter`. 사용자 후속 지시로 local-only/main-only 제출 정책을 대체했다. main·공용 파일·다른 역할 소스는 수정하지 않는다. 실제 로봇·ROS·카메라·서비스·배포는 실행하지 않는다.
 
-최신 후속 계약과 검증은 `docs/parallel-review/20261024/C2/FOLLOWUP.md` 및 `WIRING_PROPOSAL.md`를 따른다. 최초 제출 `REVIEW.md`, `INPUTS.json`, `VALIDATION.json`의 65개 테스트/기준 SHA는 과거 제출 기록이다.
+최신 후속 계약과 검증은 `docs/parallel-review/20261024/C2/ROUND3.md` 및 `WIRING_PROPOSAL.md`를 따른다. 최초 제출 `REVIEW.md`, `INPUTS.json`, `VALIDATION.json`의 65개 테스트/기준 SHA는 과거 제출 기록이다.
 
 ## 구현 범위
 
@@ -14,7 +14,7 @@
 - `observations.Normalizer`: 기존 `Evidence.model_validate` 재사용. component별 시각·sequence·epoch·scope·수신시각과 receiver session을 보존한다. 신규 공용 HTTP/ROS 입력을 만들지 않는다.
 - `coordinator.CoordinatorNavigationPort`: 실제 `MissionCoordinator.start/pause/snapshot`과 별도 native continuation callback, `NavigationCoordinator.view/coordination_lock` 계약을 호출한다. 공유 lock을 바깥에서 다시 잡지 않는다. admission은 기존 `MissionRoutes._admission`과 정확히 같아야 한다.
 - `runtime.configure_action`: config/ports/clock으로 구성하는 실제 owner-loop API. receive/event_ack/tick/stop/cleanup을 명시 호출하며 snapshot은 항상 live_ready=false다. non-synthetic start는 미연결로 거부한다.
-- `fragments.join_signal`: C4 signal_fragment와 sidecar를 independent evidence에 결합한다. C4의 처리 완료 기준 age를 최초 수신 기준으로 환산하고 원래 receipt를 유지한다.
+- `fragments.join_signal`: C4 signal_fragment와 sidecar를 independent evidence에 결합한다. 최신 C4의 명시적 최초 age와 first_received_s를 사용한다. legacy 완료시각 age는 모순 검사에만 사용하고 receipt를 갱신하지 않는다.
 - `authority.FinalConsumerConstraintPort`: 설치 callback/정확한 consumer receipt를 연결한다. enqueue 결과를 설치 ACK로 승격하지 않으며 실제 consumer는 C1 연결 필요다.
 - `authority.CommandBoundary`: 단일 최종 command consumer에 필요한 계약의 **순수 참조 구현**. 속도 tuple을 반환할 뿐 actuator를 제어하지 않는다. 기존 `ControlManager`나 navigation command bridge를 대체하거나 자동 연결하지 않는다.
 
@@ -43,8 +43,8 @@ OUT: full-body crossing 증거만 통과로 인정한다. attempted_steps, trave
 ## 기존 계약과의 차이 / live 차단점
 
 - 기존 Navigation goal ID는 16..128 token이고 canonical evidence ID는 hex32다. port는 둘을 분리해 보관하고, 실제 ID가 정확히 일치할 때만 logical ID로 투영한다. 임의 ID를 잘라 넣거나 foreign goal을 cancel하지 않는다.
-- 기존 coordinator에는 취소된 접근 waypoint를 서버가 안전하게 완료 처리하고 exit로 이동하는 native hook이 없다. fake port에서는 이 경로의 전이를 끝까지 검증하지만 실제 bridge는 `COORDINATOR_CONTINUATION_HOOK_REQUIRED`로 거부한다. 선택 callback을 주입하는 계약만 제공하며 base에 있는 API라고 주장하지 않는다.
-- 접근 성공도 별도 native_action_barrier 및 전용 token/callback이 필수다. 일반 after_arrival_confirmation/사용자 token은 거부한다. 성공과 취소 callback은 서로 다른 terminal 증거를 검증하며, 공용 훅의 정확한 입력/잠금/반환값은 WIRING_PROPOSAL에 고정했다. adapter는 API router·canonical 정의·저장·공용 executor를 수정하지 않는다.
+- 최초 base coordinator에는 취소된 접근 waypoint의 native continuation hook이 없다. C1 r2에는 이미 구현되어 있으며 이번 포트는 그 실제 native_owner/continue_native 계약을 호출한다. fake port에서는 이 경로의 전이를 끝까지 검증하지만 실제 bridge는 `COORDINATOR_CONTINUATION_HOOK_REQUIRED`로 거부한다. 선택 callback을 주입하는 계약만 제공하며 base에 있는 API라고 주장하지 않는다.
+- C1 r2 연결에서는 기존 native_owner token/native_barrier/continue_native API를 사용한다. 이전 별도 callback 방식도 보존한다. 일반 after_arrival_confirmation/사용자 token은 거부한다. 성공과 취소 callback은 서로 다른 terminal 증거를 검증하며, 공용 훅의 정확한 입력/잠금/반환값은 WIRING_PROPOSAL에 고정했다. adapter는 API router·canonical 정의·저장·공용 executor를 수정하지 않는다.
 - live ConstraintPort, authenticated ObservationPort, foot/body/physical-stop/departure provider, posture/gait/terrain validation이 없다. 따라서 운영상 native 등록은 계속 비활성이다. 없는 capability는 해당 action에만 표시한다. 편집·검사와 독립 단계는 계속 가능하다.
 - 기존 `ControlManager`의 STOP/lease/TTL과 navigation command consumer 사이에 최종 authority 계약을 연결해야 한다. HOLD ACK는 command gate가 설치됐다는 ACK이며 physical stop 증명이 아니다. HOLD는 latch, RELEASE는 자기 owner 제한만 해제하며 old command/goal 재생은 금지한다. E-stop/충돌 > 모든 owner HOLD > terrain cap > tracking을 가장 제한적으로 적용한다. 새 request sequence보다 늦게 도착한 RELEASE는 HOLD를 덮어쓸 수 없어야 한다.
 - 효과 처리 중에도 최종 authority의 독립 watchdog/E-stop은 작동해야 한다. 이 adapter 자체는 스케줄러/하드웨어 안전장치가 아니다. `observe(None)`을 호출하지 않으면 Python action state가 스스로 시간을 진행하지 않는다. production scheduler를 추가로 만들지 않고 기존 backend 소유 loop에 연결해야 한다.

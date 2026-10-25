@@ -95,6 +95,7 @@ class RuntimeContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn(("goal", "exit", 2), r.ports.calls)
         r.clock.now = 2.03
         self.assertTrue((await r.adapter.event_ack(event(r, "HOLD_ACK")))["accepted"])
+        r.ports.drop_ack = False  # consumer now reports the installed ACK too
         await r.adapter.tick()
         self.assertEqual(r.adapter.state.phase, "EXIT_PENDING")
         self.assertEqual(r.ports.calls.count(("goal", "exit", 2)), 1)
@@ -245,7 +246,8 @@ class SignalFragmentTests(unittest.TestCase):
                                      "camera-signal-binding", "f" * 64, "signal-1", "crossing-1", "local")
         self.context = dict(schema_version="traffic-observation-sidecar.v0.1", source_id="camera",
             producer_epoch="camera-boot", source_clock="synchronized_ros", sequence=1, source_stamp_ns="1000",
-            clock_verified=True, association_verified=True, config_hash="e" * 64,
+            clock_verified=True, identity_verified=True, association_verified=True, config_hash="e" * 64,
+            first_received_s=10., processed_s=10.08, source_age_at_first_receipt_s=.02,
             binding_id="camera-signal-binding", receipt_ttl_s=.25, source_age_s=.1, receiver_age_s=.08,
             complete_mission_evidence=False, departure_authorized=False)
         self.fragment = dict(signal_id="signal-1", crossing_id="crossing-1", model_sha256="f" * 64,

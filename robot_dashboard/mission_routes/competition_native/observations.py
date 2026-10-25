@@ -120,7 +120,7 @@ class Frame:
             source_age = received.stamp.source_age_s
             if name == "path" and self.evidence.observation_age_s is not None:
                 source_age = max(source_age, self.evidence.observation_age_s)
-            if source_age + elapsed > source_ttl:
+            if self.now > received.receipt_s + source_ttl - source_age:
                 return False
         return True
 
