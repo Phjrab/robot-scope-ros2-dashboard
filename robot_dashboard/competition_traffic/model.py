@@ -14,7 +14,7 @@ from .inference import settings, regions, interior_edge, native_nms
 class OwnerModel:
     """The caller must establish trust independently; a hash is not provenance."""
 
-    def __init__(self, path, config, *, acknowledge_trusted_pickle=False, inference_profile="full640"):
+    def __init__(self, path, config, *, acknowledge_trusted_pickle=False, inference_profile="full640", emitter_profile=None):
         path = Path(path).resolve(strict=True)
         model = config.document["model"]
         if path.suffix.lower() not in (".pt", ".onnx") or not path.is_file():
@@ -51,12 +51,15 @@ class OwnerModel:
         self.last_diagnostics = {}
         self.confidence_floor = min(.25, config.document["min_confidence"])
         self.inference_settings, self.inference_settings_sha256 = settings(
-            inference_profile, confidence_floor=self.confidence_floor, model_sha256=self.sha256)
+            inference_profile, confidence_floor=self.confidence_floor, model_sha256=self.sha256,
+            emitter_profile=emitter_profile)
 
     def infer(self, bgr):
         start = time.monotonic()
         h, w = bgr.shape[:2]
         selected, post_nms, non_allowlist, edge_rejected = [], 0, 0, 0
+        stages = {name: 0. for name in ("preprocess", "inference", "postprocess")}
+        stage_timings_available = True
         views = regions((w, h), self.inference_settings)
         for view_index, region in enumerate(views):
             x1, y1, x2, y2 = region
@@ -64,6 +67,13 @@ class OwnerModel:
             r = self.adapter.model.predict(
                 source=source, device="cpu", verbose=False, conf=self.confidence_floor,
                 imgsz=self.inference_settings["imgsz"], rect=True, iou=.7, max_det=300)[0]
+            speed = getattr(r, "speed", {})
+            for name in stages:
+                duration = speed.get(name)
+                if type(duration) in (int, float) and math.isfinite(duration) and duration >= 0:
+                    stages[name] += duration / 1000.
+                else:
+                    stage_timings_available = False
             if list(r.orig_shape) != list(source.shape[:2]):
                 raise ValueError("MODEL_ORIGINAL_SHAPE_MISMATCH")
             for idx, (box, conf, cls) in enumerate(zip(
@@ -93,5 +103,6 @@ class OwnerModel:
             "inference_profile": self.inference_settings,
             "inference_settings_sha256": self.inference_settings_sha256,
             "inference_wall_s": time.monotonic()-start,
+            "model_reported_stage_s": stages if stage_timings_available else None,
         }
         return selected

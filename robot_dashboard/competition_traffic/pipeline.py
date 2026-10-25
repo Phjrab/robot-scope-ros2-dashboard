@@ -15,6 +15,7 @@ from experiments.competition_vm.traffic_signals.detector import Detection, iou
 from .config import finite
 from .association import BoundedAssociation
 from .lamp import lamp_diagnostic
+from .emitter import profile_settings, validate_emitter
 
 
 @dataclass
@@ -165,6 +166,10 @@ class TrafficPipeline:
         flags = self._clock_gate(f, now_s)
         clock_flags = list(flags)
         settings_hash = getattr(self.detector, "inference_settings_sha256", None)
+        emitter_settings = getattr(self.detector, "inference_settings", {}).get("emitter_validation")
+        if emitter_settings is not None and emitter_settings != profile_settings(emitter_settings.get("name")):
+            self.invalidate()
+            raise ValueError("EMITTER_SETTINGS_MISMATCH")
         if settings_hash != self.last_inference_settings_hash:
             flags.append("INFERENCE_SETTINGS_CHANGED")
             self.last_inference_settings_hash = settings_hash
@@ -190,6 +195,9 @@ class TrafficPipeline:
         detections = []
         association_error = None
         free_observations = []
+        emitter_wall_s = 0.
+        selected_emitter = None
+        raw_before_emitter = "UNKNOWN"
         if (valid_image and (self.observation_mode == "detection-only" or
                             (size == a["native_image_size"] and f.binding_id == a["binding_id"]))
                 and not {"REPEATED_OR_REVERSED_FRAME", "RETIRED_EPOCH", "RECEIVER_CLOCK_INVALID"}.intersection(flags)):
@@ -209,6 +217,15 @@ class TrafficPipeline:
                               "raw_state": raw["raw_state"], "quality_flags": raw["quality_flags"],
                               "color_metrics": raw["metrics"], "stable_state": None,
                               "mission_identity": None}
+                    if emitter_settings is not None:
+                        started = time.monotonic()
+                        try:
+                            record["emitter_validation"] = validate_emitter(bgr, detection.bbox, raw)
+                        except Exception:
+                            record["emitter_validation"] = {"profile": emitter_settings["name"],
+                                "supported": False, "validated_state": "UNKNOWN", "reasons": ["EMITTER_EXCEPTION"]}
+                        record["emitter_validation_wall_s"] = time.monotonic()-started
+                        emitter_wall_s += record["emitter_validation_wall_s"]
                     if self.lamp_experiment and raw["raw_state"] in ("UNKNOWN", "AMBIGUOUS"):
                         try:
                             record["lamp_diagnostic"] = lamp_diagnostic(bgr, detection.bbox)
@@ -231,6 +248,13 @@ class TrafficPipeline:
                     try:
                         color = classify_roi(bgr, chosen.bbox, exposure_settling=f.exposure_settling,
                                              association_verified=a["verified"] or f.source_clock == "fixture")
+                        raw_before_emitter = color["raw_state"]
+                        if emitter_settings is not None:
+                            selected_emitter = next(r["emitter_validation"] for r in free_observations
+                                                    if r["bbox_xyxy_native"] == list(chosen.bbox))
+                            if not selected_emitter["supported"]:
+                                color["raw_state"], color["score"] = "UNKNOWN", 0.
+                                color["quality_flags"].append("EMITTER_UNSUPPORTED")
                         flags.extend(color["quality_flags"])
                     except Exception:
                         flags.append("COLOR_ANALYSIS_EXCEPTION")
@@ -269,7 +293,8 @@ class TrafficPipeline:
             "roi_xyxy_native": list(chosen.bbox) if chosen else None,
             "native_image_size": size, "exposure_metadata": dict(f.exposure_metadata),
             "model_sha256": getattr(self.detector, "sha256", None),
-            "preprocess_profile": "vm-combined-" + ColorProfile().sha256[:16],
+            "preprocess_profile": "vm-combined-" + ColorProfile().sha256[:16] +
+                                  ("+" + emitter_settings["name"] if emitter_settings is not None else ""),
             "native_image": f.image_handle, "processed_image": None,
         }
         context = {
@@ -282,6 +307,10 @@ class TrafficPipeline:
             "processing_started_s": processing_started_s,
             "queue_residence_s": max(0., processing_started_s-first_receipt),
             "pipeline_wall_s": time.monotonic()-processing_wall_start,
+            "emitter_validation_wall_s": emitter_wall_s,
+            "emitter_profile": emitter_settings,
+            "raw_state_before_emitter": raw_before_emitter,
+            "selected_emitter_validation": selected_emitter,
             "source_age_at_first_receipt_s": first_age,
             "source_age_s": age, "receiver_age_s": max(0., now_s - first_receipt),
             "config_hash": self.config.sha256, "binding_id": f.binding_id,

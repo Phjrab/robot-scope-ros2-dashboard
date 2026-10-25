@@ -218,7 +218,7 @@ python - <<'PYTEST'
 import unittest
 suite = unittest.defaultTestLoader.discover('tests/competition_traffic', top_level_dir='tests')
 result = unittest.TextTestRunner(verbosity=2).run(suite)
-raise SystemExit(0 if result.wasSuccessful() and result.testsRun >= 81 and not result.skipped else 1)
+raise SystemExit(0 if result.wasSuccessful() and result.testsRun >= 90 and not result.skipped else 1)
 PYTEST
 ```
 
@@ -293,3 +293,45 @@ and detector `inference_wall_s` expose delay. Source age at use is
 `source_age_at_first_receipt_s + now - first_received_s` on the same host.
 No completion timestamp, polling time or new inference profile refreshes TTL.
 An inference beyond .25 s remains inspectable but cannot supply fresh GREEN.
+
+## Round 4: frozen, unadopted emitting-region candidate
+
+`--emitter-profile enclosed-chroma-v1` enables one experimental validator on the
+original native detector crop. It checks an interior chromatic component's size,
+position, HSV V intensity and dark surrounding ring. It uses the original VM
+color mask; it does not enhance pixels or prove physical emission/front-facing
+identity. Raw diagnostic color is always retained. Unsupported results are
+UNKNOWN in the candidate view; the opt-in pipeline restricts the selected color
+accordingly. The default is **off**. This candidate is **not qualified for
+production or a live mission**: on the viewed data it rejected all 153 boxes,
+including every known real GREEN and readable RED. No threshold retuning followed.
+
+The existing `inference_settings_sha256` includes the complete optional
+`emitter_validation` descriptor. There is no second emitter hash. The old hash
+is unchanged when the option is absent. Changing the combined profile resets
+existing temporal/association evidence. First receipt/source age semantics are
+unchanged; emitter time is included in completion/freshness accounting.
+`context.emitter_validation_wall_s` and each free box's duration expose its cost;
+model-reported preprocessing/inference/postprocessing times are diagnostic seconds.
+The overlay keeps raw color and `emit UNKNOWN/RED/GREEN` distinct from mission stage.
+The earlier first-receipt integration request is already resolved in C1
+`85c5b6b8` and C2 `8a58370b`; ROUND4 does not reopen it. If C1 later adopts new
+search/emitter settings, bind the combined settings hash at the trusted owner
+boundary. This unadopted candidate does not request production enablement.
+
+```sh
+python -m robot_dashboard.competition_traffic.experiments \
+  --input-root /absolute/private/work \
+  --labels docs/mission-competition/traffic-input/real-labels.json \
+  --config /absolute/owner-v3-config.json --model /absolute/yolov8n.pt \
+  --output /absolute/new-emitter-audit \
+  --emitter-profile enclosed-chroma-v1 --acknowledge-trusted-pickle
+```
+
+This mode freezes search to upper-overlap640/confidence .25 and refuses confidence
+ablation. Labels only score outputs. The existing replay CLI accepts the same
+optional profile. Do not use latency from overlapping or aborted runs as an A/B
+benchmark. See [ROUND4](../../parallel-review/20261024/C4/ROUND4.md),
+[results](round4-results.json), [GREEN audit](round4-green-audit.json) and the
+[one-window data request](EMITTER_DATA_REQUEST.md). The candidate is frozen pending
+new independently reviewed data; it is not a successful false-GREEN solution.

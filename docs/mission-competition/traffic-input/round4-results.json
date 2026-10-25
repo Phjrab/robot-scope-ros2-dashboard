@@ -1,0 +1,1154 @@
+{
+  "schema_version": "c4-round4-emitter-results.v1",
+  "base_sha": "9e9ebcc0cbc613d5b0a7f50a27a7b256c3f829bd",
+  "candidate_status": "FROZEN_NOT_ADOPTED_POSITIVE_LOSS",
+  "production_default": "unchanged; emitter option disabled",
+  "independent_test": false,
+  "design_freeze": {
+    "frozen_at_utc": "2026-10-25T06:02:58.979968+00:00",
+    "candidate_count": 1,
+    "emitter_profile": {
+      "name": "enclosed-chroma-v1",
+      "min_crop_side": 12,
+      "frame_edge_margin": 1,
+      "component_margin": 2,
+      "min_component_pixels": 12,
+      "max_components": 32,
+      "max_area_fraction": 0.25,
+      "max_width_fraction": 0.65,
+      "max_height_fraction": 0.55,
+      "center_x_min": 0.2,
+      "center_x_max": 0.8,
+      "min_component_median_value": 160.0,
+      "min_value_contrast": 60.0,
+      "enclosure_value_drop": 40.0,
+      "min_dark_enclosure_fraction": 0.65,
+      "ring_radius_fraction": 0.15,
+      "min_ring_radius": 2
+    },
+    "source_sha256": {
+      "emitter.py": "889eef98cd68d0383483883d885a76d559faf52765adf5fed5e16f1be7755444",
+      "inference.py": "acf6dee5f6efcb4ac454d26636347fc462faf12410949797db0cbbd93dd0f4cc",
+      "model.py": "26ffacfa595e8d5182f8b74b20990545f0813447ad8af2a8de67a8a120325e2d",
+      "pipeline.py": "8cc64e13075eca56d0baba6a79ee9bbd25e56738db589a755156ebc3aef3f8cd",
+      "replay.py": "360c996e83f94bd0d23d5e61747cce3a135b172df7436fbde48b165f42395508",
+      "experiments.py": "045d869e3291234b319133315bdb4d3740e68a3d7d44babbd355190a4937e933",
+      "artifacts.py": "5008e4ae00ca2cfea933f41e20f09f93a1c63266de758d87dcec6c046e46e814"
+    },
+    "inference_settings_sha256": "9e5f1496f6fcd4772c88d8b4c3ac64ddb2efb60ebd4ca8fca0f965bd31b05b9c",
+    "decision": "Evaluate once; retain off by default; no threshold/grid search after results"
+  },
+  "model_sha256": "f59b3d833e2ff32e194b5bb8e08d211dc7c5bdf144b90d2c8412c47ccfc83b36",
+  "search_profile": "upper-overlap640",
+  "confidence": 0.25,
+  "model_or_tiles_changed": false,
+  "ground_truth_used_as_inference_input": false,
+  "full_original_audit": {
+    "frames": 255,
+    "boxes": 153,
+    "method": "Current baseline detector boxes, verified identical to ROUND3; reread/hash original JPEG, rerun unchanged color core and one emitter validator. This is not another 255-frame inference with emitter enabled.",
+    "before_colors": {
+      "RED": 84,
+      "GREEN": 34,
+      "AMBIGUOUS": 6,
+      "UNKNOWN": 29
+    },
+    "after_colors": {
+      "UNKNOWN": 153
+    },
+    "all_boxes_equal_round3": true,
+    "all_raw_colors_reproduced": true,
+    "input_manifest_sha256": "6502cd1e961f501c7991563eb04e4a8aa103682ab528b59e4bc5c3d2269110a5",
+    "baseline_observations_sha256": "994021b05fbb213b4e9844b21a4a3a5d3cd4d73669448f2e642063628b1286ec",
+    "emitter_measurements": {
+      "original_jpeg_decode": {
+        "count": 255,
+        "p50": 0.002378361066803336,
+        "p95": 0.002932548988610506,
+        "max": 0.004134254064410925,
+        "unit": "seconds",
+        "quantile_method": "nearest rank"
+      },
+      "existing_color_core_per_box": {
+        "count": 153,
+        "p50": 0.0006942169275134802,
+        "p95": 0.0015243948437273502,
+        "max": 0.07083911099471152,
+        "unit": "seconds",
+        "quantile_method": "nearest rank"
+      },
+      "emitter_per_box": {
+        "count": 153,
+        "p50": 0.0001744050532579422,
+        "p95": 0.00035533192567527294,
+        "max": 0.000985083170235157,
+        "unit": "seconds",
+        "quantile_method": "nearest rank"
+      },
+      "emitter_per_frame_including_no_candidates": {
+        "count": 255,
+        "p50": 0.0,
+        "p95": 0.00037377793341875076,
+        "max": 0.001135365106165409,
+        "unit": "seconds",
+        "quantile_method": "nearest rank"
+      }
+    }
+  },
+  "known_raw_green34": {
+    "selection": "Previously reviewed GREEN-return crops; not independent precision test; unreadable remains unreadable truth",
+    "groups": {
+      "NON_SIGNAL_BUS_STOP_SIGN_FALSE_GREEN": {
+        "count": 3,
+        "before": {
+          "GREEN": 3
+        },
+        "after": {
+          "UNKNOWN": 3
+        }
+      },
+      "UNREADABLE_BACK_OR_CLIPPED_HOUSING": {
+        "count": 28,
+        "before": {
+          "GREEN": 28
+        },
+        "after": {
+          "UNKNOWN": 28
+        }
+      },
+      "VISIBLE_GREEN_OTHER_CROSSING": {
+        "count": 3,
+        "before": {
+          "GREEN": 3
+        },
+        "after": {
+          "UNKNOWN": 3
+        }
+      }
+    },
+    "records_file": "round4-green-audit.json"
+  },
+  "labeled_27": {
+    "unique_originals": 25,
+    "independent_test": false,
+    "all_boxes_equal_round3": true,
+    "before": {
+      "GREEN": {
+        "targets": 3,
+        "matched_targets": 1,
+        "raw_states": {
+          "GREEN": 1,
+          "UNKNOWN": 2
+        }
+      },
+      "RED": {
+        "targets": 15,
+        "matched_targets": 15,
+        "raw_states": {
+          "RED": 8,
+          "UNKNOWN": 6,
+          "AMBIGUOUS": 1
+        }
+      },
+      "UNREADABLE": {
+        "targets": 4,
+        "matched_targets": 0,
+        "raw_states": {
+          "UNKNOWN": 4
+        }
+      },
+      "OTHER_LIGHT": {
+        "targets": 1,
+        "matched_targets": 0,
+        "raw_states": {
+          "UNKNOWN": 1
+        }
+      },
+      "NO_LIGHT": {
+        "targets": 4,
+        "matched_targets": 0,
+        "raw_states": {
+          "UNKNOWN": 4
+        }
+      }
+    },
+    "after": {
+      "GREEN": {
+        "UNKNOWN": 3
+      },
+      "RED": {
+        "UNKNOWN": 15
+      },
+      "UNREADABLE": {
+        "UNKNOWN": 4
+      },
+      "OTHER_LIGHT": {
+        "UNKNOWN": 1
+      },
+      "NO_LIGHT": {
+        "UNKNOWN": 4
+      }
+    },
+    "model_stage_s": {
+      "preprocess": {
+        "count": 25,
+        "p50": 0.003220136044546962,
+        "p95": 0.005881938152015209,
+        "max": 0.011193751823157072,
+        "unit": "seconds",
+        "quantile_method": "nearest rank"
+      },
+      "inference": {
+        "count": 25,
+        "p50": 0.11218002927489579,
+        "p95": 0.15771140926517546,
+        "max": 0.28281693905591965,
+        "unit": "seconds",
+        "quantile_method": "nearest rank"
+      },
+      "postprocess": {
+        "count": 25,
+        "p50": 0.0026389143895357847,
+        "p95": 0.003240124089643359,
+        "max": 0.003528833156451583,
+        "unit": "seconds",
+        "quantile_method": "nearest rank"
+      }
+    },
+    "emitter_wall_s_per_image": {
+      "count": 25,
+      "p50": 1.2713950127363205e-05,
+      "p95": 0.0003932090476155281,
+      "max": 0.000733257969841361,
+      "unit": "seconds",
+      "quantile_method": "nearest rank"
+    },
+    "diagnostic_matches": [
+      {
+        "id": "preview-0",
+        "sha256": "5e6a0fca3b4b570576a85ea40d026ed3d3deb286bcbc1d0659ac4fc760436864",
+        "label": "UNREADABLE",
+        "matched": false,
+        "before": "UNKNOWN",
+        "after": "UNKNOWN",
+        "validation": null
+      },
+      {
+        "id": "preview-1",
+        "sha256": "ba04810e8c2bbafe70c61652b3eeab2ec672e6f479cfa4f4c0259a24eb87f6d9",
+        "label": "UNREADABLE",
+        "matched": false,
+        "before": "UNKNOWN",
+        "after": "UNKNOWN",
+        "validation": null
+      },
+      {
+        "id": "preview-2",
+        "sha256": "fe02a58c5ff84ddad5cd7663645ab49fc76b3eb2c2d40d98f838e99e47041893",
+        "label": "GREEN",
+        "matched": true,
+        "before": "GREEN",
+        "after": "UNKNOWN",
+        "validation": {
+          "profile": "enclosed-chroma-v1",
+          "raw_state": "GREEN",
+          "validated_state": "UNKNOWN",
+          "supported": false,
+          "reasons": [
+            "COMPONENT_NOT_BRIGHT",
+            "DARK_ENCLOSURE_UNSUPPORTED"
+          ],
+          "components": [
+            {
+              "bbox_xyxy_native": [
+                722,
+                79,
+                731,
+                95
+              ],
+              "pixels": 104,
+              "median_value": 112.5,
+              "ring_median_value": 61.0,
+              "value_contrast": 51.5,
+              "dark_enclosure_fraction": 0.7024793388429752,
+              "supported": false,
+              "reasons": [
+                "COMPONENT_NOT_BRIGHT",
+                "DARK_ENCLOSURE_UNSUPPORTED"
+              ]
+            }
+          ],
+          "crossing_identity_verified": false,
+          "physical_emission_proven": false,
+          "color_reconstruction_claimed": false
+        }
+      },
+      {
+        "id": "preview-3",
+        "sha256": "3df72de999dd5be1f44515b47db1a572475cfc81fe8e56447f26b39bbd1efffa",
+        "label": "GREEN",
+        "matched": false,
+        "before": "UNKNOWN",
+        "after": "UNKNOWN",
+        "validation": null
+      },
+      {
+        "id": "preview-4",
+        "sha256": "64350f17ce502bca151aecb79397769cd82616ce4948625436777195947c6aec",
+        "label": "UNREADABLE",
+        "matched": false,
+        "before": "UNKNOWN",
+        "after": "UNKNOWN",
+        "validation": null
+      },
+      {
+        "id": "preview-5",
+        "sha256": "84ea91c56b3e4505ec34c6814bc196ba77daebb6bd6abf9e94b3b24817ce1db3",
+        "label": "UNREADABLE",
+        "matched": false,
+        "before": "UNKNOWN",
+        "after": "UNKNOWN",
+        "validation": null
+      },
+      {
+        "id": "preview-7",
+        "sha256": "0eb6855c00f25cba1924d6a4fba2785603ead0cfc889166a84c84f5c478998dd",
+        "label": "RED",
+        "matched": true,
+        "before": "RED",
+        "after": "UNKNOWN",
+        "validation": {
+          "profile": "enclosed-chroma-v1",
+          "raw_state": "RED",
+          "validated_state": "UNKNOWN",
+          "supported": false,
+          "reasons": [
+            "COMPONENT_NOT_BRIGHT",
+            "DARK_ENCLOSURE_UNSUPPORTED"
+          ],
+          "components": [
+            {
+              "bbox_xyxy_native": [
+                262,
+                137,
+                279,
+                159
+              ],
+              "pixels": 249,
+              "median_value": 99.0,
+              "ring_median_value": 59.0,
+              "value_contrast": 40.0,
+              "dark_enclosure_fraction": 0.5157232704402516,
+              "supported": false,
+              "reasons": [
+                "COMPONENT_NOT_BRIGHT",
+                "DARK_ENCLOSURE_UNSUPPORTED"
+              ]
+            }
+          ],
+          "crossing_identity_verified": false,
+          "physical_emission_proven": false,
+          "color_reconstruction_claimed": false
+        }
+      },
+      {
+        "id": "preview-8",
+        "sha256": "70e5c018814cfa66fc9b5dbeb1cfa4243099f15acb58562365f5b40114c50c27",
+        "label": "NO_LIGHT",
+        "matched": false,
+        "before": "UNKNOWN",
+        "after": "UNKNOWN",
+        "validation": null
+      },
+      {
+        "id": "preview-9",
+        "sha256": "d46bcba5c8c29aaa8d534170083f4571485f9a2d3087d9b0d2dadeff97142323",
+        "label": "NO_LIGHT",
+        "matched": false,
+        "before": "UNKNOWN",
+        "after": "UNKNOWN",
+        "validation": null
+      },
+      {
+        "id": "preview-10",
+        "sha256": "b1358efb765dfe648a37af552623f74bf5e0c6ba78c85468fbf2b5e1f394347f",
+        "label": "RED",
+        "matched": true,
+        "before": "RED",
+        "after": "UNKNOWN",
+        "validation": {
+          "profile": "enclosed-chroma-v1",
+          "raw_state": "RED",
+          "validated_state": "UNKNOWN",
+          "supported": false,
+          "reasons": [
+            "COMPONENT_NOT_BRIGHT",
+            "DARK_ENCLOSURE_UNSUPPORTED"
+          ],
+          "components": [
+            {
+              "bbox_xyxy_native": [
+                674,
+                16,
+                694,
+                45
+              ],
+              "pixels": 286,
+              "median_value": 71.5,
+              "ring_median_value": 51.0,
+              "value_contrast": 20.5,
+              "dark_enclosure_fraction": 0.008077544426494346,
+              "supported": false,
+              "reasons": [
+                "COMPONENT_NOT_BRIGHT",
+                "DARK_ENCLOSURE_UNSUPPORTED"
+              ]
+            }
+          ],
+          "crossing_identity_verified": false,
+          "physical_emission_proven": false,
+          "color_reconstruction_claimed": false
+        }
+      },
+      {
+        "id": "preview-11",
+        "sha256": "49c1711f6192a6f4e54ddd7b544f316461b8e49eb3b739e9c3f8b0ef4989e86c",
+        "label": "RED",
+        "matched": true,
+        "before": "RED",
+        "after": "UNKNOWN",
+        "validation": {
+          "profile": "enclosed-chroma-v1",
+          "raw_state": "RED",
+          "validated_state": "UNKNOWN",
+          "supported": false,
+          "reasons": [
+            "COMPONENT_NOT_BRIGHT"
+          ],
+          "components": [
+            {
+              "bbox_xyxy_native": [
+                323,
+                104,
+                346,
+                133
+              ],
+              "pixels": 515,
+              "median_value": 138.0,
+              "ring_median_value": 46.0,
+              "value_contrast": 92.0,
+              "dark_enclosure_fraction": 0.91015625,
+              "supported": false,
+              "reasons": [
+                "COMPONENT_NOT_BRIGHT"
+              ]
+            }
+          ],
+          "crossing_identity_verified": false,
+          "physical_emission_proven": false,
+          "color_reconstruction_claimed": false
+        }
+      },
+      {
+        "id": "preview-12",
+        "sha256": "41e9a5c90bc7882e2cafe6914fcb9a15544d2700da3aa433b370f8ffab10d019",
+        "label": "NO_LIGHT",
+        "matched": false,
+        "before": "UNKNOWN",
+        "after": "UNKNOWN",
+        "validation": null
+      },
+      {
+        "id": "preview-13",
+        "sha256": "474e5ce552abf73b217e768f3f097e128f18758d1b178239ddc0f53908cfb401",
+        "label": "NO_LIGHT",
+        "matched": false,
+        "before": "UNKNOWN",
+        "after": "UNKNOWN",
+        "validation": null
+      },
+      {
+        "id": "opposite-green",
+        "sha256": "b1358efb765dfe648a37af552623f74bf5e0c6ba78c85468fbf2b5e1f394347f",
+        "label": "GREEN",
+        "matched": false,
+        "before": "UNKNOWN",
+        "after": "UNKNOWN",
+        "validation": null
+      },
+      {
+        "id": "display",
+        "sha256": "fe02a58c5ff84ddad5cd7663645ab49fc76b3eb2c2d40d98f838e99e47041893",
+        "label": "OTHER_LIGHT",
+        "matched": false,
+        "before": "UNKNOWN",
+        "after": "UNKNOWN",
+        "validation": null
+      },
+      {
+        "id": "v3-117",
+        "sha256": "b00e93a61c8cab6fcad048ec8a7d880ef0e1c2b68c88b6072a4df6156888cab9",
+        "label": "RED",
+        "matched": true,
+        "before": "RED",
+        "after": "UNKNOWN",
+        "validation": {
+          "profile": "enclosed-chroma-v1",
+          "raw_state": "RED",
+          "validated_state": "UNKNOWN",
+          "supported": false,
+          "reasons": [
+            "COMPONENT_NOT_BRIGHT",
+            "DARK_ENCLOSURE_UNSUPPORTED"
+          ],
+          "components": [
+            {
+              "bbox_xyxy_native": [
+                541,
+                89,
+                543,
+                99
+              ],
+              "pixels": 17,
+              "median_value": 132.0,
+              "ring_median_value": 164.0,
+              "value_contrast": -32.0,
+              "dark_enclosure_fraction": 0.09230769230769231,
+              "supported": false,
+              "reasons": [
+                "COMPONENT_NOT_BRIGHT",
+                "DARK_ENCLOSURE_UNSUPPORTED"
+              ]
+            }
+          ],
+          "crossing_identity_verified": false,
+          "physical_emission_proven": false,
+          "color_reconstruction_claimed": false
+        }
+      },
+      {
+        "id": "v3-121",
+        "sha256": "164dd9f0527b9e30bcf0057cf02abffd823ab9d235a2438241dcc6b6a7f589e8",
+        "label": "RED",
+        "matched": true,
+        "before": "UNKNOWN",
+        "after": "UNKNOWN",
+        "validation": {
+          "profile": "enclosed-chroma-v1",
+          "raw_state": "UNKNOWN",
+          "validated_state": "UNKNOWN",
+          "supported": false,
+          "reasons": [
+            "RAW_COLOR_UNRESOLVED"
+          ],
+          "components": [],
+          "crossing_identity_verified": false,
+          "physical_emission_proven": false,
+          "color_reconstruction_claimed": false
+        }
+      },
+      {
+        "id": "v3-122",
+        "sha256": "4bb467f6ffc0eb725f9ec153f0438414f0d08e68712a1a6a30c0928c90ec2135",
+        "label": "RED",
+        "matched": true,
+        "before": "UNKNOWN",
+        "after": "UNKNOWN",
+        "validation": {
+          "profile": "enclosed-chroma-v1",
+          "raw_state": "UNKNOWN",
+          "validated_state": "UNKNOWN",
+          "supported": false,
+          "reasons": [
+            "RAW_COLOR_UNRESOLVED"
+          ],
+          "components": [],
+          "crossing_identity_verified": false,
+          "physical_emission_proven": false,
+          "color_reconstruction_claimed": false
+        }
+      },
+      {
+        "id": "v3-123",
+        "sha256": "2c541e6b59efcc83ead06381f7f8e6fae56e372f1669d4f328cde1b3cc154033",
+        "label": "RED",
+        "matched": true,
+        "before": "RED",
+        "after": "UNKNOWN",
+        "validation": {
+          "profile": "enclosed-chroma-v1",
+          "raw_state": "RED",
+          "validated_state": "UNKNOWN",
+          "supported": false,
+          "reasons": [
+            "COMPONENT_NOT_BRIGHT",
+            "DARK_ENCLOSURE_UNSUPPORTED"
+          ],
+          "components": [
+            {
+              "bbox_xyxy_native": [
+                558,
+                96,
+                563,
+                102
+              ],
+              "pixels": 13,
+              "median_value": 102.0,
+              "ring_median_value": 105.0,
+              "value_contrast": -3.0,
+              "dark_enclosure_fraction": 0.0,
+              "supported": false,
+              "reasons": [
+                "COMPONENT_NOT_BRIGHT",
+                "DARK_ENCLOSURE_UNSUPPORTED"
+              ]
+            }
+          ],
+          "crossing_identity_verified": false,
+          "physical_emission_proven": false,
+          "color_reconstruction_claimed": false
+        }
+      },
+      {
+        "id": "v3-124",
+        "sha256": "f2f65f91ff5058725b080f3a69d20a6658483811e16aa14cfa88c20cb38bd76c",
+        "label": "RED",
+        "matched": true,
+        "before": "UNKNOWN",
+        "after": "UNKNOWN",
+        "validation": {
+          "profile": "enclosed-chroma-v1",
+          "raw_state": "UNKNOWN",
+          "validated_state": "UNKNOWN",
+          "supported": false,
+          "reasons": [
+            "RAW_COLOR_UNRESOLVED"
+          ],
+          "components": [],
+          "crossing_identity_verified": false,
+          "physical_emission_proven": false,
+          "color_reconstruction_claimed": false
+        }
+      },
+      {
+        "id": "v3-125",
+        "sha256": "df9668a49a16014e107569b0510e1f00fad579ca02d1ad45474adc6d07444d02",
+        "label": "RED",
+        "matched": true,
+        "before": "UNKNOWN",
+        "after": "UNKNOWN",
+        "validation": {
+          "profile": "enclosed-chroma-v1",
+          "raw_state": "UNKNOWN",
+          "validated_state": "UNKNOWN",
+          "supported": false,
+          "reasons": [
+            "RAW_COLOR_UNRESOLVED"
+          ],
+          "components": [],
+          "crossing_identity_verified": false,
+          "physical_emission_proven": false,
+          "color_reconstruction_claimed": false
+        }
+      },
+      {
+        "id": "v3-126",
+        "sha256": "b43430a8cf4875567dddd1f7b6a74f173d1d8f2b26baf39536c4b878371dd4fd",
+        "label": "RED",
+        "matched": true,
+        "before": "UNKNOWN",
+        "after": "UNKNOWN",
+        "validation": {
+          "profile": "enclosed-chroma-v1",
+          "raw_state": "UNKNOWN",
+          "validated_state": "UNKNOWN",
+          "supported": false,
+          "reasons": [
+            "RAW_COLOR_UNRESOLVED"
+          ],
+          "components": [],
+          "crossing_identity_verified": false,
+          "physical_emission_proven": false,
+          "color_reconstruction_claimed": false
+        }
+      },
+      {
+        "id": "v3-127",
+        "sha256": "3b51a0287c2be2a34f8037d0e41da1acf65d1400dcda313604ce87b6a74bce24",
+        "label": "RED",
+        "matched": true,
+        "before": "UNKNOWN",
+        "after": "UNKNOWN",
+        "validation": {
+          "profile": "enclosed-chroma-v1",
+          "raw_state": "UNKNOWN",
+          "validated_state": "UNKNOWN",
+          "supported": false,
+          "reasons": [
+            "RAW_COLOR_UNRESOLVED"
+          ],
+          "components": [],
+          "crossing_identity_verified": false,
+          "physical_emission_proven": false,
+          "color_reconstruction_claimed": false
+        }
+      },
+      {
+        "id": "v3-128",
+        "sha256": "085bd81675707550868d1071452ce9e1650ce6ebbe8016a8905e7eb09bb971bf",
+        "label": "RED",
+        "matched": true,
+        "before": "RED",
+        "after": "UNKNOWN",
+        "validation": {
+          "profile": "enclosed-chroma-v1",
+          "raw_state": "RED",
+          "validated_state": "UNKNOWN",
+          "supported": false,
+          "reasons": [
+            "COMPONENT_NOT_BRIGHT",
+            "DARK_ENCLOSURE_UNSUPPORTED"
+          ],
+          "components": [
+            {
+              "bbox_xyxy_native": [
+                577,
+                72,
+                580,
+                79
+              ],
+              "pixels": 13,
+              "median_value": 98.0,
+              "ring_median_value": 107.5,
+              "value_contrast": -9.5,
+              "dark_enclosure_fraction": 0.05357142857142857,
+              "supported": false,
+              "reasons": [
+                "COMPONENT_NOT_BRIGHT",
+                "DARK_ENCLOSURE_UNSUPPORTED"
+              ]
+            }
+          ],
+          "crossing_identity_verified": false,
+          "physical_emission_proven": false,
+          "color_reconstruction_claimed": false
+        }
+      },
+      {
+        "id": "v3-129",
+        "sha256": "bbbbc61e37dd75c51e2be3189f801e331cb2ae18c26a11706d9c84ef86971f13",
+        "label": "RED",
+        "matched": true,
+        "before": "AMBIGUOUS",
+        "after": "UNKNOWN",
+        "validation": {
+          "profile": "enclosed-chroma-v1",
+          "raw_state": "AMBIGUOUS",
+          "validated_state": "UNKNOWN",
+          "supported": false,
+          "reasons": [
+            "RAW_COLOR_UNRESOLVED"
+          ],
+          "components": [],
+          "crossing_identity_verified": false,
+          "physical_emission_proven": false,
+          "color_reconstruction_claimed": false
+        }
+      },
+      {
+        "id": "v3-130",
+        "sha256": "8ce67b2df56f5bd2e8b6cd9e4cd26b4d0d0b4ac7549be6c8713cf8c02403bde5",
+        "label": "RED",
+        "matched": true,
+        "before": "RED",
+        "after": "UNKNOWN",
+        "validation": {
+          "profile": "enclosed-chroma-v1",
+          "raw_state": "RED",
+          "validated_state": "UNKNOWN",
+          "supported": false,
+          "reasons": [
+            "COMPONENT_NOT_BRIGHT",
+            "DARK_ENCLOSURE_UNSUPPORTED"
+          ],
+          "components": [
+            {
+              "bbox_xyxy_native": [
+                575,
+                48,
+                578,
+                53
+              ],
+              "pixels": 13,
+              "median_value": 101.0,
+              "ring_median_value": 114.5,
+              "value_contrast": -13.5,
+              "dark_enclosure_fraction": 0.0,
+              "supported": false,
+              "reasons": [
+                "COMPONENT_NOT_BRIGHT",
+                "DARK_ENCLOSURE_UNSUPPORTED"
+              ]
+            }
+          ],
+          "crossing_identity_verified": false,
+          "physical_emission_proven": false,
+          "color_reconstruction_claimed": false
+        }
+      },
+      {
+        "id": "v3-131",
+        "sha256": "419d28804aa245d727084e9ee85bbec187b94f71a5814d8565b8b5ee8db49cfa",
+        "label": "RED",
+        "matched": true,
+        "before": "RED",
+        "after": "UNKNOWN",
+        "validation": {
+          "profile": "enclosed-chroma-v1",
+          "raw_state": "RED",
+          "validated_state": "UNKNOWN",
+          "supported": false,
+          "reasons": [
+            "COMPONENT_NOT_BRIGHT",
+            "DARK_ENCLOSURE_UNSUPPORTED"
+          ],
+          "components": [
+            {
+              "bbox_xyxy_native": [
+                587,
+                31,
+                594,
+                47
+              ],
+              "pixels": 48,
+              "median_value": 109.5,
+              "ring_median_value": 93.5,
+              "value_contrast": 16.0,
+              "dark_enclosure_fraction": 0.0,
+              "supported": false,
+              "reasons": [
+                "COMPONENT_NOT_BRIGHT",
+                "DARK_ENCLOSURE_UNSUPPORTED"
+              ]
+            }
+          ],
+          "crossing_identity_verified": false,
+          "physical_emission_proven": false,
+          "color_reconstruction_claimed": false
+        }
+      }
+    ]
+  },
+  "wall_clock_attempts": {
+    "baseline": {
+      "completed": true,
+      "frames": 255,
+      "summary": {
+        "status": "PASS",
+        "missing_inputs": [],
+        "real_model_inference": "RUN",
+        "real_rgb_decode": "PASS",
+        "real_rgb_detection_replay": "RUN",
+        "robot_observation": "NOT_RUN",
+        "traffic_accuracy": null,
+        "exposure_problem_resolved": false,
+        "input_files": 255,
+        "frames": 255,
+        "decode_errors": 0,
+        "quality_flags": {
+          "EXPECTED_ROI_MISMATCH": 97,
+          "ASSOCIATION_UNVERIFIED": 255,
+          "RECEIPT_EXPIRED": 255,
+          "SOURCE_STALE": 255,
+          "FRAME_RECEIPT_GAP": 2,
+          "DETECTOR_MISSING": 141,
+          "ASSOCIATION_REACQUIRING": 16,
+          "ASSOCIATION_UNCERTAIN": 1
+        },
+        "stable_states": {
+          "UNKNOWN": 255
+        },
+        "complete_mission_evidence": false,
+        "wall_seconds": 260.4549048899207,
+        "clock_mode": "wall-clock",
+        "funnel_pass_counts": {
+          "decoded": 255,
+          "candidate_present": 114,
+          "roi_selected": 0,
+          "readable_raw_color": 0,
+          "binding_verified": 0,
+          "stable_color": 0
+        },
+        "terminal_rejections": {
+          "EXPECTED_ROI_MISMATCH": 97,
+          "DETECTION_REJECTED": 141,
+          "ASSOCIATION_REACQUIRING": 16,
+          "ASSOCIATION_UNCERTAIN": 1
+        },
+        "historical_clock_verified": false,
+        "online_readiness": "NOT_VERIFIED_LOCAL_FIXTURE_WORKLOAD_ONLY",
+        "pipeline_wall_latency_s": {
+          "min": 0.096450534183532,
+          "max": 12.644839907065034,
+          "mean": 1.0179920175697144,
+          "p95": 3.2713023878168315
+        }
+      },
+      "timings": {
+        "pipeline_wall_s": {
+          "count": 255,
+          "p50": 0.4989416301250458,
+          "p95": 3.2712852559052408,
+          "max": 12.644826220814139,
+          "unit": "seconds",
+          "quantile_method": "nearest rank"
+        },
+        "emitter_validation_wall_s": {
+          "count": 255,
+          "p50": 0.0,
+          "p95": 0.0,
+          "max": 0.0,
+          "unit": "seconds",
+          "quantile_method": "nearest rank"
+        },
+        "queue_residence_s": {
+          "count": 255,
+          "p50": 203.6507525530178,
+          "p95": 217.0142053901218,
+          "max": 217.93981014704332,
+          "unit": "seconds",
+          "quantile_method": "nearest rank"
+        },
+        "source_age_s": {
+          "count": 255,
+          "p50": 204.2539751441218,
+          "p95": 217.20965044712648,
+          "max": 218.1352778391447,
+          "unit": "seconds",
+          "quantile_method": "nearest rank"
+        },
+        "receiver_age_s": {
+          "count": 255,
+          "p50": 204.2539751441218,
+          "p95": 217.20965044712648,
+          "max": 218.1352778391447,
+          "unit": "seconds",
+          "quantile_method": "nearest rank"
+        },
+        "model_reported_preprocess": {
+          "count": 255,
+          "p50": 0.0075945062562823296,
+          "p95": 0.03243152890354395,
+          "max": 0.07493851310573518,
+          "unit": "seconds",
+          "quantile_method": "nearest rank"
+        },
+        "model_reported_inference": {
+          "count": 255,
+          "p50": 0.4785168613307178,
+          "p95": 3.180560079868883,
+          "max": 12.50204245862551,
+          "unit": "seconds",
+          "quantile_method": "nearest rank"
+        },
+        "model_reported_postprocess": {
+          "count": 255,
+          "p50": 0.0035478281788527966,
+          "p95": 0.04281141678802669,
+          "max": 0.11281415726989508,
+          "unit": "seconds",
+          "quantile_method": "nearest rank"
+        }
+      },
+      "interpretation": "Observed host workload; includes overlap with 8-frame candidate attempt. NOT an isolated A/B performance comparison."
+    },
+    "candidate": {
+      "completed": false,
+      "frames_written": 8,
+      "termination": "Own process stopped after accidental overlap; outputs preserved, excluded from whole-session performance claims",
+      "timings_of_partial_records_only": {
+        "pipeline_wall_s": {
+          "count": 8,
+          "p50": 10.36283276299946,
+          "p95": 12.780593005008996,
+          "max": 12.780593005008996,
+          "unit": "seconds",
+          "quantile_method": "nearest rank"
+        },
+        "emitter_validation_wall_s": {
+          "count": 8,
+          "p50": 0.00024193385615944862,
+          "p95": 0.0012630079872906208,
+          "max": 0.0012630079872906208,
+          "unit": "seconds",
+          "quantile_method": "nearest rank"
+        },
+        "queue_residence_s": {
+          "count": 8,
+          "p50": 29.633752243826166,
+          "p95": 70.7356537359301,
+          "max": 70.7356537359301,
+          "unit": "seconds",
+          "quantile_method": "nearest rank"
+        },
+        "source_age_s": {
+          "count": 8,
+          "p50": 39.99652776075527,
+          "p95": 81.16539235110395,
+          "max": 81.16539235110395,
+          "unit": "seconds",
+          "quantile_method": "nearest rank"
+        },
+        "receiver_age_s": {
+          "count": 8,
+          "p50": 39.99652776075527,
+          "p95": 81.16539235110395,
+          "max": 81.16539235110395,
+          "unit": "seconds",
+          "quantile_method": "nearest rank"
+        },
+        "model_reported_preprocess": {
+          "count": 8,
+          "p50": 0.05701554077677429,
+          "p95": 0.06501318165101111,
+          "max": 0.06501318165101111,
+          "unit": "seconds",
+          "quantile_method": "nearest rank"
+        },
+        "model_reported_inference": {
+          "count": 8,
+          "p50": 10.205628120107576,
+          "p95": 11.255206525092945,
+          "max": 11.255206525092945,
+          "unit": "seconds",
+          "quantile_method": "nearest rank"
+        },
+        "model_reported_postprocess": {
+          "count": 8,
+          "p50": 0.08931690664030612,
+          "p95": 0.11776390415616333,
+          "max": 0.11776390415616333,
+          "unit": "seconds",
+          "quantile_method": "nearest rank"
+        }
+      }
+    },
+    "previous_round3_wall_reference": {
+      "frames": 255,
+      "timings": {
+        "pipeline_wall_s": {
+          "count": 255,
+          "p50": 0.16777738695964217,
+          "p95": 0.2354012900032103,
+          "max": 0.4921734160743654,
+          "unit": "seconds",
+          "quantile_method": "nearest rank"
+        },
+        "queue_residence_s": {
+          "count": 255,
+          "p50": 0.0001007497776299715,
+          "p95": 0.136018224991858,
+          "max": 0.2967702660243958,
+          "unit": "seconds",
+          "quantile_method": "nearest rank"
+        },
+        "source_age_s": {
+          "count": 255,
+          "p50": 0.1799383689649403,
+          "p95": 0.3330241770017892,
+          "max": 0.4933478510938585,
+          "unit": "seconds",
+          "quantile_method": "nearest rank"
+        },
+        "receiver_age_s": {
+          "count": 255,
+          "p50": 0.1799383689649403,
+          "p95": 0.3330241770017892,
+          "max": 0.4933478510938585,
+          "unit": "seconds",
+          "quantile_method": "nearest rank"
+        }
+      },
+      "interpretation": "Historical workload, lamp diagnostic enabled; not a current candidate timing result"
+    }
+  },
+  "mission_authority": "No verified real stable GREEN; emitter support does not establish approach/crossing identity",
+  "next_one_task": "One owner-provided labelled continuous camera window with source/time/exposure metadata and front/back/other-crossing/sign/occlusion cases, held out by whole session, to establish separability before choosing a trained face/emitter model or exposure intervention.",
+  "input_continuity": {
+    "v3": {
+      "frames": 255,
+      "start": "2026-09-11T06:15:51.219Z",
+      "end": "2026-09-11T06:16:43.019Z",
+      "original_interval_s": {
+        "min": 0.194,
+        "max": 0.801,
+        "over_250ms": 2
+      },
+      "manifest_sha256": "6502cd1e961f501c7991563eb04e4a8aa103682ab528b59e4bc5c3d2269110a5",
+      "visually_confirmed_green_return_samples": [
+        {
+          "sample": 51,
+          "captured_at": "2026-09-11T06:16:02.219Z",
+          "offset_s": 11.0
+        },
+        {
+          "sample": 68,
+          "captured_at": "2026-09-11T06:16:05.619Z",
+          "offset_s": 14.4
+        },
+        {
+          "sample": 222,
+          "captured_at": "2026-09-11T06:16:36.419Z",
+          "offset_s": 45.2
+        }
+      ],
+      "same_crossing_transition_verified": false
+    },
+    "preview": {
+      "images": 14,
+      "description": "one paired-camera midpoint per stored session; not continuous sequence"
+    },
+    "crosswalk": {
+      "images": 249,
+      "start": "2026-09-02T09:52:01.932Z",
+      "end": "2026-09-02T09:52:51.532Z",
+      "description": "cross_1/crosswalk labels; no verified signal target sequence"
+    },
+    "status": "INPUT_REQUIRED",
+    "scope": "No verified same-target RED-GREEN-RED sequence identified; not a claim that no unlabelled signal transition exists anywhere. No timestamp compression or duplicated photos."
+  },
+  "evidence_sha256": {
+    "labels/comparison.json": "6d3b043d17f3e67be7d25a5ee49b186116a45d6fca95beae5e0c2dacc7ab8d7c",
+    "full-tests.log": "2a31d6da835e1677f038f99657dc340f57ca2c9bea37f3197a1fee49a4b71880",
+    "js-tests.log": "17d2fc6efdcd982f3591713bc4bf3a97aefcc44fb387222e5e4a5bee07c09228",
+    "js-syntax.log": "69ee1692f81359b0ad981f08de2bd12bd2e113a3a297368b04c34471929e8e32",
+    "targeted.log": "39ecbb2ad91216f543a3dd608ea6586cc951e420fae6b96417633b5c4391d327"
+  },
+  "validation": {
+    "python_full": {
+      "tests": 2781,
+      "skipped": 2,
+      "failures": 0,
+      "duration_s": 90.159,
+      "skip_reasons": [
+        "optional rosbags backend not installed",
+        "PCD_EDIT_NODE not set"
+      ]
+    },
+    "c4_targeted": {
+      "tests": 90,
+      "skipped": 0,
+      "failures": 0,
+      "scope": "candidate regression; final full suite also includes these tests"
+    },
+    "javascript": {
+      "tests": 660,
+      "skipped": 0,
+      "failures": 0
+    },
+    "javascript_syntax_modules": 104,
+    "ruff": "PASS",
+    "mypy": "PASS (configured four files)",
+    "source_changed_after_candidate_freeze": false
+  }
+}

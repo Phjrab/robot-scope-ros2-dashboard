@@ -15,8 +15,14 @@ def detection_overlay(bgr, observation):
     for candidate in observation.context.get("free_observations", []):
         x1, y1, x2, y2 = candidate["bbox_xyxy_native"]
         color = {"GREEN": (0, 220, 0), "RED": (0, 0, 255)}.get(candidate["raw_state"], (255, 255, 0))
+        label = "raw " + candidate["raw_state"]
+        emitter = candidate.get("emitter_validation")
+        if emitter is not None:
+            label += " / emit " + emitter["validated_state"]
+            if not emitter["supported"]:
+                color = (0, 165, 255)
         cv2.rectangle(image, (x1, y1), (x2, y2), color, 2)
-        cv2.putText(image, "raw " + candidate["raw_state"], (max(0, x1), max(36, y1-4)),
+        cv2.putText(image, label, (max(0, x1), max(36, y1-4)),
                     cv2.FONT_HERSHEY_SIMPLEX, .45, color, 1)
     stage = observation.context.get("observation_stage", "detection-only")
     cv2.putText(image, "Boxes: detection-only | signal stage: " + stage, (4, 18),

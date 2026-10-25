@@ -1,0 +1,1575 @@
+{
+  "independent_test": false,
+  "profile": {
+    "name": "enclosed-chroma-v1",
+    "min_crop_side": 12,
+    "frame_edge_margin": 1,
+    "component_margin": 2,
+    "min_component_pixels": 12,
+    "max_components": 32,
+    "max_area_fraction": 0.25,
+    "max_width_fraction": 0.65,
+    "max_height_fraction": 0.55,
+    "center_x_min": 0.2,
+    "center_x_max": 0.8,
+    "min_component_median_value": 160.0,
+    "min_value_contrast": 60.0,
+    "enclosure_value_drop": 40.0,
+    "min_dark_enclosure_fraction": 0.65,
+    "ring_radius_fraction": 0.15,
+    "min_ring_radius": 2
+  },
+  "groups": {
+    "NON_SIGNAL_BUS_STOP_SIGN_FALSE_GREEN": {
+      "count": 3,
+      "before": {
+        "GREEN": 3
+      },
+      "after": {
+        "UNKNOWN": 3
+      }
+    },
+    "UNREADABLE_BACK_OR_CLIPPED_HOUSING": {
+      "count": 28,
+      "before": {
+        "GREEN": 28
+      },
+      "after": {
+        "UNKNOWN": 28
+      }
+    },
+    "VISIBLE_GREEN_OTHER_CROSSING": {
+      "count": 3,
+      "before": {
+        "GREEN": 3
+      },
+      "after": {
+        "UNKNOWN": 3
+      }
+    }
+  },
+  "records": [
+    {
+      "sample": 14,
+      "sha256": "1acc11ecc1cbfef26ab5cc5d15a2e5a4d7527816df9c3bba6b44f81bd1410865",
+      "bbox_xyxy_native": [
+        751,
+        32,
+        787,
+        105
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "COMPONENT_GEOMETRY_UNSUPPORTED",
+          "COMPONENT_NOT_BRIGHT",
+          "COMPONENT_TOUCHES_CROP_EDGE",
+          "DARK_ENCLOSURE_UNSUPPORTED"
+        ],
+        "components": [
+          {
+            "bbox_xyxy_native": [
+              785,
+              87,
+              787,
+              95
+            ],
+            "pixels": 13,
+            "median_value": 143.0,
+            "ring_median_value": 167.0,
+            "value_contrast": -24.0,
+            "dark_enclosure_fraction": 0.06060606060606061,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_TOUCHES_CROP_EDGE",
+              "COMPONENT_GEOMETRY_UNSUPPORTED",
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          }
+        ],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 15,
+      "sha256": "da6a3307d1af99508e5700532398a846e5adecf10ab99452f6420adac9aeb05c",
+      "bbox_xyxy_native": [
+        755,
+        35,
+        791,
+        111
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "COMPONENT_GEOMETRY_UNSUPPORTED",
+          "COMPONENT_NOT_BRIGHT",
+          "COMPONENT_TOUCHES_CROP_EDGE",
+          "DARK_ENCLOSURE_UNSUPPORTED"
+        ],
+        "components": [
+          {
+            "bbox_xyxy_native": [
+              787,
+              95,
+              791,
+              103
+            ],
+            "pixels": 22,
+            "median_value": 119.0,
+            "ring_median_value": 154.0,
+            "value_contrast": -35.0,
+            "dark_enclosure_fraction": 0.0,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_TOUCHES_CROP_EDGE",
+              "COMPONENT_GEOMETRY_UNSUPPORTED",
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          }
+        ],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 17,
+      "sha256": "3e6ce8b3d8af4e3a070c10b40652a972e7fc54b88e0e82fb8e4f6b7abba5e316",
+      "bbox_xyxy_native": [
+        776,
+        57,
+        813,
+        123
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "COMPONENT_GEOMETRY_UNSUPPORTED",
+          "COMPONENT_NOT_BRIGHT",
+          "COMPONENT_TOUCHES_CROP_EDGE",
+          "DARK_ENCLOSURE_UNSUPPORTED"
+        ],
+        "components": [
+          {
+            "bbox_xyxy_native": [
+              807,
+              116,
+              813,
+              122
+            ],
+            "pixels": 27,
+            "median_value": 121.0,
+            "ring_median_value": 131.5,
+            "value_contrast": -10.5,
+            "dark_enclosure_fraction": 0.225,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_TOUCHES_CROP_EDGE",
+              "COMPONENT_GEOMETRY_UNSUPPORTED",
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          }
+        ],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 18,
+      "sha256": "c4fc0b0b090b2ec53876240c799ff3b862ba1a1c44654bfd5775980d6dc60c7d",
+      "bbox_xyxy_native": [
+        778,
+        61,
+        813,
+        133
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "COMPONENT_GEOMETRY_UNSUPPORTED",
+          "COMPONENT_NOT_BRIGHT",
+          "COMPONENT_TOUCHES_CROP_EDGE",
+          "DARK_ENCLOSURE_UNSUPPORTED"
+        ],
+        "components": [
+          {
+            "bbox_xyxy_native": [
+              809,
+              119,
+              813,
+              133
+            ],
+            "pixels": 35,
+            "median_value": 125.0,
+            "ring_median_value": 138.0,
+            "value_contrast": -13.0,
+            "dark_enclosure_fraction": 0.0425531914893617,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_TOUCHES_CROP_EDGE",
+              "COMPONENT_GEOMETRY_UNSUPPORTED",
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          }
+        ],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 20,
+      "sha256": "74b120803fde9b0a20ab826879e8ec7191c7cdf25ac671ce036a018f5ef34cbd",
+      "bbox_xyxy_native": [
+        780,
+        67,
+        818,
+        139
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "COMPONENT_GEOMETRY_UNSUPPORTED",
+          "COMPONENT_NOT_BRIGHT",
+          "COMPONENT_TOUCHES_CROP_EDGE",
+          "DARK_ENCLOSURE_UNSUPPORTED"
+        ],
+        "components": [
+          {
+            "bbox_xyxy_native": [
+              814,
+              124,
+              818,
+              132
+            ],
+            "pixels": 22,
+            "median_value": 120.5,
+            "ring_median_value": 151.0,
+            "value_contrast": -30.5,
+            "dark_enclosure_fraction": 0.023809523809523808,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_TOUCHES_CROP_EDGE",
+              "COMPONENT_GEOMETRY_UNSUPPORTED",
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          }
+        ],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 31,
+      "sha256": "2697c9e0acd8a1a1ef1fd3090f77c79231a967949204e14c77f754313bac4b21",
+      "bbox_xyxy_native": [
+        811,
+        44,
+        848,
+        129
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "COMPONENT_GEOMETRY_UNSUPPORTED",
+          "COMPONENT_NOT_BRIGHT",
+          "COMPONENT_TOUCHES_CROP_EDGE",
+          "DARK_ENCLOSURE_UNSUPPORTED"
+        ],
+        "components": [
+          {
+            "bbox_xyxy_native": [
+              844,
+              118,
+              848,
+              123
+            ],
+            "pixels": 18,
+            "median_value": 137.0,
+            "ring_median_value": 156.0,
+            "value_contrast": -19.0,
+            "dark_enclosure_fraction": 0.25,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_TOUCHES_CROP_EDGE",
+              "COMPONENT_GEOMETRY_UNSUPPORTED",
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          }
+        ],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 32,
+      "sha256": "83125c846c9502348040f619e18bf2c9824fde35f2e4646e5b0aa78474bd8a81",
+      "bbox_xyxy_native": [
+        739,
+        46,
+        773,
+        129
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "COMPONENT_GEOMETRY_UNSUPPORTED",
+          "COMPONENT_NOT_BRIGHT",
+          "COMPONENT_TOUCHES_CROP_EDGE",
+          "DARK_ENCLOSURE_UNSUPPORTED"
+        ],
+        "components": [
+          {
+            "bbox_xyxy_native": [
+              769,
+              120,
+              773,
+              125
+            ],
+            "pixels": 13,
+            "median_value": 120.0,
+            "ring_median_value": 115.0,
+            "value_contrast": 5.0,
+            "dark_enclosure_fraction": 0.2571428571428571,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_TOUCHES_CROP_EDGE",
+              "COMPONENT_GEOMETRY_UNSUPPORTED",
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          }
+        ],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 33,
+      "sha256": "c3d5c3eec988aa2eee53335552c4b78a85273820fcedf5761205b2e2b95efbe3",
+      "bbox_xyxy_native": [
+        700,
+        60,
+        739,
+        134
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "COMPONENT_GEOMETRY_UNSUPPORTED",
+          "COMPONENT_NOT_BRIGHT",
+          "COMPONENT_TOUCHES_CROP_EDGE",
+          "DARK_ENCLOSURE_UNSUPPORTED"
+        ],
+        "components": [
+          {
+            "bbox_xyxy_native": [
+              732,
+              124,
+              739,
+              134
+            ],
+            "pixels": 52,
+            "median_value": 127.5,
+            "ring_median_value": 142.0,
+            "value_contrast": -14.5,
+            "dark_enclosure_fraction": 0.14583333333333334,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_TOUCHES_CROP_EDGE",
+              "COMPONENT_GEOMETRY_UNSUPPORTED",
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          }
+        ],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 38,
+      "sha256": "df471ab9caafa942fa80e3e547ebd078c09428ea0aa2af94c608ecd942f1c31d",
+      "bbox_xyxy_native": [
+        703,
+        13,
+        742,
+        104
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "COMPONENT_GEOMETRY_UNSUPPORTED",
+          "COMPONENT_NOT_BRIGHT",
+          "COMPONENT_TOUCHES_CROP_EDGE",
+          "DARK_ENCLOSURE_UNSUPPORTED"
+        ],
+        "components": [
+          {
+            "bbox_xyxy_native": [
+              737,
+              97,
+              742,
+              103
+            ],
+            "pixels": 25,
+            "median_value": 132.0,
+            "ring_median_value": 150.0,
+            "value_contrast": -18.0,
+            "dark_enclosure_fraction": 0.2222222222222222,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_TOUCHES_CROP_EDGE",
+              "COMPONENT_GEOMETRY_UNSUPPORTED",
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          }
+        ],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 39,
+      "sha256": "24d80bc01ecf8bc0df7ed809a39e1521fd6d433e28a9d56370aa77229d22b025",
+      "bbox_xyxy_native": [
+        708,
+        23,
+        742,
+        113
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "COMPONENT_GEOMETRY_UNSUPPORTED",
+          "COMPONENT_NOT_BRIGHT",
+          "COMPONENT_TOUCHES_CROP_EDGE",
+          "DARK_ENCLOSURE_UNSUPPORTED"
+        ],
+        "components": [
+          {
+            "bbox_xyxy_native": [
+              737,
+              109,
+              742,
+              113
+            ],
+            "pixels": 13,
+            "median_value": 134.0,
+            "ring_median_value": 126.5,
+            "value_contrast": 7.5,
+            "dark_enclosure_fraction": 0.4090909090909091,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_TOUCHES_CROP_EDGE",
+              "COMPONENT_GEOMETRY_UNSUPPORTED",
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          }
+        ],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 40,
+      "sha256": "6ec6df2e23fbd136626b84bfce4dbefc902152845fe8ac652d0a692a17d7d748",
+      "bbox_xyxy_native": [
+        704,
+        24,
+        741,
+        113
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "COMPONENT_GEOMETRY_UNSUPPORTED",
+          "COMPONENT_NOT_BRIGHT",
+          "COMPONENT_TOUCHES_CROP_EDGE",
+          "DARK_ENCLOSURE_UNSUPPORTED"
+        ],
+        "components": [
+          {
+            "bbox_xyxy_native": [
+              736,
+              110,
+              741,
+              113
+            ],
+            "pixels": 13,
+            "median_value": 133.0,
+            "ring_median_value": 139.0,
+            "value_contrast": -6.0,
+            "dark_enclosure_fraction": 0.3333333333333333,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_TOUCHES_CROP_EDGE",
+              "COMPONENT_GEOMETRY_UNSUPPORTED",
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          }
+        ],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 41,
+      "sha256": "893c49db78b5477e461ee6ef9134978b77bfcfe7997523d0c9193a2041468d51",
+      "bbox_xyxy_native": [
+        701,
+        24,
+        740,
+        114
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "COMPONENT_GEOMETRY_UNSUPPORTED",
+          "COMPONENT_NOT_BRIGHT",
+          "COMPONENT_TOUCHES_CROP_EDGE",
+          "DARK_ENCLOSURE_UNSUPPORTED"
+        ],
+        "components": [
+          {
+            "bbox_xyxy_native": [
+              734,
+              111,
+              740,
+              114
+            ],
+            "pixels": 12,
+            "median_value": 128.0,
+            "ring_median_value": 167.0,
+            "value_contrast": -39.0,
+            "dark_enclosure_fraction": 0.043478260869565216,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_TOUCHES_CROP_EDGE",
+              "COMPONENT_GEOMETRY_UNSUPPORTED",
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          }
+        ],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 44,
+      "sha256": "c1adfe91f42f0e6307731df915fcb174fcc4180f8917c86e51366c15f57405d4",
+      "bbox_xyxy_native": [
+        702,
+        37,
+        736,
+        130
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "COMPONENT_GEOMETRY_UNSUPPORTED",
+          "COMPONENT_NOT_BRIGHT",
+          "COMPONENT_TOUCHES_CROP_EDGE",
+          "DARK_ENCLOSURE_UNSUPPORTED"
+        ],
+        "components": [
+          {
+            "bbox_xyxy_native": [
+              730,
+              124,
+              736,
+              128
+            ],
+            "pixels": 20,
+            "median_value": 136.5,
+            "ring_median_value": 159.5,
+            "value_contrast": -23.0,
+            "dark_enclosure_fraction": 0.15,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_TOUCHES_CROP_EDGE",
+              "COMPONENT_GEOMETRY_UNSUPPORTED",
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          }
+        ],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 51,
+      "sha256": "183a9e19ec09155b4705081d920aba89a532c184f80d2cd8721fd8660616f9c1",
+      "bbox_xyxy_native": [
+        1142,
+        102,
+        1173,
+        154
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "COMPONENT_GEOMETRY_UNSUPPORTED",
+          "COMPONENT_NOT_BRIGHT",
+          "COMPONENT_TOUCHES_CROP_EDGE",
+          "DARK_ENCLOSURE_UNSUPPORTED"
+        ],
+        "components": [
+          {
+            "bbox_xyxy_native": [
+              1170,
+              107,
+              1173,
+              149
+            ],
+            "pixels": 68,
+            "median_value": 75.5,
+            "ring_median_value": 43.0,
+            "value_contrast": 32.5,
+            "dark_enclosure_fraction": 0.025,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_TOUCHES_CROP_EDGE",
+              "COMPONENT_GEOMETRY_UNSUPPORTED",
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          },
+          {
+            "bbox_xyxy_native": [
+              1153,
+              133,
+              1163,
+              151
+            ],
+            "pixels": 125,
+            "median_value": 89.0,
+            "ring_median_value": 51.0,
+            "value_contrast": 38.0,
+            "dark_enclosure_fraction": 0.3446601941747573,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          }
+        ],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "VISIBLE_GREEN_OTHER_CROSSING"
+    },
+    {
+      "sample": 68,
+      "sha256": "945cc36fafd90a989abfc05318ae625ade4a3cc4d9a946bfbdffc9c0ebb47c4b",
+      "bbox_xyxy_native": [
+        1092,
+        95,
+        1134,
+        153
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "COMPONENT_GEOMETRY_UNSUPPORTED",
+          "COMPONENT_NOT_BRIGHT",
+          "COMPONENT_TOUCHES_CROP_EDGE",
+          "DARK_ENCLOSURE_UNSUPPORTED"
+        ],
+        "components": [
+          {
+            "bbox_xyxy_native": [
+              1122,
+              118,
+              1133,
+              149
+            ],
+            "pixels": 245,
+            "median_value": 87.0,
+            "ring_median_value": 50.0,
+            "value_contrast": 37.0,
+            "dark_enclosure_fraction": 0.41353383458646614,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_TOUCHES_CROP_EDGE",
+              "COMPONENT_GEOMETRY_UNSUPPORTED",
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          },
+          {
+            "bbox_xyxy_native": [
+              1103,
+              130,
+              1111,
+              146
+            ],
+            "pixels": 59,
+            "median_value": 77.0,
+            "ring_median_value": 64.0,
+            "value_contrast": 13.0,
+            "dark_enclosure_fraction": 0.027586206896551724,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          }
+        ],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "VISIBLE_GREEN_OTHER_CROSSING"
+    },
+    {
+      "sample": 181,
+      "sha256": "4e11113ca8587fcfe4a3e262cde3197b22661a6621ed0943030617187c9375b9",
+      "bbox_xyxy_native": [
+        951,
+        1,
+        1048,
+        83
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "FRAME_EDGE_OR_TRUNCATED"
+        ],
+        "components": [],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 183,
+      "sha256": "1a804b94801f044556311a148ece0f650fe8d9a8b626c586c9a3a8cb4187fd01",
+      "bbox_xyxy_native": [
+        968,
+        1,
+        1062,
+        92
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "FRAME_EDGE_OR_TRUNCATED"
+        ],
+        "components": [],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 184,
+      "sha256": "a6825f510c36d037b3663296919f457101e640453eab0ec2fb05e0f05eaec453",
+      "bbox_xyxy_native": [
+        966,
+        1,
+        1061,
+        93
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "FRAME_EDGE_OR_TRUNCATED"
+        ],
+        "components": [],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 185,
+      "sha256": "8ebea69d1a04f58e9c5ad697454751ecf843109c89504c46286b90e420f6dca7",
+      "bbox_xyxy_native": [
+        966,
+        1,
+        1061,
+        93
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "FRAME_EDGE_OR_TRUNCATED"
+        ],
+        "components": [],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 186,
+      "sha256": "0779779cafe5324bf92d370620c722cf8927109be1b640df0a124f11d6e2acc2",
+      "bbox_xyxy_native": [
+        951,
+        1,
+        1045,
+        96
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "FRAME_EDGE_OR_TRUNCATED"
+        ],
+        "components": [],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 187,
+      "sha256": "a1ee86d15298a7d369dbb1992fa0516ccf87e6b816c6a1b78e91b8d46a205fab",
+      "bbox_xyxy_native": [
+        951,
+        1,
+        1046,
+        96
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "FRAME_EDGE_OR_TRUNCATED"
+        ],
+        "components": [],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 188,
+      "sha256": "af91aac2ae497719c6e821c6a9628f8c838bb51ef447c656c3e4ef9c33d1190d",
+      "bbox_xyxy_native": [
+        955,
+        1,
+        1050,
+        96
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "FRAME_EDGE_OR_TRUNCATED"
+        ],
+        "components": [],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 189,
+      "sha256": "bd115f3c45f33d3dbc2d20112e82ae84fa9322c2a93ebef9512ca6abbfe2e5dc",
+      "bbox_xyxy_native": [
+        957,
+        1,
+        1052,
+        95
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "FRAME_EDGE_OR_TRUNCATED"
+        ],
+        "components": [],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 190,
+      "sha256": "374e8108d1b22452e82ca440b9d8075e47d7f5227773b48b3440edbb0b694a37",
+      "bbox_xyxy_native": [
+        959,
+        1,
+        1054,
+        96
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "FRAME_EDGE_OR_TRUNCATED"
+        ],
+        "components": [],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 191,
+      "sha256": "4bd0816810395c7a3eb4b67d76ae34be08f3d6c62dc69dfcc40f31ea53574056",
+      "bbox_xyxy_native": [
+        964,
+        2,
+        1059,
+        99
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "COMPONENT_GEOMETRY_UNSUPPORTED",
+          "COMPONENT_NOT_BRIGHT",
+          "COMPONENT_TOUCHES_CROP_EDGE",
+          "DARK_ENCLOSURE_UNSUPPORTED"
+        ],
+        "components": [
+          {
+            "bbox_xyxy_native": [
+              964,
+              72,
+              977,
+              99
+            ],
+            "pixels": 86,
+            "median_value": 148.0,
+            "ring_median_value": 107.0,
+            "value_contrast": 41.0,
+            "dark_enclosure_fraction": 0.5054945054945055,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_TOUCHES_CROP_EDGE",
+              "COMPONENT_GEOMETRY_UNSUPPORTED",
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          },
+          {
+            "bbox_xyxy_native": [
+              1020,
+              82,
+              1042,
+              99
+            ],
+            "pixels": 113,
+            "median_value": 170.0,
+            "ring_median_value": 173.0,
+            "value_contrast": -3.0,
+            "dark_enclosure_fraction": 0.0,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_TOUCHES_CROP_EDGE",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          },
+          {
+            "bbox_xyxy_native": [
+              992,
+              96,
+              999,
+              99
+            ],
+            "pixels": 17,
+            "median_value": 147.0,
+            "ring_median_value": 145.0,
+            "value_contrast": 2.0,
+            "dark_enclosure_fraction": 0.029411764705882353,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_TOUCHES_CROP_EDGE",
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          }
+        ],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 192,
+      "sha256": "c220fbd1d5a95fea9cdc23da75df5278877275c00b2913e4059a0165bc7a6c55",
+      "bbox_xyxy_native": [
+        967,
+        1,
+        1062,
+        101
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "FRAME_EDGE_OR_TRUNCATED"
+        ],
+        "components": [],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 193,
+      "sha256": "91e847736687a92bec2f5a05c14a9dd75c737fb9cf4016c770cf419dc23b88dc",
+      "bbox_xyxy_native": [
+        967,
+        1,
+        1062,
+        102
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "FRAME_EDGE_OR_TRUNCATED"
+        ],
+        "components": [],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 194,
+      "sha256": "4338d5c7e9781a1e2f14ec64f1adaf1df8a2956f0519c7981bb5c4fd92c0d1d4",
+      "bbox_xyxy_native": [
+        969,
+        1,
+        1063,
+        102
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "FRAME_EDGE_OR_TRUNCATED"
+        ],
+        "components": [],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 195,
+      "sha256": "49ae32576b20cd60b162187b74d90579da07a84b89d621dffea894e2e4317e62",
+      "bbox_xyxy_native": [
+        978,
+        2,
+        1069,
+        90
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "COMPONENT_GEOMETRY_UNSUPPORTED",
+          "COMPONENT_NOT_BRIGHT",
+          "COMPONENT_TOUCHES_CROP_EDGE",
+          "DARK_ENCLOSURE_UNSUPPORTED"
+        ],
+        "components": [
+          {
+            "bbox_xyxy_native": [
+              1041,
+              75,
+              1064,
+              90
+            ],
+            "pixels": 162,
+            "median_value": 174.0,
+            "ring_median_value": 173.0,
+            "value_contrast": 1.0,
+            "dark_enclosure_fraction": 0.0,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_TOUCHES_CROP_EDGE",
+              "COMPONENT_GEOMETRY_UNSUPPORTED",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          },
+          {
+            "bbox_xyxy_native": [
+              978,
+              78,
+              982,
+              90
+            ],
+            "pixels": 23,
+            "median_value": 141.0,
+            "ring_median_value": 148.0,
+            "value_contrast": -7.0,
+            "dark_enclosure_fraction": 0.3611111111111111,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_TOUCHES_CROP_EDGE",
+              "COMPONENT_GEOMETRY_UNSUPPORTED",
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          },
+          {
+            "bbox_xyxy_native": [
+              1031,
+              86,
+              1041,
+              90
+            ],
+            "pixels": 28,
+            "median_value": 170.0,
+            "ring_median_value": 167.5,
+            "value_contrast": 2.5,
+            "dark_enclosure_fraction": 0.0,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_TOUCHES_CROP_EDGE",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          }
+        ],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 196,
+      "sha256": "a37127946f5bd07a8841c0e1fdce65ef5e90d5b618b12ec099c67528b9e2ceee",
+      "bbox_xyxy_native": [
+        962,
+        1,
+        1055,
+        63
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "FRAME_EDGE_OR_TRUNCATED"
+        ],
+        "components": [],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "UNREADABLE_BACK_OR_CLIPPED_HOUSING"
+    },
+    {
+      "sample": 222,
+      "sha256": "dd9bd54a7a8bf74623c07b3aa7059887e68a789478af3d3451f6fee5d3398dfb",
+      "bbox_xyxy_native": [
+        1217,
+        162,
+        1248,
+        210
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "COMPONENT_NOT_BRIGHT",
+          "DARK_ENCLOSURE_UNSUPPORTED"
+        ],
+        "components": [
+          {
+            "bbox_xyxy_native": [
+              1234,
+              192,
+              1245,
+              208
+            ],
+            "pixels": 98,
+            "median_value": 64.0,
+            "ring_median_value": 58.0,
+            "value_contrast": 6.0,
+            "dark_enclosure_fraction": 0.012269938650306749,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          },
+          {
+            "bbox_xyxy_native": [
+              1220,
+              196,
+              1232,
+              207
+            ],
+            "pixels": 80,
+            "median_value": 79.0,
+            "ring_median_value": 67.0,
+            "value_contrast": 12.0,
+            "dark_enclosure_fraction": 0.0,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          }
+        ],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "VISIBLE_GREEN_OTHER_CROSSING"
+    },
+    {
+      "sample": 223,
+      "sha256": "5f248e12b04f90d4077fbc26bf3f2d88e699c2e7cdc814f2965bd5f2b60a812b",
+      "bbox_xyxy_native": [
+        134,
+        139,
+        202,
+        370
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "COMPONENT_NOT_BRIGHT",
+          "DARK_ENCLOSURE_UNSUPPORTED"
+        ],
+        "components": [
+          {
+            "bbox_xyxy_native": [
+              154,
+              308,
+              176,
+              332
+            ],
+            "pixels": 386,
+            "median_value": 88.0,
+            "ring_median_value": 42.5,
+            "value_contrast": 45.5,
+            "dark_enclosure_fraction": 0.6041666666666666,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          }
+        ],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "NON_SIGNAL_BUS_STOP_SIGN_FALSE_GREEN"
+    },
+    {
+      "sample": 224,
+      "sha256": "3faedd3024c0490b2050f31ce166a9b6a269777f578777858027ea3b405690c6",
+      "bbox_xyxy_native": [
+        134,
+        136,
+        202,
+        370
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "COMPONENT_GEOMETRY_UNSUPPORTED",
+          "COMPONENT_NOT_BRIGHT",
+          "COMPONENT_TOUCHES_CROP_EDGE",
+          "DARK_ENCLOSURE_UNSUPPORTED"
+        ],
+        "components": [
+          {
+            "bbox_xyxy_native": [
+              201,
+              177,
+              202,
+              193
+            ],
+            "pixels": 16,
+            "median_value": 69.5,
+            "ring_median_value": 188.0,
+            "value_contrast": -118.5,
+            "dark_enclosure_fraction": 0.0,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_TOUCHES_CROP_EDGE",
+              "COMPONENT_GEOMETRY_UNSUPPORTED",
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          },
+          {
+            "bbox_xyxy_native": [
+              155,
+              308,
+              176,
+              333
+            ],
+            "pixels": 394,
+            "median_value": 88.0,
+            "ring_median_value": 40.0,
+            "value_contrast": 48.0,
+            "dark_enclosure_fraction": 0.6365740740740741,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          }
+        ],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "NON_SIGNAL_BUS_STOP_SIGN_FALSE_GREEN"
+    },
+    {
+      "sample": 226,
+      "sha256": "f403ac3001c5020ea3cf876158b067bf7244dae343c5970d5a74e2f9d5e607f0",
+      "bbox_xyxy_native": [
+        114,
+        134,
+        188,
+        371
+      ],
+      "before": "GREEN",
+      "after": "UNKNOWN",
+      "validation": {
+        "profile": "enclosed-chroma-v1",
+        "raw_state": "GREEN",
+        "validated_state": "UNKNOWN",
+        "supported": false,
+        "reasons": [
+          "COMPONENT_NOT_BRIGHT",
+          "DARK_ENCLOSURE_UNSUPPORTED"
+        ],
+        "components": [
+          {
+            "bbox_xyxy_native": [
+              135,
+              306,
+              156,
+              332
+            ],
+            "pixels": 417,
+            "median_value": 90.0,
+            "ring_median_value": 46.0,
+            "value_contrast": 44.0,
+            "dark_enclosure_fraction": 0.5772727272727273,
+            "supported": false,
+            "reasons": [
+              "COMPONENT_NOT_BRIGHT",
+              "DARK_ENCLOSURE_UNSUPPORTED"
+            ]
+          }
+        ],
+        "crossing_identity_verified": false,
+        "physical_emission_proven": false,
+        "color_reconstruction_claimed": false
+      },
+      "visual_review": "NON_SIGNAL_BUS_STOP_SIGN_FALSE_GREEN"
+    }
+  ]
+}

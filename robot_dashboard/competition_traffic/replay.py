@@ -42,6 +42,7 @@ def parser():
     p.add_argument("--inference-profile", choices=("full640", "full960", "full1280", "upper-overlap640"), default="full640")
     p.add_argument("--observation-mode", choices=("mission", "detection-only"), default="mission")
     p.add_argument("--lamp-experiment", action="store_true")
+    p.add_argument("--emitter-profile", choices=("enclosed-chroma-v1",), help="Opt-in candidate; default off")
     p.add_argument("--no-image-artifacts", action="store_true", help="Keep JSON diagnostics without writing decoded PNG copies")
     p.add_argument("--clock-mode", choices=("source-timeline", "wall-clock"), default="source-timeline")
     p.add_argument("--max-frames", type=int, default=10000)
@@ -95,7 +96,7 @@ def run(args, output):
             return 2
         from .model import OwnerModel
         detector = OwnerModel(args.model, config, acknowledge_trusted_pickle=args.acknowledge_trusted_pickle,
-                              inference_profile=args.inference_profile)
+                              inference_profile=args.inference_profile, emitter_profile=args.emitter_profile)
         manifest["loaded_model_class_names"] = detector.names
         manifest["inference_settings_sha256"] = getattr(detector, "inference_settings_sha256", None)
         manifest["inference_settings"] = getattr(detector, "inference_settings", None)
