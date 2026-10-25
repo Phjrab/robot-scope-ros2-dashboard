@@ -3,7 +3,8 @@
 검토일 2026-10-25 KST. 브랜치 `review/20261024-c3-nav2-benchmark`.
 실제 시작 HEAD와 당시 원격 C3 HEAD는 모두 `16c63e08be5a7c10887e9e05cae94e94788e990f`였다.
 작업 트리는 깨끗했고 별도 일반 clone에서 C3 소유 경로만 수정했다.
-기능 변경 source: `7a220d458fe8bce8cdd366caa4e9a546bddebd60`.
+RPP 확장 기능 source: `7a220d458fe8bce8cdd366caa4e9a546bddebd60`.
+D0 연결 기능 및 최종 코드 후보: `5eacacf42378ad91319a5de323df7844f34ea33b`.
 이 문서와 최종 결과만 기록하는 후속 커밋을 native 실행 source로 바꾸어 주장하지 않는다.
 
 ## 보존한 환경과 기존 결과
@@ -47,9 +48,9 @@ Hosted job의 새 머신에서는 예전 local image ID를 사용할 수 없어 
 | 공통 fixture 도입 전 | 기존에 실행된 C3 diagnostic 유지; 아래 ROUND3 실행 결과 |
 | D0 공통 fixture 도입 후 | 아래 별도 어댑터 native 결과에 기록; 본체/센서/geometry가 달라 diagnostic과 점수 합산하지 않음 |
 
-C1은 `review/20261024-c1-integration-r2`의 `765622ecbe20dd29b40296dd2ad24fa508ac9443`를 읽었다. 그 통합본은 초기 C3 `d023131`까지만 채택하고 이후 native 실행분은 아직 채택하지 않았다고 명시한다. C1의 공용 브라우저 fixture 수정은 중복 구현하지 않았다.
+시작 시 C1 `review/20261024-c1-integration-r2`는 `765622ecbe20dd29b40296dd2ad24fa508ac9443`였으며 초기 C3 `d023131`까지만 채택했다. 최종 확인에서는 **`85c5b6b85ca85e74503876b075e5ceba92dd4565`**로 전진했고 C1 ROUND3 문서와 파일 blob을 확인했다. 현재 C1은 C3 **`16c63e0`까지 채택**했다. 따라서 이번 인계는 **16c63e0 → 7a220d4 → 5eacacf**의 증분이다. C1 공용 브라우저/ESM 수정은 C3가 중복 구현하지 않았다.
 
-L1 브랜치는 실제 존재하며 HEAD `5339e3b5c9906991e08766b61bd27d92e725aa6f`다. 조회한 main `104692fa0070ef085eee918913ea05fdb2d88c05` 및 C1 통합본에 이 커밋은 포함되지 않았고, `AGENT_CONNECTION_LOST` 표시 변경도 C1 파일에 없다. L1·위치추정·초기값 소스는 수정하지 않았다. 다른 역할이나 main의 이후 변경을 되돌리지 않는다.
+L1 브랜치는 실제 존재하며 HEAD `5339e3b5c9906991e08766b61bd27d92e725aa6f`다. main은 최종 확인에서도 `104692fa0070ef085eee918913ea05fdb2d88c05`로 L1 미병합이다. 시작 시 C1에는 L1이 없었지만 **최신 C1 85c5b6b는 L1의 connection-loss/proposal reset을 채택**했다고 ROUND3 문서에서 확인했다. L1·위치추정·초기값 소스는 C3가 수정하지 않았다. 다른 역할의 전진을 보존한다.
 
 ## C1 인계 계약
 
@@ -116,13 +117,13 @@ python3 experiments/competition_nav2/run_extension.py --lock /tmp/c3-lock.json \
 
 동일 source의 [공용 CI 40162921767](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40162921767)는 **FAILURE**다. 두 OS에서 Python/JS/정적 검사/의존성 audit는 통과했지만 브라우저 수집 단계가 `SyntaxError: Named export 'GO2_JOINT_NAMES' not found`, `observed_joints.js` CommonJS 처리로 실패했다. 이는 실제 실패 로그로 확인했다. C1의 공용 브라우저/ESM 수정은 C3에 채택하지 않았으며 소유 범위 밖 파일을 중복 수정하지 않았다. 전용 native SUCCESS와 공용 CI FAILURE를 합쳐 전체 CI 성공이라고 표시하지 않는다.
 
-C1 통합 후보는 위 기능 source다. C1의 초기 C3 채택점 `d023131` 이후 기존 FOLLOWUP 변경과 이번 `7a220d4`를 검토하여 증분 채택하면 된다. 통합 후 해당 source의 native evidence와 통합 브랜치의 offline contract 테스트를 별도 표시하고, 통합 SHA에서 native를 실행하지 않았다면 그렇게 명시한다. 이 후속 문서 커밋 때문에 같은 native 7회를 반복하지 않는다.
+이 단락의 초기 RPP 통합 후보는 7a220d4다. 최신 C1은 기존 FOLLOWUP의 16c63e0를 이미 채택했으므로 그 이후 변경만 증분 검토한다. D0 연결을 포함하는 최종 코드 후보는 아래 5eacacf다. 통합 후 해당 source의 native evidence와 통합 브랜치의 offline contract 테스트를 별도 표시하고, 통합 SHA에서 native를 실행하지 않았다면 그렇게 명시한다. 이 후속 문서 커밋 때문에 같은 native 7회를 반복하지 않는다.
 
 ## 범위 및 남은 한 가지
 
 main 병합, PR, robot SSH/HTTP, 센서/카메라 인수, 서비스 변경, 배포, ARM/실이동은 0회다. physical braking, 실제 foot/gait envelope, Omni 및 Jetson 성능은 검증하지 않았다. 선택적 MPPI 튜닝은 실행하지 않으며 기존 RPP 후보를 우선한다.
 
-다음 한 가지는 D0 native 결과를 확인한 뒤 확정한다. 원본 holonomic witness를 RPP의 정답 경로로 주입하거나 geometry를 바꿔 성공시키지 않는다.
+다음 한 가지: **D0 feasible1의 저장된 native path·회전 명령과 full-body 충돌 예측을 대조해 RPP 도달 실패 원인을 한 사례에서 분리**한다. 원본 holonomic witness를 정답 경로로 주입하거나 body/geometry/clearance/timeout을 바꾸어 성공시키지 않는다.
 
 ## D0 어댑터 추가 검증
 
@@ -132,4 +133,35 @@ main 병합, PR, robot SSH/HTTP, 센서/카메라 인수, 서비스 변경, 배�
 
 초기 RPP 7회 성공은 위 `7a220d4`에 귀속한다. 어댑터 후보에서는 기존 diagnostic 1회 회귀와 D0 6회만 별도로 실행한다. D0 witness는 lateral translation을 포함하는 holonomic 가능성 증거라 DiffDrive RPP의 도달 보장이 아니다. strict/feasible 사례의 SAFE_WAIT도 기대 도달 실패로 남기며 workflow failure gate를 유지한다.
 
-어댑터 후보 로컬 검증: 집중 58 PASS(원본 sensor conformance 6 scenes 포함), 전체 Python 2,691 run / 2,689 PASS / 2 SKIP(85.845 s), JS 70 PASS, Ruff/secret scan/diff PASS. 기존 source `7a220d4`의 실제 7개 artifact를 수정된 validator로 재검사하여 7/7 PASS를 확인했다. native 어댑터 source/run과 결과는 실행 후 아래에 기록한다.
+어댑터 후보 로컬 검증: 집중 58 PASS(원본 sensor conformance 6 scenes 포함), 전체 Python 2,691 run / 2,689 PASS / 2 SKIP(85.845 s), JS 70 PASS, Ruff/secret scan/diff PASS. 기존 source `7a220d4`의 실제 7개 artifact를 수정된 validator로 재검사하여 7/7 PASS를 확인했다. native 어댑터 source/run과 실제 결과는 아래와 같다.
+
+
+### D0 실제 native 실행과 독립 검증
+
+[Native run 40164154349](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40164154349), exact source **`5eacacf42378ad91319a5de323df7844f34ea33b`**, 2026-10-25T05:07:39Z 종료, **FAILURE**. 실패 gate를 제거하지 않았다. 설치·pinned inputs materialize·sensor conformance·native 기록은 모두 성공했고, **도달 기대 3건 실패** 때문에 workflow가 실패했다.
+
+[Artifact 12588085458](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40164154349/artifacts/12588085458): 1,813,021 bytes, `expired=false`, 만료 **2026-11-08T05:07:36Z**, digest `sha256:c2d20937c7e2d7d2d20527994e8eaa116d2fab1d556638562ce688972317d8cb`. 원본을 다운로드하고 **7/7 독립 replay PASS**. `ROUND3_D0_NATIVE.json`에 원래 D0 기대, scene/geometry/observation hash, 실제 종료·명령 수, native 로그 발췌, conformance와 검사 hash를 보존한다.
+
+| 사례 | 실제 native / 종료 | 독립 evidence | 독립 safety | 도달·대기 기대 | 실제 경로 m | raw / final |
+|---|---|---|---|---|---:|---:|
+| 기존 C3 diagnostic 회귀 | GOAL_REACHED / 4 | PASS | PASS | PASS | 4.277803 | 569 / 612 |
+| D0 empty | GOAL_REACHED / 4 | PASS | PASS | PASS | 3.983161 | 503 / 547 |
+| D0 feasible1 | SAFE_WAIT / 6 | PASS | PASS | **FAIL: 미도달** | 0.805500 | 115 / 230 |
+| D0 feasible2 | SAFE_WAIT / 6 | PASS | PASS | **FAIL: 미도달** | 0.283500 | 59 / 175 |
+| D0 original_tight5 | SAFE_WAIT / 6 | PASS | PASS | **FAIL: 미도달** | 0.000000 | 10 / 126 |
+| D0 blocked | SAFE_WAIT / 6 | PASS | PASS | PASS | 0.000000 | 7 / 123 |
+| D0 sensor_dropout | SAFE_WAIT / 5, SENSOR_STALE | PASS | PASS | PASS | 0.670500 | 83 / 176 |
+
+어댑터 실행 묶음은 native/evidence/safety **7/7**, 기대 **4/7**이며, 이 중 D0만 보면 native/evidence/safety **6/6**, 기대 **3/6**이다. 앞의 다른 geometry 7/7 성공과 섞어 D0 도달 성공으로 해석하지 않는다. D0 strict 실패는 그대로 보존했다.
+
+D0 empty 목표 오차 0.118647 m로 도착 허용 내에 도달했다. feasible1/2/strict에서는 **RPP `detected collision ahead` → FollowPath abort → `Collision Ahead - Exiting Spin` → NavigateToPose ABORTED(6)**가 실제 native 로그에 남는다. blocked는 NavFn valid path 생성 실패 후 Spin도 정지했다. 초기 하네스/설치 실패나 65 s timeout이 아니다. 이것만으로 원래 geometry가 불가능하다거나 단일 parameter가 원인이라고 단정하지 않는다. D0 witness는 holonomic이며 RPP는 vy=0인 점도 그대로다.
+
+모든 경우 padded-body 접촉·route/forbidden 위반·HOLD 중 nonzero는 0, shutdown ZERO와 프로세스 정리 PASS. D0 unpadded body의 독립 최소 clearance는 empty/feasible1/feasible2/dropout **0.054000 m**, strict **0.037175 m**, blocked **0.041814 m**로 0.03 m보다 크다. 회전 recovery는 실제 native 출력이며 GT로 pose를 보정하지 않았다.
+
+D0 dropout은 경과 4 s 이후 새 observation이 없고, 마지막 scan source 3.90 s, SENSOR_STALE latch **4.15 s**, stale 이후 nonzero 0, 실제 cancel ACK/terminal 5 및 마지막 `[0,0]`다. 6개 D0의 conformance는 각 3 probe(전체 18개 중 17 delivered), 전달된 6,120 ranges 모두 원본과 **차이 0**. 실제 주행 scan은 매번 현재 pose/elapsed/epoch로 D0 원본 sensor에서 산출됐으며 이 자료도 검증했다.
+
+D0 실제 config hash **`5caef12a8f7774d55570f6404b6797ef55056c78e459d5bbfc2dd05c04826609`**. 기존 C3 회귀는 원래 `ea1e0668...`를 유지했다. 전체 package lock은 첫 RPP 확장과 같은 `45f62657...`이며 세부 image ID·전체 hash는 JSON에 있다. Body/grid/sensor 조건 변경은 opt-in D0에만 적용했고 이를 전후 동일 조건 비교로 포장하지 않는다.
+
+동일 코드 source의 [공용 CI 40164154330](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40164154330)도 두 OS의 browser E2E collection에서 기존 `GO2_JOINT_NAMES` CommonJS 오류로 **FAILURE**다. Python/JS/정적·audit 단계는 통과했다. C1 소유 공용 수정은 중복하지 않았다.
+
+C1이 검토할 코드 후보는 **5eacacf**(기존 7a220d4 결과 포함)이며 native 실행 source를 위 두 SHA로 구분해야 한다. 외부 D0 입력은 이제 ADAPTER_REQUIRED가 아니라 실제 실행됐다. 다만 3개 obstacle case는 도달 미충족이므로 대회 장애물 통과 capability를 승인하는 근거로 사용하지 않는다. 이번 오프라인 연결에 추가 필수 입력은 없다. 실제 map 정합·보행 envelope·물리 제동은 여전히 별도 INPUT_REQUIRED/NOT_RUN이며 이번 범위에 포함하지 않는다.
