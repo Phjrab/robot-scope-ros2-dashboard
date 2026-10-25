@@ -7,6 +7,15 @@ import { identity, multiply, transformPoints } from '../robot_dashboard/static/f
 const stamp = 1792309179130175352n;
 const map = { id: 'a'.repeat(24), revision: 'b'.repeat(64), kind: 'pointcloud3d' };
 const guess = { x: 1, y: 2, z: .3, roll: .1, pitch: -.2, yaw: .3 };
+
+test('Maps distinguishes an unavailable server link from server-reported robot telemetry loss', () => {
+  const disconnected = observationAvailabilityText({ status: 'AGENT_CONNECTION_LOST' });
+  assert.match(disconnected, /대시보드 연결이 끊겨/);
+  assert.match(disconnected, /LiDAR·pose 수신 상태를 확인할 수 없습니다/);
+  assert.doesNotMatch(disconnected, /로봇.*변경|센서.*고장/);
+  assert.match(observationAvailabilityText({ status: 'ROBOT_TELEMETRY_UNAVAILABLE' }), /서버가 로봇 관측 불가/);
+  assert.equal(observationAvailabilityText({ status: 'STALE' }), '', 'data staleness retains its existing warning');
+});
 function observation(seq, epoch = 'c', received = 10 + seq / 100) {
   return { observer_id: 'd'.repeat(32), publisher_epoch: epoch.repeat(32), publisher_gid: epoch.repeat(32),
     publisher_count: 1, identity_status: 'OBSERVED_PUBLISHER', source_stamp_ns: String(stamp + BigInt(seq)),
