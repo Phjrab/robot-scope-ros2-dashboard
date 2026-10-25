@@ -3,7 +3,7 @@
 기준: `7f2a7070a17975d2a5f123cbf6aab0f99f04bf8a`, 2026-10-24 KST.
 제출: `review/20261024-c2-mission-adapter`. 사용자 후속 지시로 local-only/main-only 제출 정책을 대체했다. main·공용 파일·다른 역할 소스는 수정하지 않는다. 실제 로봇·ROS·카메라·서비스·배포는 실행하지 않는다.
 
-최신 후속 계약과 검증은 `docs/parallel-review/20261024/C2/ROUND3.md` 및 `WIRING_PROPOSAL.md`를 따른다. 최초 제출 `REVIEW.md`, `INPUTS.json`, `VALIDATION.json`의 65개 테스트/기준 SHA는 과거 제출 기록이다.
+최신 후속 계약과 검증은 `docs/parallel-review/20261024/C2/ROUND4.md` 및 `WIRING_PROPOSAL.md`를 따른다. C1 `85c5b6b`는 ROUND3 runtime/first receipt/STOP와 관측 ledger를 이미 채택했다. 이번에는 `SignalBinding.inference_settings_sha256` 필수 owner pin만 추가하며 상태기를 동결한다. 최초 제출 `REVIEW.md`, `INPUTS.json`, `VALIDATION.json`의 65개 테스트/기준 SHA는 과거 제출 기록이다.
 
 ## 구현 범위
 

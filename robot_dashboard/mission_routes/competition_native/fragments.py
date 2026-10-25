@@ -1,6 +1,7 @@
 """Join C4's partial signal projection; never invent independent robot facts."""
 from dataclasses import dataclass
 import math
+import re
 
 from .observations import ComponentStamp, FIELDS, ObservationRejected, Packet
 
@@ -16,12 +17,21 @@ class SignalBinding:
     signal_id: str
     crossing_id: str
     receiver_clock_id: str
+    inference_settings_sha256: str  # Required trusted-owner pin, never learned from a frame.
+
+    def __post_init__(self):
+        if not _settings_digest(self.inference_settings_sha256):
+            raise ValueError("C4_EXPECTED_INFERENCE_SETTINGS_INVALID")
+
+
+def _settings_digest(value):
+    return isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value) is not None
 
 
 def join_signal(packet: Packet, *, fragment, context, binding: SignalBinding,
                 now_s, receiver_clock_id, first_received_s=None,
                 source_age_at_first_receipt_s=None, processed_s=None):
-    """Join C4 380800c's explicit first-receipt contract on the SAME host.
+    """Join C4's owner-pinned inference and first-receipt contract on the SAME host.
 
     Optional time arguments can only confirm the context, never replace it.
     Legacy completed-age fields, when present, must agree with explicit first
@@ -30,6 +40,15 @@ def join_signal(packet: Packet, *, fragment, context, binding: SignalBinding,
     def reject(reason):
         raise ObservationRejected(reason)
 
+    settings = context.get("inference_settings_sha256")
+    if settings is None:
+        reject("C4_INFERENCE_SETTINGS_REQUIRED")
+    if not _settings_digest(settings):
+        reject("C4_INFERENCE_SETTINGS_INVALID")
+    if settings != binding.inference_settings_sha256:
+        reject("C4_INFERENCE_SETTINGS_MISMATCH")
+    if context.get("observation_mode") != "mission":
+        reject("C4_MISSION_OBSERVATION_REQUIRED")
     if (receiver_clock_id != binding.receiver_clock_id
             or binding.source_clock not in {"synchronized_ros", "synchronized_utc"}
             or context.get("schema_version") != "traffic-observation-sidecar.v0.1"

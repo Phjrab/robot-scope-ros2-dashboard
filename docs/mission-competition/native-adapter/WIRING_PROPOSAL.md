@@ -1,6 +1,6 @@
-# C1 연결 계약 — Round3
+# C1 연결 계약 — Round4
 
-최신 명세/결과는 [ROUND3.md](../../parallel-review/20261024/C2/ROUND3.md)다. 이 문서는 C1 `765622ecbe20dd29b40296dd2ad24fa508ac9443`의 **이미 구현된** owner/barrier/continue/STOP 방어와 C4 `380800ca9e211495769fe60ee8221e3f4fb40f16`을 기준으로 한다. 과거 FOLLOWUP의 새 공용 barrier 설계 요청 및 C4 처리 완료시각을 projection에 전달하라는 안내를 대체한다.
+최신 명세/결과는 [ROUND4.md](../../parallel-review/20261024/C2/ROUND4.md)다. C1 `85c5b6b85ca85e74503876b075e5ceba92dd4565`는 ROUND3 runtime/first receipt/STOP/계획 대기 후 guard 검사를 이미 채택했다. 아래 runtime 설명은 유지할 계약이며 재적용할 patch가 아니다. 이번 변경은 C4 `9e9ebcc0cbc613d5b0a7f50a27a7b256c3f829bd`의 추론 설정 digest를 기존 immutable `SignalBinding`에 필수로 고정하는 것뿐이다.
 
 ## 실제 C2 public API
 
@@ -33,9 +33,26 @@ port = CoordinatorNavigationPort(
 
 C1 r2의 실제 `start(..., native_owner=...)`, `pause(..., native_owner=...)`, `continue_native(mission_id, admission=..., token=..., previous_visit=..., next_visit_id=..., actual_goal_id=...)`를 호출한다. 성공은 기존 native_barrier를 확인하며 UI confirmation/resume으로 우회하지 않는다. 취소는 exact terminal+발행 cancel ID를 확인한다. C1의 `_operation_lock`, token, external_stop, STOP, pins/compiled visit 검증은 그대로다. 이전 C2 callback 계약도 유지하지만 새 metadata barrier를 C1에 필수로 요구하지 않는다.
 
-C1 session은 `bind_native_owner(..., guard=session._continuation_proven)`을 유지하고, 그 함수는 `not session.closed and runtime.continuation_proven(...)`으로 바꾼다. `MissionCoordinator._dispatch_current_locked`의 awaited preflight 뒤에도 기존 guard를 다시 확인해야 한다. 그렇지 않으면 계획 대기 중 consumer 폐쇄/old RELEASE/proof expiry가 발생해도 앞서 통과한 guard만으로 goal이 생성될 수 있다. C2 교차 테스트는 실제 r2 coordinator의 preflight callback 끝에 `runtime.require_dispatch_authorized(...)`를 넣어 이 지점을 검증한다. 공용 파일은 C1이 적용한다.
+C1 session은 `bind_native_owner(..., guard=session._continuation_proven)`을 유지하며 현재 함수는 `not session.closed and runtime.continuation_proven(...)`을 호출한다. `MissionCoordinator._dispatch_current_locked`의 awaited preflight 뒤 guard 재검사도 최신 C1에 있다. C2의 기존 pinned r2 교차 테스트는 preflight callback 끝에 `runtime.require_dispatch_authorized(...)`를 넣어 이 계약을 보존한다. 이 역사적 harness를 최신 C1 미완료 항목으로 해석하지 않는다.
 
 ## C4 실제 projection + C2 join
+
+trusted owner가 관측 수신 전에 선택·검토한 추론 설정의 digest를 필수로 전달한다. 실제 변경 지점은 기존 `SignalBinding(...)` 생성 호출의 keyword 한 개다. C1 현재 `tests/competition_integration/harness.py::SoftwareHarness.asyncSetUp`에도 같은 인자가 필요하다. observation의 digest를 읽어 expected 값을 만드는 fallback은 금지한다.
+
+```python
+signal_binding = SignalBinding(
+    producer_id=trusted_source_id, epoch=trusted_epoch,
+    source_clock=verified_source_clock, config_hash=approved_traffic_config_hash,
+    binding_id=approved_binding_id, model_sha256=approved_model_sha256,
+    signal_id=approved_signal_id, crossing_id=approved_crossing_id,
+    receiver_clock_id=session.runtime.config.receiver_clock_id,
+    inference_settings_sha256=approved_inference_settings_sha256,
+)
+# Before the first observation, in the existing trusted composition code:
+session.ingress.signal_binding = signal_binding
+```
+
+digest는 소문자 64자리 hex이며 누락·malformed·상이한 설정은 미션 결합을 거부한다. `observation_mode="mission"`도 명시되어야 한다. 설정/epoch를 바꾸려면 owner가 기존 실행을 종료하고 새 binding/runtime으로 검토해야 한다. 제자리 기대값 갱신이나 오래된 GREEN 재사용은 허용하지 않는다. 진단 observation/bbox/image는 수정하지 않으므로 별도 표시 경로를 유지할 수 있다. C1의 기존 ingress 오류 시 `gate.retire()`도 유지한다.
 
 ```python
 from robot_dashboard.competition_traffic.projection import signal_fragment

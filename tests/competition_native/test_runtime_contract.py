@@ -243,13 +243,15 @@ class SignalFragmentTests(unittest.TestCase):
     def setUp(self):
         self.r = Rig()
         self.binding = SignalBinding("camera", "camera-boot", "synchronized_ros", "e" * 64,
-                                     "camera-signal-binding", "f" * 64, "signal-1", "crossing-1", "local")
+                                     "camera-signal-binding", "f" * 64, "signal-1", "crossing-1", "local",
+                                     inference_settings_sha256="a" * 64)
         self.context = dict(schema_version="traffic-observation-sidecar.v0.1", source_id="camera",
             producer_epoch="camera-boot", source_clock="synchronized_ros", sequence=1, source_stamp_ns="1000",
             clock_verified=True, identity_verified=True, association_verified=True, config_hash="e" * 64,
             first_received_s=10., processed_s=10.08, source_age_at_first_receipt_s=.02,
             binding_id="camera-signal-binding", receipt_ttl_s=.25, source_age_s=.1, receiver_age_s=.08,
-            complete_mission_evidence=False, departure_authorized=False)
+            complete_mission_evidence=False, departure_authorized=False,
+            observation_mode="mission", inference_settings_sha256=self.binding.inference_settings_sha256)
         self.fragment = dict(signal_id="signal-1", crossing_id="crossing-1", model_sha256="f" * 64,
             raw_state="GREEN", stable_state="GREEN", quality_flags=[], confidence=.9,
             roi_xyxy_native=[1, 2, 3, 4], native_image_size=[640, 480])
