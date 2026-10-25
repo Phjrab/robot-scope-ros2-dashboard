@@ -25,7 +25,7 @@ class Decision:
 TERMINAL = {"SUCCEEDED", "FAILED", "INTERRUPTED", "READY_TO_MOVE"}
 
 
-def decide(state, action, frame, *, now, hold_ack, synthetic=False):
+def decide(state, action, frame, *, now, hold_ack, synthetic=False, hold_ack_s=None, exit_ack_s=None, release_ack_s=None):
     """No timers, goals, hardware, task creation, or IO here."""
     def result(phase=None, reason=None, effects=(), **changes):
         return Decision(replace(state, phase=phase or state.phase,
@@ -109,21 +109,24 @@ def decide(state, action, frame, *, now, hold_ack, synthetic=False):
             invalid = "FULL_CONTAINMENT_VERIFIED_SIT_AND_STOP_REQUIRED"
         if not physical:
             return result(reason=invalid, dwell_start=None, last_valid_s=None)
-        sample_time = min(frame.components[name].receipt_s for name in needed)
+        sample_time = frame.supported_end(*needed)
+        if hold_ack_s is None or sample_time <= hold_ack_s:
+            return result(reason="STOP_OBSERVATION_PRECEDES_HOLD_ACK", dwell_start=None, last_valid_s=None)
         source_times = {name: int(frame.components[name].stamp.source_stamp_ns) for name in needed}
+        source_start = dict(state.dwell_source_start)
         start = state.dwell_start
-        if start is None or state.last_valid_s is None or sample_time - state.last_valid_s > frame.policy.continuity_gap_s:
-            start = sample_time
+        if (start is None or state.last_valid_s is None or sample_time < state.last_valid_s
+                or sample_time - state.last_valid_s > frame.policy.continuity_gap_s):
+            # Start no earlier than the first receipt that supports ALL inputs.
+            start = max(frame.components[name].receipt_s for name in needed)
             source_start = source_times
-        else:
-            source_start = dict(state.dwell_source_start)
-        # Compare deltas within each bound source clock, never across hosts.
-        # Bursts of old frames/new polling envelopes cannot manufacture 2 s.
-        source_supported = min((source_times[name] - source_start.get(name, source_times[name])) / 1e9
-                               for name in needed)
+        # Preserve C1 r2's source progression check, in each producer's clock.
+        # Receipt/age changes alone cannot manufacture physical observation time.
+        source_duration = min((source_times[name] - source_start.get(name, source_times[name])) / 1e9
+                              for name in needed)
         updated = replace(state, dwell_start=start, last_valid_s=sample_time,
                           dwell_source_start=tuple(source_start.items()))
-        if min(sample_time - start, source_supported) < duration:
+        if sample_time < start + duration or source_duration < duration:
             return Decision(replace(updated, reason="DWELL_IN_PROGRESS"))
         if state.phase == "PARK_HOLD":
             return Decision(replace(updated, phase="SUCCEEDED", reason="PARK_EVIDENCE_COMPLETE"))
@@ -148,9 +151,15 @@ def decide(state, action, frame, *, now, hold_ack, synthetic=False):
                     or e.crossing_id != action.crossing_id or e.stable_state != "GREEN"
                     or e.raw_state != "GREEN" or e.quality_flags):
                 return stop("SIGNAL_LOST_BEFORE_DEPARTURE")
+            if exit_ack_s is None:
+                return result(reason="EXIT_ACK_REQUIRED")
             if frame.fresh("departure") and extra.departure_observed:
                 if e.body_motion_status != "MOVING":
                     return stop("CONTRADICTORY_DEPARTURE_EVIDENCE")
+                if release_ack_s is None:
+                    return stop("DEPARTURE_WITHOUT_RELEASE_ACK")
+                if not frame.acquired_after(max(exit_ack_s, release_ack_s), "departure", "motion"):
+                    return stop("DEPARTURE_OBSERVATION_PRECEDES_EXIT_ACK")
                 return result("DEPARTING", "PHYSICAL_DEPARTURE_OBSERVED", departed=True)
             if e.goal_state == "SUCCEEDED":
                 return stop("DEPARTURE_EVIDENCE_REQUIRED")

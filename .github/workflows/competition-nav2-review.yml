@@ -1,0 +1,48 @@
+name: C3 native Humble review
+
+on:
+  push:
+    branches: [review/20261024-c3-nav2-benchmark]
+    paths:
+      - experiments/competition_nav2/**
+      - .github/workflows/competition-nav2-review.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c3-native-humble-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Record source and runner
+        run: |
+          mkdir -p "$RUNNER_TEMP/c3-evidence"
+          git rev-parse HEAD > "$RUNNER_TEMP/c3-evidence/source-sha.txt"
+          docker version > "$RUNNER_TEMP/c3-evidence/docker-version.txt"
+          uname -a > "$RUNNER_TEMP/c3-evidence/runner.txt"
+      - name: Build Humble image (download phase)
+        timeout-minutes: 12
+        run: |
+          python3 experiments/competition_nav2/container/manage.py build --lock "$RUNNER_TEMP/c3-evidence/image-lock.json"
+      - name: Empty RPP gate, then eight matched native cases (network none)
+        timeout-minutes: 20
+        run: |
+          python3 experiments/competition_nav2/run_minimum.py --lock "$RUNNER_TEMP/c3-evidence/image-lock.json" --output "$RUNNER_TEMP/c3-evidence/minimum"
+      - name: Preserve native evidence even after failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: c3-native-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/c3-evidence/
+            !${{ runner.temp }}/c3-evidence/**/*.pgm
+          if-no-files-found: error
+          retention-days: 14

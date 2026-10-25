@@ -614,6 +614,10 @@ class MissionCoordinator:
                 mission.update(state="starting", phase="planning")
                 self._save_for_stop()
                 return
+            native = self._native_owners.get(mission['id'])
+            if native is not None and (native.get('external_stop')
+                    or not native['guard'](starting=mission['current_index'] == 0)):
+                raise MissionConflict('NATIVE_DISPATCH_PROOF_EXPIRED')
             dispatch_pose = waypoint.get("mission_local_pose")
             if waypoint.get("heading_yaw") is not None:
                 annotation = next(point for point in annotations["points"] if point.get("id") == waypoint["annotation_id"])

@@ -8,7 +8,8 @@ publisher, mission executor, or automatic registration.
 
 The pinned base actually contains `traffic_signals/detector.py::LocalUltralytics`,
 not the prompt's proposed `OptionalYoloAdapter`/`detector_adapter.py` names.
-That implementation and `core.py` are imported read-only. Do not replace them
+The VM loader and `core.py` are imported read-only. `OwnerModel.infer` uses
+the same loaded CPU model, collecting post-NMS class counts before allowlist filtering. Do not replace them
 with an unrelated detector or silently copy another branch's revisions.
 
 ## Setup and commands
@@ -78,7 +79,8 @@ decoded BGR `Frame`; this module never acquires a stream demand token.
 
 `TrafficPipeline.process(frame, now_s=receiver_monotonic)` accounts for model
 latency using its same-host clock for live sources. Tests can inject that
-clock. Source age, receiver elapsed time and inter-frame gap are distinct.
+clock. Temporal stability uses original arrival times, not inference completion
+times. Source age, receiver elapsed time and inter-frame gap are distinct.
 No subtraction of remote host monotonic values is performed. Offline records
 retain original capture metadata but use `source_clock=fixture` and an
 explicit virtual timeline; they can never enter the production projection.
@@ -87,9 +89,11 @@ The unchanged VM defaults are stability 0.4 s and TTL/gap 0.25 s. Gaps and
 sequence holes reset stability; no interpolation or clock acceleration is
 used. Raw diagnostic inference can still be recorded for a new frame after a
 gap, but its stable observation remains UNKNOWN. Duplicate sequences, source
-stamps, receipts or repeated image handles do not call the detector again.
-The repeated-content guard is conservative: identical consecutive JPEG bytes
-are withheld even if an upstream owner reports a new sequence.
+stamps or receipts do not call the detector again. Identical content is a
+separate diagnostic and is allowed with verified advancing source identity.
+`identity_verified` defaults to false; the trusted owner establishes it from
+actual camera epoch/sequence/stamp, never from a payload flag or polling nonce.
+Unverified identity blocks stable evidence even when counters advance.
 
 Epoch retirement and sequence high-water marks survive invalid/stale color
 updates. They are per pipeline instance and in memory; create one instance
@@ -116,7 +120,10 @@ are not fabricated. The sidecar `context` records local provenance and null
 unconnected components; it is not a new canonical runtime enum/schema.
 
 `signal_fragment` rejects offline records, unverified bindings and expired
-source/receiver evidence. It returns only signal fields, never a complete
+source/receiver evidence. First receipt and source age at that receipt are stored
+in the observation; a caller cannot reanchor them. `signal_status` exposes reasons,
+original identity and last valid observation time when no fragment is available.
+It returns only signal fields, never a complete
 mission Evidence or departure authorization. The trusted in-process C2 owner
 must retain the original receiver arrival time (never reset it on polling),
 validate source/epoch/sequence and expected signal/crossing, and join separate
@@ -157,3 +164,68 @@ Loader version: [Ultralytics 8.3.203](https://pypi.org/project/ultralytics/8.3.2
 CPU package pairing: [PyTorch previous versions](https://pytorch.org/get-started/previous-versions/).
 The actual installed code and successful local replay, not the newest web
 examples, establish the compatibility result reported here.
+
+
+## Follow-up diagnosis and two clocks
+
+`--clock-mode source-timeline` (default) preserves manifest capture intervals;
+CPU duration is reported separately and never masquerades as capture staleness.
+`--clock-mode wall-clock` paces a local fixture receiver at those intervals and
+includes inference/queue delay in age. Delayed processing retains the scheduled
+first receipt, so slow offline processing fails freshness in this workload mode.
+Neither mode verifies the historical sensor clock or Jetson online readiness.
+All records remain `fixture`; missing historical epoch/sequence are not invented
+as real camera metadata. `--fps` only supplies timing when the input has none.
+No subsampling, interpolation, TTL extension or threshold tuning is performed.
+
+Per-frame `context.diagnostics` records post-NMS counts, non-allowlisted classes,
+configured confidence rejections, expected-ROI IoUs, association/crop/color/time
+rejections and repeated content. `DETECTOR_MISSING` means no remaining traffic
+candidate; `EXPECTED_ROI_MISMATCH` means candidates exist outside the expected
+region. The detector's 0.25 floor and NMS suppress raw predictions before this
+boundary; below-floor counts are explicitly NOT_OBSERVABLE_AFTER_NMS. A lower
+explicit config floor is honored by the loader, but this study uses 0.25 unchanged.
+Terminal rejection is one ordered reason; stage diagnostics and quality flags
+are non-exclusive and must not be added as disjoint counts.
+
+Private labeled audit (labels are never detector input):
+
+```sh
+python -m robot_dashboard.competition_traffic.diagnose \
+  --input-root /absolute/private/work \
+  --labels docs/mission-competition/traffic-input/real-labels.json \
+  --config /absolute/owner-v3-config.json --model /absolute/yolov8n.pt \
+  --output /absolute/new-private-label-audit --acknowledge-trusted-pickle
+```
+
+This writes original-coordinate overlays, exact native crops, contact sheets and
+`evaluation.json`. Cyan=detector; yellow=fixed expected ROI where applicable;
+magenta=visually labeled target. Display enlargement uses nearest-neighbor,
+without color enhancement. Manual-crop oracle color is reported separately from
+localized raw predictions and is never used for stable production evidence.
+NO_LIGHT images count false GREEN from any candidate, without requiring a GT box.
+See [FOLLOWUP](../../parallel-review/20261024/C4/FOLLOWUP.md) for dataset bias,
+exact counts, integration contracts and minimal missing inputs.
+
+## C1 dedicated CI jobs
+
+Weight-free unit/contract job: Python 3.12, numpy==1.26.4,
+opencv-python-headless==4.10.0.84, jsonschema==4.10.3; no torch, Ultralytics,
+model, ROS, hardware or private imagery is needed. Require zero skipped tests:
+
+```sh
+python - <<'PYTEST'
+import unittest
+suite = unittest.defaultTestLoader.discover('tests/competition_traffic', top_level_dir='tests')
+result = unittest.TextTestRunner(verbosity=2).run(suite)
+raise SystemExit(0 if result.wasSuccessful() and result.testsRun >= 69 and not result.skipped else 1)
+PYTEST
+```
+
+Private replay job: additionally use CPU torch/torchvision plus the pinned
+requirements-replay.txt environment above and provision the owner weights,
+config and original files from private storage. Run both clock modes to separate
+algorithm timing from local workload, then the labeled audit. Keep image artifacts
+private. Exit 0 verifies execution, not green performance or robot readiness.
+The base CI installs neither cv2 nor jsonschema and may SKIP these optional
+modules; that is not a perception test PASS. No CI/shared requirement was edited.

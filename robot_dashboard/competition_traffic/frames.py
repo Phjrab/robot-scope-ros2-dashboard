@@ -29,6 +29,7 @@ class Frame:
     exposure_settling: bool = False
     exposure_metadata: dict = field(default_factory=dict)
     original_metadata: dict = field(default_factory=dict)
+    identity_verified: bool = False
 
     def validate(self):
         if not all(identity(v) for v in (
@@ -41,7 +42,7 @@ class Frame:
             raise ValueError("SOURCE_STAMP_INVALID")
         if self.source_clock not in ("fixture", "synchronized_ros", "synchronized_utc"):
             raise ValueError("SOURCE_CLOCK_UNSUPPORTED")
-        if type(self.clock_verified) is not bool or type(self.exposure_settling) is not bool:
+        if any(type(v) is not bool for v in (self.clock_verified, self.identity_verified, self.exposure_settling)):
             raise ValueError("FRAME_BOOLEAN_INVALID")
         if not finite(self.received_s, 0, 1e16):
             raise ValueError("RECEIPT_TIME_INVALID")
@@ -68,7 +69,7 @@ def decode_jpeg(payload: bytes):
 
 def from_owner_jpeg(payload: bytes, *, source_id, producer_epoch, sequence,
                     source_stamp_ns, source_clock, source_age_s, received_s,
-                    clock_verified, provenance, binding_id, exposure_settling=False):
+                    clock_verified, provenance, binding_id, identity_verified=False, exposure_settling=False):
     """Accept bytes already acquired by the camera owner; never open a device.
 
     Do not use another host's `updated` monotonic as received_s. The owner must
@@ -77,4 +78,5 @@ def from_owner_jpeg(payload: bytes, *, source_id, producer_epoch, sequence,
     handle = hashlib.sha256(payload).hexdigest()
     return Frame(decode_jpeg(payload), source_id, producer_epoch, sequence,
                  source_stamp_ns, source_clock, source_age_s, received_s,
-                 clock_verified, provenance, handle, binding_id, exposure_settling)
+                 clock_verified, provenance, handle, binding_id, identity_verified=identity_verified,
+                 exposure_settling=exposure_settling)

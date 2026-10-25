@@ -17,6 +17,19 @@ from configure import NODES, PLUGINS
 from core import Boundary, Command, LIMITS, propagate, swept_poses
 from fixtures import World, digest
 from preflight import require_isolated
+from humble_executor import metadata_executor_type
+
+
+def publisher_owners_match(observed, owner, endpoint_count=1):
+    """Humble TimedBehavior allocates one publisher per loaded behavior plugin."""
+    return sorted(observed) == [owner] * endpoint_count
+
+
+def goal_uuid_to_json(uuid):
+    values = [int(value) for value in uuid]
+    if len(values) != 16 or any(not 0 <= value <= 255 for value in values):
+        raise ValueError("action UUID must contain 16 bytes")
+    return values
 
 
 def plugin_library_names(share, plugin):
@@ -42,6 +55,7 @@ def main(directory):
     from rclpy.action import ActionClient
     from rclpy.clock import Clock, ClockType
     from rclpy.node import Node
+    from rclpy.executors import SingleThreadedExecutor, await_or_execute
     from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
     from ament_index_python.packages import get_package_share_directory
     from action_msgs.msg import GoalStatusArray
@@ -115,11 +129,11 @@ def main(directory):
                 return callback
 
             for owner in self.raw_count:
-                self.subscriptions_raw.append(
-                    self.create_subscription(
-                        Twist, "raw/" + owner, bind_callback(owner), 1
-                    )
+                sub = self.create_subscription(
+                    Twist, "raw/" + owner, bind_callback(owner), 1
                 )
+                sub.c3_with_metadata = True
+                self.subscriptions_raw.append(sub)
 
             def bind_status(owner):
                 def callback(msg):
@@ -152,7 +166,7 @@ def main(directory):
 
         def receive_command(self, msg, info, owner):
             now, wall_ns = time.monotonic(), time.time_ns()
-            stamp = int(info.source_timestamp)
+            stamp = int(info["source_timestamp"])
             age = (wall_ns - stamp) / 1e9 if stamp > 0 else math.inf
             self.sequence += 1
             self.raw_count[owner] += 1
@@ -210,11 +224,15 @@ def main(directory):
                         sim_t=self.sim_t,
                         receipt_monotonic=now,
                         source_timestamp_ns=stamp,
+                        dds_received_timestamp_ns=int(info["received_timestamp"]),
                         source_age_s=age if math.isfinite(age) else None,
                         owner=owner,
                         v=msg.linear.x,
                         w=msg.angular.z,
                         accepted=accepted,
+                        epoch=self.boundary.epoch,
+                        fault=self.boundary.fault,
+                        held=self.boundary.hold,
                         active_action_owners=owners,
                         origin="native_nav2",
                     ),
@@ -356,6 +374,36 @@ def main(directory):
                         held=held,
                         reason=self.boundary.reason,
                         raw_sequence=self.sequence,
+                        epoch=self.boundary.epoch,
+                        monotonic=now,
+                        command_source_age_s=(
+                            now - self.boundary.command.sent
+                            if self.boundary.command
+                            else None
+                        ),
+                        command_receipt_age_s=(
+                            now - self.boundary.command.received
+                            if self.boundary.command
+                            else None
+                        ),
+                        sensor_source_age_s=(
+                            now
+                            - self.boundary.scan_received
+                            + self.boundary.scan_source
+                            if self.boundary.scan_received is not None
+                            else None
+                        ),
+                        sensor_receipt_age_s=(
+                            now - self.boundary.scan_received
+                            if self.boundary.scan_received is not None
+                            else None
+                        ),
+                        published_ros=dict(
+                            clock_s=self.sim_t,
+                            tf_stamp_s=self.sim_t,
+                            odom_stamp_s=self.sim_t,
+                            tf_frames=["map", "odom", "base_link"],
+                        ),
                         action_owners=dict(self.active_actions),
                         wall_gap_s=gap,
                         collision_count=self.collision_count,
@@ -369,7 +417,7 @@ def main(directory):
         def wait(self, future, timeout=10.0):
             deadline = time.monotonic() + timeout
             while rclpy.ok() and not future.done() and time.monotonic() < deadline:
-                rclpy.spin_once(self, timeout_sec=0.02)
+                rclpy.spin_once(self, executor=executor, timeout_sec=0.02)
             if not future.done():
                 raise TimeoutError("ROS response deadline exceeded")
             result = future.result()
@@ -381,7 +429,7 @@ def main(directory):
             client = self.create_client(kind, name)
             deadline = time.monotonic() + timeout
             while not client.wait_for_service(timeout_sec=0.05):
-                rclpy.spin_once(self, timeout_sec=0.02)
+                rclpy.spin_once(self, executor=executor, timeout_sec=0.02)
                 if time.monotonic() >= deadline:
                     raise TimeoutError(name)
             response = self.wait(client.call_async(request), timeout)
@@ -421,7 +469,18 @@ def main(directory):
                 ownership[topic] = [
                     p.node_namespace.rstrip("/") + "/" + p.node_name for p in pubs
                 ]
-                if require_owners and ownership[topic] != ["/c3_nav2/" + owner]:
+                count = (
+                    len(
+                        expected["behavior_server"]["ros__parameters"][
+                            "behavior_plugins"
+                        ]
+                    )
+                    if owner == "behavior_server"
+                    else 1
+                )
+                if require_owners and not publisher_owners_match(
+                    ownership[topic], "/c3_nav2/" + owner, count
+                ):
                     raise RuntimeError(
                         "publisher ownership conflict or absence: "
                         + topic
@@ -443,6 +502,7 @@ def main(directory):
             "/tf_static:=/c3_nav2/tf_static",
         ]
     )
+    executor = metadata_executor_type(SingleThreadedExecutor, await_or_execute)()
     node = Plant()
     report = dict(
         schema="competition-nav2-result.v1",
@@ -471,7 +531,7 @@ def main(directory):
         # Pre-start graph inspection: nodes may exist, but no native controller is active.
         wait_end = time.monotonic() + 20.0
         while time.monotonic() < wait_end:
-            rclpy.spin_once(node, timeout_sec=0.05)
+            rclpy.spin_once(node, executor=executor, timeout_sec=0.05)
             current = {
                 name
                 for name, ns in node.get_node_names_and_namespaces()
@@ -537,12 +597,47 @@ def main(directory):
             report["parameters"][name] = actual
             if actual != flat[name]:
                 raise RuntimeError("parameter mismatch: " + name)
+        report["costmap_parameters"] = {}
+        shared_keys = [
+            "footprint",
+            "footprint_padding",
+            "resolution",
+            "track_unknown_space",
+            "inflation_layer.inflation_radius",
+            "inflation_layer.cost_scaling_factor",
+            "obstacle_layer.scan.topic",
+            "obstacle_layer.scan.expected_update_rate",
+        ]
+        for costmap in ("global_costmap", "local_costmap"):
+            flat_costmap = flatten(expected[costmap][costmap]["ros__parameters"])
+            request = GetParameters.Request()
+            request.names = shared_keys
+            values = node.service(
+                GetParameters, f"{costmap}/{costmap}/get_parameters", request
+            ).values
+            applied = {}
+            for key, value in zip(shared_keys, values):
+                actual = (
+                    getattr(value, fields[value.type]) if value.type in fields else None
+                )
+                applied[key] = actual
+                if actual != flat_costmap[key]:
+                    raise RuntimeError(
+                        "costmap parameter mismatch: " + costmap + "." + key
+                    )
+            report["costmap_parameters"][costmap] = applied
         package = (
             "nav2_mppi_controller"
             if run["controller"] == "mppi"
             else "nav2_regulated_pure_pursuit_controller"
         )
-        for name in ["nav2_controller", "nav2_planner", "nav2_bt_navigator", package]:
+        for name in [
+            "nav2_controller",
+            "nav2_planner",
+            "nav2_bt_navigator",
+            "rclpy",
+            package,
+        ]:
             share = Path(get_package_share_directory(name))
             report["package_versions"][name] = (
                 ET.parse(share / "package.xml").getroot().findtext("version")
@@ -592,7 +687,7 @@ def main(directory):
         goal.behavior_tree = str(Path(__file__).parent / "config/replan.xml")
         goal_handle = node.wait(action.send_goal_async(goal))
         report["action"]["accepted"] = goal_handle.accepted
-        report["action"]["goal_uuid"] = list(goal_handle.goal_id.uuid)
+        report["action"]["goal_uuid"] = goal_uuid_to_json(goal_handle.goal_id.uuid)
         if not goal_handle.accepted:
             raise RuntimeError("native goal rejected")
         node.goal_start = node.sim_t
@@ -603,7 +698,7 @@ def main(directory):
             time.monotonic() < deadline
             and node.sim_t - node.goal_start < fixture["timeout_s"]
         ):
-            rclpy.spin_once(node, timeout_sec=0.02)
+            rclpy.spin_once(node, executor=executor, timeout_sec=0.02)
             elapsed = node.sim_t - node.goal_start
             if time.monotonic() >= audit_at:
                 node.audit_graph()
@@ -635,10 +730,19 @@ def main(directory):
         # Always collect actual terminal action status, including abort/cancel.
         result = node.wait(result_future, 10.0)
         report["action"]["status"] = result.status
-        if node.boundary.fault == "SENSOR_STALE":
-            settle = time.monotonic() + 2.1
+        if result.status != 4 or node.boundary.fault == "SENSOR_STALE":
+            # Observe the terminal native stop plus TTL and two seconds of zero.
+            # Do not inject HOLD or fabricate zero to make a SAFE_WAIT outcome.
+            settle = time.monotonic() + 2.6
             while time.monotonic() < settle:
-                rclpy.spin_once(node, timeout_sec=0.02)
+                rclpy.spin_once(node, executor=executor, timeout_sec=0.02)
+        if node.boundary.fault == "SENSOR_STALE":
+            report["dropout_recovery"] = dict(
+                fault_latched=node.boundary.fault,
+                final_output=list(node.previous_output),
+                auto_resume=False,
+                restart_requirement="Terminate this run; create a fresh isolated run, acquire fresh scans, activate servers, accept a new goal and release epoch. HOLD/RELEASE alone cannot clear a latched fault.",
+            )
         if recovery is not None:
             rr = node.wait(recovery.get_result_async(), 8.0)
             node.action_events[-1]["result_status"] = rr.status
@@ -667,8 +771,13 @@ def main(directory):
         node.boundary.stop("RUN_FINISHED")
         # Observe final exact-zero actuator commands for a bounded shutdown interval.
         until = time.monotonic() + 0.5
-        while rclpy.ok() and time.monotonic() < until:
-            rclpy.spin_once(node, timeout_sec=0.02)
+        try:
+            while rclpy.ok() and time.monotonic() < until:
+                rclpy.spin_once(node, executor=executor, timeout_sec=0.02)
+        except Exception as exc:
+            report["shutdown_error"] = type(exc).__name__ + ": " + str(exc)
+            report["status"] = "FAIL"
+            node.final_pub.publish(Twist())
         report.update(
             metrics=dict(
                 footprint_collision_count=node.collision_count,
@@ -711,6 +820,7 @@ def main(directory):
             json.dumps(report, indent=2, allow_nan=False) + "\n"
         )
         node.destroy_node()
+        executor.shutdown()
         rclpy.shutdown()
     return 0 if report["status"] == "NATIVE_RECORDED" else 1
 

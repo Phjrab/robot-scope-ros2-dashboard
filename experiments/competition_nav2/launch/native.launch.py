@@ -34,7 +34,12 @@ def generate_launch_description():
         ]
         nodes = []
         for package, name in specs:
-            remaps = [("/tf", "tf"), ("/tf_static", "tf_static")]
+            remaps = [
+                ("/tf", "tf"),
+                ("/tf_static", "tf_static"),
+                ("/diagnostics", "/c3_nav2/diagnostics"),
+                ("/trajectories", "/c3_nav2/trajectories"),
+            ]
             if name in ("controller_server", "behavior_server"):
                 remaps += [("cmd_vel", "raw/" + name)]
             nodes.append(
@@ -55,6 +60,7 @@ def generate_launch_description():
                 name="lifecycle_manager_navigation",
                 namespace="c3_nav2",
                 parameters=[params],
+                remappings=[("/diagnostics", "/c3_nav2/diagnostics")],
                 output="screen",
             )
         )

@@ -26,6 +26,8 @@
 .saved-live-anchor label { display: grid; gap: 6px; color: var(--muted); }
 .saved-live-anchor input { min-width: 0; width: 100%; min-height: 44px; padding: 9px 12px; color: var(--text); background: var(--bg-soft); border: 1px solid var(--line-strong); border-radius: var(--radius); font: var(--type-control) var(--font-mono); }
 .saved-anchor-presets { display: grid; gap: 10px; min-width: 0; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.saved-anchor-proposal { display: grid; gap: 10px; min-width: 0; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.saved-anchor-proposal small { color: var(--muted); overflow-wrap: anywhere; }
 .saved-anchor-preset-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; }
 .saved-anchor-preset-row label { flex: 1 1 220px; display: grid; gap: 6px; color: var(--muted); }
 .saved-anchor-preset-row :is(select, input) { width: 100%; min-width: 0; min-height: 44px; }

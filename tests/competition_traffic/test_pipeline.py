@@ -10,7 +10,7 @@ import numpy as np
 from jsonschema import Draft202012Validator
 from experiments.competition_vm.traffic_signals.detector import Detection
 from robot_dashboard.competition_traffic.artifacts import save_images
-from robot_dashboard.competition_traffic.frames import from_owner_jpeg
+from robot_dashboard.competition_traffic.frames import Frame, from_owner_jpeg
 from robot_dashboard.competition_traffic.pipeline import TrafficPipeline
 from robot_dashboard.competition_traffic.projection import signal_fragment
 from .helpers import Detector, config, frame, lamp
@@ -112,9 +112,15 @@ class PipelineTests(unittest.TestCase):
         self.check_unknown(frame(4), "REPEATED_OR_REVERSED_FRAME", now=.5)
         self.assertEqual(self.pipeline.current_state(now_s=.5), "UNKNOWN")
 
-    def test_repeated_content_handle(self):
+    def test_identical_content_with_advancing_trusted_source_identity(self):
         self.warm()
-        self.check_unknown(frame(5, image_handle="frame-4"), "REPEATED_OR_REVERSED_FRAME")
+        obs = self.pipeline.process(frame(5, image_handle="frame-4"), now_s=.5)
+        self.assertEqual(obs.signal["stable_state"], "GREEN")
+        self.assertTrue(obs.context["diagnostics"]["same_content_as_previous"])
+
+    def test_poll_counter_without_trusted_source_identity_cannot_renew_green(self):
+        self.warm()
+        self.check_unknown(frame(5, image_handle="frame-4", identity_verified=False), "SOURCE_IDENTITY_UNVERIFIED")
 
     def test_out_of_order_sequence(self):
         self.warm()
@@ -254,6 +260,12 @@ class PipelineTests(unittest.TestCase):
             self.assertNotEqual(assets["decoded_original_bgr"]["sha256"], assets["processed_color_mask"]["sha256"])
 
     def test_owner_jpeg_is_passive(self):
+        # Keep the pre-follow-up positional exposure argument; it cannot silently
+        # turn into authorization for source identity.
+        legacy = Frame(lamp(), "camera", "epoch", 1, "1", "fixture", 0., 0., True,
+                       "owner", "handle", "binding", True)
+        self.assertTrue(legacy.exposure_settling)
+        self.assertFalse(legacy.identity_verified)
         f = from_owner_jpeg(b"corrupt", source_id="camera", producer_epoch="epoch", sequence=1,
                             source_stamp_ns="1", source_clock="synchronized_ros", source_age_s=None,
                             received_s=0., clock_verified=False, provenance="owner", binding_id="binding")

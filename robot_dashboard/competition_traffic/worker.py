@@ -55,7 +55,7 @@ class TrafficWorker:
                 observation = await loop.run_in_executor(self.executor,
                     lambda: self.pipeline.process(frame, now_s=self.clock()))
                 if not self.closed:
-                    self.latest = SignalSample(frame, observation, self.clock())
+                    self.latest = SignalSample(frame, observation, observation.context['processed_s'])
                     self.error = None
             except Exception as exc:
                 self.latest = None

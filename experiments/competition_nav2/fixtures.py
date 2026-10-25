@@ -85,11 +85,69 @@ def cases(seed=20261024):
     ]
 
 
+def diagnostic_cases(seed=20261024):
+    """Separate spacious synthetic room; original arena fixtures stay immutable."""
+    fixture = dict(cases(seed)[0])
+    fixture.update(
+        scenario="diagnostic_single_obstacle",
+        world_kind="diagnostic_room",
+        scope="additional synthetic feasibility diagnostic; NOT competition arena",
+        start=[2.0, 3.0, 0.0],
+        goal=[6.0, 3.0, 0.0],
+        timeout_s=65.0,
+        obstacles=[dict(polygon=rectangle(3.7, 2.7, 4.3, 3.3), appears_s=0.0)],
+        reference_waypoints=[
+            [2.0, 3.0],
+            [3.0, 3.0],
+            [3.0, 2.0],
+            [5.0, 2.0],
+            [5.0, 3.0],
+            [6.0, 3.0],
+        ],
+        reference_usage="offline full-footprint feasibility only; never sent to Nav2 or plant",
+    )
+    return [fixture]
+
+
+def reference_feasibility(fixture):
+    """Sweep rotate-in-place and straight segments at <=5 mm corner displacement."""
+    from core import propagate, swept_poses
+
+    world = World(fixture)
+    pose = tuple(fixture["start"])
+    poses = [pose]
+    for target in fixture["reference_waypoints"][1:]:
+        yaw = math.atan2(target[1] - pose[1], target[0] - pose[0])
+        rotation = (yaw - pose[2] + math.pi) % (2 * math.pi) - math.pi
+        poses.extend(swept_poses(pose, 0.0, rotation, 1.0))
+        pose = propagate(pose, 0.0, rotation, 1.0)
+        distance = math.dist(pose[:2], target)
+        poses.extend(swept_poses(pose, distance, 0.0, 1.0))
+        pose = propagate(pose, distance, 0.0, 1.0)
+    rotation = (fixture["goal"][2] - pose[2] + math.pi) % (2 * math.pi) - math.pi
+    poses.extend(swept_poses(pose, 0.0, rotation, 1.0))
+    return dict(
+        status="PASS" if all(not world.collision(p, 0.0) for p in poses) else "FAIL",
+        samples=len(poses),
+        min_conservative_clearance_m=min(world.clearance(p, 0.0) for p in poses),
+        usage=fixture["reference_usage"],
+        fixture_sha256=digest(fixture),
+    )
+
+
 class World:
     def __init__(self, fixture):
         self.fixture = fixture
         self.res = RESOLUTION
         self.width, self.height = 200, 150
+        if fixture.get("world_kind") == "diagnostic_room":
+            self.geometry = None
+            self.static = np.ones((self.height, self.width), dtype=bool)
+            self.static[20:130, 20:180] = False  # [0.8, 7.2] x [0.8, 5.2] m
+            self.distance = distance_transform_edt(~self.static) * self.res
+            self.static.flags.writeable = False
+            self.distance.flags.writeable = False
+            return
         self.geometry = arena_geometry()
         if fixture["parking_allowed"] in _STATIC_CACHE:
             self.static, self.distance = _STATIC_CACHE[fixture["parking_allowed"]]

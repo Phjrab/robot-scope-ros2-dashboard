@@ -11,7 +11,11 @@ import asyncio
 from dataclasses import asdict, replace
 import secrets
 
-from .adapter import NativeActionAdapter
+from .runtime import NativeRuntime, RuntimeConfig, RuntimePorts
+from .contracts import EventBinding, GoalReceipt, Scope
+from ..models import digest
+from ...application.mission_coordinator import MissionConflict
+from collections import OrderedDict
 from .authority import CommandBoundary
 from .contracts import ConstraintAck, ConstraintRequest
 from .coordinator import CoordinatorNavigationPort
@@ -21,13 +25,22 @@ from .state import TERMINAL
 
 class SessionGate:
     """One software command consumer; old generations/late ACKs cannot reopen it."""
-    def __init__(self, scope, clock):
+    def __init__(self, scope, clock, service):
         self.boundary = CommandBoundary(scope)
-        self.clock = clock
+        self.clock, self.service = clock, service
         self.closed = False
         self.requests = {}
 
     async def apply(self, request):
+        async def install():
+            ack = await self._install(request)
+            return {'ack': asdict(ack) if ack else None}
+        result = await self.service._transaction(request.request_id,
+            {'constraint': asdict(request)}, install, safety=request.mode == 'HOLD')
+        # A persisted receipt never installs or reopens a retired gate.
+        return self.ack(request) if result['ack'] else None
+
+    async def _install(self, request):
         if self.closed:
             return None
         if request.scope != self.boundary.scope:
@@ -62,25 +75,55 @@ class SessionGate:
         self.boundary.retire()
 
 
+class DurableNavigation:
+    """Journal each effect before the existing coordinator/port can submit it."""
+    def __init__(self, service, port):
+        self.service, self.port = service, port
+
+    def __getattr__(self, name):
+        return getattr(self.port, name)
+
+    async def dispatch(self, scope, *, leg, pose, request_id):
+        async def send():
+            receipt = await self.port.dispatch(scope, leg=leg, pose=pose, request_id=request_id)
+            return asdict(receipt)
+        result = await self.service._transaction(request_id,
+            {'goal': asdict(scope), 'leg': leg, 'pose': pose}, send)
+        return GoalReceipt(Scope(**result['scope']), result['actual_goal_id'],
+                           result['accepted'], result['acknowledged'])
+
+    async def cancel(self, scope, *, request_id):
+        async def cancel():
+            await self.port.cancel(scope, request_id=request_id)
+            return {'canceled': True}
+        await self.service._transaction(request_id, {'cancel': asdict(scope)}, cancel, safety=True)
+
+
 class SoftwareNativeSession:
     @classmethod
     async def create(cls, service, *, scope, action, legs, policy, bindings,
-                     activation, clock, traffic_config_hash, worker=None):
+                     activation, clock, traffic_config_hash, worker=None, signal_binding=None):
         if not activation.synthetic or not activation.enabled:
             raise ValueError('EXPLICIT_SOFTWARE_TEST_ACTIVATION_REQUIRED')
         self = cls()
         self.service, self.clock, self.worker = service, clock, worker
         self.token = object()
-        self.gate = SessionGate(scope, clock)
+        self.gate = SessionGate(scope, clock, service)
         self.port = CoordinatorNavigationPort(service.coordinator, service.coordinator._navigation,
             mission_id=scope.mission_run_id, admission=service._admission, legs=legs,
             native_owner=self.token)
-        self.adapter = NativeActionAdapter(scope=scope, action=action, navigation=self.port,
-            constraints=self.gate, policy=policy, bindings=bindings, activation=activation, clock=clock)
-        self.ingress = CompetitionIngress(self.adapter, traffic_config_hash=traffic_config_hash)
+        self.runtime = NativeRuntime(RuntimeConfig(action, scope, policy, bindings,
+            EventBinding('software-coordinator', 'session-' + secrets.token_hex(8)),
+            'same-host-' + secrets.token_hex(8), activation),
+            RuntimePorts(DurableNavigation(service, self.port), self.gate), clock=clock)
+        self.adapter = self.runtime.adapter
+        self.ingress = CompetitionIngress(self.adapter, traffic_config_hash=traffic_config_hash, signal_binding=signal_binding)
         self.closed = False
+        self._finished = False
         self._operation_lock = asyncio.Lock()
-        self.proof = None
+        self.latest = None
+        self.observation_requests = OrderedDict()
+        self.observation_count = 0
         if self.adapter.action.type != 'TRAFFIC_STOP_AND_GO':
             raise ValueError('SOFTWARE_INTEGRATION_SUPPORTS_TRAFFIC_ONLY')
         if not activation.report(self.adapter.action)['enabled']:
@@ -98,37 +141,20 @@ class SoftwareNativeSession:
         return self
 
     def _continuation_proven(self, *, completed=False, starting=False):
-        a = self.adapter
-        if starting:
-            return not self.closed and not a._stop_requested and a.state.phase == 'APPROACH'
-        if completed:
-            frame = a.normalizer.current(self.clock()) if a.normalizer else None
-            return (not self.closed and not a._stop_requested and a.state.phase == 'SUCCEEDED'
-                    and a.state.departed and frame is not None
-                    and frame.fresh('navigation', 'safety') and a._valid_ack()
-                    and a._constraint.mode == 'HOLD'
-                    and frame.evidence.goal_state == 'SUCCEEDED'
-                    and not frame.extras.estop and not frame.extras.collision)
-        if (self.closed or a._stop_requested or a.state.phase != 'EXIT_PENDING'
-                or not a._valid_ack() or a._constraint.mode != 'HOLD'
-                or self.proof is None):
-            return False
-        frame = replace(self.proof, now=self.clock())
-        return (frame.fresh('safety', 'feet', 'motion', 'signal', 'pose', 'path')
-                and not frame.extras.estop and not frame.extras.collision
-                and a.scope.goal_generation == frame.evidence.goal_generation + 1)
+        return not self.closed and self.runtime.continuation_proven(
+            completed=completed, starting=starting)
 
     async def start(self, request_id, *, approach_pose):
         async def operation():
             async with self._operation_lock:
                 if self.closed:
                     raise ValueError('SESSION_RETIRED')
-                return await self.adapter.start(request_id, approach_pose=approach_pose)
+                return await self.runtime.start(request_id, approach_pose=approach_pose)
         return await self.service._transaction(request_id,
             {'native': self.adapter.scope.mission_run_id, 'start': approach_pose}, operation)
 
     async def observe(self, request_id, packet=None, *, sample=None):
-        # Freeze ingress before any await; durable CAS describes these exact inputs.
+        # Freeze bounded ingress before any await. Telemetry never enters the request ledger.
         packet = copy.deepcopy(packet)
         try:
             if sample is not None:
@@ -140,66 +166,63 @@ class SoftwareNativeSession:
             raise
         payload = {'native': self.adapter.scope.mission_run_id,
                    'event': asdict(packet) if packet is not None else None}
+        fingerprint = digest(payload)
         async def apply_event():
             if self.closed:
                 raise ValueError('SESSION_RETIRED')
-            # C2 changes generation before EXIT dispatch. Preserve the previous
-            # validated source-supported frame for the atomic owner guard.
-            if packet is not None:
-                normalizer = self.adapter.normalizer
-                if normalizer is not None:
-                    # Preview on a copy: the real adapter remains the sole receiver
-                    # and state transition owner; this does not refresh receipts.
-                    preview = copy.deepcopy(normalizer)
-                    self.proof = preview.receive(packet, self.clock())
-            else:
-                self.proof = self.adapter.normalizer.current(self.clock()) if self.adapter.normalizer else None
-            result = await self.adapter.observe(packet)
-            if self.adapter.state.phase == 'SUCCEEDED':
+            self.latest = packet if packet is not None else self.latest
+            self.observation_count += 1
+            result = await self.runtime.receive(packet) if packet is not None else await self.runtime.tick()
+            if self.adapter.state.phase == 'SUCCEEDED' and not self._finished:
                 await self.service.coordinator.finish_native(self.adapter.scope.mission_run_id,
                     admission=self.service._admission, token=self.token,
-                    actual_goal_id=self.adapter._goal.actual_goal_id)
+                    actual_goal_id=self.runtime.snapshot()['actual_goal_id'])
+                self._finished = True
             if self.adapter.state.phase in TERMINAL:
                 self.gate.retire()
-            elif (self.adapter.state.phase == 'APPROACH' and self.adapter._constraint is None
-                  and self.adapter.state.reason == 'NAVIGATION_ACTIVE'):
-                await self.gate.apply(ConstraintRequest(self.adapter.scope, 'approach-tracking',
-                                                       'RELEASE', 'TRACKING', sequence=0))
+            elif (self.adapter.state.phase == 'APPROACH' and result['pending']['constraint'] is None
+                  and self.adapter.state.reason == 'NAVIGATION_ACTIVE'
+                  and not self.gate.requests):
+                await self.gate.apply(ConstraintRequest(self.adapter.scope,
+                    'tracking-' + self.adapter.scope.mission_run_id, 'RELEASE', 'TRACKING', sequence=0))
             return result
         async def operation():
+            nonlocal packet
             async with self._operation_lock:
+                prior = self.observation_requests.get(request_id)
+                if prior is not None and prior != fingerprint:
+                    raise MissionConflict('REQUEST_ID_PAYLOAD_CONFLICT')
+                # Only the last 64 transport IDs are cached. C2's bounded per-component
+                # epoch/sequence high-water rejects older replay after cache eviction.
+                self.observation_requests[request_id] = fingerprint
+                self.observation_requests.move_to_end(request_id)
+                if len(self.observation_requests) > 64:
+                    self.observation_requests.popitem(last=False)
+                if packet is not None and packet == self.latest:
+                    packet = None  # exact duplicate is a health tick, no new receipt
                 return await apply_event()
         try:
-            return await self.service._transaction(request_id, payload, operation)
+            return await operation()
         except BaseException:
             # Ledger/input/IO uncertainty can never leave the software consumer open.
             self.gate.retire()
             raise
 
     def command(self, command):
-        a = self.adapter
+        context = self.runtime.command_context()
         try:
-            frame = a.normalizer.current(self.clock()) if a.normalizer else None
-            observed = self.port.goal_observation(a.scope)
-            mission = self.service.coordinator.snapshot(a.scope.mission_run_id)['mission']
-            owned = (observed['goal_state'] == 'ACTIVE' and mission['state'] == 'running'
+            observed = self.port.goal_observation(context.scope)
+            mission = self.service.coordinator.snapshot(context.scope.mission_run_id)['mission']
+            owned = (not self.closed and observed['goal_state'] == 'ACTIVE' and mission['state'] == 'running'
                      and mission['ownership_active']
-                     and a.scope.mission_run_id not in self.service.coordinator._stop_requests)
+                     and context.scope.mission_run_id not in self.service.coordinator._stop_requests)
         except ValueError:
-            frame, owned = None, False
+            owned = False
             self.gate.retire()
-        fresh = frame is not None and frame.fresh('safety', 'navigation', 'pose', 'path')
-        if fresh:
-            fresh = (frame.evidence.pose is not None and frame.evidence.path_clear
-                     and frame.evidence.obstacle_state in {'FOLLOWING', 'GOAL_REACHED'})
-        if fresh and a.state.phase in {'EXIT_PENDING', 'DEPARTING'} and not a.state.departed:
-            fresh = (frame.fresh('signal', 'motion') and frame.evidence.raw_state == 'GREEN'
-                     and frame.evidence.stable_state == 'GREEN' and not frame.evidence.quality_flags)
-        goal_receipt = frame.components['navigation'].receipt_s if fresh else None
         return self.gate.boundary.evaluate(command, now=self.clock(),
-            estop=bool(frame and frame.extras.estop), collision=bool(frame and frame.extras.collision),
-            inputs_fresh=fresh and owned, goal_scope=a.scope if owned else None,
-            goal_receipt_s=goal_receipt)
+            estop=context.estop, collision=context.collision,
+            inputs_fresh=context.inputs_fresh and owned, goal_scope=context.scope if owned else None,
+            goal_receipt_s=context.goal_receipt_s)
 
     async def stop(self, request_id, *, restart=False):
         self.closed = True
@@ -207,7 +230,7 @@ class SoftwareNativeSession:
         self.service.coordinator.fence_native_stop(self.adapter.scope.mission_run_id, token=self.token)
         async def operation():
             try:
-                return await self.adapter.stop(request_id, restart=restart)
+                return await self.runtime.cleanup(request_id) if restart else await self.runtime.stop(request_id)
             finally:
                 if self.worker is not None:
                     await self.worker.close()

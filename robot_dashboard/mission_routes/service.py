@@ -22,6 +22,11 @@ def utc():
 
 
 class MissionRoutes:
+    # Retention: at most 64 definitions, 32 historical runs and 256 durable
+    # intent receipts. No automatic eviction or active-ledger clearing. Explicit
+    # idle-definition deletion preserves run history; full history requires an
+    # operator archive. Native sensor ticks live only in the bounded session and
+    # per-component epoch/sequence high-water; restart restores no authority.
     def __init__(self, root, maps, routes, coordinator, context, planner):
         self.maps, self.routes, self.coordinator = maps, routes, coordinator
         self.context, self.planner = context, planner

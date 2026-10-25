@@ -1,15 +1,24 @@
 # C3 Humble Nav2 native comparison candidate
 
 This directory implements an isolated **native execution harness** and offline
-tests. Native execution is **NOT_RUN on the authoring host**: Ubuntu 24.04,
-Jazzy present, no Docker/Podman/nerdctl and no Humble installation. There is no
-native performance winner, native PASS, or physical qualification in this delivery.
+tests. The first actual Humble minimum comparison completed on a GitHub-hosted
+Ubuntu 22.04 runner: **8 native records, 8 evidence/safety validation PASS,
+7/8 scenario expectations met**. RPP reached both goals; MPPI reached the empty
+goal but timed out in the separate obstacle diagnostic and safely waited.
+See [the recorded summary](results/minimum_native_summary.json) and
+[C3 follow-up](../../docs/parallel-review/20261024/C3/FOLLOWUP.md) for source,
+Actions/artifact URLs, actual image digest/package versions and failure details.
+The authoring host still has no Humble/container runtime. No physical qualification
+or controller winner is claimed.
 
 The fixture generator, geometry tests and command-boundary tests are
 `surrogate/offline`. They contain no navigation planner and cannot substitute for
 Nav2 execution. Actual NavFn, RPP/MPPI, controller server, BT navigator and behavior
-server are selected by `launch/native.launch.py`. The launch has not been exercised
-against a Humble installation; package/launch/QoS compatibility remains a review risk.
+server are selected by `launch/native.launch.py`. Native execution uses Humble
+Nav2 1.1.20. Original `native_plan.json`, `native_comparison.json`, image-lock and
+offline results describe the initial preparation stage; the minimum summary
+supersedes their NOT_RUN status only for these eight cases. The 144-run expansion
+has not been executed and is not automatically started.
 
 ## Local checks
 
@@ -38,12 +47,14 @@ python3 experiments/competition_nav2/container/manage.py run \
   --lock work/c3-image-lock.json --controller rpp --variant baseline \
   --scenario empty --output work/c3-native/rpp-empty
 python3 experiments/competition_nav2/validate.py work/c3-native/rpp-empty/run
-python3 experiments/competition_nav2/matrix.py --run --lock work/c3-image-lock.json --output work/c3-matrix
-python3 experiments/competition_nav2/compare.py work/c3-matrix --output work/c3-comparison.json
+python3 experiments/competition_nav2/run_minimum.py \
+  --lock work/c3-image-lock.json --output work/c3-minimum
 ```
 
-Use `--runtime podman` for an existing Podman installation. All 144 runs use fresh
-containers and retain failures. Build resolves the Ubuntu 22.04/Humble base digest,
+The one-case driver supports `--runtime podman`; the eight-case driver uses Docker.
+The minimum run gates on actual empty RPP goal success plus independent validation,
+then executes the other seven cases, retaining failures. Every run uses a fresh
+container and the same immutable image. Build resolves the Ubuntu 22.04/Humble base digest,
 records the installed package list and immutable local image ID. Subsequent runs
 require that exact image. Rebuild compares the full package lock and refuses
 transitive drift; an apt snapshot/archive may be needed to recreate it later.
@@ -66,9 +77,14 @@ container name in `container_receipt.json`: `docker stop <that-name>` then
 
 - Read-only rulebook-20261015 arena geometry, original 8 x 6 m design coordinates.
   `map_transform=null`, DRAFT route and dimensional uncertainties remain unchanged.
-- Same start `(5.99, 1.65, pi/2)` and goal `(5.99, 4.35, pi/2)` in every case. The
+- Same start `(5.99, 1.65, pi/2)` and goal `(5.99, 4.35, pi/2)` in every original arena case. The
   original centered cone `(5.99, 3)` and failed `(5.75, 3)` case are preserved;
   the successful historical demonstration at `(5.70, 3)` is a separate case.
+- `diagnostic_single_obstacle` is a separate synthetic flat room, start `(2,3,0)`,
+  goal `(6,3,0)`, obstacle `[3.7,4.3] x [2.7,3.3]`. Its 1,846-sample swept reference
+  has 0.307 m minimum conservative clearance and is only a feasibility check;
+  it never drives the plant or supplies a Nav2 path. The original strict-parking
+  D0 obstacle SAFE_WAIT results are unchanged.
 - Standing mesh envelope 0.716 x 0.324 m, same polygon for both controllers. This is
   neither a measured walking envelope nor the smaller avoidance prototype footprint.
 - Ramps, stairs and central platform are occupied. No whole-course success is counted.
@@ -88,8 +104,8 @@ container name in `container_receipt.json`: `docker stop <that-name>` then
 - MPPI uses DiffDrive, shared velocity limits and model_dt .05 s matching 20 Hz. No
   unsupported newer acceleration parameters are injected. Acceleration is enforced at
   the same final plant boundary for both; MPPI's internal model does not model it.
-- Fixture seed is fixed. Inspected Humble MPPI exposes no RNG seed parameter; three
-  repeated runs characterize stochastic variability, not bitwise reproducibility.
+- Fixture seed is fixed. Humble MPPI exposes no RNG seed parameter. This minimum
+  comparison has one sample per case; stochastic variability remains unmeasured.
 
 ## Final command boundary and evidence
 

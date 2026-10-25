@@ -1,7 +1,7 @@
 """Cancellable historical raw global observations; no operational ROS writes."""
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
@@ -23,6 +23,8 @@ class GlobalObservationRequest(BaseModel):
     request_id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
     map_id: str = Field(pattern=r"^[a-f0-9]{24}$")
     map_revision: str = Field(pattern=r"^[a-f0-9]{64}$")
+    input_kind: Literal["raw", "fastlio_imu"] = "raw"
+    provenance_mode: Literal["native_publisher", "subscription_observation"] = "native_publisher"
 
 
 def _owner(request: Request) -> Any:
@@ -81,5 +83,14 @@ async def cancel_global_observation(request: Request, job_id: str) -> JSONRespon
     require_same_origin(request)
     try:
         return JSONResponse(await run_in_threadpool(_owner(request).cancel, job_id))
+    except _ERRORS as exc:
+        raise _translate(exc) from exc
+
+
+@router.get("/api/v1/observations/global-jobs/{job_id}/anchor-proposal")
+async def get_anchor_proposal(request: Request, job_id: str) -> JSONResponse:
+    try:
+        result = await run_in_threadpool(_owner(request).anchor_proposal, job_id)
+        return JSONResponse(result, headers={"Cache-Control": "no-store"})
     except _ERRORS as exc:
         raise _translate(exc) from exc

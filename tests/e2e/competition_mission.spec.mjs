@@ -135,3 +135,54 @@ for (const viewport of [{width:1440,height:900},{width:390,height:844}]) test(`c
   await expect(w.getByLabel('회피 profile',{exact:true})).toBeVisible();
   const light=info.outputPath(`competition-${viewport.width}-light-explicit-fixture.png`); await page.screenshot({path:light,fullPage:true}); await info.attach('light fixture',{path:light,contentType:'image/png'});
 });
+
+async function offlineSignal(page) {
+  await installDashboardBackend(page);
+  await page.route(/\/__fixture\//, route => route.continue());
+  await page.route(/\/api\/v1\/(mission-(plans|runs|competition)|saved-maps|routes)(\/|$)/, route => route.continue());
+  await page.goto('/?offline_signal=1#missions');
+  await expect(page.locator('[data-offline-signal]')).toContainText('OFFLINE SYNTHETIC');
+  return page.locator('.mr-workspace');
+}
+
+test('actual C2 runtime and C4 RGB signal cross after independent dwell; reconnect does not create goal', async ({page}, info) => {
+  const w = await offlineSignal(page);
+  await w.getByLabel('오프라인 신호 시나리오',{exact:true}).selectOption('normal');
+  await w.getByRole('button',{name:'오프라인 신호 시작',exact:true}).click();
+  await expect(page.locator('[data-offline-signal]')).toHaveAttribute('data-phase','HOLD_SIGNAL');
+  const before = await (await page.request.get('/__fixture/native-signal')).json();
+  await page.reload();
+  await expect(page.locator('[data-offline-signal]')).toHaveAttribute('data-phase','SUCCEEDED');
+  const final = await (await page.request.get('/__fixture/native-signal')).json();
+  expect(final.run_id).toBe(before.run_id);
+  expect(final.goal_count).toBe(2);
+  expect(final.departed).toBe(true);
+  expect(final.trace.map(x=>x.phase)).toEqual(expect.arrayContaining(['APPROACH','HOLD_ACK','HOLD_SIGNAL','EXIT_PENDING','DEPARTING','SUCCEEDED']));
+  expect(final.physical_motion).toBe(false);
+  await expect(page.locator('[data-offline-signal]')).toContainText('독립 앞발');
+  const path = info.outputPath('native-signal-software-completion.png');
+  await page.screenshot({path,fullPage:true}); await info.attach('C2 C4 software completion',{path,contentType:'image/png'});
+  await info.attach('actual software trace',{body:JSON.stringify(final,null,2),contentType:'application/json'});
+});
+
+for(const scenario of ['red','unknown']) test(`offline ${scenario} holds before departure`, async ({page}) => {
+  const w = await offlineSignal(page);
+  await w.getByLabel('오프라인 신호 시나리오',{exact:true}).selectOption(scenario);
+  await w.getByRole('button',{name:'오프라인 신호 시작',exact:true}).click();
+  await expect.poll(async()=> (await (await page.request.get('/__fixture/native-signal')).json()).dwell_elapsed_s).toBeGreaterThan(2);
+  const held = await (await page.request.get('/__fixture/native-signal')).json();
+  expect(held.phase).toBe('HOLD_SIGNAL'); expect(held.goal_count).toBe(1); expect(held.departed).toBe(false);
+  await w.getByRole('button',{name:'오프라인 STOP',exact:true}).click();
+  await expect(page.locator('[data-offline-signal]')).toHaveAttribute('data-phase','INTERRUPTED');
+});
+
+test('offline STOP while planner awaits never dispatches the exit goal', async ({page}) => {
+  const w = await offlineSignal(page);
+  await w.getByLabel('오프라인 신호 시나리오',{exact:true}).selectOption('delayed_plan');
+  await w.getByRole('button',{name:'오프라인 신호 시작',exact:true}).click();
+  await expect.poll(async()=> (await (await page.request.get('/__fixture/native-signal')).json()).planning_delayed).toBe(true);
+  await w.getByRole('button',{name:'오프라인 STOP',exact:true}).click();
+  await expect(page.locator('[data-offline-signal]')).toHaveAttribute('data-phase','INTERRUPTED');
+  const final = await (await page.request.get('/__fixture/native-signal')).json();
+  expect(final.goal_count).toBe(1); expect(final.departed).toBe(false);
+});

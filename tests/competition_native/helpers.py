@@ -60,6 +60,7 @@ class Ports:
 class Rig:
     def __init__(self, kind="TRAFFIC_STOP_AND_GO", *, activation=None, policy=None):
         self.clock, self.ports, self.seq = Clock(), Ports(), 0
+        self.source_ns = 0
         self.scope = Scope("native-test", "a" * 32, "b" * 32, "c" * 64, "d" * 32, 1)
         self.bindings = {name: ClockBinding("test-source", "epoch-1", "fixture", True)
                          for name in (*FIELDS, "envelope")}
@@ -78,10 +79,11 @@ class Rig:
 
     def packet(self, *, extras=None, **values):
         self.seq += 1
+        self.source_ns = max(self.source_ns + 1, round(self.clock.now * 1e9))
         scope = self.adapter.scope
         data = dict(schema_version="competition-evidence.v0.1", **vars(scope),
                     producer_id="test-source", producer_epoch="epoch-1", sequence=self.seq,
-                    source_clock="fixture", source_stamp_ns=str(self.seq), source_age_s=0.0,
+                    source_clock="fixture", source_stamp_ns=str(self.source_ns), source_age_s=0.0,
                     evidence_type="fixture", goal_state="ACTIVE", cancel_ack=False,
                     hold_ack=True, pose=POSE, path_clear=True,
                     signal_id="signal-1", crossing_id="crossing-1", zone_id="zone-1",
@@ -90,7 +92,7 @@ class Rig:
                     body_motion_status="STOPPED")
         data.update(values)
         stamps = {name: ComponentStamp(scope, "test-source", "epoch-1", self.seq,
-                                       str(round(self.clock.now * 1e9) + self.seq), 0.0, "fixture") for name in FIELDS}
+                                       str(self.source_ns), 0.0, "fixture") for name in FIELDS}
         return Packet(data, stamps, extras or Extras(), self.adapter.receiver_session_id)
 
     async def tick(self, time, **values):

@@ -95,16 +95,19 @@ class GlobalObservationCoordinator:
         with self._lock:
             return self._public(self._get(job_id))
 
-    def start(self, request_id: str, map_id: str, map_revision: str) -> dict[str, Any]:
+    def start(self, request_id: str, map_id: str, map_revision: str, *, input_kind: str = "raw",
+              provenance_mode: str = "native_publisher") -> dict[str, Any]:
         if (not isinstance(request_id, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}", request_id)
                 or not isinstance(map_id, str) or not re.fullmatch(r"[a-f0-9]{24}", map_id)
                 or not isinstance(map_revision, str) or not re.fullmatch(r"[a-f0-9]{64}", map_revision)):
             raise GlobalObservationValidationError("invalid raw global observation request")
+        if input_kind not in {"raw", "fastlio_imu"} or provenance_mode not in {"native_publisher", "subscription_observation"}:
+            raise GlobalObservationValidationError("invalid observation input kind or provenance mode")
         with self._lock:
             previous = self._requests.get(request_id)
             if previous:
                 job = self._jobs[previous]
-                if (job["map_id"], job["map_revision"]) != (map_id, map_revision):
+                if (job["map_id"], job["map_revision"], job["input_kind"], job["provenance_mode"]) != (map_id, map_revision, input_kind, provenance_mode):
                     raise GlobalObservationConflict("request_id was already used for different input")
                 return self._public(job)
             if self._closed:
@@ -113,7 +116,7 @@ class GlobalObservationCoordinator:
                 raise GlobalObservationBusy("a raw global observation worker is still active")
             if not self.provider_status()["available"]:
                 raise GlobalObservationUnavailable("TRUSTED_LOCAL_RUNNER_UNAVAILABLE")
-            if self._agent.raw_pointcloud_context_snapshot().get("pipeline_stage") not in {"raw", "converted"}:
+            if input_kind == "raw" and self._agent.raw_pointcloud_context_snapshot().get("pipeline_stage") not in {"raw", "converted"}:
                 raise GlobalObservationUnavailable("RAW_OR_CONVERTED_POINTCLOUD_SOURCE_REQUIRED")
             try:
                 metadata = self._catalog.metadata(map_id)
@@ -126,6 +129,7 @@ class GlobalObservationCoordinator:
             job_id, started = secrets.token_hex(12), time.monotonic()
             job = dict(schema="robot-scope.raw-global-observation-job.v1", job_id=job_id,
                        request_id=request_id, generation=self._generation, map_id=map_id,
+                       input_kind=input_kind, provenance_mode=provenance_mode,
                        map_revision=map_revision, state="capturing", reason=None,
                        captured_context=None, observed_completion_context=None,
                        created_monotonic_s=started, completed_monotonic_s=None,
@@ -171,6 +175,16 @@ class GlobalObservationCoordinator:
 
     def _current_context(self, captured: dict[str, Any]) -> dict[str, Any]:
         metadata = self._catalog.metadata(captured["map_id"])
+        if "anchor_capture" in captured:
+            from .anchor_proposal import current_imu
+            cloud, _, _, now = current_imu(self._agent, captured)
+            observation = cloud["observation"]
+            return dict(map_id=captured["map_id"], map_revision=metadata.get("revision"),
+                        map_frame=metadata.get("frame_id"), source_frame=captured["source_frame"],
+                        observer_id=observation["observer_id"], observer_epoch=observation["publisher_epoch"],
+                        source_stamp_ns=observation["source_stamp_ns"],
+                        receipt_age_s=now-observation["received_monotonic_s"],
+                        receipt_clock="OBSERVER_HOST_MONOTONIC", source_clock_verified=False)
         live = self._agent.raw_pointcloud_context_snapshot()
         observation = live.get("observation") or {}
         received = observation.get("received_monotonic_s")
@@ -196,6 +210,16 @@ class GlobalObservationCoordinator:
         return self._runner.run_arrays(scan_bytes=scan_bytes, map_bytes=map_bytes,
                                        context=context, cancel_event=cancel_event)
 
+    def anchor_proposal(self, job_id: str) -> dict[str, Any]:
+        from .anchor_proposal import proposal_from_job
+        from ..relocalization.observation_alignment import ObservationAlignmentError
+        from ..relocalization.external_global_observation import ExternalGlobalObservationError
+        try:
+            return proposal_from_job(self.job(job_id), self._catalog, self._agent,
+                                     allow_ambiguous=self.provider_status()["allow_ambiguous"])
+        except (ObservationAlignmentError, ExternalGlobalObservationError, SavedMapError, ValueError, KeyError, TypeError) as exc:
+            raise GlobalObservationConflict("ANCHOR_PROPOSAL_UNAVAILABLE: " + str(exc)) from exc
+
     def _prepare(self, job_id: str, cancel: threading.Event) -> None:
         capture_id = manager_id = ticket = None
         try:
@@ -204,15 +228,26 @@ class GlobalObservationCoordinator:
                 map_id, revision = job["map_id"], job["map_revision"]
             if cancel.is_set():
                 return
-            capture = self._agent.request_raw_pointcloud_capture(timeout_s=self._capture_timeout_s,
+            anchor_capture = None
+            if job["input_kind"] == "fastlio_imu":
+                from .anchor_proposal import capture_registered_imu
+                scan_bytes, scan, anchor_capture = capture_registered_imu(self._agent,
+                    mode=job["provenance_mode"], cancel=cancel, deadline=time.monotonic()+self._capture_timeout_s,
+                    max_points=self._max_points, max_bytes=self._max_bytes)
+                capture = dict(source_frame=scan["source_frame"], source_stamp_ns=scan["source_stamp_ns"],
+                               pipeline_stage="registered_rebased_to_imu",
+                               observation=dict(observer_id=anchor_capture["contract"]["observer_id"],
+                                                publisher_epoch=anchor_capture["contract"]["cloud_epoch"]))
+            else:
+                capture = self._agent.request_raw_pointcloud_capture(timeout_s=self._capture_timeout_s,
                                                                  max_points=self._max_points,
                                                                  max_bytes=self._max_bytes)
-            capture_id = capture["capture_id"]
-            with self._lock:
-                job["_capture_id"] = capture_id
+                capture_id = capture["capture_id"]
+                with self._lock:
+                    job["_capture_id"] = capture_id
             reference = self._catalog.raw_global_reference(map_id, revision, max_points=self._max_points,
                                                             max_bytes=self._max_bytes)
-            while not cancel.is_set():
+            while capture_id and not cancel.is_set():
                 capture = self._agent.raw_pointcloud_capture_snapshot(capture_id)
                 if capture and capture["state"] == "ready":
                     break
@@ -227,14 +262,16 @@ class GlobalObservationCoordinator:
                 cancel.wait(.025)
             if cancel.is_set():
                 return
-            capture = self._agent.take_raw_pointcloud_capture(capture_id)
-            scan_bytes, map_bytes = capture.pop("xyz_bytes"), reference.pop("xyz_bytes")
+            map_bytes = reference.pop("xyz_bytes")
+            if capture_id:
+                capture = self._agent.take_raw_pointcloud_capture(capture_id)
+                scan_bytes = capture.pop("xyz_bytes")
+                scan = _lossless_json(dict(capture, sha256=capture["xyz_sha256"],
+                                          point_count=capture["captured_points"], shape=[capture["captured_points"], 3],
+                                          dtype="<f8", source_topic=capture["topic"]))
             observation = capture.get("observation") or {}
-            scan = _lossless_json(dict(capture, sha256=capture["xyz_sha256"],
-                                      point_count=capture["captured_points"], shape=[capture["captured_points"], 3],
-                                      dtype="<f8", source_topic=capture["topic"]))
             source_stage = capture.get("pipeline_stage")
-            if source_stage not in {"raw", "converted"}:
+            if source_stage not in {"raw", "converted"} and anchor_capture is None:
                 raise GlobalObservationUnavailable("received source pipeline stage is unsupported")
             context = dict(map_id=map_id, map_revision=revision, map_frame=reference["frame_id"],
                            source_frame=capture["source_frame"], observer_id=observation.get("observer_id"),
@@ -247,6 +284,9 @@ class GlobalObservationCoordinator:
                            source_clock="UNVERIFIED", source_clock_verified=False,
                            deskew_verified=False, deskew_applied_by_this_validation=False,
                            map_axes_verified=False, body_extrinsic_verified=False)
+            if anchor_capture is not None:
+                context.update(anchor_capture=anchor_capture, full_original_scope="CACHED_REGISTERED_XYZ_REBASED_TO_IMU",
+                               source_stamp_basis="FASTLIO_OUTPUT_STAMP_EXACT", pose_reference="FASTLIO_IMU")
             ticket = secrets.token_hex(16)
             canonical = json.dumps(context, sort_keys=True, separators=(",", ":"), allow_nan=False)
             with self._lock:
@@ -273,6 +313,8 @@ class GlobalObservationCoordinator:
             self._fail(job_id, "stale", "CONTEXT_CHANGED", cancel)
         except SavedMapError:
             self._fail(job_id, "stale", "MAP_CHANGED_OR_UNAVAILABLE", cancel)
+        except GlobalObservationUnavailable as exc:
+            self._fail(job_id, "failed", str(exc), cancel)
         except Exception:
             self._fail(job_id, "failed", "CAPTURE_OR_RUNNER_UNAVAILABLE", cancel)
         finally:

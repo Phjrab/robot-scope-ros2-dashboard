@@ -123,6 +123,7 @@ export function validateGlobalJob(job, map, source = null) {
 
 function validHistoricalJob(job, map, source) {
   return validateGlobalJob(job, map, source) && terminal.has(job.state) && job.worker_active === false
+    && (!job.input_kind || job.input_kind === 'raw')
     && (!Object.hasOwn(job, 'map_id') || job.map_id === map?.map_id)
     && (!Object.hasOwn(job, 'map_revision') || job.map_revision === map?.map_revision)
     && (job.captured_context !== null || (job.map_id === map?.map_id && job.map_revision === map?.map_revision));
@@ -130,9 +131,10 @@ function validHistoricalJob(job, map, source) {
 
 export class GlobalObservationController {
   constructor({ request = (...args) => fetch(...args), changed = () => {}, requestId = globalObservationRequestId,
-    canChangeHistory = () => true } = {}) {
+    canChangeHistory = () => true, inputKind = 'raw', getProvenanceMode = () => 'native_publisher' } = {}) {
     this.request = request; this.changed = changed; this.requestId = requestId;
     this.canChangeHistory = canChangeHistory;
+    this.inputKind = inputKind; this.getProvenanceMode = getProvenanceMode;
     this.map = null; this.source = null; this.provider = null; this.generation = 0;
     this.pending = null; this.job = null; this.record = null; this.error = '';
     this.busy = false; this.reading = false; this.cancelling = false; this.foreignBusy = false;
@@ -186,12 +188,14 @@ export class GlobalObservationController {
     if (!this.snapshot().canStart && !this.snapshot().canRetry) return;
     this.historyReadToken++; this.historyJob = null; this.historicalSelection = null;
     if (!this.pending) this.pending = { request_id: this.requestId(), ...this.map,
+      input_kind: this.inputKind, provenance_mode: this.getProvenanceMode(),
       generation: this.generation, source: clone(this.source), invalidated: false };
     const pending = this.pending;
     this.busy = true; this.error = ''; this.record = null; this.changed();
     try {
       const job = await this.json(ROOT, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ request_id: pending.request_id, map_id: pending.map_id, map_revision: pending.map_revision }) });
+        body: JSON.stringify({ request_id: pending.request_id, map_id: pending.map_id, map_revision: pending.map_revision,
+          ...(this.inputKind === 'raw' ? {} : { input_kind: pending.input_kind, provenance_mode: pending.provenance_mode }) }) });
       await this.accept(job, pending);
     } catch (error) { this.error = `요청 결과 미확인 · ${error.message} · 기존 request_id 조회 후 재확인`; }
     finally { this.busy = false; this.changed(); }
@@ -206,7 +210,7 @@ export class GlobalObservationController {
       return;
     }
     const map = { map_id: pending.map_id, map_revision: pending.map_revision, map_frame: pending.map_frame };
-    if (!validateGlobalJob(job, map, pending.source)
+    if (!validateGlobalJob(job, map, pending.source) || (job.input_kind || 'raw') !== pending.input_kind
         || (this.job?.job_id === job.job_id && this.job.generation !== job.generation)) {
         this.error = 'RESULT_CONTRACT_MISMATCH'; this.record = null;
         pending.invalidated = true;

@@ -8,6 +8,9 @@ import tempfile
 import unittest
 import xml.etree.ElementTree as ET
 import importlib.util
+import asyncio
+from types import SimpleNamespace
+import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -24,11 +27,16 @@ from core import (
     rectangle,
     swept_poses,
 )
-from fixtures import World, cases, digest
+from fixtures import World, cases, diagnostic_cases, digest, reference_feasibility
 from preflight import isolated_errors
 from validate import validate_record, validate_directory
 from matrix import plan
-from native_runner import plugin_library_names
+from native_runner import (
+    plugin_library_names,
+    publisher_owners_match,
+    goal_uuid_to_json,
+)
+from humble_executor import metadata_executor_type
 
 
 class BoundaryTests(unittest.TestCase):
@@ -159,6 +167,16 @@ class GeometryTests(unittest.TestCase):
 
 
 class FixtureTests(unittest.TestCase):
+    def test_diagnostic_detour_is_full_footprint_feasible_and_separate(self):
+        fixture = diagnostic_cases()[0]
+        proof = reference_feasibility(fixture)
+        self.assertEqual(proof["status"], "PASS")
+        self.assertGreater(proof["min_conservative_clearance_m"], 0.1)
+        self.assertNotIn(fixture["scenario"], self.fixtures)
+        world = World(fixture)
+        self.assertTrue(world.collision((4.0, 3.0, 0.0), 0.0))
+        self.assertEqual(digest(cases()), digest(cases()))
+
     @classmethod
     def setUpClass(cls):
         cls.fixtures = {f["scenario"]: f for f in cases()}
@@ -220,6 +238,79 @@ class FixtureTests(unittest.TestCase):
 
 
 class ConfigIsolationEvidenceTests(unittest.TestCase):
+    def test_ros_uuid_numpy_bytes_roundtrip_without_losing_identity(self):
+        source = np.array([0, 255] * 8, dtype=np.uint8)
+        actual = goal_uuid_to_json(source)
+        self.assertEqual(json.loads(json.dumps(actual)), [0, 255] * 8)
+        for bad in ([0] * 15, [256] * 16, [-1] * 16):
+            with self.assertRaises(ValueError):
+                goal_uuid_to_json(bad)
+
+    def test_humble_executor_preserves_source_metadata_and_default_callbacks(self):
+        delivered = []
+        message, metadata = (
+            object(),
+            {"source_timestamp": 123, "received_timestamp": 456},
+        )
+
+        class Handle:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                pass
+
+            def take_message(self, msg_type, raw):
+                return message, metadata
+
+        class Base:
+            def _take_subscription(self, sub):
+                return "ordinary"
+
+            async def _execute_subscription(self, sub, taken):
+                delivered.append((taken,))
+
+        async def invoke(callback, *args):
+            callback(*args)
+
+        executor = metadata_executor_type(Base, invoke)()
+        sub = SimpleNamespace(
+            c3_with_metadata=True,
+            handle=Handle(),
+            msg_type=object,
+            raw=False,
+            callback=lambda *args: delivered.append(args),
+        )
+        taken = executor._take_subscription(sub)
+        self.assertIs(taken[0], message)
+        self.assertIs(taken[1], metadata)
+        asyncio.run(executor._execute_subscription(sub, taken))
+        asyncio.run(executor._execute_subscription(sub, None))
+        self.assertEqual(delivered, [(message, metadata)])
+        sub.c3_with_metadata = False
+        self.assertEqual(executor._take_subscription(sub), "ordinary")
+        asyncio.run(executor._execute_subscription(sub, "ordinary"))
+        self.assertEqual(delivered[-1], ("ordinary",))
+
+    def test_behavior_publishers_require_exact_plugin_count_and_same_owner(self):
+        owner = "/c3_nav2/behavior_server"
+        self.assertTrue(publisher_owners_match([owner, owner], owner, 2))
+        self.assertFalse(publisher_owners_match([owner], owner, 2))
+        self.assertFalse(publisher_owners_match([owner] * 3, owner, 2))
+        self.assertFalse(
+            publisher_owners_match([owner, "/foreign/behavior_server"], owner, 2)
+        )
+        self.assertFalse(publisher_owners_match([owner, owner], owner))
+
+    def test_both_default_trees_only_require_enabled_behaviors(self):
+        for name in ("replan.xml", "replan_through_poses.xml"):
+            root = ET.parse(ROOT / "config" / name).getroot()
+            self.assertIsNone(root.find(".//BackUp"))
+            self.assertIsNotNone(root.find(".//Spin"))
+            self.assertIsNotNone(root.find(".//Wait"))
+        through = ET.parse(ROOT / "config/replan_through_poses.xml").getroot()
+        self.assertIsNotNone(through.find(".//ComputePathThroughPoses"))
+
     def test_plugin_export_library_name_can_differ_from_package(self):
         plugin = "nav2_mppi_controller::MPPIController"
         with tempfile.TemporaryDirectory() as directory:

@@ -89,7 +89,7 @@ class CoordinatorTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(self.port.goal_observation(self.scope)["cancel_ack"])
         self.assertTrue(self.coordinator.blocks_navigation_goal())
 
-    async def test_real_success_barrier_continues_with_exact_token(self):
+    async def test_real_ui_confirmation_is_not_a_native_success_barrier(self):
         await self.dispatch()
         self.nav.goal["state"] = "succeeded"
         for _ in range(30):
@@ -98,11 +98,9 @@ class CoordinatorTests(unittest.IsolatedAsyncioTestCase):
             await asyncio.sleep(0.01)
         self.assertEqual(len(self.nav.sent), 1)
         next_scope = replace(self.scope, goal_id="e" * 32, goal_generation=2)
-        receipt = await self.dispatch(next_scope, "exit", "exit-request-0001")
-        self.assertEqual(receipt.scope, next_scope)
-        self.assertEqual(len(self.nav.sent), 2)
-        with self.assertRaisesRegex(ValueError, "LATE_CANCEL"):
-            await self.port.cancel(self.scope, request_id="old-cancel-request")
+        with self.assertRaisesRegex(ValueError, "NATIVE_BARRIER_REQUIRED"):
+            await self.dispatch(next_scope, "exit", "exit-request-0001")
+        self.assertEqual(len(self.nav.sent), 1)
         self.assertEqual(self.nav.canceled, [])
 
     async def test_cancel_ack_delay_keeps_owner_and_cannot_dispatch_exit(self):

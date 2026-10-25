@@ -9,7 +9,7 @@ from pathlib import Path
 import tempfile
 from types import SimpleNamespace
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 
@@ -40,9 +40,12 @@ async def lifespan(app):
         context = NavigationContext(nav, policy_provider=lambda: {}, runtime_provider=lambda: {})
         service = MissionRoutes(root/'plans', maps, SimpleNamespace(), mission, context, FixturePlanner())
         app.state.runtime = ApplicationRuntime(mission_routes=service, competition=SimpleNamespace(require_unlocked=lambda _: None))
+        from competition_integration.demo import SignalDemo
+        app.state.signal_demo = SignalDemo()
         try:
             yield
         finally:
+            await app.state.signal_demo.close()
             await service.close()
             await mission.close()
 
@@ -72,7 +75,23 @@ async def map_part(identifier: str, part: str):
     return {'map_id':MAP_ID, 'revision':MAP_REVISION, 'kind':'occupancy2d', 'frame_id':'map', 'width':g.width, 'height':g.height, 'resolution':g.resolution, 'origin':list(g.origin), 'data_b64':base64.b64encode(g.occupancy).decode()}
 
 
-app.mount('/static', StaticFiles(directory='robot_dashboard/static'), name='static')
+@app.get('/__fixture/native-signal')
+async def native_signal_snapshot():
+    return app.state.signal_demo.snapshot()
+
+
+@app.post('/__fixture/native-signal')
+async def native_signal_command(request: Request):
+    body = await request.json()
+    try:
+        if body.get('action') == 'stop':
+            return await app.state.signal_demo.stop()
+        return await app.state.signal_demo.start(body['scenario'], body['request_id'])
+    except (ValueError, KeyError) as exc:
+        raise HTTPException(409, str(exc)) from exc
+
+
+app.mount('/static' , StaticFiles(directory='robot_dashboard/static'), name='static')
 app.mount('/', StaticFiles(directory='robot_dashboard/static', html=True), name='ui')
 
 if __name__ == '__main__':

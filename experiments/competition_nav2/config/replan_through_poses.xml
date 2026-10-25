@@ -1,0 +1,16 @@
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <RecoveryNode number_of_retries="2" name="NativeThroughPosesRecovery">
+      <PipelineSequence name="ReplanAndFollow">
+        <RateController hz="2.0">
+          <ComputePathThroughPoses goals="{goals}" path="{path}" planner_id="GridBased"/>
+        </RateController>
+        <FollowPath path="{path}" controller_id="FollowPath" goal_checker_id="goal_checker"/>
+      </PipelineSequence>
+      <Sequence>
+        <Wait wait_duration="1.0"/>
+        <Spin spin_dist="0.4"/>
+      </Sequence>
+    </RecoveryNode>
+  </BehaviorTree>
+</root>

@@ -39,6 +39,7 @@ def parser():
     p.add_argument("--model", help="Explicit owner-supplied local PT/ONNX; never downloaded")
     p.add_argument("--config", help="Explicit model/class-map/association JSON")
     p.add_argument("--fps", type=float, help="Required virtual replay rate; not a sensor clock")
+    p.add_argument("--clock-mode", choices=("source-timeline", "wall-clock"), default="source-timeline")
     p.add_argument("--max-frames", type=int, default=10000)
     p.add_argument("--dry-run", action="store_true", help="Hash and decode inputs without loading a model")
     p.add_argument("--acknowledge-trusted-pickle", action="store_true")
@@ -47,11 +48,14 @@ def parser():
 
 def run(args, output):
     from .replay_input import inspect_inputs, iter_frames
+    from .replay_clock import ReplayClock
 
     items = inspect_inputs(args.input, max_frames=args.max_frames)
     manifest = {"schema_version": "traffic-replay-manifest.v0.1", "input_files": [x.manifest() for x in items],
                 "model": None, "config": None, "dependencies": dependencies(),
-                "clock": "offline virtual schedule; original capture clock retained only as metadata",
+                "clock_mode": args.clock_mode,
+                "clock": "offline fixture only; recorded captured_at is NOT a verified sensor clock",
+                "sampling": "all supplied frames in order; fps only fills missing replay_time_s",
                 "labels_used_as_detector_input": False, "command": [sys.executable, "-m", __package__ + ".replay", *sys.argv[1:]]}
     missing = []
     config = TrafficConfig.read(args.config) if args.config else None
@@ -91,12 +95,16 @@ def run(args, output):
         write_json(output / "manifest.json", manifest)
     from .artifacts import save_images
     from .pipeline import TrafficPipeline
-    pipeline = TrafficPipeline(config, detector) if config else None
-    counts, states = Counter(), Counter()
+    timeline = ReplayClock(args.clock_mode)
+    pipeline = TrafficPipeline(config, detector, measure_wall_latency=args.clock_mode == "wall-clock") if config else None
+    counts, states, terminal, passes = Counter(), Counter(), Counter(), Counter()
+    latencies = []
     binding = config.document["association"]["binding_id"] if config else "unbound-inspection"
     start = time.monotonic()
     with (output / "observations.jsonl").open("x", encoding="utf-8") as stream:
         for f in iter_frames(items, fps=args.fps, binding_id=binding, max_frames=args.max_frames):
+            source_time = f.received_s
+            f, now = timeline.arrive(f)
             summary["frames"] += 1
             if f.bgr is None:
                 summary["decode_errors"] += 1
@@ -106,7 +114,21 @@ def run(args, output):
                           "native_image_size": [f.bgr.shape[1], f.bgr.shape[0]] if f.bgr is not None else None,
                           "original_metadata": f.original_metadata, "inference": "NOT_RUN"}
             else:
-                obs = pipeline.process(f, now_s=f.received_s)
+                began = time.monotonic()
+                obs = pipeline.process(f, now_s=now)
+                elapsed = time.monotonic() - began
+                latencies.append(elapsed)
+                d = obs.context["diagnostics"]
+                d["replay_timing"] = {"mode": args.clock_mode, "recorded_offset_s": source_time,
+                                      "pipeline_wall_s": elapsed, "analysis_sequence": f.sequence,
+                                      "historical_clock_verified": False}
+                terminal.update([d["terminal_rejection"] or "ACCEPTED"])
+                passes.update({"decoded": int(f.bgr is not None),
+                               "candidate_present": int(bool(obs.context["detection_candidates"])),
+                               "roi_selected": int(d["crop_selected"]),
+                               "readable_raw_color": int(obs.signal["raw_state"] in ("RED", "GREEN")),
+                               "binding_verified": int(d["crop_selected"] and obs.context["association_verified"]),
+                               "stable_color": int(obs.signal["stable_state"] in ("RED", "GREEN"))})
                 assets = save_images(output / "frames", f, obs)
                 counts.update(obs.signal["quality_flags"])
                 states.update([obs.signal["stable_state"]])
@@ -114,6 +136,14 @@ def run(args, output):
             stream.write(json.dumps(record, ensure_ascii=False, allow_nan=False) + "\n")
     summary.update(quality_flags=dict(counts), stable_states=dict(states), wall_seconds=time.monotonic() - start,
                    real_rgb_decode="PASS" if summary["frames"] and not summary["decode_errors"] else "FAILED")
+    summary.update(clock_mode=args.clock_mode, funnel_pass_counts=dict(passes),
+                   terminal_rejections=dict(terminal), historical_clock_verified=False,
+                   online_readiness="NOT_VERIFIED_LOCAL_FIXTURE_WORKLOAD_ONLY")
+    if latencies:
+        ordered = sorted(latencies)
+        summary["pipeline_wall_latency_s"] = {"min": min(ordered), "max": max(ordered),
+                                               "mean": sum(ordered) / len(ordered),
+                                               "p95": ordered[min(len(ordered)-1, int(.95 * len(ordered)))]}
     if not args.dry_run:
         summary["real_model_inference"] = "FAILED" if counts["MODEL_EXCEPTION"] else "RUN"
         summary["real_rgb_detection_replay"] = "RUN"

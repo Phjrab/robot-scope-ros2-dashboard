@@ -1057,7 +1057,7 @@ function renderOverviewUnavailable(reason, options) {
   ui.batteryMetric.textContent = 'OFFLINE';
   ui.batterySub.textContent = label;
   cameraStatusMeta = null;
-  if (clearLive && transition) resetLiveRobotSessionView();
+  if (clearLive && transition) resetLiveRobotSessionView(options?.observationReason || 'ROBOT_TELEMETRY_UNAVAILABLE');
 }
 
 function invalidateStateRequests() {
@@ -1300,8 +1300,8 @@ function resetLiveCloudAccumulator() {
   liveCloudReservoir?.reset();
 }
 
-function resetLiveRobotSessionView() {
-  savedMapObservation?.reset('ROBOT_TARGET_CHANGED');
+function resetLiveRobotSessionView(reason = 'ROBOT_TARGET_CHANGED') {
+  savedMapObservation?.reset(reason);
   resetLiveCloudAccumulator();
   lastCloudSnapshot = null;
   pointcloudTransport?.reset();
@@ -2672,7 +2672,7 @@ async function refreshState() {
     latestState = null; latestStateAt = 0;
     ui.connectionChip.className = 'connection-chip error';
     ui.connectionLabel.textContent = '에이전트 연결 끊김';
-    renderOverviewUnavailable('에이전트 연결 끊김');
+    renderOverviewUnavailable('에이전트 연결 끊김', { observationReason: 'AGENT_CONNECTION_LOST' });
     renderLidarSourceIdentity('STALE');
     if (activePage === 'cockpit') syncCockpitScene();
     ui.lastUpdated.textContent = `Last update failed · ${new Date().toLocaleTimeString('ko-KR', { hour12: false })}`;
