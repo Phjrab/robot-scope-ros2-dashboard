@@ -236,4 +236,6 @@ class RecoveryTests(unittest.TestCase):
         o = p.process(frame(source_clock="synchronized_ros"), now_s=0.01)
         self.assertEqual(o.context["free_observations"][0]["raw_state"], "GREEN")
         self.assertIn("SOURCE_STALE", o.signal["quality_flags"])
+        self.assertEqual(o.context["observation_stage"], "detection-only")
+        self.assertEqual(o.context["image_association"]["status"], "unassociated")
         self.assertIsNone(signal_status(p, now_s=0.4)["fragment"])

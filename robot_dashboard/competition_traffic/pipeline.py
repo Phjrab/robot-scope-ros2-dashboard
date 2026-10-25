@@ -288,7 +288,7 @@ class TrafficPipeline:
             "association_verified": a["verified"] and self.observation_mode == "mission",
             "observation_mode": self.observation_mode,
             "observation_stage": ("stable" if stable in ("RED", "GREEN") and not flags else
-                                  "associated" if chosen and a["verified"] else "detection-only"),
+                                  "associated" if chosen and a["verified"] and self.association.last is not None else "detection-only"),
             "image_association": self.association.snapshot(),
             "free_observations": free_observations,
             "inference_settings_sha256": getattr(self.detector, "inference_settings_sha256", None),
