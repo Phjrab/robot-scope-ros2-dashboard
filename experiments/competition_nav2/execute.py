@@ -271,7 +271,9 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--controller", choices=["rpp", "mppi"], required=True)
     p.add_argument(
-        "--variant", choices=["baseline", "tuned", "se2_rpp"], default="baseline"
+        "--variant",
+        choices=["baseline", "tuned", "se2_rpp", "omni_lattice"],
+        default="baseline",
     )
     selection = p.add_mutually_exclusive_group(required=True)
     selection.add_argument("--fixture", type=Path)

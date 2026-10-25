@@ -1,0 +1,107 @@
+{
+  "schema": "c3-omni-isolated-contract.v1",
+  "config_revision": "omni_lattice",
+  "motion_model": "Omni",
+  "pose_source": "SIM_GT",
+  "live_import_allowed": false,
+  "production_consumer": null,
+  "controller_plugin": "nav2_mppi_controller::MPPIController",
+  "planner_plugin": "nav2_smac_planner/SmacPlannerLattice",
+  "runtime": {
+    "os": "Ubuntu 22.04",
+    "ros": "Humble",
+    "nav2": "1.1.20",
+    "rclpy": "3.3.22",
+    "network": "none",
+    "ROS_DOMAIN_ID": 193,
+    "ROS_LOCALHOST_ONLY": 1
+  },
+  "frames": {
+    "global_frame": "map",
+    "odometry_frame": "odom",
+    "body_frame": "base_link",
+    "identity_map_to_odom": "simulation only"
+  },
+  "goal": {
+    "action": "/c3_nav2/navigate_to_pose",
+    "type": "nav2_msgs/action/NavigateToPose",
+    "frame": "map",
+    "xy_tolerance_m": 0.12,
+    "yaw_tolerance_rad": 0.2,
+    "success_requires": "accepted UUID, native terminal status 4, measured SIM_GT goal tolerances",
+    "cancellation": "actual terminal status 5 or 6; two-second zero tail required for SAFE_WAIT"
+  },
+  "topics": {
+    "clock": "/clock",
+    "scan": "/c3_nav2/scan",
+    "odometry": "/c3_nav2/odom",
+    "native_controller": "/c3_nav2/raw/controller_server",
+    "native_behavior": "/c3_nav2/raw/behavior_server",
+    "final_simulated_actuator": "/c3_nav2/sim_actuator_cmd",
+    "native_plan": "/c3_nav2/plan",
+    "native_global_costmap": "/c3_nav2/global_costmap/costmap"
+  },
+  "command": {
+    "type": "geometry_msgs/msg/Twist",
+    "trace_axes": [
+      "linear.x",
+      "linear.y",
+      "angular.z"
+    ],
+    "raw_fields": {
+      "v": "linear.x",
+      "vy": "linear.y",
+      "w": "angular.z"
+    },
+    "vx_max": 0.16,
+    "vy_abs_max": 0.08,
+    "linear_norm_max": 0.18,
+    "wz_abs_max": 0.6,
+    "linear_accel_norm_max": 0.3,
+    "angular_accel_max": 1.2,
+    "command_ttl_s": 0.25,
+    "sensor_ttl_s": 0.25,
+    "zero": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "arbitration": "Single active owner, DDS source/receipt age, sequence/epoch fencing, HOLD and latched faults; all three axes stop immediately",
+    "physical_limit_claim": false
+  },
+  "external_fixture": {
+    "schema": "d0-scene-truth.v1",
+    "source_pin": "repro/d0-source.json",
+    "option": "--fixture prepared/path/SCENARIO.truth.json",
+    "pose_source": "SIM_GT",
+    "default_builtin_config_unchanged": true,
+    "raw_body_m": [
+      0.81,
+      0.56
+    ],
+    "effective_padded_body_m": [
+      0.87,
+      0.62
+    ],
+    "margin_m": 0.03,
+    "padding_applied": "Once in effective footprint; native padding=0",
+    "sensor_source": "Process-isolated original D0 export_fixtures.observe",
+    "sensor_period_s": 0.2,
+    "sensor_ttl_s": 0.25,
+    "grid_resolution_m": 0.02
+  },
+  "image_lock": "repro/image-lock.json",
+  "primitive_provenance": "repro/omni-primitives-provenance.json",
+  "limits": "Flat virtual sensors and body only. No robot/gait/braking/Jetson qualification.",
+  "cli": "python3 experiments/competition_nav2/run_narrow.py --variant omni_lattice --lock IMAGE_LOCK --output NEW_DIRECTORY",
+  "files_sha256": {
+    "omni.py": "2807b1820b4d95130f47fc8a0818aaddfac38cf3e31670144263b595ca939b71",
+    "configure.py": "fe0b629865b164d74f731efc3f828ba4fa175cad0f6ffed7374dac5468b5297f",
+    "native_runner.py": "fdff344a0d10403195ab68121b18ba069ab1e3f02f525df740597ca75556f56f",
+    "validate.py": "a374fbe766e62131cdd676e0648ef66d06d1dd8fc009316ce99b922139edc572",
+    "config/omni-2cm-primitives.json": "bffe262d759b8866fa1b305d0d1529d6e2cbd7f9df389deedee30d5318f3b17c",
+    "repro/omni-primitives-provenance.json": "50a374db4b35248bcc62dff604be419015c83438434634e8e8e08169c663fd2d",
+    "repro/image-lock.json": "631e8525fcd52b0b50850aac93b811fed682e311fa8d76cd144b25553a336d7e",
+    "repro/d0-source.json": "3f7ec39505daa13a8c73ab56427d3164766d0b082fecbc04c03ca3eddb0ea93d"
+  }
+}

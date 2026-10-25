@@ -135,7 +135,11 @@ def execute(
         # Do not fan out an environment/TF/clock/activation failure in the first baseline.
         if len(summary["cases"]) == 1 and not row["expectation_met"]:
             summary["status"] = (
-                "BLOCKED_AT_RPP_BASELINE" if extension else "BLOCKED_AT_EMPTY_BASELINE"
+                "STOPPED_AT_FEASIBLE1"
+                if scenario == "d0_feasible1"
+                else "BLOCKED_AT_RPP_BASELINE"
+                if extension
+                else "BLOCKED_AT_EMPTY_BASELINE"
             )
             break
     else:

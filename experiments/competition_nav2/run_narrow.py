@@ -26,6 +26,9 @@ if __name__ == "__main__":
     parser.add_argument("--lock", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--baseline-debug", action="store_true")
+    parser.add_argument(
+        "--variant", choices=["se2_rpp", "omni_lattice"], default="se2_rpp"
+    )
     args = parser.parse_args()
     fixtures = {name: input_path(name.removeprefix("d0_")) for _, name, _ in ORDER}
     if args.baseline_debug:
@@ -42,10 +45,13 @@ if __name__ == "__main__":
     raise SystemExit(
         execute(
             args.lock,
-            args.output / "se2-rpp",
-            ORDER,
+            args.output / args.variant,
+            [
+                ("mppi" if args.variant == "omni_lattice" else c, s, r)
+                for c, s, r in ORDER
+            ],
             "narrow-summary.json",
             fixtures,
-            variant="se2_rpp",
+            variant=args.variant,
         )
     )

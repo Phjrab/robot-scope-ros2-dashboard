@@ -19,6 +19,7 @@ from fixtures import make_world, digest
 from preflight import require_isolated
 from humble_executor import metadata_executor_type
 from observations import grid_payload
+from omni import OmniBoundary, OmniCommand, propagate_omni, swept_omni
 
 
 def publisher_owners_match(observed, owner, endpoint_count=1):
@@ -78,6 +79,9 @@ def main(directory):
     fixture = json.loads((directory / "fixture.json").read_text())
     run = json.loads((directory / "run.json").read_text())
     expected = yaml.safe_load((directory / "params.yaml").read_text())
+    omni = run["variant"] == "omni_lattice"
+    zero_command = (0.0, 0.0, 0.0) if omni else (0.0, 0.0)
+    command_type = OmniCommand if omni else Command
 
     class Plant(Node):
         def __init__(self):
@@ -85,7 +89,8 @@ def main(directory):
             self.world = make_world(fixture)
             if hasattr(self.world, "start_sensor"):
                 self.world.start_sensor()
-            self.boundary = Boundary(fixture.get("sensor_ttl_s", LIMITS["sensor_ttl"]))
+            gate_type = OmniBoundary if omni else Boundary
+            self.boundary = gate_type(fixture.get("sensor_ttl_s", LIMITS["sensor_ttl"]))
             self.pose = tuple(fixture["start"])
             self.sim_t = 0.0
             self.goal_start = None
@@ -93,7 +98,7 @@ def main(directory):
             self.next_scan = 0.0
             self.pending_scans = []
             self.sequence = 0
-            self.previous_output = (0.0, 0.0)
+            self.previous_output = zero_command
             self.raw_count = {"controller_server": 0, "behavior_server": 0}
             self.active_actions = {"controller_server": False, "behavior_server": False}
             self.command_owner = None
@@ -277,7 +282,12 @@ def main(directory):
                 self.recovery_nonzero += 1
             if any(
                 abs(x) > 1e-9
-                for x in (msg.linear.y, msg.linear.z, msg.angular.x, msg.angular.y)
+                for x in (
+                    (0.0 if omni else msg.linear.y),
+                    msg.linear.z,
+                    msg.angular.x,
+                    msg.angular.y,
+                )
             ):
                 self.boundary.stop("UNSUPPORTED_TWIST_AXIS")
             # DDS source timestamp uses the same host realtime clock in this container.
@@ -294,19 +304,20 @@ def main(directory):
                 self.command_owner = owner
                 self.boundary.epoch += 1
                 self.boundary.command = None
-                self.boundary.output = (0.0, 0.0)
+                self.boundary.output = zero_command
                 self.boundary.release_at = now
             if not 0 <= age <= LIMITS["command_ttl"]:
                 self.boundary.stop("DDS_SOURCE_AGE_INVALID")
             elif owners == [owner]:
                 accepted = self.boundary.accept(
-                    Command(
+                    command_type(
                         self.sequence,
                         self.boundary.epoch,
                         now - age,
                         now,
                         msg.linear.x,
                         msg.angular.z,
+                        **({"vy": msg.linear.y} if omni else {}),
                     ),
                     now,
                 )
@@ -321,6 +332,7 @@ def main(directory):
                         owner=owner,
                         v=msg.linear.x,
                         w=msg.angular.z,
+                        **({"vy": msg.linear.y} if omni else {}),
                         accepted=accepted,
                         epoch=self.boundary.epoch,
                         fault=self.boundary.fault,
@@ -347,14 +359,24 @@ def main(directory):
                 0.0 if self.goal_start is None else self.sim_t - self.goal_start
             )
             # Integrate actual previous simulated actuator command, never desired/raw input.
-            v, w = self.previous_output
-            samples = swept_poses(before, v, w, dt, radius=self.world.radius)
+            applied = self.previous_output
+            v, w = applied[0], applied[-1]
+            vy = applied[1] if omni else 0.0
+            samples = (
+                swept_omni(before, v, vy, w, dt, self.world.radius)
+                if omni
+                else swept_poses(before, v, w, dt, radius=self.world.radius)
+            )
             if any(self.world.collision(p, scene_time) for p in samples):
                 self.collision_count += 1
                 self.boundary.stop("FOOTPRINT_CONTACT")
             if any(self.world.boundary_violation(p) for p in samples):
                 self.boundary_count += 1
-            self.pose = propagate(before, v, w, dt)
+            self.pose = (
+                propagate_omni(before, v, vy, w, dt)
+                if omni
+                else propagate(before, v, w, dt)
+            )
             self.path_length += math.dist(before[:2], self.pose[:2])
             self.min_clearance = min(
                 self.min_clearance,
@@ -408,6 +430,7 @@ def main(directory):
             odom.pose.pose.position.x, odom.pose.pose.position.y = self.pose[:2]
             odom.pose.pose.orientation = transform.transform.rotation
             odom.twist.twist.linear.x, odom.twist.twist.angular.z = v, w
+            odom.twist.twist.linear.y = vy
             self.odom_pub.publish(odom)
             if (
                 self.sim_t + (1e-9 if fixture.get("d0_bundle") else 0.0)
@@ -481,7 +504,7 @@ def main(directory):
             ):
                 # Separate fault injection, never counted among native controller commands.
                 accepted = self.boundary.accept(
-                    Command(
+                    command_type(
                         self.sequence + 1,
                         self.boundary.epoch - 1,
                         now - 1.0,
@@ -500,9 +523,10 @@ def main(directory):
             output = self.boundary.step(now, dt)
             self.previous_output = output
             twist = Twist()
-            twist.linear.x, twist.angular.z = output
+            twist.linear.x, twist.angular.z = output[0], output[-1]
+            twist.linear.y = output[1] if omni else 0.0
             self.final_pub.publish(twist)
-            zero = output == (0.0, 0.0)
+            zero = output == zero_command
             self.hold_nonzero += int(held and not zero)
             if not zero:
                 self.zero_since = now
@@ -512,7 +536,7 @@ def main(directory):
                         sim_t=self.sim_t,
                         elapsed_s=elapsed,
                         pose=list(self.pose),
-                        applied_previous=[v, w],
+                        applied_previous=list(applied),
                         actuator=list(output),
                         held=held,
                         reason=self.boundary.reason,
@@ -613,10 +637,15 @@ def main(directory):
                 expected_owners.update(
                     {
                         "/c3_nav2/local_costmap/costmap": "local_costmap/local_costmap",
-                        "/c3_nav2/lookahead_point": "controller_server",
-                        "/c3_nav2/lookahead_collision_arc": "controller_server",
                     }
                 )
+                if run["controller"] == "rpp":
+                    expected_owners.update(
+                        {
+                            "/c3_nav2/lookahead_point": "controller_server",
+                            "/c3_nav2/lookahead_collision_arc": "controller_server",
+                        }
+                    )
             for topic, owner in expected_owners.items():
                 pubs = self.get_publishers_info_by_topic(topic)
                 ownership[topic] = [
@@ -760,6 +789,16 @@ def main(directory):
             GetParameters, "planner_server/get_parameters", request
         ).values
         report["planner_parameters"] = {}
+        if omni:
+            report.update(
+                schema="competition-nav2-result.omni-v1",
+                motion_model="Omni",
+                command_axes=["linear.x", "linear.y", "angular.z"],
+                motion_contract="repro/omni-contract.json",
+                motion_primitive_sha256=hashlib.sha256(
+                    Path(flat_planner["GridBased.lattice_filepath"]).read_bytes()
+                ).hexdigest(),
+            )
         if fixture.get("world_kind") == "d0_shared":
             report["narrow_diagnostics_schema"] = "c3-native-narrow-observations.v1"
         for name, value in zip(request.names, values):

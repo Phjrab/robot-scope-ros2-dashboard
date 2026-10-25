@@ -1,0 +1,26 @@
+{
+  "schema": "c3-omni-primitive-generation.v1",
+  "generator": "ros-navigation/navigation2 tag 1.1.20 nav2_smac_planner/lattice_primitives",
+  "config": {
+    "motion_model": "omni",
+    "turning_radius": 0.06,
+    "grid_resolution": 0.02,
+    "stopping_threshold": 5,
+    "num_of_headings": 16
+  },
+  "upstream_files_sha256": {
+    "generate_motion_primitives.py": "8e35806b5fc556385900316af933477b69dbedda14c0e50296bf9a2e98200da7",
+    "lattice_generator.py": "49b4d7fd0044b6e479192c78306e5cf2621cb3821170d7fc0666538144cf8154",
+    "trajectory_generator.py": "542e8fd6585e1ec5682d323d03455f82978a7b8ca3eb8d8b71373237686e355c",
+    "trajectory.py": "d8afa98e6e5e4bf9a3dfc0e8f5208b399fd79b7d1439b9d566390c485a6878e3",
+    "helper.py": "5638272e7ac6e1e8b0d76717d52f9d502b9561c0d05610652b52ce286263fed2",
+    "constants.py": "9f618c72d2428df571271eefc193a1525377e6df85e9579b4e9a8e5e8521edb8",
+    "config.json": "fde5032d343d8a57dd8a09a4ff36d2129079361ef65aa335328304742276ef7c",
+    "requirements.txt": "5d5cdd94c21d07fab2ae5c0b7889fe2a3916210ec5d6bf23630da0d884ce27d5"
+  },
+  "rtree": "Unavailable; PyPI network unreachable. Generator-only exact inclusive bbox intersection substituted for spatial index acceleration; original trajectory/generator logic unchanged. No native or image package delta.",
+  "bbox_fallback_source": "\"\"\"Offline generator-only exact bbox intersection fallback; no ROS/runtime use.\"\"\"\nclass Index:\n    def __init__(self):\n        self.items = []\n    def insert(self, identifier, bounds, obj=None):\n        self.items.append((identifier, tuple(bounds), obj))\n    def intersection(self, bounds, objects=False):\n        a, b, c, d = bounds\n        for identifier, (x0, y0, x1, y1), obj in self.items:\n            if x0 <= c and a <= x1 and y0 <= d and b <= y1:\n                yield obj if objects == 'raw' else identifier\nRtree = Index\n",
+  "output_sha256": "bffe262d759b8866fa1b305d0d1529d6e2cbd7f9df389deedee30d5318f3b17c",
+  "no_scene_input": true,
+  "no_runtime_generator": true
+}

@@ -24,12 +24,16 @@ NAMESPACE = "c3_nav2"
 
 
 def candidate(controller, variant="baseline", fixture=None):
-    if variant not in ("baseline", "tuned", "se2_rpp"):
+    if variant not in ("baseline", "tuned", "se2_rpp", "omni_lattice"):
         raise ValueError("unknown candidate revision: " + variant)
     if variant == "se2_rpp" and (
         controller != "rpp" or not fixture or fixture.get("world_kind") != "d0_shared"
     ):
         raise ValueError("se2_rpp is an isolated D0/RPP candidate only")
+    if variant == "omni_lattice" and (
+        controller != "mppi" or not fixture or fixture.get("world_kind") != "d0_shared"
+    ):
+        raise ValueError("omni_lattice is an isolated D0/MPPI candidate only")
     cfg = yaml.safe_load(
         (
             REPO
@@ -95,6 +99,23 @@ def candidate(controller, variant="baseline", fixture=None):
         )
         if variant == "tuned":
             follow.update(time_steps=40, batch_size=1500)
+        if variant == "omni_lattice":
+            # Total linear speed <= hypot(.16, .08) < the existing .18 m/s bound.
+            follow.update(
+                motion_model="Omni",
+                vx_max=0.16,
+                vy_max=0.08,
+                vx_std=0.08,
+                vy_std=0.06,
+                wz_std=0.1,
+                PathAlignCritic=dict(
+                    use_path_orientations=True, offset_from_furthest=5
+                ),
+            )
+            # Humble 1.1.20 has no PathAngleCritic.mode. Its heading-to-point
+            # preference would turn toward a lateral segment; align native SE2 yaw.
+            follow["critics"].remove("PathAngleCritic")
+            follow["critics"].append("PathAlignCritic")
     else:
         raise ValueError(controller)
     cp["FollowPath"] = follow
@@ -163,6 +184,21 @@ def candidate(controller, variant="baseline", fixture=None):
             lookup_table_size=5.0,
             analytic_expansion_max_length=3.2,
             cache_obstacle_heuristic=False,
+        )
+    if variant == "omni_lattice":
+        cfg["planner_server"]["ros__parameters"]["GridBased"] = dict(
+            plugin="nav2_smac_planner/SmacPlannerLattice",
+            tolerance=0.0,
+            allow_unknown=False,
+            smooth_path=False,
+            lattice_filepath=str(ROOT / "config/omni-2cm-primitives.json"),
+            max_iterations=500000,
+            max_on_approach_iterations=1000,
+            max_planning_time=1.0,
+            lookup_table_size=5.0,
+            analytic_expansion_max_length=3.2,
+            cache_obstacle_heuristic=False,
+            allow_reverse_expansion=False,
         )
     return cfg
 

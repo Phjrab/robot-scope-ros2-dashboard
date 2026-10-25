@@ -1,0 +1,417 @@
+{
+  "directory": "artifact/narrow/baseline-debug/rpp-d0_feasible1-0/run",
+  "source": "20d7f56f24cff768e716a56813250ebbd3c2c234",
+  "outcome": "SAFE_WAIT",
+  "action": {
+    "accepted": true,
+    "goal_uuid": [
+      130,
+      178,
+      238,
+      203,
+      53,
+      4,
+      67,
+      192,
+      153,
+      140,
+      86,
+      183,
+      226,
+      52,
+      222,
+      121
+    ],
+    "status": 6
+  },
+  "config": "5caef12a8f7774d55570f6404b6797ef55056c78e459d5bbfc2dd05c04826609",
+  "errors": [
+    {
+      "log_line": 144,
+      "log": "[controller_server-3] [ERROR] [1792908311.332865303] [c3_nav2.controller_server]: RegulatedPurePursuitController detected collision ahead!",
+      "zero_command": {
+        "sim_t": 6.399999999999985,
+        "receipt_monotonic": 545.238901786,
+        "source_timestamp_ns": 1792908311332903394,
+        "dds_received_timestamp_ns": 1792908311333472668,
+        "source_age_s": 0.001268944,
+        "owner": "controller_server",
+        "v": 0.0,
+        "w": 0.0,
+        "accepted": true,
+        "epoch": 2,
+        "fault": null,
+        "held": false,
+        "active_action_owners": [
+          "controller_server"
+        ],
+        "origin": "native_nav2"
+      },
+      "nearest_trace": {
+        "sim_t": 6.399999999999985,
+        "elapsed_s": 4.8499999999999845,
+        "pose": [
+          0.5167972571840633,
+          1.7462801514863986,
+          1.5282629698786039
+        ],
+        "applied_previous": [
+          0.18,
+          -0.017287863270686446
+        ],
+        "actuator": [
+          0.18,
+          -0.01558637696076498
+        ],
+        "held": false,
+        "reason": "RELEASE",
+        "raw_sequence": 96,
+        "epoch": 2,
+        "monotonic": 545.220623805,
+        "command_source_age_s": 0.03279974600002333,
+        "command_receipt_age_s": 0.022927030999994713,
+        "sensor_source_age_s": 0.15224674999990384,
+        "sensor_receipt_age_s": 0.13599981199990907,
+        "published_ros": {
+          "clock_s": 6.399999999999985,
+          "tf_stamp_s": 6.399999999999985,
+          "odom_stamp_s": 6.399999999999985,
+          "tf_frames": [
+            "map",
+            "odom",
+            "base_link"
+          ]
+        },
+        "action_owners": {
+          "controller_server": true,
+          "behavior_server": false
+        },
+        "wall_gap_s": 0.05000092399995992,
+        "collision_count": 0,
+        "boundary_count": 0
+      },
+      "local_grid": {
+        "kind": "local_costmap",
+        "sim_t": 6.299999999999986,
+        "receipt_monotonic": 545.143833121,
+        "source_sim_s": 6.299999999,
+        "source_elapsed_s": 4.749999998999999,
+        "frame": "odom",
+        "width": 250,
+        "height": 250,
+        "resolution": 0.019999999552965164,
+        "origin": [
+          -1.9799999997764826,
+          -0.7799999997764819
+        ]
+      },
+      "arc": {
+        "kind": "rpp_collision_arc",
+        "sim_t": 6.399999999999985,
+        "receipt_monotonic": 545.2384556,
+        "source_sim_s": 6.399999999,
+        "source_elapsed_s": 4.849999999,
+        "frame": "odom",
+        "points": [
+          [
+            0.5176476678571897,
+            1.7662620633490567
+          ],
+          [
+            0.5185554117484297,
+            1.7862414527548398
+          ],
+          [
+            0.5195204813837362,
+            1.806218155200414
+          ],
+          [
+            0.520542868817062,
+            1.826192006204569
+          ],
+          [
+            0.5216225656304251,
+            1.8461628413095716
+          ],
+          [
+            0.5227595629339779,
+            1.8661304960825216
+          ],
+          [
+            0.5239538513660805,
+            1.8860948061167038
+          ],
+          [
+            0.5252054210933781,
+            1.9060556070329424
+          ]
+        ],
+        "quaternions": [
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "receipt_pose": [
+          0.5167972571840633,
+          1.7462801514863986,
+          1.5282629698786039
+        ]
+      },
+      "reconstructed_final_yaw": 1.5053074896694083,
+      "reconstructed_yaw_delta_per_step": -0.002869435026148892,
+      "reconstructed_initial_pose": [
+        0.5167972571840634,
+        1.7462801514863986,
+        1.5282629698786048
+      ],
+      "projected_footprint": [
+        [
+          0.8060736109318736,
+          1.4517010539173751
+        ],
+        [
+          0.8630081821432637,
+          2.31983609790591
+        ],
+        [
+          0.2443372312548825,
+          2.36041016014851
+        ],
+        [
+          0.18740266004349243,
+          1.492275116159975
+        ]
+      ],
+      "projected_edge_cell_hits": [
+        {
+          "grid_xy": [
+            111,
+            157
+          ],
+          "occupancy": 100,
+          "bbox": [
+            [
+              0.23999995060265067,
+              2.3599999300390486
+            ],
+            [
+              0.25999995015561583,
+              2.379999929592014
+            ]
+          ],
+          "edge_indices": [
+            1,
+            2
+          ]
+        }
+      ],
+      "projection_geometry_method": "Humble RPP Euler arc positions; quaternion zero is not used. Heading inferred from successive segment directions, then one yaw increment for last pose.",
+      "truth_projected_collision": false,
+      "carrots_near": [
+        {
+          "kind": "rpp_carrot",
+          "sim_t": 6.399999999999985,
+          "receipt_monotonic": 545.238591094,
+          "source_sim_s": 6.399999999,
+          "source_elapsed_s": 4.849999999,
+          "frame": "base_link",
+          "point": [
+            0.3998352929420955,
+            -0.011477740104597513
+          ],
+          "receipt_pose": [
+            0.5167972571840633,
+            1.7462801514863986,
+            1.5282629698786039
+          ]
+        }
+      ]
+    },
+    {
+      "log_line": 150,
+      "log": "[behavior_server-4] [WARN] [1792908313.241952114] [c3_nav2.behavior_server]: Collision Ahead - Exiting Spin",
+      "zero_command": {
+        "sim_t": 8.299999999999983,
+        "receipt_monotonic": 547.147104472,
+        "source_timestamp_ns": 1792908313241926596,
+        "dds_received_timestamp_ns": 1792908313242143900,
+        "source_age_s": 0.000448498,
+        "owner": "behavior_server",
+        "v": 0.0,
+        "w": 0.0,
+        "accepted": true,
+        "epoch": 3,
+        "fault": null,
+        "held": false,
+        "active_action_owners": [
+          "behavior_server"
+        ],
+        "origin": "native_nav2"
+      },
+      "nearest_trace": {
+        "sim_t": 8.299999999999983,
+        "elapsed_s": 6.749999999999982,
+        "pose": [
+          0.5171834457111764,
+          1.75527186179768,
+          1.8419794140443067
+        ],
+        "applied_previous": [
+          0.0,
+          0.589915260274825
+        ],
+        "actuator": [
+          0.0,
+          0.5299152602748249
+        ],
+        "held": false,
+        "reason": "RELEASE",
+        "raw_sequence": 114,
+        "epoch": 3,
+        "monotonic": 547.121683647,
+        "command_source_age_s": 0.025078340000050048,
+        "command_receipt_age_s": 0.024739287000102195,
+        "sensor_source_age_s": 0.053294417000074645,
+        "sensor_receipt_age_s": 0.036329935000026126,
+        "published_ros": {
+          "clock_s": 8.299999999999983,
+          "tf_stamp_s": 8.299999999999983,
+          "odom_stamp_s": 8.299999999999983,
+          "tf_frames": [
+            "map",
+            "odom",
+            "base_link"
+          ]
+        },
+        "action_owners": {
+          "controller_server": false,
+          "behavior_server": true
+        },
+        "wall_gap_s": 0.05000010100002328,
+        "collision_count": 0,
+        "boundary_count": 0
+      },
+      "local_grid": {
+        "kind": "local_costmap",
+        "sim_t": 8.299999999999983,
+        "receipt_monotonic": 547.142362169,
+        "source_sim_s": 8.299999999,
+        "source_elapsed_s": 6.749999999,
+        "frame": "odom",
+        "width": 250,
+        "height": 250,
+        "resolution": 0.019999999552965164,
+        "origin": [
+          -1.9799999997764826,
+          -0.7399999997764819
+        ]
+      },
+      "spin_initial_yaw": 1.5274836510305656,
+      "relative_yaw": 0.31449576301374105,
+      "reconstructed_next_w": 0.4530012900279882,
+      "spin_future_hits": [
+        {
+          "cycle": 12,
+          "predicted_pose": [
+            0.5171834457111764,
+            1.75527186179768,
+            2.1137801880610994
+          ],
+          "cells": [
+            {
+              "grid_xy": [
+                149,
+                114
+              ],
+              "occupancy": 100,
+              "bbox": [
+                [
+                  0.9999999336153269,
+                  1.5399999492615468
+                ],
+                [
+                  1.019999933168292,
+                  1.559999948814512
+                ]
+              ],
+              "edge_indices": [
+                0,
+                3
+              ]
+            },
+            {
+              "grid_xy": [
+                148,
+                116
+              ],
+              "occupancy": 100,
+              "bbox": [
+                [
+                  0.9799999340623617,
+                  1.5799999483674771
+                ],
+                [
+                  0.9999999336153269,
+                  1.5999999479204423
+                ]
+              ],
+              "edge_indices": [
+                0
+              ]
+            }
+          ]
+        }
+      ],
+      "spin_reconstruction_note": "Derived from recorded current pose and official 1.1.20 Spin lookahead; not an emitted native arc."
+    }
+  ],
+  "run_id": 40167720216,
+  "artifact_id": 12588834390,
+  "artifact_digest": "sha256:0179247167fda857c98a04837664d51ea26beb6bb4dad6ccbbc64d3ae3609fa4",
+  "artifact_expires_at": "2026-11-08T06:05:27Z"
+}

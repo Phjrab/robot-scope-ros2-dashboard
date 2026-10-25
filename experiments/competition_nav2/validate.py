@@ -12,6 +12,7 @@ from configure import NODES, PLUGINS
 from core import LIMITS, propagate, swept_poses
 from fixtures import make_world, digest
 from observations import read_jsonl, replan_evidence
+from omni import LATERAL_LIMIT, propagate_omni, swept_omni
 
 
 def sha(path):
@@ -36,6 +37,15 @@ def validate_record(record):
         errors.append("controller plugin readback mismatch")
     if not record.get("loaded_libraries") or not record.get("package_versions"):
         errors.append("native binary/version provenance missing")
+    if record.get("variant") == "omni_lattice" and (
+        record.get("schema") != "competition-nav2-result.omni-v1"
+        or record.get("motion_model") != "Omni"
+        or record.get("command_axes") != ["linear.x", "linear.y", "angular.z"]
+        or record.get("parameters", {}).get("FollowPath.motion_model") != "Omni"
+        or record.get("parameters", {}).get("FollowPath.vy_max") != LATERAL_LIMIT
+        or record.get("parameters", {}).get("FollowPath.vx_max") != 0.16
+    ):
+        errors.append("explicit Omni motion/axis/bound contract missing/mismatched")
     action = record.get("action", {})
     if (
         not action.get("accepted")
@@ -143,10 +153,17 @@ def validate_directory(directory):
                     "/c3_nav2/local_costmap/costmap": [
                         "/c3_nav2/local_costmap/local_costmap"
                     ],
-                    "/c3_nav2/lookahead_point": ["/c3_nav2/controller_server"],
-                    "/c3_nav2/lookahead_collision_arc": ["/c3_nav2/controller_server"],
                 }
             )
+            if record.get("controller") == "rpp":
+                owners.update(
+                    {
+                        "/c3_nav2/lookahead_point": ["/c3_nav2/controller_server"],
+                        "/c3_nav2/lookahead_collision_arc": [
+                            "/c3_nav2/controller_server"
+                        ],
+                    }
+                )
         snapshots = [
             s
             for s in record.get("graph_snapshots", [])
@@ -172,7 +189,7 @@ def validate_directory(directory):
         config = yaml.safe_load((directory / "params.yaml").read_text())
         if digest(config) != record.get("config_sha256"):
             errors.append("config hash mismatch")
-        if record.get("variant") == "se2_rpp":
+        if record.get("variant") in ("se2_rpp", "omni_lattice"):
             planner = config["planner_server"]["ros__parameters"]["GridBased"]
             if any(
                 record.get("planner_parameters", {}).get("GridBased." + k) != v
@@ -185,6 +202,12 @@ def validate_directory(directory):
                 != "1.1.20"
             ):
                 errors.append("installed Humble SE2 planner proof absent")
+            if record.get("variant") == "omni_lattice":
+                primitive_file = (
+                    Path(__file__).parent / "config/omni-2cm-primitives.json"
+                )
+                if record.get("motion_primitive_sha256") != sha(primitive_file):
+                    errors.append("Omni primitive file hash mismatch")
         for name in ("global_costmap", "local_costmap"):
             applied = record.get("costmap_parameters", {}).get(name, {})
             requested = config[name][name]["ros__parameters"]
@@ -230,19 +253,32 @@ def validate_directory(directory):
     if not trace:
         errors.append("empty actuator trace")
     else:
+        omni = record.get("variant") == "omni_lattice"
+        zero_command = [0.0, 0.0, 0.0] if omni else [0.0, 0.0]
         for row in trace:
-            v, w = row["actuator"]
+            if len(row["actuator"]) != len(zero_command):
+                errors.append("trace command axis count mismatch")
+                return dict(status="FAIL", backend="nav2_native_sim", errors=errors)
+            v, w = row["actuator"][0], row["actuator"][-1]
+            vy = row["actuator"][1] if omni else 0.0
             if (
-                not all(math.isfinite(n) for n in (v, w))
+                not all(math.isfinite(n) for n in (v, vy, w))
                 or not -1e-9 <= v <= LIMITS["v"] + 1e-9
                 or abs(w) > LIMITS["w"] + 1e-9
+                or (
+                    omni
+                    and (
+                        abs(vy) > LATERAL_LIMIT + 1e-9
+                        or math.hypot(v, vy) > LIMITS["v"] + 1e-9
+                    )
+                )
             ):
                 errors.append("actuator limit/nonfinite violation")
                 break
-            if (row["held"] or row["reason"] != "RELEASE") and (v != 0.0 or w != 0.0):
+            if (row["held"] or row["reason"] != "RELEASE") and any(row["actuator"]):
                 errors.append("nonzero actuator under hold/fault/TTL")
                 break
-            if v != 0.0 or w != 0.0:
+            if any(row["actuator"]):
                 for key, limit in (
                     ("command_source_age_s", LIMITS["command_ttl"]),
                     ("command_receipt_age_s", LIMITS["command_ttl"]),
@@ -255,7 +291,7 @@ def validate_directory(directory):
             if row.get("published_ros", {}).get("clock_s") != row["sim_t"]:
                 errors.append("clock publication evidence missing/mismatched")
                 break
-        if trace[-1]["actuator"] != [0.0, 0.0]:
+        if trace[-1]["actuator"] != zero_command:
             errors.append("shutdown actuator is not zero")
         if (directory / "fixture.json").exists():
             fixture = json.loads((directory / "fixture.json").read_text())
@@ -265,7 +301,7 @@ def validate_directory(directory):
             world = make_world(fixture)
             previous_pose = fixture["start"]
             previous_t = 0.0
-            previous_actuator = [0.0, 0.0]
+            previous_actuator = zero_command
             for row in trace:
                 dt = row["sim_t"] - previous_t
                 if (
@@ -274,22 +310,34 @@ def validate_directory(directory):
                 ):
                     errors.append("trace time/actuator continuity failure")
                     break
-                v, w = row["applied_previous"]
-                predicted = propagate(previous_pose, v, w, dt)
+                v, w = row["applied_previous"][0], row["applied_previous"][-1]
+                vy = row["applied_previous"][1] if omni else 0.0
+                predicted = (
+                    propagate_omni(previous_pose, v, vy, w, dt)
+                    if omni
+                    else propagate(previous_pose, v, w, dt)
+                )
                 if any(abs(a - b) > 1e-6 for a, b in zip(predicted, row["pose"])):
                     errors.append("pose not explained by actual actuator commands")
                     break
-                samples = swept_poses(previous_pose, v, w, dt, radius=world.radius)
+                samples = (
+                    swept_omni(previous_pose, v, vy, w, dt, world.radius)
+                    if omni
+                    else swept_poses(previous_pose, v, w, dt, radius=world.radius)
+                )
                 if any(
                     world.collision(p, max(0.0, row["elapsed_s"] - dt)) for p in samples
                 ):
                     errors.append("independent interpolated footprint collision")
                     break
-                if row["actuator"] != [0.0, 0.0] and row["reason"] == "RELEASE":
+                if row["actuator"] != zero_command and row["reason"] == "RELEASE":
+                    linear_delta = math.hypot(
+                        row["actuator"][0] - previous_actuator[0],
+                        row["actuator"][1] - previous_actuator[1] if omni else 0.0,
+                    )
                     if (
-                        abs(row["actuator"][0] - previous_actuator[0])
-                        > LIMITS["a"] * dt + 1e-6
-                        or abs(row["actuator"][1] - previous_actuator[1])
+                        linear_delta > LIMITS["a"] * dt + 1e-6
+                        or abs(row["actuator"][-1] - previous_actuator[-1])
                         > LIMITS["alpha"] * dt + 1e-6
                     ):
                         errors.append("normal-command acceleration limit exceeded")
@@ -305,7 +353,7 @@ def validate_directory(directory):
             if (
                 not tail
                 or tail[-1]["sim_t"] - tail[0]["sim_t"] < 1.9
-                or any(r["actuator"] != [0.0, 0.0] for r in tail)
+                or any(r["actuator"] != zero_command for r in tail)
             ):
                 errors.append("safe wait lacks two-second zero-command evidence")
         if record.get("scenario") in ("sensor_stale", "d0_sensor_dropout"):
@@ -315,9 +363,10 @@ def validate_directory(directory):
             ):
                 errors.append("dropout was not exercised during forward progress")
             recovery = record.get("dropout_recovery", {})
-            if recovery.get("fault_latched") != "SENSOR_STALE" or recovery.get(
-                "final_output"
-            ) != [0.0, 0.0]:
+            if (
+                recovery.get("fault_latched") != "SENSOR_STALE"
+                or recovery.get("final_output") != zero_command
+            ):
                 errors.append("dropout latched zero evidence missing")
     if fixture_data.get("d0_bundle") and (directory / "scans.jsonl").exists():
         scans = read_jsonl(directory / "scans.jsonl")
