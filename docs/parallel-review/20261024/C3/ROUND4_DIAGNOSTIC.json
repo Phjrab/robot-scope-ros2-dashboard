@@ -250,7 +250,7 @@
           ]
         }
       ],
-      "projection_geometry_method": "Humble RPP Euler arc positions; quaternion zero is not used. Heading inferred from successive segment directions, then one yaw increment for last pose.",
+      "projection_geometry_method": "Humble RPP Euler arc positions; recorded default quaternion [0,0,0,1] is not a projected heading. Heading inferred from successive segment directions, then one yaw increment for last pose. The earlier source comment calling it quaternion zero is imprecise; no yaw calculation uses it.",
       "truth_projected_collision": false,
       "carrots_near": [
         {
@@ -413,5 +413,72 @@
   "run_id": 40167720216,
   "artifact_id": 12588834390,
   "artifact_digest": "sha256:0179247167fda857c98a04837664d51ea26beb6bb4dad6ccbbc64d3ae3609fa4",
-  "artifact_expires_at": "2026-11-08T06:05:27Z"
+  "artifact_expires_at": "2026-11-08T06:05:27Z",
+  "bracketing_published_maps": {
+    "native_arc_source_sim_s": 6.399999999,
+    "local_map_samples": [
+      {
+        "grid_source_sim_s": 6.299999999,
+        "grid_origin": [
+          -1.9799999997764826,
+          -0.7799999997764819
+        ],
+        "hits": [
+          {
+            "grid_xy": [
+              111,
+              157
+            ],
+            "occupancy": 100,
+            "bbox": [
+              [
+                0.23999995060265067,
+                2.3599999300390486
+              ],
+              [
+                0.25999995015561583,
+                2.379999929592014
+              ]
+            ],
+            "edge_indices": [
+              1,
+              2
+            ]
+          }
+        ]
+      },
+      {
+        "grid_source_sim_s": 6.699999999,
+        "grid_origin": [
+          -1.9799999997764826,
+          -0.7399999997764819
+        ],
+        "hits": [
+          {
+            "grid_xy": [
+              111,
+              155
+            ],
+            "occupancy": 100,
+            "bbox": [
+              [
+                0.23999995060265067,
+                2.3599999309331183
+              ],
+              [
+                0.25999995015561583,
+                2.3799999304860835
+              ]
+            ],
+            "edge_indices": [
+              1,
+              2
+            ]
+          }
+        ]
+      }
+    ],
+    "limitation": "Asynchronous published maps bracketing the controller event; not an atomic internal checker snapshot. Same world lethal cell persists on both sides."
+  },
+  "precision_limit": "Published maps and the native arc are asynchronous, not an atomic internal collision-check packet. The same cone lethal cell is retained before/after the event. The rejected v/w is not inferred from the last accepted command."
 }

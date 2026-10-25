@@ -1,0 +1,733 @@
+{
+  "schema": "c3-round4-native-review.v1",
+  "decision": "FROZEN_REJECTED_NO_SUCCESSFUL_CANDIDATE",
+  "role": "C3",
+  "base_sha": "32914885d84b9bf98e799492366aeab0f908f547",
+  "tested_code_sha": "2a1b1f172f30d010fa33d9b7f247a9163f175e82",
+  "branch": "review/20261024-c3-nav2-benchmark",
+  "final_document_commit": "Recorded externally in submission receipt; no self-referential commit",
+  "native_runs": [
+    {
+      "id": 40167720216,
+      "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40167720216",
+      "status": "completed",
+      "conclusion": "failure",
+      "artifact": {
+        "id": 12588834390,
+        "name": "c3-native-20d7f56f24cff768e716a56813250ebbd3c2c234-1",
+        "digest": "sha256:0179247167fda857c98a04837664d51ea26beb6bb4dad6ccbbc64d3ae3609fa4",
+        "expires_at": "2026-11-08T06:05:27Z"
+      },
+      "image": {
+        "base_digest": "ros@sha256:566b87e6dfc48392189a9c32e594e84060fa9948de93b04e536f39475a1f6963",
+        "image_id": "sha256:7efd98f806f896c80bbae38d14b15a46b9a28758b467e03be706122725a9e882",
+        "packages_tsv_sha256": "45f626571f4fd5388d7bc174cae017e5482a4c2396254a5adfb461342076a5de",
+        "exact_previous_package_lock_match": true,
+        "package_delta": []
+      },
+      "cases": [
+        {
+          "artifact_relative_path": "narrow/baseline-debug/rpp-d0_feasible1-0/run",
+          "schema": "competition-nav2-result.v1",
+          "backend": "nav2_native_sim",
+          "status": "NATIVE_RECORDED",
+          "controller": "rpp",
+          "variant": "baseline",
+          "scenario": "d0_feasible1",
+          "repeat": 0,
+          "outcome": "SAFE_WAIT",
+          "action": {
+            "accepted": true,
+            "goal_uuid": [
+              130,
+              178,
+              238,
+              203,
+              53,
+              4,
+              67,
+              192,
+              153,
+              140,
+              86,
+              183,
+              226,
+              52,
+              222,
+              121
+            ],
+            "status": 6
+          },
+          "terminal_fault": null,
+          "config_sha256": "5caef12a8f7774d55570f6404b6797ef55056c78e459d5bbfc2dd05c04826609",
+          "fixture_sha256": "9dc29e53fd7ab721f0d6617493ac33b7a2d042113024985e2d27bbba14464d05",
+          "goal_distance_m": 3.2947729474834277,
+          "goal_yaw_error_rad": 0.29767885026315133,
+          "metrics": {
+            "footprint_collision_count": 0,
+            "boundary_violation_count": 0,
+            "min_conservative_clearance_m": 0.05399999999999994,
+            "path_length_m": 0.8054999813151877,
+            "sim_time_s": 11.450000000000028,
+            "wall_time_s": 11.528623724,
+            "plant_deadline_misses": 1,
+            "plant_max_wall_gap_s": 0.09246791199996096,
+            "runner_cpu_s": 1.98892565,
+            "runner_peak_rss_kib": 86108,
+            "hold_nonzero_count": 0
+          },
+          "command_axes": null,
+          "motion_model": null,
+          "motion_primitive_sha256": null,
+          "planner_parameters": {
+            "use_sim_time": true,
+            "planner_plugins": [
+              "GridBased"
+            ],
+            "GridBased.plugin": "nav2_navfn_planner/NavfnPlanner",
+            "GridBased.tolerance": 0.0,
+            "GridBased.use_astar": true,
+            "GridBased.allow_unknown": false
+          },
+          "costmap_parameters": {
+            "global_costmap": {
+              "footprint": "[[-0.43500000000000005, -0.31000000000000005], [0.43500000000000005, -0.31000000000000005], [0.43500000000000005, 0.31000000000000005], [-0.43500000000000005, 0.31000000000000005]]",
+              "footprint_padding": 0.0,
+              "resolution": 0.02,
+              "track_unknown_space": true,
+              "inflation_layer.inflation_radius": 0.4,
+              "inflation_layer.cost_scaling_factor": 5.0,
+              "obstacle_layer.scan.topic": "/c3_nav2/scan",
+              "obstacle_layer.scan.expected_update_rate": 0.25
+            },
+            "local_costmap": {
+              "footprint": "[[-0.43500000000000005, -0.31000000000000005], [0.43500000000000005, -0.31000000000000005], [0.43500000000000005, 0.31000000000000005], [-0.43500000000000005, 0.31000000000000005]]",
+              "footprint_padding": 0.0,
+              "resolution": 0.02,
+              "track_unknown_space": true,
+              "inflation_layer.inflation_radius": 0.4,
+              "inflation_layer.cost_scaling_factor": 5.0,
+              "obstacle_layer.scan.topic": "/c3_nav2/scan",
+              "obstacle_layer.scan.expected_update_rate": 0.25
+            }
+          },
+          "loaded_library_sha256": {
+            "/opt/ros/humble/lib/libnav2_regulated_pure_pursuit_controller.so": "d63cca14c5cd1f5d85b61d2d37e40f70c1cba0133fe2dcd574595386b969f497"
+          },
+          "planner_loaded_library_sha256": {
+            "/opt/ros/humble/lib/libnav2_navfn_planner.so": "bc2ed662908ec308c8efa915e72c3e960ffa781d0beed6e0af2fe24a0ff3cbc1"
+          },
+          "package_versions": {
+            "nav2_controller": "1.1.20",
+            "nav2_planner": "1.1.20",
+            "nav2_bt_navigator": "1.1.20",
+            "rclpy": "3.3.22",
+            "nav2_regulated_pure_pursuit_controller": "1.1.20",
+            "nav2_navfn_planner": "1.1.20"
+          },
+          "controller_parameters": {
+            "use_sim_time": true,
+            "odom_topic": "odom",
+            "controller_frequency": 20.0,
+            "min_x_velocity_threshold": 0.01,
+            "min_theta_velocity_threshold": 0.01,
+            "progress_checker_plugin": "progress_checker",
+            "goal_checker_plugins": [
+              "goal_checker"
+            ],
+            "controller_plugins": [
+              "FollowPath"
+            ],
+            "progress_checker.plugin": "nav2_controller::SimpleProgressChecker",
+            "progress_checker.required_movement_radius": 0.1,
+            "progress_checker.movement_time_allowance": 10.0,
+            "goal_checker.plugin": "nav2_controller::SimpleGoalChecker",
+            "goal_checker.xy_goal_tolerance": 0.12,
+            "goal_checker.yaw_goal_tolerance": 0.2,
+            "goal_checker.stateful": true,
+            "FollowPath.plugin": "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController",
+            "FollowPath.desired_linear_vel": 0.18,
+            "FollowPath.lookahead_dist": 0.4,
+            "FollowPath.use_velocity_scaled_lookahead_dist": false,
+            "FollowPath.use_collision_detection": true,
+            "FollowPath.max_allowed_time_to_collision_up_to_carrot": 1.0,
+            "FollowPath.allow_reversing": false,
+            "FollowPath.use_rotate_to_heading": true,
+            "FollowPath.rotate_to_heading_angular_vel": 0.6,
+            "FollowPath.max_angular_accel": 1.2,
+            "FollowPath.min_approach_linear_velocity": 0.03,
+            "FollowPath.regulated_linear_scaling_min_speed": 0.05,
+            "FollowPath.transform_tolerance": 0.2,
+            "min_y_velocity_threshold": 0.001
+          },
+          "validation": {
+            "status": "PASS",
+            "backend": "nav2_native_sim",
+            "errors": [],
+            "replan": null
+          },
+          "goal_completion": false,
+          "d0_conformance": {
+            "status": "PASS",
+            "probes": 3,
+            "beams_per_delivered_probe": 360,
+            "max_range_delta_m": 0.0,
+            "source_commit": "83f4ee8d6971d00ab31b2de0eeebf329542dd5d6",
+            "manifest_sha256": "1e995e63e9e601433399f052d6a9630b4d5fb53081cfd1b00003aae2b16ef84e"
+          },
+          "cleanup": {
+            "graceful": true,
+            "remaining_processes": [],
+            "return_codes": [
+              0,
+              0
+            ]
+          },
+          "environment": {
+            "source_sha": "20d7f56f24cff768e716a56813250ebbd3c2c234",
+            "image_id": "sha256:7efd98f806f896c80bbae38d14b15a46b9a28758b467e03be706122725a9e882",
+            "package_lock_sha256": "45f626571f4fd5388d7bc174cae017e5482a4c2396254a5adfb461342076a5de",
+            "python": "3.10.12 (main, Aug 31 2026, 10:18:17) [GCC 11.4.0]",
+            "mppi_optimizer_seed": "not exposed by verified Humble source; stochastic repeats, not bitwise reproducible",
+            "fixture_seed": 20261024,
+            "repeat": 0
+          },
+          "artifact_file_sha256": {
+            "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+            "d0_conformance.json": "1b37baa50465bfb437b3d4cc33d6e82d574743ac6212e3eb8edd3140b7d0ca3d",
+            "environment.json": "a71b6c4873cd7519afe6bb2313a0bb3fc5d187665cd864da96b6efb1e3e55e28",
+            "fixture.json": "7f6104bf116e83de4be5882fef6ca15a3270bc90df606a3c73e8576b116a2bf5",
+            "map.yaml": "8de76b07d270c4119b91b1b4bbf9d5e5c05800bbb26f26c07902df59b3274504",
+            "native.log": "7347e6d9422dc86cb7373125432252af68567f0cca2a64448db725b55f3e9386",
+            "observations.jsonl": "c64db4313ab5c4ab2a3f1d7a3c1f49c06b8ab2f6b8eb2284bcec38da1028d632",
+            "params.yaml": "52c942954b83dd2aff2bab1ea6a6b60b2245b37afdd4dd90e7ce4c53420c29cd",
+            "raw_commands.jsonl": "bd543bd3c4d40fc4455e091c1786d1a314b345a3f4ca1b2c0a08e51692e34e44",
+            "resources.jsonl": "4f4bd4061768ff3e1f289e204f969955226826819e45d09761d37e2279096145",
+            "result.json": "632d82dde8f2bb12997c558162df8411662d48581b74389023839bb452553d14",
+            "run.json": "ab1a62e876bd86b89315944dc76f00bf6ff23ddbcab5d52b2dcd86501358a37a",
+            "runner.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "scans.jsonl": "815e8fba866fa5fac4a1e76c2aa9d0db2abe09143d17ba859911f9dd4bbfc175",
+            "trace.jsonl": "9cffac783d6030cbc510c261eab9f5401f5a49137533ce44881600080c8af331",
+            "validation.json": "b424413121a9187ce729e62c78318cc78265871d00266449a233e4b06ea2e0a5"
+          }
+        },
+        {
+          "artifact_relative_path": "narrow/se2-rpp/rpp-d0_feasible1-0/run",
+          "schema": "competition-nav2-result.v1",
+          "backend": "nav2_native_sim",
+          "status": "NATIVE_RECORDED",
+          "controller": "rpp",
+          "variant": "se2_rpp",
+          "scenario": "d0_feasible1",
+          "repeat": 0,
+          "outcome": "SAFE_WAIT",
+          "action": {
+            "accepted": true,
+            "goal_uuid": [
+              10,
+              229,
+              65,
+              108,
+              41,
+              116,
+              78,
+              31,
+              153,
+              154,
+              63,
+              46,
+              120,
+              59,
+              223,
+              1
+            ],
+            "status": 6
+          },
+          "terminal_fault": null,
+          "config_sha256": "68b04225ff3510bdb98f5052b10ca575388b4de094e0e1b515544c817787f549",
+          "fixture_sha256": "9dc29e53fd7ab721f0d6617493ac33b7a2d042113024985e2d27bbba14464d05",
+          "goal_distance_m": 4.1,
+          "goal_yaw_error_rad": 0.04499999999999993,
+          "metrics": {
+            "footprint_collision_count": 0,
+            "boundary_violation_count": 0,
+            "min_conservative_clearance_m": 0.04181424537607892,
+            "path_length_m": 0.0,
+            "sim_time_s": 7.199999999999982,
+            "wall_time_s": 7.264646439000103,
+            "plant_deadline_misses": 1,
+            "plant_max_wall_gap_s": 0.09256535700001223,
+            "runner_cpu_s": 0.888429966,
+            "runner_peak_rss_kib": 85820,
+            "hold_nonzero_count": 0
+          },
+          "command_axes": null,
+          "motion_model": null,
+          "motion_primitive_sha256": null,
+          "planner_parameters": {
+            "use_sim_time": true,
+            "planner_plugins": [
+              "GridBased"
+            ],
+            "GridBased.plugin": "nav2_smac_planner/SmacPlannerHybrid",
+            "GridBased.tolerance": 0.0,
+            "GridBased.allow_unknown": false,
+            "GridBased.downsample_costmap": false,
+            "GridBased.angle_quantization_bins": 72,
+            "GridBased.motion_model_for_search": "DUBIN",
+            "GridBased.minimum_turning_radius": 0.8,
+            "GridBased.smooth_path": false,
+            "GridBased.max_iterations": 500000,
+            "GridBased.max_on_approach_iterations": 1000,
+            "GridBased.max_planning_time": 1.0,
+            "GridBased.lookup_table_size": 5.0,
+            "GridBased.analytic_expansion_max_length": 3.2,
+            "GridBased.cache_obstacle_heuristic": false
+          },
+          "costmap_parameters": {
+            "global_costmap": {
+              "footprint": "[[-0.43500000000000005, -0.31000000000000005], [0.43500000000000005, -0.31000000000000005], [0.43500000000000005, 0.31000000000000005], [-0.43500000000000005, 0.31000000000000005]]",
+              "footprint_padding": 0.0,
+              "resolution": 0.02,
+              "track_unknown_space": true,
+              "inflation_layer.inflation_radius": 0.4,
+              "inflation_layer.cost_scaling_factor": 5.0,
+              "obstacle_layer.scan.topic": "/c3_nav2/scan",
+              "obstacle_layer.scan.expected_update_rate": 0.25
+            },
+            "local_costmap": {
+              "footprint": "[[-0.43500000000000005, -0.31000000000000005], [0.43500000000000005, -0.31000000000000005], [0.43500000000000005, 0.31000000000000005], [-0.43500000000000005, 0.31000000000000005]]",
+              "footprint_padding": 0.0,
+              "resolution": 0.02,
+              "track_unknown_space": true,
+              "inflation_layer.inflation_radius": 0.4,
+              "inflation_layer.cost_scaling_factor": 5.0,
+              "obstacle_layer.scan.topic": "/c3_nav2/scan",
+              "obstacle_layer.scan.expected_update_rate": 0.25
+            }
+          },
+          "loaded_library_sha256": {
+            "/opt/ros/humble/lib/libnav2_regulated_pure_pursuit_controller.so": "d63cca14c5cd1f5d85b61d2d37e40f70c1cba0133fe2dcd574595386b969f497"
+          },
+          "planner_loaded_library_sha256": {
+            "/opt/ros/humble/lib/libnav2_smac_planner.so": "74828b79ec7e98af15058e7af99579e9252106123c2ff1b3c6b3da934006ce40"
+          },
+          "package_versions": {
+            "nav2_controller": "1.1.20",
+            "nav2_planner": "1.1.20",
+            "nav2_bt_navigator": "1.1.20",
+            "rclpy": "3.3.22",
+            "nav2_regulated_pure_pursuit_controller": "1.1.20",
+            "nav2_smac_planner": "1.1.20"
+          },
+          "controller_parameters": {
+            "use_sim_time": true,
+            "odom_topic": "odom",
+            "controller_frequency": 20.0,
+            "min_x_velocity_threshold": 0.01,
+            "min_theta_velocity_threshold": 0.01,
+            "progress_checker_plugin": "progress_checker",
+            "goal_checker_plugins": [
+              "goal_checker"
+            ],
+            "controller_plugins": [
+              "FollowPath"
+            ],
+            "progress_checker.plugin": "nav2_controller::SimpleProgressChecker",
+            "progress_checker.required_movement_radius": 0.1,
+            "progress_checker.movement_time_allowance": 10.0,
+            "goal_checker.plugin": "nav2_controller::SimpleGoalChecker",
+            "goal_checker.xy_goal_tolerance": 0.12,
+            "goal_checker.yaw_goal_tolerance": 0.2,
+            "goal_checker.stateful": true,
+            "FollowPath.plugin": "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController",
+            "FollowPath.desired_linear_vel": 0.18,
+            "FollowPath.lookahead_dist": 0.4,
+            "FollowPath.use_velocity_scaled_lookahead_dist": false,
+            "FollowPath.use_collision_detection": true,
+            "FollowPath.max_allowed_time_to_collision_up_to_carrot": 1.0,
+            "FollowPath.allow_reversing": false,
+            "FollowPath.use_rotate_to_heading": true,
+            "FollowPath.rotate_to_heading_angular_vel": 0.6,
+            "FollowPath.max_angular_accel": 1.2,
+            "FollowPath.min_approach_linear_velocity": 0.03,
+            "FollowPath.regulated_linear_scaling_min_speed": 0.05,
+            "FollowPath.transform_tolerance": 0.2,
+            "min_y_velocity_threshold": 0.001
+          },
+          "validation": {
+            "status": "PASS",
+            "backend": "nav2_native_sim",
+            "errors": [],
+            "replan": null
+          },
+          "goal_completion": false,
+          "d0_conformance": {
+            "status": "PASS",
+            "probes": 3,
+            "beams_per_delivered_probe": 360,
+            "max_range_delta_m": 0.0,
+            "source_commit": "83f4ee8d6971d00ab31b2de0eeebf329542dd5d6",
+            "manifest_sha256": "1e995e63e9e601433399f052d6a9630b4d5fb53081cfd1b00003aae2b16ef84e"
+          },
+          "cleanup": {
+            "graceful": true,
+            "remaining_processes": [],
+            "return_codes": [
+              0,
+              0
+            ]
+          },
+          "environment": {
+            "source_sha": "20d7f56f24cff768e716a56813250ebbd3c2c234",
+            "image_id": "sha256:7efd98f806f896c80bbae38d14b15a46b9a28758b467e03be706122725a9e882",
+            "package_lock_sha256": "45f626571f4fd5388d7bc174cae017e5482a4c2396254a5adfb461342076a5de",
+            "python": "3.10.12 (main, Aug 31 2026, 10:18:17) [GCC 11.4.0]",
+            "mppi_optimizer_seed": "not exposed by verified Humble source; stochastic repeats, not bitwise reproducible",
+            "fixture_seed": 20261024,
+            "repeat": 0
+          },
+          "artifact_file_sha256": {
+            "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+            "d0_conformance.json": "1b37baa50465bfb437b3d4cc33d6e82d574743ac6212e3eb8edd3140b7d0ca3d",
+            "environment.json": "9c48bee942f90c52d4eb3ef8b32d559f06f4fe1f4c7fa272b424b95e392336a1",
+            "fixture.json": "7f6104bf116e83de4be5882fef6ca15a3270bc90df606a3c73e8576b116a2bf5",
+            "map.yaml": "8de76b07d270c4119b91b1b4bbf9d5e5c05800bbb26f26c07902df59b3274504",
+            "native.log": "461a2b34a2504a00e3c8987691a2b1dc53b86084c5d86a2fbb15866ff851605d",
+            "observations.jsonl": "f3970b432c49aae1260cb1d7a41a78b308d5738be54b5ab3b2de307806fbec40",
+            "params.yaml": "6c8b571a514eb3857060a9ecf531935b0493e31a2bf7875e60f4687729317185",
+            "raw_commands.jsonl": "2ca7ec6fa2d912fbc8812ceea5a1f7e4b31d3d5bd0fb3550bb17bf7f4204d2f0",
+            "resources.jsonl": "1d701a33833792ca5f5ca51d4db91d66c8c7c456520a78e94cef551267e3be1c",
+            "result.json": "b4c3862937130f82def2d36cea4f29421fa0937b720ad2c4a8ca0ec07d3330cb",
+            "run.json": "2afd10a83a38e61506fd6a43c856d5dba8f832d2f2b3a11d7ba30a59b9b0b1fe",
+            "runner.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "scans.jsonl": "c357a315b7e223258d722ff8ecee98a97225189907c183f8fb9aa44212bdb816",
+            "trace.jsonl": "c770ab63c3b7369d3c5b7619177bb1ab10ee55c4a2bef7ee92dc123b6856fb9e",
+            "validation.json": "b424413121a9187ce729e62c78318cc78265871d00266449a233e4b06ea2e0a5"
+          }
+        }
+      ]
+    },
+    {
+      "id": 40168963222,
+      "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40168963222",
+      "status": "completed",
+      "conclusion": "failure",
+      "artifact": {
+        "id": 12590081484,
+        "name": "c3-native-2a1b1f172f30d010fa33d9b7f247a9163f175e82-1",
+        "digest": "sha256:43580b9a3ced0b6bba00211a14a6398650fb7018c2794243f2af092cc5c34c29",
+        "expires_at": "2026-11-08T06:26:42Z"
+      },
+      "image": {
+        "base_digest": "ros@sha256:566b87e6dfc48392189a9c32e594e84060fa9948de93b04e536f39475a1f6963",
+        "image_id": "sha256:7dc5872beec07b9d070b0e85258236db2163d78f8f15ec2c0c9cf31c3272f1f0",
+        "packages_tsv_sha256": "45f626571f4fd5388d7bc174cae017e5482a4c2396254a5adfb461342076a5de",
+        "exact_previous_package_lock_match": true,
+        "package_delta": []
+      },
+      "cases": [
+        {
+          "artifact_relative_path": "narrow/omni_lattice/mppi-d0_feasible1-0/run",
+          "schema": "competition-nav2-result.omni-v1",
+          "backend": "nav2_native_sim",
+          "status": "NATIVE_RECORDED",
+          "controller": "mppi",
+          "variant": "omni_lattice",
+          "scenario": "d0_feasible1",
+          "repeat": 0,
+          "outcome": "FAILED",
+          "action": {
+            "accepted": true,
+            "goal_uuid": [
+              145,
+              127,
+              174,
+              202,
+              149,
+              164,
+              67,
+              183,
+              179,
+              220,
+              134,
+              107,
+              187,
+              225,
+              221,
+              241
+            ],
+            "cancel_ack_count": 1,
+            "status": 5
+          },
+          "terminal_fault": "FOOTPRINT_CONTACT",
+          "config_sha256": "51dc10e7b659cde570cda07a9b9cc25f40ebfda1d1a8fbef488349af6ca95246",
+          "fixture_sha256": "9dc29e53fd7ab721f0d6617493ac33b7a2d042113024985e2d27bbba14464d05",
+          "goal_distance_m": 4.085695143897472,
+          "goal_yaw_error_rad": 0.1399094162508847,
+          "metrics": {
+            "footprint_collision_count": 64,
+            "boundary_violation_count": 64,
+            "min_conservative_clearance_m": 0.03321578095532007,
+            "path_length_m": 0.0154656610182879,
+            "sim_time_s": 6.499999999999985,
+            "wall_time_s": 6.5412065919999804,
+            "plant_deadline_misses": 1,
+            "plant_max_wall_gap_s": 0.09022769800003516,
+            "runner_cpu_s": 0.8176695960000001,
+            "runner_peak_rss_kib": 85804,
+            "hold_nonzero_count": 0
+          },
+          "command_axes": [
+            "linear.x",
+            "linear.y",
+            "angular.z"
+          ],
+          "motion_model": "Omni",
+          "motion_primitive_sha256": "bffe262d759b8866fa1b305d0d1529d6e2cbd7f9df389deedee30d5318f3b17c",
+          "planner_parameters": {
+            "use_sim_time": true,
+            "planner_plugins": [
+              "GridBased"
+            ],
+            "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+            "GridBased.tolerance": 0.0,
+            "GridBased.allow_unknown": false,
+            "GridBased.smooth_path": false,
+            "GridBased.lattice_filepath": "/repo/experiments/competition_nav2/config/omni-2cm-primitives.json",
+            "GridBased.max_iterations": 500000,
+            "GridBased.max_on_approach_iterations": 1000,
+            "GridBased.max_planning_time": 1.0,
+            "GridBased.lookup_table_size": 5.0,
+            "GridBased.analytic_expansion_max_length": 3.2,
+            "GridBased.cache_obstacle_heuristic": false,
+            "GridBased.allow_reverse_expansion": false
+          },
+          "costmap_parameters": {
+            "global_costmap": {
+              "footprint": "[[-0.43500000000000005, -0.31000000000000005], [0.43500000000000005, -0.31000000000000005], [0.43500000000000005, 0.31000000000000005], [-0.43500000000000005, 0.31000000000000005]]",
+              "footprint_padding": 0.0,
+              "resolution": 0.02,
+              "track_unknown_space": true,
+              "inflation_layer.inflation_radius": 0.4,
+              "inflation_layer.cost_scaling_factor": 5.0,
+              "obstacle_layer.scan.topic": "/c3_nav2/scan",
+              "obstacle_layer.scan.expected_update_rate": 0.25
+            },
+            "local_costmap": {
+              "footprint": "[[-0.43500000000000005, -0.31000000000000005], [0.43500000000000005, -0.31000000000000005], [0.43500000000000005, 0.31000000000000005], [-0.43500000000000005, 0.31000000000000005]]",
+              "footprint_padding": 0.0,
+              "resolution": 0.02,
+              "track_unknown_space": true,
+              "inflation_layer.inflation_radius": 0.4,
+              "inflation_layer.cost_scaling_factor": 5.0,
+              "obstacle_layer.scan.topic": "/c3_nav2/scan",
+              "obstacle_layer.scan.expected_update_rate": 0.25
+            }
+          },
+          "loaded_library_sha256": {
+            "/opt/ros/humble/lib/libmppi_controller.so": "a43e86cb395940e9092fb014475fb18e50784e8de65937709c02914aaac6c765"
+          },
+          "planner_loaded_library_sha256": {
+            "/opt/ros/humble/lib/libnav2_smac_planner_lattice.so": "2c4c5568c78626c1f66d91a4518ae325af6a4e48c93cac46c1dac91383b6679b"
+          },
+          "package_versions": {
+            "nav2_controller": "1.1.20",
+            "nav2_planner": "1.1.20",
+            "nav2_bt_navigator": "1.1.20",
+            "rclpy": "3.3.22",
+            "nav2_mppi_controller": "1.1.20",
+            "nav2_smac_planner": "1.1.20"
+          },
+          "controller_parameters": {
+            "use_sim_time": true,
+            "odom_topic": "odom",
+            "controller_frequency": 20.0,
+            "min_x_velocity_threshold": 0.01,
+            "min_theta_velocity_threshold": 0.01,
+            "progress_checker_plugin": "progress_checker",
+            "goal_checker_plugins": [
+              "goal_checker"
+            ],
+            "controller_plugins": [
+              "FollowPath"
+            ],
+            "progress_checker.plugin": "nav2_controller::SimpleProgressChecker",
+            "progress_checker.required_movement_radius": 0.1,
+            "progress_checker.movement_time_allowance": 10.0,
+            "goal_checker.plugin": "nav2_controller::SimpleGoalChecker",
+            "goal_checker.xy_goal_tolerance": 0.12,
+            "goal_checker.yaw_goal_tolerance": 0.2,
+            "goal_checker.stateful": true,
+            "FollowPath.plugin": "nav2_mppi_controller::MPPIController",
+            "FollowPath.motion_model": "Omni",
+            "FollowPath.model_dt": 0.05,
+            "FollowPath.time_steps": 56,
+            "FollowPath.batch_size": 1000,
+            "FollowPath.iteration_count": 1,
+            "FollowPath.vx_max": 0.16,
+            "FollowPath.vx_min": 0.0,
+            "FollowPath.vy_max": 0.08,
+            "FollowPath.wz_max": 0.6,
+            "FollowPath.vx_std": 0.08,
+            "FollowPath.vy_std": 0.06,
+            "FollowPath.wz_std": 0.1,
+            "FollowPath.temperature": 0.3,
+            "FollowPath.gamma": 0.015,
+            "FollowPath.regenerate_noises": false,
+            "FollowPath.critics": [
+              "ConstraintCritic",
+              "CostCritic",
+              "GoalCritic",
+              "GoalAngleCritic",
+              "PathFollowCritic",
+              "PreferForwardCritic",
+              "PathAlignCritic"
+            ],
+            "FollowPath.CostCritic.enabled": true,
+            "FollowPath.CostCritic.consider_footprint": true,
+            "FollowPath.CostCritic.collision_cost": 1000000.0,
+            "FollowPath.PathAlignCritic.use_path_orientations": true,
+            "FollowPath.PathAlignCritic.offset_from_furthest": 5,
+            "min_y_velocity_threshold": 0.001
+          },
+          "validation": {
+            "status": "FAIL",
+            "backend": "nav2_native_sim",
+            "errors": [
+              "footprint_collision_count is nonzero or missing",
+              "boundary_violation_count is nonzero or missing",
+              "failed or missing scenario outcome",
+              "independent interpolated footprint collision"
+            ],
+            "replan": null
+          },
+          "goal_completion": false,
+          "d0_conformance": {
+            "status": "PASS",
+            "probes": 3,
+            "beams_per_delivered_probe": 360,
+            "max_range_delta_m": 0.0,
+            "source_commit": "83f4ee8d6971d00ab31b2de0eeebf329542dd5d6",
+            "manifest_sha256": "1e995e63e9e601433399f052d6a9630b4d5fb53081cfd1b00003aae2b16ef84e"
+          },
+          "cleanup": {
+            "graceful": true,
+            "remaining_processes": [],
+            "return_codes": [
+              0,
+              0
+            ]
+          },
+          "environment": {
+            "source_sha": "2a1b1f172f30d010fa33d9b7f247a9163f175e82",
+            "image_id": "sha256:7dc5872beec07b9d070b0e85258236db2163d78f8f15ec2c0c9cf31c3272f1f0",
+            "package_lock_sha256": "45f626571f4fd5388d7bc174cae017e5482a4c2396254a5adfb461342076a5de",
+            "python": "3.10.12 (main, Aug 31 2026, 10:18:17) [GCC 11.4.0]",
+            "mppi_optimizer_seed": "not exposed by verified Humble source; stochastic repeats, not bitwise reproducible",
+            "fixture_seed": 20261024,
+            "repeat": 0
+          },
+          "artifact_file_sha256": {
+            "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+            "d0_conformance.json": "1b37baa50465bfb437b3d4cc33d6e82d574743ac6212e3eb8edd3140b7d0ca3d",
+            "environment.json": "e9c6d26ea9dd664ed44b0430902ca99d80a10e68614bb278e705821e1408cc1a",
+            "fixture.json": "7f6104bf116e83de4be5882fef6ca15a3270bc90df606a3c73e8576b116a2bf5",
+            "map.yaml": "8de76b07d270c4119b91b1b4bbf9d5e5c05800bbb26f26c07902df59b3274504",
+            "native.log": "d0fe4eff4151bdf0192a7cd5e9b9deacc861b2b1fc6b116323c2700d32a6e180",
+            "observations.jsonl": "0261358be0277a0a0ceb32ef91e5ef87903bae2083228f9e544a244c9e7009ae",
+            "params.yaml": "46b62dc644cd4f1e5087759202ffe2a7d760924be34e2bfcc185d8637c4b8d00",
+            "raw_commands.jsonl": "9a0f545084717deedb3a846faeefb704eb3358f0f91bd760ce00b4727d609ba9",
+            "resources.jsonl": "9a91d0a9968711a20615757cd6effcccf0262a7a2c702b89a3454484d51454b7",
+            "result.json": "1e03e3b58aa48d47ee723483012007fcc47571cd631c10bd049ea48d476489e5",
+            "run.json": "e311f43d18e270510170ba3714ebd8df86ddba624b29ba91e2ad87b0fb0734ec",
+            "runner.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "scans.jsonl": "76ec3da0431c9796ae731b39f724ec9f35af789673a0d39c360573395c14efe4",
+            "trace.jsonl": "f672cb64b19bb4c7d8f8f5faf59738bf7490a7a828346288947dd0a45f4e4423",
+            "validation.json": "e12863d0f61eeb5b7a4e5ab58c69f2f87c97340546b85dbd28783d7c7a97b454"
+          }
+        }
+      ]
+    }
+  ],
+  "local_checks": {
+    "tested_code_sha": "2a1b1f172f30d010fa33d9b7f247a9163f175e82",
+    "c3_unit": {
+      "run": 71,
+      "passed": 71,
+      "skipped": 0,
+      "seconds": 2.954
+    },
+    "repository_python": {
+      "run": 2691,
+      "passed": 2689,
+      "skipped": 2,
+      "seconds": 82.595
+    },
+    "related_javascript": {
+      "run": 70,
+      "passed": 70
+    },
+    "ruff": "PASS",
+    "secret_scan": "PASS",
+    "diff_check": "PASS",
+    "earlier_two_axis_native_artifacts_revalidated_with_final_validator": "PASS (baseline diagnostic and candidate A; no new native execution)",
+    "log_sha256": {
+      "c3-round4-omni-focused.log": "f3fb85c76344a81611c81c1c0861f2918df552d3fa4df4f99fc104a7e7821f0e",
+      "c3-round4-omni-full.log": "c2cc66364f4c5b9fba75288447686b420c6a923ab68ce7ac95e357ba04901e0d",
+      "c3-round4-omni-js.log": "1829e2a60385e2b32c9d6b9e725f8ad3f2a70838b0293a88a2cda5455138dbd5",
+      "c3-round4-common1-failed.log": "20e3778e7411fc0d12a30e4b0d4559153964672685ea6c41bde01ca531c7fc4f",
+      "c3-round4-common2-failed.log": "c2a455f2f0cdc13503a92be582b5de12fdab81ad2da38ed66fe70e36d1b9d5c5"
+    }
+  },
+  "common_ci": [
+    {
+      "id": 40167720163,
+      "source_sha": "20d7f56f24cff768e716a56813250ebbd3c2c234",
+      "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40167720163",
+      "status": "completed",
+      "conclusion": "failure",
+      "failure": "Both OS jobs fail browser E2E collection: named export GO2_JOINT_NAMES from CommonJS observed_joints.js. Existing common CI issue; owned by C1, not changed by C3."
+    },
+    {
+      "id": 40168963218,
+      "source_sha": "2a1b1f172f30d010fa33d9b7f247a9163f175e82",
+      "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40168963218",
+      "status": "completed",
+      "conclusion": "failure",
+      "failure": "Both OS jobs fail browser E2E collection: named export GO2_JOINT_NAMES from CommonJS observed_joints.js. Existing common CI issue; owned by C1, not changed by C3."
+    }
+  ],
+  "not_run": {
+    "candidate_A_and_B_remaining_cases": [
+      "empty",
+      "blocked",
+      "sensor_dropout",
+      "feasible1 repeat 1",
+      "feasible2"
+    ],
+    "reason": "Both suites stop at first feasible1 failure; no claim from earlier candidates reused.",
+    "additional": [
+      "new tight5 run",
+      "144-run MPPI matrix",
+      "real RGB replay",
+      "robot observations",
+      "physical braking or gait",
+      "Jetson performance",
+      "physical motion"
+    ]
+  },
+  "readonly_cross_role_review": {
+    "C1": "50ad48849ad0862aeeba034d009ac34e42fddd8e",
+    "C1_state": "ROUND3 C3 32914885 adopted; pinned D0 prepare already in common CI. ROUND4 delta requires C1 review; no new production candidate recommended.",
+    "D0": "da7230bb65722e4a1d3f4ab0c1d16e63fcd344e3",
+    "D0_state": "Independent original-artifact geometry audit agrees centerline-free is not full-body-free; our extra signals are not atomic internal checker snapshots."
+  },
+  "next_one_task": "In a future bounded review, correct cost-field coverage for the unchanged .87x.62 footprint (circumscribed radius .534158m plus grid allowance), then revalidate the same Omni feasible1. No third candidate or patch validation executed in ROUND4.",
+  "production_consumer": null,
+  "live_import_enabled": false,
+  "main_write": false,
+  "other_role_write": false,
+  "robot_access": false,
+  "pr_created": false
+}
