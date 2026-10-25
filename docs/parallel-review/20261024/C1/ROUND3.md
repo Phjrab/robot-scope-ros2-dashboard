@@ -122,16 +122,16 @@ npx playwright test -c playwright.competition.config.mjs
 
 Functional commit: [`bb6f42ae987bb15805bbcbb15e1ddbc4be458c6c`](https://github.com/Phjrab/robot-scope-ros2-dashboard/commit/bb6f42ae987bb15805bbcbb15e1ddbc4be458c6c).
 Exact code CI: [40163680026](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40163680026),
-head `bb6f42ae987bb15805bbcbb15e1ddbc4be458c6c`. This is the actual submitted
-run, not the earlier r2 run. Its live result is available at that link; the exact
-final report-commit CI outcome is also reported in the submission response.
-The report-only commit does not rewrite this document to contain its own SHA.
+head `bb6f42ae987bb15805bbcbb15e1ddbc4be458c6c`: all three jobs passed. This is the
+actual submitted run, not the earlier r2 run. Its result is available at that link; the exact
+final submission SHA and CI outcome are also reported in the submission response.
+This document is not repeatedly rewritten to contain its own commit SHA.
 
 Local candidate results:
 
 | Actual command group | Result |
 | --- | --- |
-| `unittest discover -s tests -v` (Python 3.12.3, `PYTHONPATH=.:tests C2_CROSS_REQUIRED=1`) | 2,924 run, 2,921 pass, 3 explicit skips; 96.583 s |
+| `unittest discover -s tests -v` (Python 3.12.3, `PYTHONPATH=.:tests C2_CROSS_REQUIRED=1`) | Final pre-commit rerun: 2,924 run, 2,922 pass, 2 explicit skips; 91.291 s |
 | Explicit Node geometry parity rerun | 1 pass; Node-path skip resolved |
 | C1 actual package integration | 38 pass, including 1,200 virtual ticks + 1,200 duplicate/reconnect inputs |
 | C2 dedicated + pinned historical cross tests | 108 pass; includes preserved C1 start fence |
@@ -139,13 +139,13 @@ Local candidate results:
 | C3 offline tests | 43 pass; no new native trial |
 | `node --test tests/*.mjs` (Node 20.20.2) | 666 pass |
 | Common Chromium E2E | 198 pass, 7.4 min |
-| Dedicated mission real-API Chromium E2E | 9 pass, 39.1 s; actual C4 projection/C2 join in the final demo |
+| Dedicated mission real-API Chromium E2E | Final artifact rerun: 9 pass, 38.7 s; actual C4 projection/C2 join, persisted JSON trace verified |
 | Ruff / mypy / frontend syntax / tracked secret scan / pip check / diff check | PASS; mypy 4 files, frontend 107 modules |
 
-The remaining two local skips are optional SVG plotting and rosbags backend,
-not signal-path tests. The initial full run did not have Node on PATH; its one
-geometry parity skip was rerun explicitly with `PCD_EDIT_NODE` set to the already
-installed Node binary. An earlier sandboxed Node run only reported file wrappers;
+The two final local skips are optional SVG plotting and rosbags backend,
+not signal-path tests. The initial full run had three skips because Node was not
+on PATH; geometry parity passed both its explicit rerun and the final full run.
+An earlier sandboxed Node run only reported file wrappers;
 the 666 count above is the actual unsandboxed individual-test result. Initial
 component failures during migration were fixed before these candidate checks.
 
@@ -160,6 +160,10 @@ those tests. Ubuntu 22.04/Python 3.10 and Ubuntu 24.04/Python 3.12 jobs install 
 optional competition libraries and run the actual browser/API demo. CI uploads
 `browser-evidence-<os>-python-<version>` screenshots and the actual software JSON
 trace on success as well as failure. Artifacts are available under the exact run.
+The final evidence check caught that an in-memory Playwright JSON attachment is
+not saved by the line reporter. The test now writes
+`native-signal-software-trace.json` under its output directory before attaching
+that file, so the existing CI upload includes the actual trace with the screenshot.
 No robot credentials or raw video/weights/bag/map assets were added.
 
 Changed-file inventory is the functional commit diff (84 files). Most adopted

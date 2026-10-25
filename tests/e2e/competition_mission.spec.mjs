@@ -1,4 +1,5 @@
 import {expect, test} from '@playwright/test';
+import {writeFile} from 'node:fs/promises';
 import {installDashboardBackend} from './dashboard_backend.mjs';
 
 async function connect(page) {
@@ -162,7 +163,9 @@ test('actual C2 runtime and C4 RGB signal cross after independent dwell; reconne
   await expect(page.locator('[data-offline-signal]')).toContainText('독립 앞발');
   const path = info.outputPath('native-signal-software-completion.png');
   await page.screenshot({path,fullPage:true}); await info.attach('C2 C4 software completion',{path,contentType:'image/png'});
-  await info.attach('actual software trace',{body:JSON.stringify(final,null,2),contentType:'application/json'});
+  const tracePath = info.outputPath('native-signal-software-trace.json');
+  await writeFile(tracePath, JSON.stringify(final,null,2));
+  await info.attach('actual software trace',{path:tracePath,contentType:'application/json'});
 });
 
 for(const scenario of ['red','unknown']) test(`offline ${scenario} holds before departure`, async ({page}) => {
