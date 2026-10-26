@@ -1,0 +1,388 @@
+{
+  "schema": "c3-round7-input-evidence.v1",
+  "latest_map": {
+    "status": "MAP_INPUT_NOT_AVAILABLE",
+    "meaning": "Latest original bytes unavailable in checked local repositories/private work areas; metadata identified from saved device records. No device connection. Not current robot readback.",
+    "map_id": "b9087113da92a1f2b477e932",
+    "revision": "58991300bd1aac8c872fd45cafdda6f3eaf2026e4e578d411a4cdba439d31f6a",
+    "filename": "map_20261023_135003.pcd",
+    "saved_at": "2026-10-23T13:50:05.605707+09:00",
+    "frame": "camera_init",
+    "units": "m",
+    "points": 41073,
+    "original_sha256": "628653237cc7fb146793a6b970a5636f6562b5b3b73b57cf64fcf9badaead97a",
+    "format": "PCD; latest DATA encoding not independently read",
+    "reference": "docs/integration-acceptance/SAME_START_OBSERVATION_20261023.md",
+    "origin_main_checked": "104692fa0070ef085eee918913ea05fdb2d88c05"
+  },
+  "available_older_map": {
+    "path": "docs/replay-fixtures/stage3-20261019/maps/map_20261018_162315.pcd",
+    "sha256": "c347faea6fd7a2f353b39f1f69f93cab8f2c6243299f90f87e54b7d8172ce4b8",
+    "points": 25666,
+    "format": "PCD DATA binary",
+    "fields": [
+      "x",
+      "y",
+      "z",
+      "intensity"
+    ],
+    "all_xyz_finite": true,
+    "bounds_min": [
+      -8.493959426879883,
+      -3.9108076095581055,
+      -1.868394374847412
+    ],
+    "bounds_max": [
+      9.073235511779785,
+      7.061007976531982,
+      2.289374589920044
+    ],
+    "use": "Read-only format/full-point count/bounds check only; neither current map nor D0 ground truth",
+    "arena_design_transform": "UNVERIFIED; no identity assumption or planner injection"
+  },
+  "go2_model": {
+    "source": {
+      "project": "Unitree Robotics unitree_ros / go2_description",
+      "repository": "https://github.com/unitreerobotics/unitree_ros",
+      "commit": "f3772ce54c56ef2d34c6aee8100bc768896c7d19",
+      "package": "go2_description",
+      "license": "BSD-3-Clause",
+      "license_file": "/static/assets/go2/LICENSE.txt",
+      "files": [
+        "urdf/go2_description.urdf",
+        "dae/base.dae",
+        "dae/hip.dae",
+        "dae/thigh.dae",
+        "dae/thigh_mirror.dae",
+        "dae/calf.dae",
+        "dae/calf_mirror.dae",
+        "dae/foot.dae"
+      ],
+      "modifications": "DAE transforms applied; meshes simplified by deterministic vertex clustering; positions quantized to 0.01 mm; textures omitted."
+    },
+    "asset_sha256": "a638b56b309d37b089dc2e22d5683289be8268ce69a2cdd71ecf943d9294056f",
+    "pose": {
+      "FR_hip_joint": 0.0,
+      "FR_thigh_joint": 0.75,
+      "FR_calf_joint": -1.5,
+      "FL_hip_joint": 0.0,
+      "FL_thigh_joint": 0.75,
+      "FL_calf_joint": -1.5,
+      "RR_hip_joint": 0.0,
+      "RR_thigh_joint": 0.75,
+      "RR_calf_joint": -1.5,
+      "RL_hip_joint": 0.0,
+      "RL_thigh_joint": 0.75,
+      "RL_calf_joint": -1.5
+    },
+    "static_visual_bounds_min": [
+      -0.3577771366307666,
+      -0.16138000000000002,
+      -0.3340745574124395
+    ],
+    "static_visual_bounds_max": [
+      0.33068000000000003,
+      0.16142,
+      0.08883
+    ],
+    "static_visual_size": [
+      0.6884571366307666,
+      0.32280000000000003,
+      0.42290455741243954
+    ],
+    "meaning": "Simplified/quantized visual mesh at fixed illustrative joints; not gait or measured collision envelope. No mounts included.",
+    "local_urdf_sha256": "7d19fe48e2e689ee1a032ab99f2a4a8b671d87e73de48d3e65811682a5b48b9e",
+    "urdf_collision_geometry": [
+      {
+        "link": "base",
+        "geometry": [
+          {
+            "type": "box",
+            "size": "0.3762 0.0935 0.114"
+          }
+        ]
+      },
+      {
+        "link": "Head_upper",
+        "geometry": [
+          {
+            "type": "cylinder",
+            "radius": "0.05",
+            "length": "0.09"
+          }
+        ]
+      },
+      {
+        "link": "Head_lower",
+        "geometry": [
+          {
+            "type": "sphere",
+            "radius": "0.047"
+          }
+        ]
+      },
+      {
+        "link": "FL_hip",
+        "geometry": [
+          {
+            "type": "cylinder",
+            "length": "0.04",
+            "radius": "0.046"
+          }
+        ]
+      },
+      {
+        "link": "FL_thigh",
+        "geometry": [
+          {
+            "type": "box",
+            "size": "0.213 0.0245 0.034"
+          }
+        ]
+      },
+      {
+        "link": "FL_calf",
+        "geometry": [
+          {
+            "type": "cylinder",
+            "length": "0.12",
+            "radius": "0.012"
+          }
+        ]
+      },
+      {
+        "link": "FL_calflower",
+        "geometry": [
+          {
+            "type": "cylinder",
+            "length": "0.065",
+            "radius": "0.011"
+          }
+        ]
+      },
+      {
+        "link": "FL_calflower1",
+        "geometry": [
+          {
+            "type": "cylinder",
+            "length": "0.03",
+            "radius": "0.0155"
+          }
+        ]
+      },
+      {
+        "link": "FL_foot",
+        "geometry": [
+          {
+            "type": "sphere",
+            "radius": "0.022"
+          }
+        ]
+      },
+      {
+        "link": "FR_hip",
+        "geometry": [
+          {
+            "type": "cylinder",
+            "length": "0.04",
+            "radius": "0.046"
+          }
+        ]
+      },
+      {
+        "link": "FR_thigh",
+        "geometry": [
+          {
+            "type": "box",
+            "size": "0.213 0.0245 0.034"
+          }
+        ]
+      },
+      {
+        "link": "FR_calf",
+        "geometry": [
+          {
+            "type": "cylinder",
+            "length": "0.12",
+            "radius": "0.013"
+          }
+        ]
+      },
+      {
+        "link": "FR_calflower",
+        "geometry": [
+          {
+            "type": "cylinder",
+            "length": "0.065",
+            "radius": "0.011"
+          }
+        ]
+      },
+      {
+        "link": "FR_calflower1",
+        "geometry": [
+          {
+            "type": "cylinder",
+            "length": "0.03",
+            "radius": "0.0155"
+          }
+        ]
+      },
+      {
+        "link": "FR_foot",
+        "geometry": [
+          {
+            "type": "sphere",
+            "radius": "0.022"
+          }
+        ]
+      },
+      {
+        "link": "RL_hip",
+        "geometry": [
+          {
+            "type": "cylinder",
+            "length": "0.04",
+            "radius": "0.046"
+          }
+        ]
+      },
+      {
+        "link": "RL_thigh",
+        "geometry": [
+          {
+            "type": "box",
+            "size": "0.213 0.0245 0.034"
+          }
+        ]
+      },
+      {
+        "link": "RL_calf",
+        "geometry": [
+          {
+            "type": "cylinder",
+            "length": "0.12",
+            "radius": "0.013"
+          }
+        ]
+      },
+      {
+        "link": "RL_calflower",
+        "geometry": [
+          {
+            "type": "cylinder",
+            "length": "0.065",
+            "radius": "0.011"
+          }
+        ]
+      },
+      {
+        "link": "RL_calflower1",
+        "geometry": [
+          {
+            "type": "cylinder",
+            "length": "0.03",
+            "radius": "0.0155"
+          }
+        ]
+      },
+      {
+        "link": "RL_foot",
+        "geometry": [
+          {
+            "type": "sphere",
+            "radius": "0.022"
+          }
+        ]
+      },
+      {
+        "link": "RR_hip",
+        "geometry": [
+          {
+            "type": "cylinder",
+            "length": "0.04",
+            "radius": "0.046"
+          }
+        ]
+      },
+      {
+        "link": "RR_thigh",
+        "geometry": [
+          {
+            "type": "box",
+            "size": "0.213 0.0245 0.034"
+          }
+        ]
+      },
+      {
+        "link": "RR_calf",
+        "geometry": [
+          {
+            "type": "cylinder",
+            "length": "0.12",
+            "radius": "0.013"
+          }
+        ]
+      },
+      {
+        "link": "RR_calflower",
+        "geometry": [
+          {
+            "type": "cylinder",
+            "length": "0.065",
+            "radius": "0.011"
+          }
+        ]
+      },
+      {
+        "link": "RR_calflower1",
+        "geometry": [
+          {
+            "type": "cylinder",
+            "length": "0.03",
+            "radius": "0.0155"
+          }
+        ]
+      },
+      {
+        "link": "RR_foot",
+        "geometry": [
+          {
+            "type": "sphere",
+            "radius": "0.022"
+          }
+        ]
+      }
+    ],
+    "urdf_meaning": "Retained older local model; not verified current installed robot description. Base collision box alone is not whole robot."
+  },
+  "physical_status": {
+    "footprint": "PHYSICAL_FOOTPRINT_UNQUALIFIED",
+    "gait_envelope": "UNMEASURED",
+    "stopping_distance": "STOPPING_DISTANCE_UNMEASURED",
+    "mounts": "Cargo plate validation says provisional generic 200x220mm equipment envelope; actual installed geometry unverified",
+    "z_slope_step_foot_collision": "UNQUALIFIED by flat 2D checks",
+    "vm_body_unchanged": [
+      0.81,
+      0.56
+    ],
+    "once_padded_body_unchanged": [
+      0.87,
+      0.62
+    ],
+    "margin_unchanged": 0.03
+  },
+  "stored_control_limits": {
+    "max_linear_x": 1.0,
+    "max_linear_y": 0.2,
+    "max_angular_z": 0.5,
+    "default_speed_scale": 0.35,
+    "command_timeout_s": 0.2,
+    "navigation_command_timeout_s": 0.3,
+    "bridge_command_timeout_s": 0.2,
+    "max_linear_accel": 0.8,
+    "max_lateral_accel": 0.6,
+    "max_angular_accel": 1.2
+  },
+  "limit_interpretation": "Configuration limits/command timeout are not measured physical deceleration or stop distance; no v^2/(2a) safety claim."
+}
