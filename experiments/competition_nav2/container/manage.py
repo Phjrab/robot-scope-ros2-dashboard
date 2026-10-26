@@ -96,6 +96,10 @@ def build(args):
 
 def run(args):
     lock = json.loads(args.lock.read_text())
+    if bool(lock.get("overlay")) != (args.variant == "omni_checked_overlay"):
+        raise ValueError("overlay image and explicit overlay variant must match")
+    if args.planner_only and args.variant != "omni_checked_overlay":
+        raise ValueError("planner-only is scoped to the ROUND6 overlay candidate")
     image = lock["image_id"]
     if not re.fullmatch(r"sha256:[a-f0-9]{64}", image):
         raise ValueError("run requires a resolved immutable local image ID")
@@ -161,6 +165,7 @@ def run(args):
         str(args.seed),
         "--output",
         "/results/run",
+        *(["--planner-only"] if args.planner_only else []),
     ]
     receipt = dict(
         command=argv,
@@ -207,7 +212,14 @@ if __name__ == "__main__":
     p.add_argument("--controller", choices=["rpp", "mppi"], default="rpp")
     p.add_argument(
         "--variant",
-        choices=["baseline", "tuned", "se2_rpp", "omni_lattice", "omni_coverage"],
+        choices=[
+            "baseline",
+            "tuned",
+            "se2_rpp",
+            "omni_lattice",
+            "omni_coverage",
+            "omni_checked_overlay",
+        ],
         default="baseline",
     )
     selection = p.add_mutually_exclusive_group()
@@ -215,6 +227,7 @@ if __name__ == "__main__":
     selection.add_argument("--fixture", type=Path)
     p.add_argument("--seed", type=int, default=20261024)
     p.add_argument("--repeat", type=int, default=0)
+    p.add_argument("--planner-only", action="store_true")
     args = p.parse_args()
     if not shutil.which(args.runtime):
         p.error(

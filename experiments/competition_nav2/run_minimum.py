@@ -18,6 +18,7 @@ def execute(
     fixtures=None,
     variant="baseline",
     expected_outcomes=None,
+    stop_on_failure=False,
 ):
     extension = order is not None
     if order is None:
@@ -133,7 +134,9 @@ def execute(
             flush=True,
         )
         # Do not fan out an environment/TF/clock/activation failure in the first baseline.
-        if len(summary["cases"]) == 1 and not row["expectation_met"]:
+        if (len(summary["cases"]) == 1 or stop_on_failure) and not row[
+            "expectation_met"
+        ]:
             summary["status"] = (
                 "STOPPED_AT_FEASIBLE1"
                 if scenario == "d0_feasible1"

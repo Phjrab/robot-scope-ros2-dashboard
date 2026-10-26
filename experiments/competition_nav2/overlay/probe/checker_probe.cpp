@@ -61,23 +61,37 @@ int main(int argc, char **argv) {
       // Explicit raw byte assignments, including interior cells. Never invert occupancy.
       std::fill(map->getCharMap(),map->getCharMap()+60000,c.value("default_raw",0));
       if(c.contains("wall_columns")) for(int x:c["wall_columns"]) for(int y=0;y<300;y++) map->setCost(x,y,254);
+      if(c.value("inflate_walls",false)) for(int ix=0;ix<200;ix++) {
+        double d=1000;
+        for(int wall:c["wall_columns"]) d=std::min(d,std::abs(ix-wall)*.02);
+        const unsigned char raw=d==0?254:d<=.31?253:d<=.58?int(252*std::exp(-5*(d-.31))):0;
+        for(int iy=0;iy<300;iy++) map->setCost(ix,iy,raw);
+      }
       for(auto cell:c.value("raw_cells",json::array())) map->setCost(cell[0],cell[1],cell[2]);
       float x=c["pose"][0],y=c["pose"][1],yaw=c["pose"][2];
       unsigned int mx,my; float center=255;
-      if(map->worldToMap(x,y,mx,my)) {map->setCost(mx,my,c.value("center_raw",0));center=map->getCost(mx,my);}
+      if(map->worldToMap(x,y,mx,my)) {
+        if(!c.value("inflate_walls",false)) map->setCost(mx,my,c.value("center_raw",0));
+        center=map->getCost(mx,my);
+      }
       nav2_smac_planner::GridCollisionChecker smac(map,72,node);
       smac.setFootprint(footprint,false,82);
       ProbeCritic mppi; mppi.prepare(ros);
       auto begin=std::chrono::steady_clock::now();
-      bool sc=smac.inCollision(x/.02f-.5f,y/.02f-.5f,yaw/(2*M_PI/72),unknown);
+      const float gx=x/.02f-.5f,gy=y/.02f-.5f,gb=yaw/(2*M_PI/72);
+      bool sc=smac.inCollision(gx,gy,gb,unknown);
       bool mc=mppi.inCollision(center,x,y,yaw), ms=mppi.scoreOne(x,y,yaw);
       json row={{"id",c["id"]},{"center_raw",center},{"smac_collision",sc},
         {"mppi_direct_collision",mc},{"mppi_score_collision",ms},
         {"expected_collision",c["expected_collision"]}};
       row["stock_perimeter_cost_at_actual_pose"]=smac.footprintCostAtPose(x,y,yaw,footprint);
+      row["smac_grid_input"]={gx,gy,gb};
+      row["stock_smac_center_raw"]=map->getCost(unsigned(gx),unsigned(gy));
+      const double sx=(unsigned(gx)+.5)*.02,sy=(unsigned(gy)+.5)*.02;
+      const double st=smac.getPrecomputedAngles()[unsigned(gb)];
+      row["stock_cached_pose"]={sx,sy,st};
       row["stock_perimeter_cost_at_cached_pose"]=smac.footprintCostAtPose(
-        (std::floor(x/.02-.5)+.5)*.02,(std::floor(y/.02-.5)+.5)*.02,
-        std::floor(yaw/(2*M_PI/72))*(2*M_PI/72),footprint);
+        sx,sy,st,footprint);
       bool expected=c["expected_collision"];
       bool pass=sc==expected && mc==expected && ms==expected;
       if(c.contains("primitive")) {

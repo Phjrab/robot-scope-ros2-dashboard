@@ -1,0 +1,286 @@
+--- a/nav2_smac_planner/src/collision_checker.cpp
++++ b/nav2_smac_planner/src/collision_checker.cpp
+@@ -13,6 +13,7 @@
+ // limitations under the License. Reserved.
+
+ #include "nav2_smac_planner/collision_checker.hpp"
++#include "c3_exact_footprint.hpp"
+
+ namespace nav2_smac_planner
+ {
+@@ -105,56 +106,17 @@
+   costmap_->mapToWorld(static_cast<double>(x), static_cast<double>(y), wx, wy);
+
+   if (!footprint_is_radius_) {
+-    // if footprint, then we check for the footprint's points, but first see
+-    // if the robot is even potentially in an inscribed collision
+-    footprint_cost_ = costmap_->getCost(
+-      static_cast<unsigned int>(x), static_cast<unsigned int>(y));
+-
+-    if (footprint_cost_ < possible_inscribed_cost_) {
+-      if (possible_inscribed_cost_ > 0) {
+-        return false;
+-      } else {
+-        RCLCPP_ERROR_THROTTLE(
+-          logger_, *clock_, 1000,
+-          "Inflation layer either not found or inflation is not set sufficiently for "
+-          "optimized non-circular collision checking capabilities. It is HIGHLY recommended to set"
+-          " the inflation radius to be at MINIMUM half of the robot's largest cross-section. See "
+-          "github.com/ros-planning/navigation2/tree/main/nav2_smac_planner#potential-fields"
+-          " for full instructions. This will substantially impact run-time performance.");
+-      }
+-    }
+-
+-    // If its inscribed, in collision, or unknown in the middle,
+-    // no need to even check the footprint, its invalid
+-    if (footprint_cost_ == UNKNOWN && !traverse_unknown) {
++    // Match getWorldCoords(): fractional grid coordinates and actual angle, no bin snap.
++    wx = static_cast<float>(costmap_->getOriginX()) + (x + 0.5) * costmap_->getResolution();
++    wy = static_cast<float>(costmap_->getOriginY()) + (y + 0.5) * costmap_->getResolution();
++    const double yaw = angle_bin * (2.0 * M_PI / angles_.size());
++    if (c3_exact::collision(costmap_, unoriented_footprint_, wx, wy, yaw, traverse_unknown)) {
++      footprint_cost_ = OCCUPIED;
+       return true;
+     }
+-
+-    if (footprint_cost_ == INSCRIBED || footprint_cost_ == OCCUPIED) {
+-      return true;
+-    }
+-
+-    // if possible inscribed, need to check actual footprint pose.
+-    // Use precomputed oriented footprints are done on initialization,
+-    // offset by translation value to collision check
+-    geometry_msgs::msg::Point new_pt;
+-    const nav2_costmap_2d::Footprint & oriented_footprint = oriented_footprints_[angle_bin];
+-    nav2_costmap_2d::Footprint current_footprint;
+-    current_footprint.reserve(oriented_footprint.size());
+-    for (unsigned int i = 0; i < oriented_footprint.size(); ++i) {
+-      new_pt.x = wx + oriented_footprint[i].x;
+-      new_pt.y = wy + oriented_footprint[i].y;
+-      current_footprint.push_back(new_pt);
+-    }
+-
+-    footprint_cost_ = footprintCost(current_footprint);
+-
+-    if (footprint_cost_ == UNKNOWN && traverse_unknown) {
+-      return false;
+-    }
+-
+-    // if occupied or unknown and not to traverse unknown space
+-    return footprint_cost_ >= OCCUPIED;
++    // Retain perimeter-cost scoring; full-polygon collision is evaluated independently.
++    footprint_cost_ = footprintCostAtPose(wx, wy, yaw, unoriented_footprint_);
++    return false;
+   } else {
+     // if radius, then we can check the center of the cost assuming inflation is used
+     footprint_cost_ = costmap_->getCost(
+@@ -167,6 +129,17 @@
+     // if occupied or unknown and not to traverse unknown space
+     return static_cast<double>(footprint_cost_) >= INSCRIBED;
+   }
++}
++
++bool GridCollisionChecker::inCollisionSweep(
++  double ax, double ay, double at, double bx, double by, double bt, bool traverse_unknown)
++{
++  const double r = costmap_->getResolution();
++  const double ox = static_cast<float>(costmap_->getOriginX());
++  const double oy = static_cast<float>(costmap_->getOriginY());
++  return c3_exact::sweep(costmap_, unoriented_footprint_,
++    ox + (ax + .5) * r, oy + (ay + .5) * r, at,
++    ox + (bx + .5) * r, oy + (by + .5) * r, bt, traverse_unknown);
+ }
+
+ bool GridCollisionChecker::inCollision(
+@@ -190,7 +163,7 @@
+
+ bool GridCollisionChecker::outsideRange(const unsigned int & max, const float & value)
+ {
+-  return value < 0.0f || value > max;
++  return !std::isfinite(value) || value < 0.0f || value >= max;
+ }
+
+ }  // namespace nav2_smac_planner
+--- a/nav2_smac_planner/include/nav2_smac_planner/collision_checker.hpp
++++ b/nav2_smac_planner/include/nav2_smac_planner/collision_checker.hpp
+@@ -94,6 +94,10 @@
+    */
+   float getCost();
+
++  // C3: grid XY, actual radian yaw, bounded full-body transition check.
++  bool inCollisionSweep(double ax, double ay, double at,
++    double bx, double by, double bt, bool traverse_unknown);
++
+   /**
+    * @brief Get the angles of the precomputed footprint orientations
+    * @return the ordered vector of angles corresponding to footprints
+--- a/nav2_smac_planner/src/node_lattice.cpp
++++ b/nav2_smac_planner/src/node_lattice.cpp
+@@ -221,44 +221,26 @@
+   // Set the cost of a node to the highest cost across the primitive
+   float max_cell_cost = collision_checker->getCost();
+
+-  // If valid motion primitives are set, check intermediary poses > 1 cell apart
++  // Check every emitted primitive point and bounded XY/yaw intervals, including
++  // primitive start and junction. XY-only separation is not a rotation bound.
+   if (motion_primitive) {
+-    const float & grid_resolution = motion_table.lattice_metadata.grid_resolution;
+-    const float & resolution_diag_sq = 2.0 * grid_resolution * grid_resolution;
+-    MotionPose last_pose(1e9, 1e9, 1e9), pose_dist(0.0, 0.0, 0.0);
+-
+-    // Back out the initial node starting point to move motion primitive relative to
+-    MotionPose initial_pose, prim_pose;
+-    initial_pose._x = this->pose.x - (motion_primitive->poses.back()._x / grid_resolution);
+-    initial_pose._y = this->pose.y - (motion_primitive->poses.back()._y / grid_resolution);
+-    initial_pose._theta = motion_table.getAngleFromBin(motion_primitive->start_angle);
+-
+-    for (auto it = motion_primitive->poses.begin(); it != motion_primitive->poses.end(); ++it) {
+-      // poses are in metric coordinates from (0, 0), not grid space yet
+-      pose_dist = *it - last_pose;
+-      // Avoid square roots by (hypot(x, y) > res) == (x*x+y*y > diag*diag)
+-      if (pose_dist._x * pose_dist._x + pose_dist._y * pose_dist._y > resolution_diag_sq) {
+-        last_pose = *it;
+-        // Convert primitive pose into grid space if it should be checked
+-        prim_pose._x = initial_pose._x + (it->_x / grid_resolution);
+-        prim_pose._y = initial_pose._y + (it->_y / grid_resolution);
+-        // If reversing, invert the angle because the robot is backing into the primitive
+-        // not driving forward with it
+-        if (is_backwards) {
+-          prim_pose._theta = std::fmod(it->_theta + M_PI, 2.0 * M_PI);
+-        } else {
+-          prim_pose._theta = it->_theta;
+-        }
+-        if (collision_checker->inCollision(
+-            prim_pose._x,
+-            prim_pose._y,
+-            prim_pose._theta / bin_size /*bin in collision checker*/,
+-            traverse_unknown))
+-        {
+-          return false;
+-        }
+-        max_cell_cost = std::max(max_cell_cost, collision_checker->getCost());
++    const float r = motion_table.lattice_metadata.grid_resolution;
++    const double x0 = this->pose.x - motion_primitive->poses.back()._x / r;
++    const double y0 = this->pose.y - motion_primitive->poses.back()._y / r;
++    double px = x0, py = y0;
++    double pt = motion_table.getAngleFromBin(motion_primitive->start_angle);
++    if (is_backwards) {pt = std::fmod(pt + M_PI, 2.0 * M_PI);}
++    for (const auto & p : motion_primitive->poses) {
++      // Use the same float arithmetic as addNodeToPath, which publishes these poses.
++      const float qx = static_cast<float>(x0) + p._x / r;
++      const float qy = static_cast<float>(y0) + p._y / r;
++      const float qt = is_backwards ? std::fmod(p._theta + M_PI, 2.0 * M_PI) : p._theta;
++      if (collision_checker->inCollisionSweep(px, py, pt, qx, qy, qt, traverse_unknown) ||
++          collision_checker->inCollision(qx, qy, qt / bin_size, traverse_unknown)) {
++        return false;
+       }
++      max_cell_cost = std::max(max_cell_cost, collision_checker->getCost());
++      px = qx; py = qy; pt = qt;
+     }
+   }
+
+--- a/nav2_smac_planner/src/analytic_expansion.cpp
++++ b/nav2_smac_planner/src/analytic_expansion.cpp
+@@ -12,6 +12,7 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License. Reserved.
+
++#include <type_traits>
+ #include <ompl/base/ScopedState.h>
+ #include <ompl/base/spaces/DubinsStateSpace.h>
+ #include <ompl/base/spaces/ReedsSheppStateSpace.h>
+@@ -179,7 +180,14 @@
+       Coordinates initial_node_coords = next->pose;
+       proposed_coordinates = {static_cast<float>(reals[0]), static_cast<float>(reals[1]), angle};
+       next->setPose(proposed_coordinates);
+-      if (next->isNodeValid(_traverse_unknown, _collision_checker) && next != prev) {
++      bool transition_valid = true;
++      if constexpr (std::is_same<NodeT, NodeLattice>::value) {
++        transition_valid = !_collision_checker->inCollisionSweep(
++          prev->pose.x, prev->pose.y, node->motion_table.getAngleFromBin(prev->pose.theta),
++          proposed_coordinates.x, proposed_coordinates.y,
++          node->motion_table.getAngleFromBin(proposed_coordinates.theta), _traverse_unknown);
++      }
++      if (transition_valid && next->isNodeValid(_traverse_unknown, _collision_checker) && next != prev) {
+         // Save the node, and its previous coordinates in case we need to abort
+         possible_nodes.emplace_back(next, initial_node_coords, proposed_coordinates);
+         prev = next;
+--- a/nav2_smac_planner/src/smac_planner_lattice.cpp
++++ b/nav2_smac_planner/src/smac_planner_lattice.cpp
+@@ -12,6 +12,7 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License. Reserved.
+
++#include "c3_exact_footprint.hpp"
+ #include <string>
+ #include <memory>
+ #include <vector>
+@@ -319,6 +320,21 @@
+     }
+     last_pose = pose;
+     plan.poses.push_back(pose);
++  }
++
++  // Supplemental check of exact requested start, graph junctions and final returned path.
++  // Invalid primitive/analytic transitions were already rejected inside the search.
++  auto previous = start.pose;
++  for (const auto & stamped : plan.poses) {
++    const auto & q = stamped.pose;
++    if (c3_exact::sweep(_costmap, _costmap_ros->getRobotFootprint(),
++        previous.position.x, previous.position.y, tf2::getYaw(previous.orientation),
++        q.position.x, q.position.y, tf2::getYaw(q.orientation), _allow_unknown)) {
++      RCLCPP_WARN(_logger, "C3 exact returned-path/start-connector check rejected plan");
++      plan.poses.clear();
++      return plan;
++    }
++    previous = q;
+   }
+
+   // Publish raw path for debug
+--- a/nav2_mppi_controller/src/critics/cost_critic.cpp
++++ b/nav2_mppi_controller/src/critics/cost_critic.cpp
+@@ -14,6 +14,7 @@
+ // limitations under the License.
+
+ #include <cmath>
++#include "c3_exact_footprint.hpp"
+ #include "nav2_mppi_controller/critics/cost_critic.hpp"
+ #include "nav2_core/exceptions.hpp"
+
+@@ -151,7 +152,7 @@
+       // The footprintCostAtPose will always return "INSCRIBED" if footprint is over it
+       // So the center point has more information than the footprint
+       pose_cost = costAtPose(traj.x(i, j), traj.y(i, j));
+-      if (pose_cost < 1.0f) {continue;}  // In free space
++      if (!consider_footprint_ && pose_cost < 1.0f) {continue;}  // In free space
+
+       if (inCollision(pose_cost, traj.x(i, j), traj.y(i, j), traj.yaws(i, j))) {
+         trajectory_collide = true;
+@@ -190,12 +191,10 @@
+   bool is_tracking_unknown =
+     costmap_ros_->getLayeredCostmap()->isTrackingUnknown();
+
+-  // If consider_footprint_ check footprint scort for collision
+-  if (consider_footprint_ &&
+-    (cost >= possibly_inscribed_cost_ || possibly_inscribed_cost_ < 1.0f))
+-  {
+-    cost = static_cast<float>(collision_checker_.footprintCostAtPose(
+-        x, y, theta, costmap_ros_->getRobotFootprint()));
++  // Full footprint means full footprint, including free center and interior cells.
++  if (consider_footprint_) {
++    return c3_exact::collision(costmap_, costmap_ros_->getRobotFootprint(),
++      x, y, theta, is_tracking_unknown);
+   }
+
+   switch (static_cast<unsigned char>(cost)) {
+--- a/nav2_mppi_controller/CMakeLists.txt
++++ b/nav2_mppi_controller/CMakeLists.txt
+@@ -92,6 +92,8 @@
+   src/critics/velocity_deadband_critic.cpp
+ )
+
++# C3 exact geometry must retain finite checks; other translation units keep stock flags.
++set_source_files_properties(src/critics/cost_critic.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math")
+ set(libraries mppi_controller mppi_critics)
+
+ foreach(lib IN LISTS libraries)

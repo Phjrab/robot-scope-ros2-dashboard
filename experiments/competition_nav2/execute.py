@@ -112,6 +112,7 @@ def execute(args):
                 variant=args.variant,
                 repeat=args.repeat,
                 seed=args.seed,
+                planner_only=args.planner_only,
             ),
             indent=2,
         )
@@ -272,7 +273,14 @@ if __name__ == "__main__":
     p.add_argument("--controller", choices=["rpp", "mppi"], required=True)
     p.add_argument(
         "--variant",
-        choices=["baseline", "tuned", "se2_rpp", "omni_lattice", "omni_coverage"],
+        choices=[
+            "baseline",
+            "tuned",
+            "se2_rpp",
+            "omni_lattice",
+            "omni_coverage",
+            "omni_checked_overlay",
+        ],
         default="baseline",
     )
     selection = p.add_mutually_exclusive_group(required=True)
@@ -286,4 +294,5 @@ if __name__ == "__main__":
     p.add_argument("--seed", type=int, default=20261024)
     p.add_argument("--repeat", type=int, default=0)
     p.add_argument("--output", type=Path, required=True)
+    p.add_argument("--planner-only", action="store_true")
     raise SystemExit(execute(p.parse_args()))

@@ -14,7 +14,7 @@ import time
 import xml.etree.ElementTree as ET
 
 from configure import NODES, PLUGINS
-from footprint_coverage import OMNI_VARIANTS, coverage
+from footprint_coverage import COVERAGE_VARIANTS, OMNI_VARIANTS, coverage
 from core import Boundary, Command, LIMITS, propagate, swept_poses
 from fixtures import make_world, digest
 from preflight import require_isolated
@@ -67,7 +67,7 @@ def main(directory):
     from action_msgs.msg import GoalStatusArray
     from geometry_msgs.msg import TransformStamped, Twist, PointStamped
     from lifecycle_msgs.srv import GetState
-    from nav2_msgs.action import NavigateToPose, Spin
+    from nav2_msgs.action import ComputePathToPose, NavigateToPose, Spin
     from nav2_msgs.srv import ManageLifecycleNodes
     from nav_msgs.msg import Odometry, OccupancyGrid, Path as NativePath
     from rcl_interfaces.srv import GetParameters
@@ -95,6 +95,7 @@ def main(directory):
             self.pose = tuple(fixture["start"])
             self.sim_t = 0.0
             self.goal_start = None
+            self.global_map_observed = False
             self.last_tick = time.monotonic()
             self.next_scan = 0.0
             self.pending_scans = []
@@ -172,7 +173,7 @@ def main(directory):
                     ),
                 ]
 
-            if run["variant"] == "omni_coverage":
+            if run["variant"] in COVERAGE_VARIANTS:
                 self.tf_observer = self.create_subscription(
                     TFMessage, "/tf", self.observe_tf, 100
                 )
@@ -251,6 +252,8 @@ def main(directory):
             )
 
         def observe_costmap(self, msg, kind="costmap"):
+            if kind == "costmap":
+                self.global_map_observed = True
             self.observe(
                 kind,
                 msg,
@@ -730,6 +733,7 @@ def main(directory):
         loaded_libraries=[],
         package_versions={},
         action={},
+        planner_only=run.get("planner_only", False),
     )
     goal_handle = None
     try:
@@ -813,7 +817,9 @@ def main(directory):
                 schema="competition-nav2-result.omni-v1",
                 motion_model="Omni",
                 command_axes=["linear.x", "linear.y", "angular.z"],
-                motion_contract="repro/omni-coverage-contract.json"
+                motion_contract="repro/omni-checked-overlay-contract.json"
+                if run["variant"] == "omni_checked_overlay"
+                else "repro/omni-coverage-contract.json"
                 if run["variant"] == "omni_coverage"
                 else "repro/omni-contract.json",
                 motion_primitive_sha256=hashlib.sha256(
@@ -843,7 +849,7 @@ def main(directory):
             "obstacle_layer.scan.expected_update_rate",
         ]
         coverage_defaults = {}
-        if run["variant"] == "omni_coverage":
+        if run["variant"] in COVERAGE_VARIANTS:
             coverage_defaults = {
                 "inflation_layer.enabled": True,
                 "inflation_layer.inflate_unknown": False,
@@ -883,7 +889,7 @@ def main(directory):
                         "costmap parameter mismatch: " + costmap + "." + key
                     )
             report["costmap_parameters"][costmap] = applied
-        if run["variant"] == "omni_coverage":
+        if run["variant"] in COVERAGE_VARIANTS:
             share = Path(get_package_share_directory("nav2_costmap_2d"))
             report["inflation_package_version"] = (
                 ET.parse(share / "package.xml").getroot().findtext("version")
@@ -1006,6 +1012,64 @@ def main(directory):
                 continue
         if not report["planner_loaded_library_sha256"]:
             raise RuntimeError("no native planner shared library found in process maps")
+        if run["variant"] == "omni_checked_overlay":
+            report["overlay_loaded_library_sha256"] = {}
+            for proc in Path("/proc").glob("[0-9]*"):
+                try:
+                    for line in (proc / "maps").read_text().splitlines():
+                        lib = line.split()[-1]
+                        if lib.startswith("/opt/c3-overlay/") and lib.endswith(".so"):
+                            report["overlay_loaded_library_sha256"][lib] = (
+                                hashlib.sha256(Path(lib).read_bytes()).hexdigest()
+                            )
+                except (OSError, UnicodeError):
+                    continue
+            required = {"libnav2_smac_planner_lattice.so", "libmppi_critics.so"}
+            if not required.issubset(
+                {Path(p).name for p in report["overlay_loaded_library_sha256"]}
+            ):
+                raise RuntimeError("required overlay libraries not actually loaded")
+        if run.get("planner_only"):
+            # Same sensor, costmaps and original goal; the actuator stays held because
+            # goal_start is never set. No NavigateToPose/FollowPath action is submitted.
+            action = ActionClient(node, ComputePathToPose, "compute_path_to_pose")
+            wait_map = time.monotonic() + 3.0
+            while not node.global_map_observed and time.monotonic() < wait_map:
+                rclpy.spin_once(node, executor=executor, timeout_sec=0.02)
+            if not node.global_map_observed:
+                raise TimeoutError("planner-only lacks prior received global map")
+            if not action.wait_for_server(timeout_sec=10.0):
+                raise TimeoutError("ComputePathToPose action server absent")
+            request = ComputePathToPose.Goal()
+            request.goal.header.frame_id = "map"
+            request.goal.header.stamp = node.stamp(node.sim_t)
+            request.goal.pose.position.x, request.goal.pose.position.y = fixture[
+                "goal"
+            ][:2]
+            request.goal.pose.orientation.z = math.sin(fixture["goal"][2] / 2)
+            request.goal.pose.orientation.w = math.cos(fixture["goal"][2] / 2)
+            request.planner_id = "GridBased"
+            request.use_start = False
+            goal_handle = node.wait(action.send_goal_async(request))
+            report["action"] = dict(
+                type="ComputePathToPose",
+                accepted=goal_handle.accepted,
+                goal_uuid=goal_uuid_to_json(goal_handle.goal_id.uuid),
+            )
+            if not goal_handle.accepted:
+                raise RuntimeError("planner-only goal rejected")
+            result = node.wait(goal_handle.get_result_async(), 15.0)
+            report["action"]["status"] = result.status
+            report["planner_action_path_points"] = len(result.result.path.poses)
+            report["planner_action_time_s"] = (
+                result.result.planning_time.sec
+                + result.result.planning_time.nanosec / 1e9
+            )
+            settle = time.monotonic() + 2.1
+            while time.monotonic() < settle:
+                rclpy.spin_once(node, executor=executor, timeout_sec=0.02)
+            report.update(status="NATIVE_RECORDED", outcome="SAFE_WAIT")
+            return 0  # finally still records trace/zero/cleanup; validator gates path validity.
         action = ActionClient(node, NavigateToPose, "navigate_to_pose")
         if not action.wait_for_server(timeout_sec=10.0):
             raise TimeoutError("NavigateToPose action server absent")

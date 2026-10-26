@@ -91,7 +91,7 @@
     "run": "python3 experiments/competition_nav2/rpp_contract.py run --mode isolated-sim --scenario diagnostic_single_obstacle --lock IMAGE_LOCK --output NEW_DIRECTORY"
   },
   "files_sha256": {
-    "configure.py": "79909cfb5de787396a010f2217f5b82e508aa695a41760db68b02159c7ea7a9c",
+    "configure.py": "348bdc42586728323f6f99af025e9d3a1d7b766cbc28c2730937623bfb92c3b7",
     "core.py": "75f3c997c3ea7325d6dace4b9a4aa57800e02836eb35b5cc8d152cafd99b8d81",
     "fixtures.py": "bdc6a9c0cfa844c3f1978da7904cf1cd14aa34f98125f02778b809d31a3c5560",
     "config/replan.xml": "45aa6b81b500d9d28a791f558543597f2cd151342dee0bb7ab8bc7d829a10efa",
@@ -99,7 +99,7 @@
     "repro/rpp-native-params.yaml": "8c19af531917d1163b97972dda8fe61d4fbd7df9145d3a7637f31fb04828717b",
     "repro/image-lock.json": "631e8525fcd52b0b50850aac93b811fed682e311fa8d76cd144b25553a336d7e",
     "repro/d0-source.json": "3f7ec39505daa13a8c73ab56427d3164766d0b082fecbc04c03ca3eddb0ea93d",
-    "footprint_coverage.py": "58153b4e083e9ab6ee49db0de7e4c7addceb2e2889eadb66386f164cbb2c69af"
+    "footprint_coverage.py": "271d76b30e02c8230460ab06989dafce1093543830dc5d2800b2ef5bb7e4da2e"
   },
   "external_fixture": {
     "schema": "d0-scene-truth.v1",

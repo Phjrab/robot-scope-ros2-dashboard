@@ -7,7 +7,7 @@ from pathlib import Path
 import yaml
 
 from core import FOOTPRINT, LIMITS
-from footprint_coverage import OMNI_VARIANTS, coverage
+from footprint_coverage import COVERAGE_VARIANTS, OMNI_VARIANTS, coverage
 from fixtures import ROOT, REPO, digest
 
 PLUGINS = {
@@ -201,7 +201,7 @@ def candidate(controller, variant="baseline", fixture=None):
             cache_obstacle_heuristic=False,
             allow_reverse_expansion=False,
         )
-    if variant == "omni_coverage":
+    if variant in COVERAGE_VARIANTS:
         radius = coverage(fixture["effective_footprint"], fixture["resolution_m"])[
             "inflation_radius_m"
         ]

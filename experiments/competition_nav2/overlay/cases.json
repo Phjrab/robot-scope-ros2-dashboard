@@ -236,12 +236,11 @@
         1.5707963267948966
       ],
       "expected_collision": false,
-      "center_raw": 200,
-      "default_raw": 253,
       "wall_columns": [
         7,
         42
-      ]
+      ],
+      "inflate_walls": true
     },
     {
       "id": "free",

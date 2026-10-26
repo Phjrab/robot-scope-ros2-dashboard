@@ -96,14 +96,14 @@
   "cli": "python3 experiments/competition_nav2/run_narrow.py --variant omni_coverage --lock IMAGE_LOCK --output NEW_DIRECTORY",
   "files_sha256": {
     "omni.py": "2807b1820b4d95130f47fc8a0818aaddfac38cf3e31670144263b595ca939b71",
-    "configure.py": "79909cfb5de787396a010f2217f5b82e508aa695a41760db68b02159c7ea7a9c",
-    "native_runner.py": "3d7c362ae6d196dc7140653edc0aaa374fdf0ada38c3bd4c4372f1cc584a6ade",
-    "validate.py": "2e8942929dec641da85a72f797178339dc6719346530ecb2b5459c8e9605b27c",
+    "configure.py": "348bdc42586728323f6f99af025e9d3a1d7b766cbc28c2730937623bfb92c3b7",
+    "native_runner.py": "0571c1017e723cff6ce58f969e2762a256f3be8f2fe03665cb0509fcc2764f43",
+    "validate.py": "89c36dde598f1fb6ea873631f0b732d19bcac00f2eaa988a46a50bb575f02637",
     "config/omni-2cm-primitives.json": "bffe262d759b8866fa1b305d0d1529d6e2cbd7f9df389deedee30d5318f3b17c",
     "repro/omni-primitives-provenance.json": "50a374db4b35248bcc62dff604be419015c83438434634e8e8e08169c663fd2d",
     "repro/image-lock.json": "631e8525fcd52b0b50850aac93b811fed682e311fa8d76cd144b25553a336d7e",
     "repro/d0-source.json": "3f7ec39505daa13a8c73ab56427d3164766d0b082fecbc04c03ca3eddb0ea93d",
-    "footprint_coverage.py": "58153b4e083e9ab6ee49db0de7e4c7addceb2e2889eadb66386f164cbb2c69af"
+    "footprint_coverage.py": "271d76b30e02c8230460ab06989dafce1093543830dc5d2800b2ef5bb7e4da2e"
   },
   "derived_from": {
     "variant": "omni_lattice",

@@ -8,7 +8,8 @@ import math
 
 from core import point_segment_distance, polygon
 
-OMNI_VARIANTS = ("omni_lattice", "omni_coverage")
+COVERAGE_VARIANTS = ("omni_coverage", "omni_checked_overlay")
+OMNI_VARIANTS = ("omni_lattice", *COVERAGE_VARIANTS)
 
 
 def coverage(footprint, resolution):
@@ -151,7 +152,12 @@ def path_footprints(fixture, observations, require_z=True):
                     ),
                 )
             )
-        preceding = [m for m in maps if m["source_sim_s"] <= row["source_sim_s"] + 1e-6]
+        preceding = [
+            m
+            for m in maps
+            if m["source_sim_s"] <= row["source_sim_s"] + 1e-6
+            and m["receipt_monotonic"] <= row["receipt_monotonic"]
+        ]
         if not preceding:
             raise ValueError("native path lacks preceding global map")
         m = preceding[-1]

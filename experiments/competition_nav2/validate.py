@@ -9,7 +9,12 @@ import re
 import yaml
 
 from configure import NODES, PLUGINS
-from footprint_coverage import OMNI_VARIANTS, coverage, path_footprints
+from footprint_coverage import (
+    COVERAGE_VARIANTS,
+    OMNI_VARIANTS,
+    coverage,
+    path_footprints,
+)
 from core import LIMITS, propagate, swept_poses
 from fixtures import make_world, digest
 from observations import read_jsonl, replan_evidence
@@ -400,7 +405,7 @@ def validate_directory(directory):
         ):
             errors.append("child process cleanup incomplete/non-graceful")
     path_review = None
-    if record.get("variant") == "omni_coverage":
+    if record.get("variant") in COVERAGE_VARIANTS:
         try:
             expected_coverage = coverage(
                 fixture_data["effective_footprint"], fixture_data["resolution_m"]
@@ -444,6 +449,25 @@ def validate_directory(directory):
         except (OSError, ValueError, KeyError, TypeError) as exc:
             errors.append("B1 coverage/path evidence failure: " + str(exc))
     replan = None
+    if record.get("planner_only"):
+        if (
+            record.get("action", {}).get("type") != "ComputePathToPose"
+            or record.get("action", {}).get("status") != 4
+            or record.get("planner_action_path_points", 0) < 2
+            or not path_review
+            or path_review["status"] != "PASS"
+        ):
+            errors.append("planner-only lacks successful valid native path")
+        if any(any(row["actuator"]) for row in trace) or any(
+            record.get("raw_command_counts", {}).values()
+        ):
+            errors.append("planner-only received motion commands")
+    if record.get("variant") == "omni_checked_overlay":
+        libs = record.get("overlay_loaded_library_sha256", {})
+        if not {"libnav2_smac_planner_lattice.so", "libmppi_critics.so"}.issubset(
+            {Path(p).name for p in libs if p.startswith("/opt/c3-overlay/")}
+        ):
+            errors.append("native overlay library provenance missing")
     if (directory / "fixture.json").exists():
         fixture = json.loads((directory / "fixture.json").read_text())
         if fixture.get("replan_evidence_required"):

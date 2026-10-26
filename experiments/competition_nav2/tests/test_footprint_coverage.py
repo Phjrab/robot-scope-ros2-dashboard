@@ -71,6 +71,12 @@ class CoverageTests(unittest.TestCase):
         larger = [(x * 2, y * 2) for x, y in larger]
         self.assertGreater(coverage(larger, 0.02)["inflation_radius_m"], 0.58)
 
+    def test_overlay_has_identical_b1_navigation_parameters(self):
+        self.assertEqual(
+            candidate("mppi", "omni_checked_overlay", self.fixture),
+            candidate("mppi", "omni_coverage", self.fixture),
+        )
+
     def test_saved_unsafe_corner_now_reaches_full_footprint_branch(self):
         grid = self.grid(floor=24)
         pose = (0.5099999886006117, 0.9499999787658453, 1.4162471294403076)
@@ -121,6 +127,18 @@ class CoverageTests(unittest.TestCase):
             quaternions=[[0, 0, math.sin(math.pi / 4), math.cos(math.pi / 4)]] * 2,
         )
         self.assertEqual(path_footprints(self.fixture, [grid, path])["status"], "PASS")
+        # Same source time does not authorize a map received after the path.
+        later = copy.deepcopy(grid)
+        later.update(
+            source_sim_s=1.1,
+            receipt_monotonic=100.2,
+            data_zlib_base64=grid_payload([100] * (50 * 100)),
+        )
+        self.assertEqual(
+            path_footprints(self.fixture, [grid, later, path])["status"], "PASS"
+        )
+        with self.assertRaisesRegex(ValueError, "preceding global map"):
+            path_footprints(self.fixture, [later, path])
         path["quaternions"] = [
             path["quaternions"][0],
             [0, 0, -math.sin(math.pi / 4), math.cos(math.pi / 4)],
