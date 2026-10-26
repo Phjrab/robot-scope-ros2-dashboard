@@ -111,12 +111,16 @@
     "overlay/Overlay.Dockerfile": "170d783e05cf7ebe92599144d331cf04c8d7f8316750fa5dd3b6ba1099e4685c",
     "overlay/Probe.Dockerfile": "585f3a1f9909dd3ce9698b8151e59b683748097d3957c2ddb8566432d371c866",
     "overlay/probe.py": "a1361d4d74533818030f594abe6018c8f09e8641646deb171ed08e7f22f623c0",
-    "overlay/build.py": "6925124a6cb6644b96dbc21ea9aa325ff508a3de8f3d42387596cb8663072848",
+    "overlay/build.py": "93c74eb1aecd5873d683c5a114881c6eb2f40f416244e825dca7c6491a0c19df",
     "overlay/d0-coverage.json": "0a061bc8174e33a61d97026e013f9983c758aee57ecaf4d7022a821e8929b596",
     "overlay/d0-checker_cases.json": "308b9d332fdd257909057906a1819930559864f6de22e724e32d22dae9b0fae3",
     "overlay/cases.json": "569d23d9375ca1d960ac68fb7835ba415dd3255e9e145bfd0157a5c66633322d",
     "overlay/probe/CMakeLists.txt": "f1154eecbe9dc3685db7f74da66d27742589202a018013fa347f0a1730e44947",
-    "overlay/probe/checker_probe.cpp": "5f9af8f841adb8b9d80869f270d15a28b99af9cc24f63f1e0c02472cc28a04d6"
+    "overlay/probe/checker_probe.cpp": "5f9af8f841adb8b9d80869f270d15a28b99af9cc24f63f1e0c02472cc28a04d6",
+    "overlay/c3_atomic_packet.hpp": "4dfc7d21d1f33f960eae29cb203331150754a13468cdd527369eb1683dfc85b5",
+    "overlay/atomic-diagnostic.patch": "110358d77c9984a669b1c5db16dec43ff840d89f55a7f9e12b1bd74c8c9d5870",
+    "overlay/run_atomic.py": "f6c83e5fc953cc8e4bad2c84b87b2ed9bb129b82d60079e52010481de6a2c681",
+    "container/manage.py": "c4beee2b4433b1c766ca229a6b4e7b5c2825036fdd58ab952895e1ca43646e73"
   },
   "derived_from": {
     "variant": "omni_coverage",
@@ -137,5 +141,11 @@
     "runtime_dependency_delta": [],
     "sweep": "linear XY / shortest yaw; corner displacement <= resolution/10 and angle <=.005rad, max4096 samples, fail closed beyond bound; numerical check not continuous proof",
     "geometry": "convex full polygon/closed raw lethal cells, unknown conditional, exterior blocked; once-padded rectangle unchanged"
+  },
+  "atomic_diagnostic": {
+    "cli": "overlay/build.py --diagnostic; overlay/run_atomic.py",
+    "scope": "Opt-in planner mutex snapshot plus actual returned-path checker verdict; at most 64 planning invocations within one feasible1 closed-loop. No checker decision/config/fixture change.",
+    "prior_checker_regressions": "ROUND6 retained; NOT_RUN in diagnostic mode",
+    "raw_grid_update_time": "Unavailable in Costmap2D; lock capture and path stamp recorded independently."
   }
 }

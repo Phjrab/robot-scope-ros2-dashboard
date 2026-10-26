@@ -147,6 +147,11 @@ def run(args):
         "C3_IMAGE_ID=" + image,
         "-e",
         "C3_SOURCE_SHA=" + source_sha,
+        *(
+            ["-e", "C3_ATOMIC_DIR=/results/atomic-planner"]
+            if lock.get("overlay", {}).get("atomic_diagnostic")
+            else []
+        ),
         image,
         "python3",
         script,

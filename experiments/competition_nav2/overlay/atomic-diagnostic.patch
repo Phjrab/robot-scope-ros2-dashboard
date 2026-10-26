@@ -1,0 +1,60 @@
+--- a/nav2_smac_planner/src/smac_planner_lattice.cpp
++++ b/nav2_smac_planner/src/smac_planner_lattice.cpp
+@@ -13,6 +13,7 @@
+ // limitations under the License. Reserved.
+
+ #include "c3_exact_footprint.hpp"
++#include "c3_atomic_packet.hpp"
+ #include <string>
+ #include <memory>
+ #include <vector>
+@@ -274,6 +275,10 @@
+   pose.pose.orientation.y = 0.0;
+   pose.pose.orientation.z = 0.0;
+   pose.pose.orientation.w = 1.0;
++
++  c3_atomic::Packet<nav2_costmap_2d::Costmap2D> atomic_packet(
++    _costmap, _costmap_ros->getRobotFootprint(), start.pose, goal.pose,
++    _clock->now().nanoseconds(), _global_frame, _allow_unknown);
+
+   // Compute plan
+   NodeLattice::CoordinateVector path;
+@@ -299,6 +304,7 @@
+       _logger,
+       "%s: failed to create plan, %s.",
+       _name.c_str(), error.c_str());
++    atomic_packet.finish(false, _clock->now().nanoseconds());
+     return plan;
+   }
+
+@@ -324,18 +330,28 @@
+
+   // Supplemental check of exact requested start, graph junctions and final returned path.
+   // Invalid primitive/analytic transitions were already rejected inside the search.
++  atomic_packet.plan(plan);
++  int segment_index = -1;  // -1 is requested-start to first emitted pose.
+   auto previous = start.pose;
+   for (const auto & stamped : plan.poses) {
+     const auto & q = stamped.pose;
+-    if (c3_exact::sweep(_costmap, _costmap_ros->getRobotFootprint(),
++    const auto checked_body = _costmap_ros->getRobotFootprint();
++    const bool collision = c3_exact::sweep(_costmap, checked_body,
+         previous.position.x, previous.position.y, tf2::getYaw(previous.orientation),
+-        q.position.x, q.position.y, tf2::getYaw(q.orientation), _allow_unknown)) {
++        q.position.x, q.position.y, tf2::getYaw(q.orientation), _allow_unknown);
++    atomic_packet.segment(segment_index++, checked_body,
++        previous.position.x, previous.position.y, tf2::getYaw(previous.orientation),
++        q.position.x, q.position.y, tf2::getYaw(q.orientation), collision);
++    if (collision) {
+       RCLCPP_WARN(_logger, "C3 exact returned-path/start-connector check rejected plan");
+       plan.poses.clear();
++      atomic_packet.finish(false, _clock->now().nanoseconds());
+       return plan;
+     }
+     previous = q;
+   }
++
++  atomic_packet.finish(true, _clock->now().nanoseconds());
+
+   // Publish raw path for debug
+   if (_raw_plan_publisher->get_subscription_count() > 0) {

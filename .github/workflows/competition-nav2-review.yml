@@ -33,24 +33,20 @@ jobs:
         run: |
           cp experiments/competition_nav2/repro/image-lock.json "$RUNNER_TEMP/c3-evidence/image-lock.json"
           python3 experiments/competition_nav2/container/manage.py build --lock "$RUNNER_TEMP/c3-evidence/image-lock.json"
-      - name: ROUND6 A - stock native checker small reproduction only
-        timeout-minutes: 10
-        run: |
-          python3 experiments/competition_nav2/overlay/probe.py --lock "$RUNNER_TEMP/c3-evidence/image-lock.json" --output "$RUNNER_TEMP/c3-evidence/checker"
       - name: Materialize exact upstream and original D0 inputs (download phase)
         run: |
           git clone --depth 1 --branch 1.1.20 https://github.com/ros-navigation/navigation2.git "$RUNNER_TEMP/c3-nav2-upstream"
           test "$(git -C "$RUNNER_TEMP/c3-nav2-upstream" rev-parse HEAD)" = a097086719c88f781aa59788eca29ac6ca5e56db
           git fetch --no-tags --depth=1 origin 83f4ee8d6971d00ab31b2de0eeebf329542dd5d6
           python3 experiments/competition_nav2/prepare_d0.py
-      - name: ROUND6 B - isolated overlay and identical C++ regressions
+      - name: ROUND7 - same checker with bounded atomic planner diagnostic
         timeout-minutes: 20
         run: |
-          python3 experiments/competition_nav2/overlay/build.py --source "$RUNNER_TEMP/c3-nav2-upstream" --lock "$RUNNER_TEMP/c3-evidence/image-lock.json" --output "$RUNNER_TEMP/c3-evidence/overlay"
-      - name: ROUND6 C-E - planner-only gate before any closed-loop run
+          python3 experiments/competition_nav2/overlay/build.py --diagnostic --source "$RUNNER_TEMP/c3-nav2-upstream" --lock "$RUNNER_TEMP/c3-evidence/image-lock.json" --output "$RUNNER_TEMP/c3-evidence/overlay"
+      - name: ROUND7 - exactly one feasible1 closed-loop diagnostic
         timeout-minutes: 10
         run: |
-          python3 experiments/competition_nav2/overlay/run_checked.py --lock "$RUNNER_TEMP/c3-evidence/overlay/overlay-lock.json" --output "$RUNNER_TEMP/c3-evidence/checked"
+          python3 experiments/competition_nav2/overlay/run_atomic.py --lock "$RUNNER_TEMP/c3-evidence/overlay/overlay-lock.json" --output "$RUNNER_TEMP/c3-evidence/atomic"
       - name: Preserve native evidence even after failure
         if: always()
         uses: actions/upload-artifact@v4

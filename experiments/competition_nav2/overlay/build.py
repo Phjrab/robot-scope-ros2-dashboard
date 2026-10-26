@@ -25,6 +25,7 @@ def main():
     p.add_argument("--lock", type=Path, required=True)
     p.add_argument("--source", type=Path, required=True)
     p.add_argument("--output", type=Path, required=True)
+    p.add_argument("--diagnostic", action="store_true")
     args = p.parse_args()
     lock = json.loads(args.lock.read_text())
     pin = json.loads((ROOT / "source-lock.json").read_text())
@@ -46,6 +47,15 @@ def main():
             shutil.copytree(args.source / package, source / package)
         command("git", "apply", "--check", ROOT / "nav2.patch", cwd=source)
         command("git", "apply", ROOT / "nav2.patch", cwd=source)
+        if args.diagnostic:
+            command(
+                "git", "apply", "--check", ROOT / "atomic-diagnostic.patch", cwd=source
+            )
+            command("git", "apply", ROOT / "atomic-diagnostic.patch", cwd=source)
+            shutil.copyfile(
+                ROOT / "c3_atomic_packet.hpp",
+                source / "nav2_smac_planner/include/c3_atomic_packet.hpp",
+            )
         for package in packages:
             shutil.copyfile(
                 ROOT / "c3_exact_footprint.hpp",
@@ -62,6 +72,12 @@ def main():
             modified_sources={n: sha(source / n) for n in pin["source_sha256"]},
             build_tools="Existing locked GCC/CMake/colcon; no apt additions/upgrades",
         )
+        if args.diagnostic:
+            provenance["atomic_diagnostic"] = {
+                "patch_sha256": sha(ROOT / "atomic-diagnostic.patch"),
+                "header_sha256": sha(ROOT / "c3_atomic_packet.hpp"),
+                "round6_checker_rerun": "NOT_RUN; unchanged 16-case result retained",
+            }
         (context / "provenance.json").write_text(
             json.dumps(provenance, indent=2) + "\n"
         )
@@ -101,6 +117,8 @@ def main():
     # Distinct runtime lock; never overwrite the original dependency lock.
     lock.update(image_id=image, overlay=provenance)
     (args.output / "overlay-lock.json").write_text(json.dumps(lock, indent=2) + "\n")
+    if args.diagnostic:
+        return
     checker_exit = 0
     try:
         command(
