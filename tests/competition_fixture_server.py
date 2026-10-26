@@ -42,10 +42,14 @@ def replay_options(argv=None):
     parser.add_argument('--replay-model', type=Path)
     parser.add_argument('--replay-fps', type=float, default=5.)
     parser.add_argument('--replay-max-frames', type=int, default=10000)
+    parser.add_argument('--replay-mode', choices=['exhaustive', 'latest-wall-clock'], default='exhaustive')
+    parser.add_argument('--replay-clock', choices=['wall-clock', 'source-timeline'], default='wall-clock')
     parser.add_argument('--inference-profile', choices=['full640', 'full960', 'full1280', 'upper-overlap640'], default='full640')
     parser.add_argument('--replay-observation-mode', choices=['detection-only', 'mission'], default='detection-only')
     parser.add_argument('--acknowledge-trusted-pickle', action='store_true')
     args = parser.parse_args(argv)
+    if args.replay_mode == 'latest-wall-clock' and args.replay_clock != 'wall-clock':
+        parser.error('latest-wall-clock requires --replay-clock wall-clock')
     if args.private_replay_manifest:
         if os.environ.get('CI'):
             parser.error('Private RGB replay is prohibited in public CI/artifact jobs')
@@ -80,7 +84,7 @@ def make_rgb_review(root, args):
         manifest.write_text('\n'.join(lines))
     return RGBReplayReview(inspect_inputs(manifest, max_frames=args.replay_max_frames), config, detector,
         fps=args.replay_fps, max_frames=args.replay_max_frames, private=bool(args.private_replay_manifest),
-        observation_mode=args.replay_observation_mode)
+        observation_mode=args.replay_observation_mode, replay_mode=args.replay_mode, clock_mode=args.replay_clock)
 
 
 @asynccontextmanager

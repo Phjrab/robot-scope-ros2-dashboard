@@ -12,6 +12,9 @@ class SignalSample:
     frame: object
     observation: object
     processed_s: float
+    enqueued_s: float | None = None
+    processing_started_s: float | None = None
+    completed_s: float | None = None
 
 
 class TrafficWorker:
@@ -21,8 +24,10 @@ class TrafficWorker:
     not mutate the image afterward. A dropped sequence makes C4 reset stability.
     Optional detector libraries stay outside dashboard startup imports.
     """
-    def __init__(self, pipeline, *, clock=time.monotonic):
+    def __init__(self, pipeline, *, clock=time.monotonic, result_sink=None):
         self.pipeline, self.clock = pipeline, clock
+        # Optional synchronous, owner-loop inspection sink. It must not block.
+        self.result_sink = result_sink
         self.queue = asyncio.Queue(maxsize=1)
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='traffic-frame')
         self.task = None
@@ -30,6 +35,8 @@ class TrafficWorker:
         self.error = None
         self.closed = False
         self.dropped = 0
+        self.invalid = 0
+        self.late_results = 0
 
     def start(self):
         if self.closed or self.task is not None:
@@ -44,22 +51,35 @@ class TrafficWorker:
             self.queue.get_nowait()
             self.queue.task_done()
             self.dropped += 1
-        self.queue.put_nowait(frame)
+        self.queue.put_nowait((frame, self.clock()))
         return True
+
+    def _process(self, frame, enqueued_s):
+        started = self.clock()
+        try:
+            observation = self.pipeline.process(frame, now_s=started)
+            return SignalSample(frame, observation, observation.context['processed_s'],
+                                enqueued_s, started, self.clock())
+        finally:
+            if self.closed:
+                self.late_results += 1
 
     async def _run(self):
         loop = asyncio.get_running_loop()
         while True:
-            frame = await self.queue.get()
+            frame, enqueued_s = await self.queue.get()
             try:
-                observation = await loop.run_in_executor(self.executor,
-                    lambda: self.pipeline.process(frame, now_s=self.clock()))
+                sample = await loop.run_in_executor(self.executor,
+                    self._process, frame, enqueued_s)
                 if not self.closed:
-                    self.latest = SignalSample(frame, observation, observation.context['processed_s'])
+                    self.latest = sample
                     self.error = None
+                    if self.result_sink is not None:
+                        self.result_sink(sample)
             except Exception as exc:
                 self.latest = None
                 self.error = type(exc).__name__
+                self.invalid += 1
             finally:
                 self.queue.task_done()
 

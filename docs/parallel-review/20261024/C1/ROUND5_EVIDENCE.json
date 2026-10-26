@@ -1,0 +1,251 @@
+{
+  "schema": "c1-round5-readonly-replay.v1",
+  "base_sha": "c052db127f2952b693971642f0a33c8efcb43098",
+  "candidate": "READY_FOR_READONLY_DEVICE_REVIEW",
+  "runtime_source_sha256": {
+    "robot_dashboard/competition_traffic/worker.py": "604f59bd4b0464af45b1167ad224811296d78d900e64c6c35c807be73b9314c3",
+    "robot_dashboard/mission_routes/competition_native/replay_review.py": "5e7b9bdd4a624124da329debf54a3f51b81cd867a62b0e67d41e1d55e1e77a0e",
+    "robot_dashboard/static/features/mission_route/rgb_review.js": "e8be429b7e08b64e546f7082bc6b2e42d811b7a975236d1cdcaf3253b4c99ac7",
+    "tests/competition_fixture_server.py": "35d2634b11f9b6acb260e5741da92ed8032996499faebeadb9403eb1096dda6e",
+    "tests/competition_integration/test_replay_latest.py": "a53d759314a8ce22162995ce31bb4baac4aa6ad3774470a8165363f65844e214",
+    "tests/e2e/competition_mission.spec.mjs": "95ff01b9f9e5969b6a374f99ad915f9525f44efbeaef087b1486dac326c10083"
+  },
+  "reviewed_not_adopted": {
+    "C4": "bf0436687a0a9dbab1ff7ac370f1bc0de42d07ad",
+    "C3": "d253ee090a5f5c145c3842ed2cc0105d7d95fea3",
+    "D0": "da7230bb65722e4a1d3f4ab0c1d16e63fcd344e3"
+  },
+  "private_comparison": {
+    "input": "first 30 of existing 255 recorded RGB frames, original offsets 0..6.8 seconds",
+    "model_sha256": "f59b3d833e2ff32e194b5bb8e08d211dc7c5bdf144b90d2c8412c47ccfc83b36",
+    "profile": "full640",
+    "inference_settings_sha256": "f237ce7aea41a89a6dfaf228b206631a15c465857868c2830bd1bc4f470f56ec",
+    "order": [
+      "exhaustive",
+      "latest-wall-clock"
+    ],
+    "parallel_load_tests": false,
+    "historical_hardware_clock_verified": false,
+    "online_readiness": "NOT_VERIFIED",
+    "stable_green_accuracy": "NOT_VERIFIED",
+    "emitter_experiment": "NOT_ADOPTED_OFF",
+    "runs": [
+      {
+        "mode": "exhaustive",
+        "clock_mode": "wall-clock",
+        "state": "COMPLETE",
+        "counts": {
+          "input": 30,
+          "decoded": 30,
+          "offered": 30,
+          "dropped_before_decode": 0,
+          "dropped_after_decode": 0,
+          "published": 30,
+          "replaced_display": 0,
+          "late_encode": 0,
+          "processed": 30,
+          "replaced_pending": 0,
+          "invalid": 0,
+          "late_result": 0
+        },
+        "coverage": 1,
+        "latency_s": {
+          "decode_wall_s": {
+            "count": 30,
+            "mean": 0.002723038561331729,
+            "max": 0.004209508188068867,
+            "percentile_window_count": 30,
+            "p50": 0.0025270760525017977,
+            "p95": 0.00392446992918849
+          },
+          "worker_pending_s": {
+            "count": 30,
+            "mean": 3.7519346612195174e-05,
+            "max": 0.00012156995944678783,
+            "percentile_window_count": 30,
+            "p50": 3.338116221129894e-05,
+            "p95": 4.64350450783968e-05
+          },
+          "pipeline_wall_s": {
+            "count": 30,
+            "mean": 0.03097285357459138,
+            "max": 0.1856793649494648,
+            "percentile_window_count": 30,
+            "p50": 0.02573468303307891,
+            "p95": 0.027816426008939743
+          },
+          "inference_wall_s": {
+            "count": 30,
+            "mean": 0.027908329114628334,
+            "max": 0.10786437592469156,
+            "percentile_window_count": 30,
+            "p50": 0.025127286091446877,
+            "p95": 0.027038447791710496
+          },
+          "schedule_to_processing_s": {
+            "count": 30,
+            "mean": 0.00512715350681295,
+            "max": 0.04769644304178655,
+            "percentile_window_count": 30,
+            "p50": 0.003529862966388464,
+            "p95": 0.004852165933698416
+          },
+          "encode_wall_s": {
+            "count": 30,
+            "mean": 0.05086657878321906,
+            "max": 0.05597776500508189,
+            "percentile_window_count": 30,
+            "p50": 0.04965787706896663,
+            "p95": 0.05559909692965448
+          },
+          "publish_lag_s": {
+            "count": 30,
+            "mean": 0.08735033173579723,
+            "max": 0.24300007289275527,
+            "percentile_window_count": 30,
+            "p50": 0.0796388799790293,
+            "p95": 0.12267908407375216
+          }
+        },
+        "raw_detection_counts": {
+          "RED": 15,
+          "AMBIGUOUS": 1
+        },
+        "last_sequence": 29,
+        "last_recorded_offset_s": 6.8,
+        "last_stable_state": "UNKNOWN",
+        "departure_authorized": false,
+        "reload_snapshot_unchanged": true,
+        "original_overlay_same_source": true
+      },
+      {
+        "mode": "latest-wall-clock",
+        "clock_mode": "wall-clock",
+        "state": "COMPLETE",
+        "counts": {
+          "input": 30,
+          "decoded": 30,
+          "offered": 30,
+          "dropped_before_decode": 0,
+          "dropped_after_decode": 0,
+          "published": 30,
+          "replaced_display": 0,
+          "late_encode": 0,
+          "processed": 30,
+          "replaced_pending": 0,
+          "invalid": 0,
+          "late_result": 0
+        },
+        "coverage": 1,
+        "latency_s": {
+          "decode_wall_s": {
+            "count": 30,
+            "mean": 0.003012345863195757,
+            "max": 0.007479944033548236,
+            "percentile_window_count": 30,
+            "p50": 0.0026468499563634396,
+            "p95": 0.004779955837875605
+          },
+          "worker_pending_s": {
+            "count": 30,
+            "mean": 8.454258398463329e-05,
+            "max": 0.0008504609577357769,
+            "percentile_window_count": 30,
+            "p50": 4.658615216612816e-05,
+            "p95": 0.00016396702267229557
+          },
+          "pipeline_wall_s": {
+            "count": 30,
+            "mean": 0.041899182950146496,
+            "max": 0.1819346840493381,
+            "percentile_window_count": 30,
+            "p50": 0.026634584879502654,
+            "p95": 0.15121657704003155
+          },
+          "inference_wall_s": {
+            "count": 30,
+            "mean": 0.03852310354510943,
+            "max": 0.14447950199246407,
+            "percentile_window_count": 30,
+            "p50": 0.026011845096945763,
+            "p95": 0.10422379011288285
+          },
+          "schedule_to_processing_s": {
+            "count": 30,
+            "mean": 0.00408059759841611,
+            "max": 0.008084906730800867,
+            "percentile_window_count": 30,
+            "p50": 0.003948884783312678,
+            "p95": 0.006452858913689852
+          },
+          "encode_wall_s": {
+            "count": 30,
+            "mean": 0.05252183748719593,
+            "max": 0.059688437031582,
+            "percentile_window_count": 30,
+            "p50": 0.05052520800381899,
+            "p95": 0.05799080501310527
+          },
+          "publish_lag_s": {
+            "count": 30,
+            "mean": 0.09977088468925406,
+            "max": 0.2441858327947557,
+            "percentile_window_count": 30,
+            "p50": 0.08412783103995025,
+            "p95": 0.21785702090710402
+          }
+        },
+        "raw_detection_counts": {
+          "RED": 15,
+          "AMBIGUOUS": 1
+        },
+        "last_sequence": 29,
+        "last_recorded_offset_s": 6.8,
+        "last_stable_state": "UNKNOWN",
+        "departure_authorized": false,
+        "reload_snapshot_unchanged": true,
+        "original_overlay_same_source": true
+      }
+    ],
+    "original_hardware_stamp": "INPUT_REQUIRED: source_stamp_ns absent from all 30 manifest rows; fixture offset stamps are not hardware stamps"
+  },
+  "limits": {
+    "decoder_threads": 1,
+    "inference_threads": 1,
+    "pending_frames": 1,
+    "encoder_threads": 1,
+    "pending_display_results": 1,
+    "image_pairs": 2,
+    "trace_records": 64,
+    "percentile_window_per_stage": 256
+  },
+  "device_observation": "NOT_RUN",
+  "physical_motion": false,
+  "local_checks": {
+    "python": {
+      "run": 2963,
+      "pass": 2961,
+      "skip": 2,
+      "seconds": 96.472
+    },
+    "javascript": {
+      "pass": 666
+    },
+    "C1_integration": {
+      "pass": 56,
+      "seconds": 11.663
+    },
+    "competition_browser": {
+      "pass": 10,
+      "seconds": 39.3
+    },
+    "common_browser": {
+      "status": "INTERRUPTED_SIGTERM_EXIT143_AT_PROGRESS_186_OF_198",
+      "assertion_failure_logged": false,
+      "remainder_files_pass": 15,
+      "remainder_seconds": 26.5,
+      "whole_suite_result": "Use exact source remote CI; not claimed from interrupted local run"
+    },
+    "ruff_mypy_syntax_secret_diff": "PASS"
+  }
+}
