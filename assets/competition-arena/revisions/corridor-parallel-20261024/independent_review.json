@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "reviewer": "independent read-only geometry reviewer",
+  "cross_sections": 2002,
+  "station_interval_m": [
+    0.50001,
+    2.585
+  ],
+  "width_m": 1,
+  "floor_fence_union_consistent": true,
+  "actual_glb_max_top_face_area_discrepancy_m2": 6.34e-07,
+  "visual_orthographic_review": "PASS",
+  "caveats": [
+    "wall outer sequential IDs shifted; use geometry mapping",
+    "1m/45deg provisional not measured",
+    "physical walking/map registration not tested"
+  ]
+}

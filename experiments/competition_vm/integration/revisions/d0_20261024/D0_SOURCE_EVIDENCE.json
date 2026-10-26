@@ -1,0 +1,16 @@
+{
+  "revision": "D0-20261024",
+  "base_commit": "7f2a7070a17975d2a5f123cbf6aab0f99f04bf8a",
+  "scope": "SYNTHETIC_ONLY",
+  "native_connected": false,
+  "proposed_for_C1_review_only": true,
+  "sha256": {
+    "experiments/competition_vm/traffic_signals/core.py": "075747e0ab18f0d05035baec3edb9efea6bdda92ac3d0a932c11221611fc79fc",
+    "experiments/competition_vm/traffic_signals/lifecycle.py": "aaf8fa341dba2fe090dfe6cd7f93821020560a1b264bde57b8a09f8f91af4bec",
+    "experiments/competition_vm/integration/adapter.py": "a34232ddc69e17093ae31e5f9d7a62be10e25b421fc484e39ba72bc0008e12c4",
+    "experiments/competition_vm/integration/smoke.py": "3dac58f36c9899bff618e83d161b59c5f0f0a0a3c267c1558c4c59fe5dc70c5c",
+    "experiments/competition_vm/traffic_signals/revisions/d0-20261024/VALIDATION.json": "cbda61b78057148f46bcf6a65f9db111782477e4a5972468da3a504852540463",
+    "experiments/competition_vm/integration/revisions/d0_20261024/VALIDATION.json": "513d72a879eef6575a3369ded2aa1e4d2adc053a14cfae34999e9025719b4b1e",
+    "experiments/competition_vm/arena_robot_sim/revisions/d0_20261024/VALIDATION.json": "a757e2658a6b0be997c5c119be7cd23ff78a8861571f5b6f2cc6dc398e3b801f"
+  }
+}

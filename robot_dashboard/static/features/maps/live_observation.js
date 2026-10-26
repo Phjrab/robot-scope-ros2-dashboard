@@ -5,6 +5,8 @@ import { ANCHOR_FIELDS, initializeAnchorPresets, validAnchorPose } from './ancho
 import { initializeAnchorProposal, anchorSourceContract, sameAnchorSource } from './anchor_proposal.js';
 
 export function observationAvailabilityText(state) {
+  if (state.status === 'AGENT_CONNECTION_LOST') return '대시보드 연결이 끊겨 현재 LiDAR·pose 수신 상태를 확인할 수 없습니다. 연결 복구 후 새 입력을 확인하세요.';
+  if (state.status === 'ROBOT_TELEMETRY_UNAVAILABLE') return '서버가 로봇 관측 불가 상태를 보고했습니다. 로봇 연결과 센서 수신 상태를 확인하세요.';
   if (state.status !== 'SOURCE_IDENTITY_UNAVAILABLE') return '';
   if (state.provenance_mode === 'subscription_observation') return '출처 미검증 관측 후보에 필요한 subscription·ROS graph 증거가 없거나 오래되었습니다. 최신 수신과 단일 publisher graph 정보가 필요합니다.';
   const missingPublisher = Object.values(state.telemetry || {}).some(value => value && !value.publisher_gid_present);
@@ -98,6 +100,11 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     : presetReference || 'FASTLIO_IMU';
   const readAnchorPose = () => Object.fromEntries(ANCHOR_FIELDS.map(k => [k,
     el(`_${k}`).value.trim() === '' ? NaN : Number(el(`_${k}`).value)]));
+  const clearProposalInputs = () => {
+    proposalFence = null; presetReference = null; presetMapKey = '';
+    for (const k of ANCHOR_FIELDS) el(`_${k}`).value = '';
+    el('Confirm').checked = false;
+  };
   const fillAnchorPose = (pose, reference) => {
       if (!validAnchorPose(pose)) throw new Error('초기 위치·방향 값을 확인해 주세요.');
       if (model.pose && reference !== currentReference()) throw new Error('프리셋의 IMU/본체 기준이 현재 pose와 다릅니다.');
@@ -145,9 +152,7 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     panel.hidden = !context.visible;
     model.setMap(context.meta, context.cloud);
     if (proposalFence && !sameAnchorSource(proposalFence, anchorSourceContract(proposalInputs()))) {
-      proposalFence = null; presetReference = null; presetMapKey = '';
-      for (const k of ANCHOR_FIELDS) el(`_${k}`).value = '';
-      el('Confirm').checked = false; model.invalidate('INITIAL_ESTIMATE_SOURCE_CHANGED');
+      clearProposalInputs(); model.invalidate('INITIAL_ESTIMATE_SOURCE_CHANGED');
     }
     if (presetReference && presetMapKey !== anchorMapKey()) {
       presetReference = null; presetMapKey = '';
@@ -285,5 +290,11 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     demandChanged(); render();
   }, ingestPose: value => { if (!suspended) model.ingestPose(value); }, ingestCloud: value => { if (!suspended) model.ingestCloud(value); },
     ingestJoints: value => joints.ingest(value),
-    reset: reason => { joints.clear(); model.resetInputs(reason); clearDynamic(true); }, destroy: () => { disposed = true; proposal.destroy(); presets.destroy(); session.destroy(); visibility.disconnect(); model.enable(false); requestController?.abort(); clearInterval(timer); clearDynamic(); panel.remove(); style.remove(); } };
+    reset: reason => {
+      joints.clear();
+      // Clear the proposal fence before resetting inputs, so the next render
+      // preserves the reset cause instead of mistaking missing inputs for a new source.
+      if (proposalFence) clearProposalInputs();
+      model.resetInputs(reason); clearDynamic(true);
+    }, destroy: () => { disposed = true; proposal.destroy(); presets.destroy(); session.destroy(); visibility.disconnect(); model.enable(false); requestController?.abort(); clearInterval(timer); clearDynamic(); panel.remove(); style.remove(); } };
 }

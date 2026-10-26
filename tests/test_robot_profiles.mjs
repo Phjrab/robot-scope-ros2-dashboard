@@ -105,7 +105,7 @@ test('settings UI wires type selection to discovery and explicit connection', ()
   assert.match(indexSource, /id="controlProfileNotice"[^>]+hidden/);
   assert.match(appSource, /profileSupports\?\.\(activeRobotProfile\(\), 'manual_control'\)/);
   assert.match(appSource, /function applyJointSnapshot\(snapshot\) \{\s*if \(!robotRuntimeDataCompatible \|\| selectedRobotType !== 'go2'\)/);
-  assert.match(appSource, /function resetLiveRobotSessionView\(\)/);
+  assert.match(appSource, /function resetLiveRobotSessionView\(reason = 'ROBOT_TARGET_CHANGED'\)/);
   assert.match(appSource, /if \(response\.robot\?\.changed\) resetLiveRobotSessionView\(\)/);
   assert.match(appSource, /response\.robot\?\.restart_required/);
   assert.match(appSource, /ROS 재시작 전 기존 데이터 · 로봇 오버레이 숨김/);

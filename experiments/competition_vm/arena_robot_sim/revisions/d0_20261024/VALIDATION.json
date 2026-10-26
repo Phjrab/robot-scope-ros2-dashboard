@@ -1,0 +1,85 @@
+{
+  "base_commit": "7f2a7070a17975d2a5f123cbf6aab0f99f04bf8a",
+  "evidence": "SYNTHETIC_PLANAR_ONLY",
+  "scenario_layouts": 12,
+  "policy_cases": 24,
+  "repetitions_each": 2,
+  "total_runs": 48,
+  "determinism_all_pass": true,
+  "safety_all_pass": true,
+  "goal_reached_runs": 10,
+  "safe_wait_runs": 38,
+  "strict_obstacle_goal_successes": 0,
+  "multi_cone_goal_successes": 0,
+  "independent_pose_samples": 22913,
+  "independent_all_pass": true,
+  "unit_tests": {
+    "passed": 13,
+    "failed": 0,
+    "skipped": 0
+  },
+  "video": {
+    "file": "rendering/d0_planar_policy_comparison.mp4",
+    "duration_s": 20.7,
+    "fps": 10,
+    "frames": 207,
+    "resolution": [
+      1200,
+      840
+    ],
+    "viewed_pixels": [
+      "rendering/start.png",
+      "rendering/terminal.png"
+    ]
+  },
+  "versions": {
+    "python": "3.12.14",
+    "numpy": "2.3.5",
+    "scipy": "1.17.0",
+    "Pillow": "12.3.0"
+  },
+  "not_run": [
+    "native ROS/Nav2",
+    "gait/contact physics",
+    "measured LiDAR/SLAM",
+    "terrain traversal",
+    "parking seated posture",
+    "whole course linked mission",
+    "live robot",
+    "repository-wide suite: owned by D0 coordinator"
+  ],
+  "historical_records": {
+    "empty": {
+      "source_sha256": "c3f2e4a99f5f0dd4124068850390beed8188b44ba52a15e8c7fb00f63c5588d0",
+      "stored_outcome": "GOAL_REACHED",
+      "strict_parking_violation_frame_samples": 0,
+      "max_footprint_x_intrusion_m": 0.0,
+      "legacy_record_preserved": true
+    },
+    "cone_detour": {
+      "source_sha256": "cb5b2f31994815c2e61f909931d72442fcf26b8b86f194b446ffcdc669f2518e",
+      "stored_outcome": "GOAL_REACHED",
+      "strict_parking_violation_frame_samples": 16,
+      "max_footprint_x_intrusion_m": 0.07781901111732381,
+      "legacy_record_preserved": true
+    },
+    "blocked": {
+      "source_sha256": "eb6548174a7df1fa1a2d08fcc72e7a1fd3ce07ade8387f18b195f34c0f8e17fc",
+      "stored_outcome": "SAFE_WAIT",
+      "strict_parking_violation_frame_samples": 0,
+      "max_footprint_x_intrusion_m": 0.0,
+      "legacy_record_preserved": true
+    }
+  },
+  "compact_publication": {
+    "raw_traces_published": false,
+    "raw_traces_preserved_local": 48,
+    "compact_test_passed": 13,
+    "compact_test_skipped": 0,
+    "compact_test_new_raw_files_present": 0,
+    "projection_equivalence_all_pass": true,
+    "projection_frames": 289,
+    "publication_destination": "review/20261024-d0-vm-offline",
+    "publication_performed_by_worker": false
+  }
+}

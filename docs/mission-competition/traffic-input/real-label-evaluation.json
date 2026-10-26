@@ -1,0 +1,1233 @@
+{
+  "metrics": {
+    "target_cases": 27,
+    "unique_images": 25,
+    "labels": {
+      "UNREADABLE": 4,
+      "GREEN": 3,
+      "RED": 15,
+      "NO_LIGHT": 4,
+      "OTHER_LIGHT": 1
+    },
+    "localized_raw_predictions": {
+      "UNKNOWN": 18,
+      "RED": 8,
+      "AMBIGUOUS": 1
+    },
+    "readable_unknown": {
+      "count": 9,
+      "denominator": 18
+    },
+    "false_green": {
+      "count": 0,
+      "denominator": 20
+    },
+    "valid_green_rejected": {
+      "count": 3,
+      "denominator": 3
+    },
+    "rejections": {
+      "NO_CANDIDATE": 11,
+      "TARGET_NOT_MATCHED": 1,
+      "COLOR_REJECTED": 7
+    },
+    "unreadable_excluded_from_correctness_denominators": true,
+    "production_stable_metrics": "NOT_EVALUATED_BINDING_UNVERIFIED"
+  },
+  "by_split": {
+    "diagnostic_v3": {
+      "target_cases": 13,
+      "unique_images": 13,
+      "labels": {
+        "RED": 13
+      },
+      "localized_raw_predictions": {
+        "RED": 6,
+        "UNKNOWN": 6,
+        "AMBIGUOUS": 1
+      },
+      "readable_unknown": {
+        "count": 6,
+        "denominator": 13
+      },
+      "false_green": {
+        "count": 0,
+        "denominator": 13
+      },
+      "valid_green_rejected": {
+        "count": 0,
+        "denominator": 0
+      },
+      "rejections": {
+        "COLOR_REJECTED": 7
+      },
+      "unreadable_excluded_from_correctness_denominators": true,
+      "production_stable_metrics": "NOT_EVALUATED_BINDING_UNVERIFIED"
+    },
+    "session_holdout": {
+      "target_cases": 14,
+      "unique_images": 12,
+      "labels": {
+        "UNREADABLE": 4,
+        "GREEN": 3,
+        "NO_LIGHT": 4,
+        "RED": 2,
+        "OTHER_LIGHT": 1
+      },
+      "localized_raw_predictions": {
+        "UNKNOWN": 12,
+        "RED": 2
+      },
+      "readable_unknown": {
+        "count": 3,
+        "denominator": 5
+      },
+      "false_green": {
+        "count": 0,
+        "denominator": 7
+      },
+      "valid_green_rejected": {
+        "count": 3,
+        "denominator": 3
+      },
+      "rejections": {
+        "NO_CANDIDATE": 11,
+        "TARGET_NOT_MATCHED": 1
+      },
+      "unreadable_excluded_from_correctness_denominators": true,
+      "production_stable_metrics": "NOT_EVALUATED_BINDING_UNVERIFIED"
+    }
+  },
+  "records": [
+    {
+      "id": "preview-0",
+      "sha256": "5e6a0fca3b4b570576a85ea40d026ed3d3deb286bcbc1d0659ac4fc760436864",
+      "label": "UNREADABLE",
+      "split": "session_holdout",
+      "candidate_count": 0,
+      "target_matched": false,
+      "negative_image_candidate_states": [],
+      "max_target_iou": null,
+      "localized_raw_prediction": "UNKNOWN",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": "NO_CANDIDATE",
+      "matched_crop_color": null,
+      "manual_crop_oracle": {
+        "raw_state": "UNKNOWN",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.0,
+            0.0,
+            0.0009153318077803204
+          ],
+          "white_clip_fraction": 0.0,
+          "blur_variance": 222.31709216330052,
+          "chroma_pixels": 3544,
+          "red_component": 0,
+          "green_component": 0,
+          "enhanced_state": "UNKNOWN"
+        },
+        "score": 0.0
+      },
+      "emitter_metrics": null
+    },
+    {
+      "id": "preview-1",
+      "sha256": "ba04810e8c2bbafe70c61652b3eeab2ec672e6f479cfa4f4c0259a24eb87f6d9",
+      "label": "UNREADABLE",
+      "split": "session_holdout",
+      "candidate_count": 0,
+      "target_matched": false,
+      "negative_image_candidate_states": [],
+      "max_target_iou": null,
+      "localized_raw_prediction": "UNKNOWN",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": "NO_CANDIDATE",
+      "matched_crop_color": null,
+      "manual_crop_oracle": {
+        "raw_state": "RED",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "white_clip_fraction": 0.0,
+          "blur_variance": 44.68939598000204,
+          "chroma_pixels": 7178,
+          "red_component": 33,
+          "green_component": 0,
+          "enhanced_state": "UNKNOWN"
+        },
+        "score": 0.00459738088604068
+      },
+      "emitter_metrics": null
+    },
+    {
+      "id": "preview-2",
+      "sha256": "fe02a58c5ff84ddad5cd7663645ab49fc76b3eb2c2d40d98f838e99e47041893",
+      "label": "GREEN",
+      "split": "session_holdout",
+      "candidate_count": 0,
+      "target_matched": false,
+      "negative_image_candidate_states": [],
+      "max_target_iou": null,
+      "localized_raw_prediction": "UNKNOWN",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": "NO_CANDIDATE",
+      "matched_crop_color": null,
+      "manual_crop_oracle": {
+        "raw_state": "GREEN",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.0010775862068965517,
+            0.0015086206896551724,
+            0.000646551724137931
+          ],
+          "white_clip_fraction": 0.0,
+          "blur_variance": 1887.5851775694864,
+          "chroma_pixels": 3017,
+          "red_component": 0,
+          "green_component": 104,
+          "enhanced_state": "GREEN"
+        },
+        "score": 0.03447132913490222
+      },
+      "emitter_metrics": null
+    },
+    {
+      "id": "preview-3",
+      "sha256": "3df72de999dd5be1f44515b47db1a572475cfc81fe8e56447f26b39bbd1efffa",
+      "label": "GREEN",
+      "split": "session_holdout",
+      "candidate_count": 0,
+      "target_matched": false,
+      "negative_image_candidate_states": [],
+      "max_target_iou": null,
+      "localized_raw_prediction": "UNKNOWN",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": "NO_CANDIDATE",
+      "matched_crop_color": null,
+      "manual_crop_oracle": {
+        "raw_state": "GREEN",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.0030303030303030303,
+            0.0,
+            0.0
+          ],
+          "white_clip_fraction": 0.0,
+          "blur_variance": 663.0777277828793,
+          "chroma_pixels": 572,
+          "red_component": 2,
+          "green_component": 131,
+          "enhanced_state": "GREEN"
+        },
+        "score": 0.229020979020979
+      },
+      "emitter_metrics": null
+    },
+    {
+      "id": "preview-4",
+      "sha256": "64350f17ce502bca151aecb79397769cd82616ce4948625436777195947c6aec",
+      "label": "UNREADABLE",
+      "split": "session_holdout",
+      "candidate_count": 0,
+      "target_matched": false,
+      "negative_image_candidate_states": [],
+      "max_target_iou": null,
+      "localized_raw_prediction": "UNKNOWN",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": "NO_CANDIDATE",
+      "matched_crop_color": null,
+      "manual_crop_oracle": {
+        "raw_state": "UNKNOWN",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "white_clip_fraction": 0.0,
+          "blur_variance": 21.50191173091479,
+          "chroma_pixels": 734,
+          "red_component": 0,
+          "green_component": 0,
+          "enhanced_state": "UNKNOWN"
+        },
+        "score": 0.0
+      },
+      "emitter_metrics": null
+    },
+    {
+      "id": "preview-5",
+      "sha256": "84ea91c56b3e4505ec34c6814bc196ba77daebb6bd6abf9e94b3b24817ce1db3",
+      "label": "UNREADABLE",
+      "split": "session_holdout",
+      "candidate_count": 0,
+      "target_matched": false,
+      "negative_image_candidate_states": [],
+      "max_target_iou": null,
+      "localized_raw_prediction": "UNKNOWN",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": "NO_CANDIDATE",
+      "matched_crop_color": null,
+      "manual_crop_oracle": {
+        "raw_state": "RED",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "white_clip_fraction": 0.0,
+          "blur_variance": 9.672099561786856,
+          "chroma_pixels": 2169,
+          "red_component": 779,
+          "green_component": 0,
+          "enhanced_state": "RED"
+        },
+        "score": 0.3591516828031351
+      },
+      "emitter_metrics": null
+    },
+    {
+      "id": "preview-7",
+      "sha256": "0eb6855c00f25cba1924d6a4fba2785603ead0cfc889166a84c84f5c478998dd",
+      "label": "RED",
+      "split": "diagnostic_v3",
+      "candidate_count": 2,
+      "target_matched": true,
+      "negative_image_candidate_states": [],
+      "max_target_iou": 0.8542908224076281,
+      "localized_raw_prediction": "RED",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": null,
+      "matched_crop_color": {
+        "raw_state": "RED",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.007334183673469388,
+            0.0,
+            0.008928571428571428
+          ],
+          "white_clip_fraction": 0.0,
+          "blur_variance": 1014.5552332320843,
+          "chroma_pixels": 770,
+          "red_component": 249,
+          "green_component": 0,
+          "enhanced_state": "RED"
+        },
+        "score": 0.3233766233766234
+      },
+      "manual_crop_oracle": {
+        "raw_state": "RED",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.009394233884029803,
+            0.00032393909944930353,
+            0.009070294784580499
+          ],
+          "white_clip_fraction": 0.0,
+          "blur_variance": 942.1981373973996,
+          "chroma_pixels": 754,
+          "red_component": 249,
+          "green_component": 5,
+          "enhanced_state": "RED"
+        },
+        "score": 0.3302387267904509
+      },
+      "emitter_metrics": null
+    },
+    {
+      "id": "preview-8",
+      "sha256": "70e5c018814cfa66fc9b5dbeb1cfa4243099f15acb58562365f5b40114c50c27",
+      "label": "NO_LIGHT",
+      "split": "session_holdout",
+      "candidate_count": 0,
+      "target_matched": false,
+      "negative_image_candidate_states": [],
+      "max_target_iou": null,
+      "localized_raw_prediction": "UNKNOWN",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": "NO_CANDIDATE",
+      "matched_crop_color": null,
+      "manual_crop_oracle": null,
+      "emitter_metrics": null
+    },
+    {
+      "id": "preview-9",
+      "sha256": "d46bcba5c8c29aaa8d534170083f4571485f9a2d3087d9b0d2dadeff97142323",
+      "label": "NO_LIGHT",
+      "split": "session_holdout",
+      "candidate_count": 0,
+      "target_matched": false,
+      "negative_image_candidate_states": [],
+      "max_target_iou": null,
+      "localized_raw_prediction": "UNKNOWN",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": "NO_CANDIDATE",
+      "matched_crop_color": null,
+      "manual_crop_oracle": null,
+      "emitter_metrics": null
+    },
+    {
+      "id": "preview-10",
+      "sha256": "b1358efb765dfe648a37af552623f74bf5e0c6ba78c85468fbf2b5e1f394347f",
+      "label": "RED",
+      "split": "session_holdout",
+      "candidate_count": 1,
+      "target_matched": true,
+      "negative_image_candidate_states": [],
+      "max_target_iou": 0.8925518925518926,
+      "localized_raw_prediction": "RED",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": null,
+      "matched_crop_color": {
+        "raw_state": "RED",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.0,
+            0.0006839945280437756,
+            0.013907888736890105
+          ],
+          "white_clip_fraction": 0.0,
+          "blur_variance": 2002.1844664312453,
+          "chroma_pixels": 531,
+          "red_component": 286,
+          "green_component": 1,
+          "enhanced_state": "RED"
+        },
+        "score": 0.5386064030131826
+      },
+      "manual_crop_oracle": {
+        "raw_state": "RED",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.0,
+            0.0006105006105006105,
+            0.012413512413512413
+          ],
+          "white_clip_fraction": 0.0,
+          "blur_variance": 2141.9705781940215,
+          "chroma_pixels": 539,
+          "red_component": 286,
+          "green_component": 1,
+          "enhanced_state": "RED"
+        },
+        "score": 0.5306122448979592
+      },
+      "emitter_metrics": null
+    },
+    {
+      "id": "preview-11",
+      "sha256": "49c1711f6192a6f4e54ddd7b544f316461b8e49eb3b739e9c3f8b0ef4989e86c",
+      "label": "RED",
+      "split": "session_holdout",
+      "candidate_count": 2,
+      "target_matched": true,
+      "negative_image_candidate_states": [],
+      "max_target_iou": 0.6856223175965666,
+      "localized_raw_prediction": "RED",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": null,
+      "matched_crop_color": {
+        "raw_state": "RED",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.0,
+            0.0,
+            0.022376543209876542
+          ],
+          "white_clip_fraction": 0.0,
+          "blur_variance": 804.4915753064987,
+          "chroma_pixels": 733,
+          "red_component": 515,
+          "green_component": 1,
+          "enhanced_state": "RED"
+        },
+        "score": 0.7025920873124147
+      },
+      "manual_crop_oracle": {
+        "raw_state": "RED",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.0,
+            0.0,
+            0.01570964247020585
+          ],
+          "white_clip_fraction": 0.0,
+          "blur_variance": 540.9943657276604,
+          "chroma_pixels": 797,
+          "red_component": 515,
+          "green_component": 4,
+          "enhanced_state": "RED"
+        },
+        "score": 0.6461731493099122
+      },
+      "emitter_metrics": null
+    },
+    {
+      "id": "preview-12",
+      "sha256": "41e9a5c90bc7882e2cafe6914fcb9a15544d2700da3aa433b370f8ffab10d019",
+      "label": "NO_LIGHT",
+      "split": "session_holdout",
+      "candidate_count": 0,
+      "target_matched": false,
+      "negative_image_candidate_states": [],
+      "max_target_iou": null,
+      "localized_raw_prediction": "UNKNOWN",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": "NO_CANDIDATE",
+      "matched_crop_color": null,
+      "manual_crop_oracle": null,
+      "emitter_metrics": null
+    },
+    {
+      "id": "preview-13",
+      "sha256": "474e5ce552abf73b217e768f3f097e128f18758d1b178239ddc0f53908cfb401",
+      "label": "NO_LIGHT",
+      "split": "session_holdout",
+      "candidate_count": 0,
+      "target_matched": false,
+      "negative_image_candidate_states": [],
+      "max_target_iou": null,
+      "localized_raw_prediction": "UNKNOWN",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": "NO_CANDIDATE",
+      "matched_crop_color": null,
+      "manual_crop_oracle": null,
+      "emitter_metrics": null
+    },
+    {
+      "id": "opposite-green",
+      "sha256": "b1358efb765dfe648a37af552623f74bf5e0c6ba78c85468fbf2b5e1f394347f",
+      "label": "GREEN",
+      "split": "session_holdout",
+      "candidate_count": 1,
+      "target_matched": false,
+      "negative_image_candidate_states": [],
+      "max_target_iou": 0.0,
+      "localized_raw_prediction": "UNKNOWN",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": "TARGET_NOT_MATCHED",
+      "matched_crop_color": null,
+      "manual_crop_oracle": {
+        "raw_state": "GREEN",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.0,
+            0.00495565988523735,
+            0.0
+          ],
+          "white_clip_fraction": 0.0,
+          "blur_variance": 901.2875243306668,
+          "chroma_pixels": 477,
+          "red_component": 0,
+          "green_component": 156,
+          "enhanced_state": "GREEN"
+        },
+        "score": 0.3270440251572327
+      },
+      "emitter_metrics": null
+    },
+    {
+      "id": "display",
+      "sha256": "fe02a58c5ff84ddad5cd7663645ab49fc76b3eb2c2d40d98f838e99e47041893",
+      "label": "OTHER_LIGHT",
+      "split": "session_holdout",
+      "candidate_count": 0,
+      "target_matched": false,
+      "negative_image_candidate_states": [],
+      "max_target_iou": null,
+      "localized_raw_prediction": "UNKNOWN",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": "NO_CANDIDATE",
+      "matched_crop_color": null,
+      "manual_crop_oracle": {
+        "raw_state": "AMBIGUOUS",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.009763281335224173,
+            0.0015272171921021055,
+            0.0009817824806370677
+          ],
+          "white_clip_fraction": 5.4543471146503765e-05,
+          "blur_variance": 2198.9735230538954,
+          "chroma_pixels": 5525,
+          "red_component": 90,
+          "green_component": 160,
+          "enhanced_state": "AMBIGUOUS"
+        },
+        "score": 0.0
+      },
+      "emitter_metrics": null
+    },
+    {
+      "id": "v3-117",
+      "sha256": "b00e93a61c8cab6fcad048ec8a7d880ef0e1c2b68c88b6072a4df6156888cab9",
+      "label": "RED",
+      "split": "diagnostic_v3",
+      "candidate_count": 1,
+      "target_matched": true,
+      "negative_image_candidate_states": [],
+      "max_target_iou": 1.0,
+      "localized_raw_prediction": "RED",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": null,
+      "matched_crop_color": {
+        "raw_state": "RED",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.007751937984496124,
+            0.0005285412262156448,
+            0.005285412262156448
+          ],
+          "white_clip_fraction": 0.00017618040873854828,
+          "blur_variance": 1888.467504678279,
+          "chroma_pixels": 3044,
+          "red_component": 17,
+          "green_component": 0,
+          "enhanced_state": "RED"
+        },
+        "score": 0.005584756898817346
+      },
+      "manual_crop_oracle": {
+        "raw_state": "RED",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.007751937984496124,
+            0.0005285412262156448,
+            0.005285412262156448
+          ],
+          "white_clip_fraction": 0.00017618040873854828,
+          "blur_variance": 1888.467504678279,
+          "chroma_pixels": 3044,
+          "red_component": 17,
+          "green_component": 0,
+          "enhanced_state": "RED"
+        },
+        "score": 0.005584756898817346
+      },
+      "emitter_metrics": {
+        "red_channel_ge_250_fraction": 0.06712962962962964,
+        "saturation_below_55_fraction": 0.41898148148148145,
+        "white_all_channels_ge_250_fraction": 0.0
+      }
+    },
+    {
+      "id": "v3-121",
+      "sha256": "164dd9f0527b9e30bcf0057cf02abffd823ab9d235a2438241dcc6b6a7f589e8",
+      "label": "RED",
+      "split": "diagnostic_v3",
+      "candidate_count": 1,
+      "target_matched": true,
+      "negative_image_candidate_states": [],
+      "max_target_iou": 1.0,
+      "localized_raw_prediction": "UNKNOWN",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": "COLOR_REJECTED",
+      "matched_crop_color": {
+        "raw_state": "UNKNOWN",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.007995735607675906,
+            0.00035536602700781805,
+            0.008528784648187633
+          ],
+          "white_clip_fraction": 0.00017768301350390902,
+          "blur_variance": 1856.4358473080326,
+          "chroma_pixels": 1629,
+          "red_component": 3,
+          "green_component": 0,
+          "enhanced_state": "UNKNOWN"
+        },
+        "score": 0.0
+      },
+      "manual_crop_oracle": {
+        "raw_state": "UNKNOWN",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.007995735607675906,
+            0.00035536602700781805,
+            0.008528784648187633
+          ],
+          "white_clip_fraction": 0.00017768301350390902,
+          "blur_variance": 1856.4358473080326,
+          "chroma_pixels": 1629,
+          "red_component": 3,
+          "green_component": 0,
+          "enhanced_state": "UNKNOWN"
+        },
+        "score": 0.0
+      },
+      "emitter_metrics": {
+        "red_channel_ge_250_fraction": 0.10317460317460317,
+        "saturation_below_55_fraction": 0.3412698412698413,
+        "white_all_channels_ge_250_fraction": 0.0026455026455026454
+      }
+    },
+    {
+      "id": "v3-122",
+      "sha256": "4bb467f6ffc0eb725f9ec153f0438414f0d08e68712a1a6a30c0928c90ec2135",
+      "label": "RED",
+      "split": "diagnostic_v3",
+      "candidate_count": 1,
+      "target_matched": true,
+      "negative_image_candidate_states": [],
+      "max_target_iou": 1.0,
+      "localized_raw_prediction": "UNKNOWN",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": "COLOR_REJECTED",
+      "matched_crop_color": {
+        "raw_state": "UNKNOWN",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.004884004884004884,
+            0.000407000407000407,
+            0.005901505901505902
+          ],
+          "white_clip_fraction": 0.0002035002035002035,
+          "blur_variance": 1992.1832622035104,
+          "chroma_pixels": 589,
+          "red_component": 8,
+          "green_component": 0,
+          "enhanced_state": "UNKNOWN"
+        },
+        "score": 0.0
+      },
+      "manual_crop_oracle": {
+        "raw_state": "UNKNOWN",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.004884004884004884,
+            0.000407000407000407,
+            0.005901505901505902
+          ],
+          "white_clip_fraction": 0.0002035002035002035,
+          "blur_variance": 1992.1832622035104,
+          "chroma_pixels": 589,
+          "red_component": 8,
+          "green_component": 0,
+          "enhanced_state": "UNKNOWN"
+        },
+        "score": 0.0
+      },
+      "emitter_metrics": {
+        "red_channel_ge_250_fraction": 0.04523809523809524,
+        "saturation_below_55_fraction": 0.3976190476190476,
+        "white_all_channels_ge_250_fraction": 0.0
+      }
+    },
+    {
+      "id": "v3-123",
+      "sha256": "2c541e6b59efcc83ead06381f7f8e6fae56e372f1669d4f328cde1b3cc154033",
+      "label": "RED",
+      "split": "diagnostic_v3",
+      "candidate_count": 1,
+      "target_matched": true,
+      "negative_image_candidate_states": [],
+      "max_target_iou": 1.0,
+      "localized_raw_prediction": "RED",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": null,
+      "matched_crop_color": {
+        "raw_state": "RED",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.008167141500474834,
+            0.0001899335232668566,
+            0.006837606837606838
+          ],
+          "white_clip_fraction": 0.0001899335232668566,
+          "blur_variance": 1955.332614507999,
+          "chroma_pixels": 477,
+          "red_component": 13,
+          "green_component": 0,
+          "enhanced_state": "UNKNOWN"
+        },
+        "score": 0.027253668763102725
+      },
+      "manual_crop_oracle": {
+        "raw_state": "RED",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.008167141500474834,
+            0.0001899335232668566,
+            0.006837606837606838
+          ],
+          "white_clip_fraction": 0.0001899335232668566,
+          "blur_variance": 1955.332614507999,
+          "chroma_pixels": 477,
+          "red_component": 13,
+          "green_component": 0,
+          "enhanced_state": "UNKNOWN"
+        },
+        "score": 0.027253668763102725
+      },
+      "emitter_metrics": {
+        "red_channel_ge_250_fraction": 0.05432098765432099,
+        "saturation_below_55_fraction": 0.5604938271604938,
+        "white_all_channels_ge_250_fraction": 0.0
+      }
+    },
+    {
+      "id": "v3-124",
+      "sha256": "f2f65f91ff5058725b080f3a69d20a6658483811e16aa14cfa88c20cb38bd76c",
+      "label": "RED",
+      "split": "diagnostic_v3",
+      "candidate_count": 1,
+      "target_matched": true,
+      "negative_image_candidate_states": [],
+      "max_target_iou": 1.0,
+      "localized_raw_prediction": "UNKNOWN",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": "COLOR_REJECTED",
+      "matched_crop_color": {
+        "raw_state": "UNKNOWN",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.009282854022570076,
+            0.0010921004732435385,
+            0.006188569348380051
+          ],
+          "white_clip_fraction": 0.0007280669821623589,
+          "blur_variance": 2020.929867861276,
+          "chroma_pixels": 526,
+          "red_component": 2,
+          "green_component": 0,
+          "enhanced_state": "UNKNOWN"
+        },
+        "score": 0.0
+      },
+      "manual_crop_oracle": {
+        "raw_state": "UNKNOWN",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.009282854022570076,
+            0.0010921004732435385,
+            0.006188569348380051
+          ],
+          "white_clip_fraction": 0.0007280669821623589,
+          "blur_variance": 2020.929867861276,
+          "chroma_pixels": 526,
+          "red_component": 2,
+          "green_component": 0,
+          "enhanced_state": "UNKNOWN"
+        },
+        "score": 0.0
+      },
+      "emitter_metrics": {
+        "red_channel_ge_250_fraction": 0.04523809523809524,
+        "saturation_below_55_fraction": 0.6142857142857143,
+        "white_all_channels_ge_250_fraction": 0.0
+      }
+    },
+    {
+      "id": "v3-125",
+      "sha256": "df9668a49a16014e107569b0510e1f00fad579ca02d1ad45474adc6d07444d02",
+      "label": "RED",
+      "split": "diagnostic_v3",
+      "candidate_count": 1,
+      "target_matched": true,
+      "negative_image_candidate_states": [],
+      "max_target_iou": 1.0,
+      "localized_raw_prediction": "UNKNOWN",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": "COLOR_REJECTED",
+      "matched_crop_color": {
+        "raw_state": "UNKNOWN",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.010010921004732436,
+            0.0005460502366217692,
+            0.009828904259191846
+          ],
+          "white_clip_fraction": 0.00036403349108117945,
+          "blur_variance": 1954.7865400107528,
+          "chroma_pixels": 498,
+          "red_component": 5,
+          "green_component": 1,
+          "enhanced_state": "UNKNOWN"
+        },
+        "score": 0.0
+      },
+      "manual_crop_oracle": {
+        "raw_state": "UNKNOWN",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.010010921004732436,
+            0.0005460502366217692,
+            0.009828904259191846
+          ],
+          "white_clip_fraction": 0.00036403349108117945,
+          "blur_variance": 1954.7865400107528,
+          "chroma_pixels": 498,
+          "red_component": 5,
+          "green_component": 1,
+          "enhanced_state": "UNKNOWN"
+        },
+        "score": 0.0
+      },
+      "emitter_metrics": {
+        "red_channel_ge_250_fraction": 0.07142857142857142,
+        "saturation_below_55_fraction": 0.5761904761904761,
+        "white_all_channels_ge_250_fraction": 0.002380952380952381
+      }
+    },
+    {
+      "id": "v3-126",
+      "sha256": "b43430a8cf4875567dddd1f7b6a74f173d1d8f2b26baf39536c4b878371dd4fd",
+      "label": "RED",
+      "split": "diagnostic_v3",
+      "candidate_count": 1,
+      "target_matched": true,
+      "negative_image_candidate_states": [],
+      "max_target_iou": 1.0,
+      "localized_raw_prediction": "UNKNOWN",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": "COLOR_REJECTED",
+      "matched_crop_color": {
+        "raw_state": "UNKNOWN",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.007240853658536586,
+            0.0009527439024390244,
+            0.0038109756097560975
+          ],
+          "white_clip_fraction": 0.0007621951219512195,
+          "blur_variance": 2507.5278436137687,
+          "chroma_pixels": 469,
+          "red_component": 0,
+          "green_component": 0,
+          "enhanced_state": "UNKNOWN"
+        },
+        "score": 0.0
+      },
+      "manual_crop_oracle": {
+        "raw_state": "UNKNOWN",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.007240853658536586,
+            0.0009527439024390244,
+            0.0038109756097560975
+          ],
+          "white_clip_fraction": 0.0007621951219512195,
+          "blur_variance": 2507.5278436137687,
+          "chroma_pixels": 469,
+          "red_component": 0,
+          "green_component": 0,
+          "enhanced_state": "UNKNOWN"
+        },
+        "score": 0.0
+      },
+      "emitter_metrics": {
+        "red_channel_ge_250_fraction": 0.01839080459770115,
+        "saturation_below_55_fraction": 0.7011494252873564,
+        "white_all_channels_ge_250_fraction": 0.0022988505747126436
+      }
+    },
+    {
+      "id": "v3-127",
+      "sha256": "3b51a0287c2be2a34f8037d0e41da1acf65d1400dcda313604ce87b6a74bce24",
+      "label": "RED",
+      "split": "diagnostic_v3",
+      "candidate_count": 1,
+      "target_matched": true,
+      "negative_image_candidate_states": [],
+      "max_target_iou": 1.0,
+      "localized_raw_prediction": "UNKNOWN",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": "COLOR_REJECTED",
+      "matched_crop_color": {
+        "raw_state": "UNKNOWN",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.005194805194805195,
+            0.0005994005994005994,
+            0.004595404595404595
+          ],
+          "white_clip_fraction": 0.0003996003996003996,
+          "blur_variance": 2450.1141752952344,
+          "chroma_pixels": 344,
+          "red_component": 7,
+          "green_component": 0,
+          "enhanced_state": "UNKNOWN"
+        },
+        "score": 0.0
+      },
+      "manual_crop_oracle": {
+        "raw_state": "UNKNOWN",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.005194805194805195,
+            0.0005994005994005994,
+            0.004595404595404595
+          ],
+          "white_clip_fraction": 0.0003996003996003996,
+          "blur_variance": 2450.1141752952344,
+          "chroma_pixels": 344,
+          "red_component": 7,
+          "green_component": 0,
+          "enhanced_state": "UNKNOWN"
+        },
+        "score": 0.0
+      },
+      "emitter_metrics": {
+        "red_channel_ge_250_fraction": 0.035416666666666666,
+        "saturation_below_55_fraction": 0.6208333333333333,
+        "white_all_channels_ge_250_fraction": 0.0020833333333333333
+      }
+    },
+    {
+      "id": "v3-128",
+      "sha256": "085bd81675707550868d1071452ce9e1650ce6ebbe8016a8905e7eb09bb971bf",
+      "label": "RED",
+      "split": "diagnostic_v3",
+      "candidate_count": 1,
+      "target_matched": true,
+      "negative_image_candidate_states": [],
+      "max_target_iou": 1.0,
+      "localized_raw_prediction": "RED",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": null,
+      "matched_crop_color": {
+        "raw_state": "RED",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.006308610400682012,
+            0.0006820119352088661,
+            0.005967604433077579
+          ],
+          "white_clip_fraction": 0.0006820119352088661,
+          "blur_variance": 2075.8047576582803,
+          "chroma_pixels": 355,
+          "red_component": 13,
+          "green_component": 4,
+          "enhanced_state": "RED"
+        },
+        "score": 0.036619718309859155
+      },
+      "manual_crop_oracle": {
+        "raw_state": "RED",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.006308610400682012,
+            0.0006820119352088661,
+            0.005967604433077579
+          ],
+          "white_clip_fraction": 0.0006820119352088661,
+          "blur_variance": 2075.8047576582803,
+          "chroma_pixels": 355,
+          "red_component": 13,
+          "green_component": 4,
+          "enhanced_state": "RED"
+        },
+        "score": 0.036619718309859155
+      },
+      "emitter_metrics": {
+        "red_channel_ge_250_fraction": 0.04554079696394687,
+        "saturation_below_55_fraction": 0.7172675521821632,
+        "white_all_channels_ge_250_fraction": 0.0018975332068311196
+      }
+    },
+    {
+      "id": "v3-129",
+      "sha256": "bbbbc61e37dd75c51e2be3189f801e331cb2ae18c26a11706d9c84ef86971f13",
+      "label": "RED",
+      "split": "diagnostic_v3",
+      "candidate_count": 1,
+      "target_matched": true,
+      "negative_image_candidate_states": [],
+      "max_target_iou": 1.0,
+      "localized_raw_prediction": "AMBIGUOUS",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": "COLOR_REJECTED",
+      "matched_crop_color": {
+        "raw_state": "AMBIGUOUS",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.007269422989550204,
+            0.00030289262456459186,
+            0.005300620929880357
+          ],
+          "white_clip_fraction": 0.00015144631228229593,
+          "blur_variance": 1897.5952230213807,
+          "chroma_pixels": 549,
+          "red_component": 25,
+          "green_component": 18,
+          "enhanced_state": "AMBIGUOUS"
+        },
+        "score": 0.0
+      },
+      "manual_crop_oracle": {
+        "raw_state": "AMBIGUOUS",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.007269422989550204,
+            0.00030289262456459186,
+            0.005300620929880357
+          ],
+          "white_clip_fraction": 0.00015144631228229593,
+          "blur_variance": 1897.5952230213807,
+          "chroma_pixels": 549,
+          "red_component": 25,
+          "green_component": 18,
+          "enhanced_state": "AMBIGUOUS"
+        },
+        "score": 0.0
+      },
+      "emitter_metrics": {
+        "red_channel_ge_250_fraction": 0.04146730462519936,
+        "saturation_below_55_fraction": 0.6586921850079744,
+        "white_all_channels_ge_250_fraction": 0.0
+      }
+    },
+    {
+      "id": "v3-130",
+      "sha256": "8ce67b2df56f5bd2e8b6cd9e4cd26b4d0d0b4ac7549be6c8713cf8c02403bde5",
+      "label": "RED",
+      "split": "diagnostic_v3",
+      "candidate_count": 1,
+      "target_matched": true,
+      "negative_image_candidate_states": [],
+      "max_target_iou": 1.0,
+      "localized_raw_prediction": "RED",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": null,
+      "matched_crop_color": {
+        "raw_state": "RED",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.007987711213517665,
+            0.0,
+            0.004454685099846391
+          ],
+          "white_clip_fraction": 0.0,
+          "blur_variance": 2087.98567603663,
+          "chroma_pixels": 1205,
+          "red_component": 13,
+          "green_component": 0,
+          "enhanced_state": "UNKNOWN"
+        },
+        "score": 0.010788381742738589
+      },
+      "manual_crop_oracle": {
+        "raw_state": "RED",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.007987711213517665,
+            0.0,
+            0.004454685099846391
+          ],
+          "white_clip_fraction": 0.0,
+          "blur_variance": 2087.98567603663,
+          "chroma_pixels": 1205,
+          "red_component": 13,
+          "green_component": 0,
+          "enhanced_state": "UNKNOWN"
+        },
+        "score": 0.010788381742738589
+      },
+      "emitter_metrics": {
+        "red_channel_ge_250_fraction": 0.03298611111111111,
+        "saturation_below_55_fraction": 0.5086805555555556,
+        "white_all_channels_ge_250_fraction": 0.0
+      }
+    },
+    {
+      "id": "v3-131",
+      "sha256": "419d28804aa245d727084e9ee85bbec187b94f71a5814d8565b8b5ee8db49cfa",
+      "label": "RED",
+      "split": "diagnostic_v3",
+      "candidate_count": 1,
+      "target_matched": true,
+      "negative_image_candidate_states": [],
+      "max_target_iou": 1.0,
+      "localized_raw_prediction": "RED",
+      "stable_prediction": "NOT_EVALUATED_UNVERIFIED_BINDING",
+      "rejection": null,
+      "matched_crop_color": {
+        "raw_state": "RED",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.01130952380952381,
+            0.0005952380952380953,
+            0.006845238095238095
+          ],
+          "white_clip_fraction": 0.00014880952380952382,
+          "blur_variance": 1800.3125969919215,
+          "chroma_pixels": 1578,
+          "red_component": 48,
+          "green_component": 0,
+          "enhanced_state": "RED"
+        },
+        "score": 0.030418250950570342
+      },
+      "manual_crop_oracle": {
+        "raw_state": "RED",
+        "quality_flags": [],
+        "metrics": {
+          "channel_clip_fraction": [
+            0.01130952380952381,
+            0.0005952380952380953,
+            0.006845238095238095
+          ],
+          "white_clip_fraction": 0.00014880952380952382,
+          "blur_variance": 1800.3125969919215,
+          "chroma_pixels": 1578,
+          "red_component": 48,
+          "green_component": 0,
+          "enhanced_state": "RED"
+        },
+        "score": 0.030418250950570342
+      },
+      "emitter_metrics": {
+        "red_channel_ge_250_fraction": 0.03349282296650718,
+        "saturation_below_55_fraction": 0.5980861244019139,
+        "white_all_channels_ge_250_fraction": 0.0
+      }
+    }
+  ],
+  "config_sha256": "9be59d763c03a9528ec3c48ada2faf2943531ce68fdee6d759ab12cb1915a854",
+  "model_sha256": "f59b3d833e2ff32e194b5bb8e08d211dc7c5bdf144b90d2c8412c47ccfc83b36",
+  "labels_sha256": "6dee73fb8bf2dc3f8c7484ad3558b09e3a5053afaf406ffdd35190626eb3115e",
+  "ground_truth_used_only_for_scoring_and_oracle": true
+}

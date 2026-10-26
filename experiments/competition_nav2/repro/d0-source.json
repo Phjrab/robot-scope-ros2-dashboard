@@ -1,0 +1,32 @@
+{
+  "source_commit": "83f4ee8d6971d00ab31b2de0eeebf329542dd5d6",
+  "shared_path": "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025",
+  "manifest_sha256": "1e995e63e9e601433399f052d6a9630b4d5fb53081cfd1b00003aae2b16ef84e",
+  "files_sha256": {
+    "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/blocked.observations.json": "25de56e97e48bb02bc25dc8f0270ceb374df08993f80ce92562ef0616c44e783",
+    "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/blocked.truth.json": "57dbad059970041edadd84bc1207049382cfd59a223e1fa3ee5c78f232f65d3e",
+    "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/empty.observations.json": "5af41ff492e48fc383bbbbd3e9e709f8e0784e64ed151bbc3d747d9ee5a06e34",
+    "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/empty.truth.json": "9c1d7bbeddfdbdea2e7640ef23fdc7d3fee3b37cc3e82a6e8d6dbbe7895f42c4",
+    "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/feasible1.observations.json": "a31e4ff282de46f8d2dd4404596397354b41788c3dd6af3711215b471453188f",
+    "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/feasible1.truth.json": "cbd6674dd7f01ffc0dc60039badbe2a2da361bcbc407bb7c0ecae8efe5aff3ad",
+    "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/feasible2.observations.json": "5e17e10e8c781f61ab342469ed2f4c7fa7feecfced24be9a0a798b56b826550f",
+    "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/feasible2.truth.json": "6a0cd39cfae9adf21bb98e882d4866fe2b3ea786bcc93bcf856ae9f34d6febf0",
+    "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/geometry.json": "2a65764c6fa377ce8d830ac5ec44060bd671e10da90d135777b20948ace331df",
+    "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/manifest.json": "049f77d2e4e4d0e121049240026f2f5e51d98a57c348417a247500079edb7003",
+    "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/open_diagnostic.observations.json": "1b620cc76633f0bd379d9be1368f7fa265d27e0b7f4f583b2c6ce931063373eb",
+    "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/open_diagnostic.truth.json": "28927f352e7570ec5d27cad548cc293f3a0d7eecb60b531e169c9922283c61c4",
+    "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/original_tight5.observations.json": "7e2821af811a145f7a96be8b364da1afa66306e0c1ec551a522063d355fb1f08",
+    "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/original_tight5.truth.json": "31296dea92c26493530c7fe2ab43131295cefdd7d484ac01eafa85bcc2d8f677",
+    "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/sensor_dropout.observations.json": "d2776378caab08b9e37abdaf035983d0dd9dd658569e4b4dcbd8c92b9cc17496",
+    "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/sensor_dropout.truth.json": "69794f3781dd1cf1c8f322050d8c4ca16dd2eff1d789f407294d49ebc160922a",
+    "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/export_fixtures.py": "31eb2f7045bc8ad1f80b500a435316c07f5eea61a6cd9b81924f98288a0dd0f3",
+    "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/simulate_slalom.py": "7d231ab0cff90cb7b781ec8a1f7218173648fa0e954981d73c483ca17408817b",
+    "experiments/competition_vm/arena_robot_sim/simulate.py": "231b99c3b58d4d61bb1813abb655f849a70e073415682c84e4fb23000bb10947",
+    "experiments/competition_vm/avoidance/core.py": "73b4861f1e984611c75dc9ad548434558882d0f92972865967d2e1b3c89e5e5d",
+    "assets/competition-arena/revisions/rulebook-20261015/geometry.py": "6b5d78393dadd6db0921fe11c108be88529503608c6d26192d2da86bacab3422",
+    "assets/competition-arena/revisions/rulebook-20261015/collision/virtual_fences.json": "dc6827fc3b8f2c5043cbdf39d0ba74fee85f3bda621a28e0a79958dfab79fb0d",
+    "assets/competition-arena/revisions/corridor-parallel-20261024/geometry.py": "2f190a554c9ce891d0b997f0ba67648c81e3a6a77e44d25533fb7e476c21856d",
+    "assets/competition-arena/revisions/corridor-parallel-20261024/collision/virtual_fences.json": "6c8a3a21712e0daff0f7c4d2d93ee59aeab19d69caf077980d5df5877e776b37"
+  },
+  "usage": "Read-only D0 source dependency; sensor code is imported in a separate process, never copied into the C3 implementation. Witnesses excluded."
+}

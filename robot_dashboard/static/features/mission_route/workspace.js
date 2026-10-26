@@ -4,6 +4,9 @@ import { familyPins } from '../route_planner/spatial_editor.js';
 
 import { addCompetitionEditor, competitionSummary, nativeBlockers, observationText, pathEvidence } from './competition.js';
 
+import { createOfflineSignalDemo } from './offline_signal.js';
+import { createRGBReplayReview } from './rgb_review.js';
+
 import { createArenaPreview } from './arena_preview.js';
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -73,6 +76,8 @@ export function createMissionWorkspace({ host, client: missionClient, navigation
   const checkOutput = make('div'); const runSummary = make('pre', '선택된 실행 없음'); const history = select(historyRow, '실행 이력');
   const compareSelect = select(historyRow, '비교 실행 이력'), comparisonSummary = make('pre', '비교 실행 없음'); comparisonSummary.dataset.comparisonSummary = 'true'; historyRow.append(comparisonSummary);
   compareSelect.addEventListener('change', () => run(async () => { comparison = compareSelect.value ? await planClient.run(compareSelect.value) : null; updateComparison(); draw(); }));
+  const offlineDemo = createOfflineSignalDemo({row: validationRow, summary: runSummary, document: doc});
+  const rgbReview = createRGBReplayReview({container: checkOutput, document: doc});
   const checkButtons = [];
   function requireEditing() { if (mode !== 'edit') throw new Error('방문 변경은 편집 모드에서 가능합니다.'); }
   function assertInputs() { const invalid = [...right.querySelectorAll('input[type=number]')].find((node) => !node.disabled && !node.validity.valid); if (invalid || invalidInputs.size) { invalid?.reportValidity(); throw new Error('숫자 입력의 빈 값 또는 허용 범위를 확인하세요. 기존 값은 변경하지 않았습니다.'); } }
@@ -292,6 +297,7 @@ export function createMissionWorkspace({ host, client: missionClient, navigation
     status.textContent = report.notice || '검사 결과는 해당 revision 기준이며 실행 허가와 별도입니다.';
   }
   function updateRun(mission) {
+    if (offlineDemo) return;
     if (!mission) return; if (mission.id === currentRun?.id) runMission = mission;
     if (currentRun?.mode === 'fixture') { runSummary.textContent = observationText(mission) + '\n' + (mission.logs || []).slice(-8).map(e => `${e.seq} ${e.event}`).join('\n'); updateCompetition(); updateComparison(); updateButtons(); return; }
     const current = mission.waypoints[mission.current_index], next = mission.waypoints[mission.current_index + 1];
@@ -375,6 +381,8 @@ export function createMissionWorkspace({ host, client: missionClient, navigation
     if (!active || destroyed || observing || Date.now() - lastObservation < 1000) return;
     observing = true; lastObservation = Date.now(); const requestEpoch = epoch, runId = currentRun?.id;
     try {
+      // Image diagnostics remain readable even when mission APIs are unavailable.
+      await rgbReview?.refresh();
       const [latest, definitions] = await Promise.all([runId ? planClient.run(runId) : Promise.resolve(null), planClient.list()]);
       if (!active || destroyed || requestEpoch !== epoch) return;
       const nextContext = definitions.context;
@@ -385,6 +393,7 @@ export function createMissionWorkspace({ host, client: missionClient, navigation
       if (latest && currentRun?.id === runId) { currentRun = latest.run; updateRun(latest.mission); }
       draw();
       updateButtons();
+      await offlineDemo?.refresh();
     } catch (error) { if (active && requestEpoch === epoch && !destroyed) { markConnection(true, error.message); updateButtons(); } }
     finally { observing = false; }
   }
@@ -397,6 +406,6 @@ export function createMissionWorkspace({ host, client: missionClient, navigation
       run(async () => { await refreshLists(); if (restored && state.snapshot().draft && !map) { await loadMap(state.snapshot().draft.map_family.occupancy_map_id); restored = false; renderDraft(); if (!staleReasons.length) status.textContent = '이 탭의 편집 초안을 복구했습니다. 실행은 자동 시작하지 않습니다.'; } });
     },
     deactivate() { active = false; epoch++; state.endEdit(true); gesture = null; release?.(); release = null; navigationRelease?.(); navigationRelease = null; connectionStale = true; state.invalidate(); },
-    destroy() { this.deactivate(); destroyed = true; arenaPreview.destroy(); root.remove(); },
+    destroy() { this.deactivate(); destroyed = true; arenaPreview.destroy(); offlineDemo?.destroy(); rgbReview?.destroy(); root.remove(); },
   };
 }

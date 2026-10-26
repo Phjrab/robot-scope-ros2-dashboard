@@ -1,0 +1,6 @@
+# Opt-in offline replay environment; not production/dashboard dependencies.
+# First install torch==2.6.0 torchvision==0.21.0 from PyTorch's CPU index.
+numpy==1.26.4
+opencv-python==4.10.0.84
+ultralytics==8.3.203
+jsonschema==4.10.3

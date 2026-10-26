@@ -1,0 +1,168 @@
+{
+  "evidence_class": "SYNTHETIC_ONLY",
+  "purpose": "C2-owned action trace inspired by D0 semantic contract; no D0/C4 import, robot, model or video",
+  "references": {
+    "D0": "6403aab3afef96efa778b5265afd7ce5b351265c",
+    "C4": "e2e9c5087767f3953d715c61e76388e4769d34b4"
+  },
+  "timing": {
+    "source_max_age_s": 0.25,
+    "receiver_ttl_s": 0.25,
+    "continuity_gap_s": 0.5,
+    "command_ttl_s": 0.25
+  },
+  "inputs": [
+    {
+      "time_s": 0,
+      "observation": {
+        "goal_state": "SUCCEEDED"
+      },
+      "phase": "HOLD_ACK"
+    },
+    {
+      "time_s": 0.01,
+      "observation": {
+        "goal_state": "SUCCEEDED"
+      },
+      "phase": "HOLD_SIGNAL"
+    },
+    {
+      "time_s": 0.02,
+      "observation": {
+        "goal_state": "SUCCEEDED"
+      },
+      "phase": "HOLD_SIGNAL"
+    },
+    {
+      "time_s": 0.22,
+      "observation": {
+        "goal_state": "SUCCEEDED"
+      },
+      "phase": "HOLD_SIGNAL"
+    },
+    {
+      "time_s": 0.42,
+      "observation": {
+        "goal_state": "SUCCEEDED"
+      },
+      "phase": "HOLD_SIGNAL"
+    },
+    {
+      "time_s": 0.62,
+      "observation": {
+        "goal_state": "SUCCEEDED"
+      },
+      "phase": "HOLD_SIGNAL"
+    },
+    {
+      "time_s": 0.82,
+      "observation": {
+        "goal_state": "SUCCEEDED"
+      },
+      "phase": "HOLD_SIGNAL"
+    },
+    {
+      "time_s": 1.02,
+      "observation": {
+        "goal_state": "SUCCEEDED"
+      },
+      "phase": "HOLD_SIGNAL"
+    },
+    {
+      "time_s": 1.22,
+      "observation": {
+        "goal_state": "SUCCEEDED"
+      },
+      "phase": "HOLD_SIGNAL"
+    },
+    {
+      "time_s": 1.42,
+      "observation": {
+        "goal_state": "SUCCEEDED"
+      },
+      "phase": "HOLD_SIGNAL"
+    },
+    {
+      "time_s": 1.62,
+      "observation": {
+        "goal_state": "SUCCEEDED"
+      },
+      "phase": "HOLD_SIGNAL"
+    },
+    {
+      "time_s": 1.82,
+      "observation": {
+        "goal_state": "SUCCEEDED"
+      },
+      "phase": "HOLD_SIGNAL"
+    },
+    {
+      "time_s": 2.02,
+      "observation": {
+        "goal_state": "SUCCEEDED"
+      },
+      "phase": "EXIT_PENDING"
+    },
+    {
+      "time_s": 2.03,
+      "phase": "DEPARTING"
+    },
+    {
+      "time_s": 2.04,
+      "observation": {
+        "body_motion_status": "MOVING",
+        "departure_observed": true
+      },
+      "phase": "DEPARTING",
+      "departed": true
+    },
+    {
+      "time_s": 2.05,
+      "observation": {
+        "raw_state": "RED",
+        "stable_state": "RED",
+        "body_motion_status": "MOVING"
+      },
+      "phase": "DEPARTING",
+      "departed": true
+    },
+    {
+      "time_s": 2.06,
+      "observation": {
+        "raw_state": "RED",
+        "stable_state": "RED",
+        "goal_state": "SUCCEEDED"
+      },
+      "phase": "SUCCEEDED",
+      "departed": true
+    }
+  ],
+  "expected_calls": [
+    [
+      "goal",
+      "approach",
+      1
+    ],
+    [
+      "HOLD",
+      1
+    ],
+    [
+      "HOLD",
+      2
+    ],
+    [
+      "goal",
+      "exit",
+      2
+    ],
+    [
+      "RELEASE",
+      2
+    ],
+    [
+      "HOLD",
+      2
+    ]
+  ]
+}

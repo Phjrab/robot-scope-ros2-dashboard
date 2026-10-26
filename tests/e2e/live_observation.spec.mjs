@@ -658,3 +658,27 @@ test('a late automatic proposal cannot fill fields after its source changes',asy
   await expect(page.locator('#savedLive_x')).toHaveValue('0');
   await expect(page.locator('#savedLiveConfirm')).not.toBeChecked();expect(errors).toEqual([]);
 });
+
+test('agent connection loss after an IMU proposal keeps its reason and clears stale geometry',async({page},testInfo)=>{
+  const {backend,state,errors}=await fixture(page,{imu:true});
+  anchorProposalBackend(backend);
+  await expect(page.locator('#savedAnchorEstimateStart')).toBeEnabled();
+  await page.locator('#savedAnchorEstimateStart').click();
+  await expect(page.locator('#savedAnchorEstimateApply')).toBeEnabled();
+  await page.locator('#savedAnchorEstimateApply').click();
+  await expect(page.locator('#savedLive_x')).toHaveValue('0.7');
+  await page.locator('#savedLiveConfirm').check();
+  await page.locator('#savedLiveAnchor').click();
+  await expect(page.locator('#savedLiveCenter')).toBeEnabled();
+  state.streaming=false;
+  backend.on('/api/v1/state',({route})=>route.abort('failed'));
+  await expect(page.locator('#savedLiveState')).toHaveText('AGENT_CONNECTION_LOST');
+  await expect(page.locator('#savedLiveAvailability')).toContainText('LiDAR·pose 수신 상태를 확인할 수 없습니다');
+  await expect(page.locator('#savedLiveCenter')).toBeDisabled();
+  await expect(page.locator('#savedLive_x')).toHaveValue('');
+  await expect(page.locator('#savedLiveConfirm')).not.toBeChecked();
+  expect(await page.evaluate(()=>window.observationScene.pointCloudOverlay)).toBeNull();
+  expect(await page.evaluate(()=>window.observationScene.robotPose)).toBeNull();
+  await page.locator('#savedLiveObservation').screenshot({path:testInfo.outputPath('synthetic-agent-connection-lost.png')});
+  expect(errors).toEqual([]);
+});

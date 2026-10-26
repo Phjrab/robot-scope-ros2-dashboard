@@ -1,0 +1,688 @@
+{
+  "schema": "c3-native-minimum.v1",
+  "planned": 8,
+  "attempted": 8,
+  "native_recorded": 8,
+  "cases": [
+    {
+      "controller": "rpp",
+      "scenario": "empty",
+      "returncode": 0,
+      "status": "NATIVE_RECORDED",
+      "outcome": "GOAL_REACHED",
+      "expected": "GOAL_REACHED",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": []
+      },
+      "error": null,
+      "terminal_fault": null,
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          105,
+          138,
+          55,
+          88,
+          186,
+          54,
+          64,
+          68,
+          165,
+          82,
+          243,
+          37,
+          168,
+          194,
+          219,
+          156
+        ],
+        "status": 4
+      },
+      "metrics": {
+        "footprint_collision_count": 0,
+        "boundary_violation_count": 0,
+        "min_conservative_clearance_m": 0.0,
+        "path_length_m": 2.5828332746364717,
+        "sim_time_s": 19.45000000000014,
+        "wall_time_s": 19.51871795699998,
+        "plant_deadline_misses": 1,
+        "plant_max_wall_gap_s": 0.09118436400001428,
+        "runner_cpu_s": 3.717602142,
+        "runner_peak_rss_kib": 92172,
+        "hold_nonzero_count": 0
+      },
+      "goal_distance_m": 0.11765659424308479,
+      "goal_yaw_error_rad": 0.028801280964296794,
+      "package_versions": {
+        "nav2_controller": "1.1.20",
+        "nav2_planner": "1.1.20",
+        "nav2_bt_navigator": "1.1.20",
+        "rclpy": "3.3.22",
+        "nav2_regulated_pure_pursuit_controller": "1.1.20"
+      },
+      "loaded_library_sha256": {
+        "/opt/ros/humble/lib/libnav2_regulated_pure_pursuit_controller.so": "d63cca14c5cd1f5d85b61d2d37e40f70c1cba0133fe2dcd574595386b969f497"
+      },
+      "raw_command_counts": {
+        "controller_server": 347,
+        "behavior_server": 0
+      },
+      "map_sha256": "5bbd3ddfdbd1175b1681e0c837bcb4f07902cb2ba77e457bbac9d0084cf4a986",
+      "fixture_sha256": "e6ee1aade91486d8019c8ad22d45ba0c7b6e46ad919d2308c81d18b6d58197d2",
+      "config_sha256": "ea1e0668db1e54cd6d31082317b3d3889843a3efa1377ba9d22bfb8c0a06f3b2",
+      "source_sha": "afe02f38d8396d11d786d39452ac572f27d72c22",
+      "image_id": "sha256:0efc243066ebe7f5c64723718886c15659fae2a67e2c05c8ffb7b5af57aa9cd3",
+      "expectation_met": true,
+      "start_reason": "Native NavigateToPose goal accepted after lifecycle, publisher, parameter and loaded binary audit",
+      "end_reason": "Native action status 4",
+      "final_actuator": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "controller": "rpp",
+      "scenario": "diagnostic_single_obstacle",
+      "returncode": 0,
+      "status": "NATIVE_RECORDED",
+      "outcome": "GOAL_REACHED",
+      "expected": "GOAL_REACHED",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": []
+      },
+      "error": null,
+      "terminal_fault": null,
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          252,
+          155,
+          7,
+          98,
+          89,
+          236,
+          71,
+          219,
+          135,
+          242,
+          231,
+          75,
+          115,
+          56,
+          61,
+          154
+        ],
+        "status": 4
+      },
+      "metrics": {
+        "footprint_collision_count": 0,
+        "boundary_violation_count": 0,
+        "min_conservative_clearance_m": 0.27864091467561813,
+        "path_length_m": 4.269622113888172,
+        "sim_time_s": 30.150000000000293,
+        "wall_time_s": 30.246897243999967,
+        "plant_deadline_misses": 1,
+        "plant_max_wall_gap_s": 0.1188806179999915,
+        "runner_cpu_s": 6.26213151,
+        "runner_peak_rss_kib": 91868,
+        "hold_nonzero_count": 0
+      },
+      "goal_distance_m": 0.11511170580707066,
+      "goal_yaw_error_rad": 0.15855899381139027,
+      "package_versions": {
+        "nav2_controller": "1.1.20",
+        "nav2_planner": "1.1.20",
+        "nav2_bt_navigator": "1.1.20",
+        "rclpy": "3.3.22",
+        "nav2_regulated_pure_pursuit_controller": "1.1.20"
+      },
+      "loaded_library_sha256": {
+        "/opt/ros/humble/lib/libnav2_regulated_pure_pursuit_controller.so": "d63cca14c5cd1f5d85b61d2d37e40f70c1cba0133fe2dcd574595386b969f497"
+      },
+      "raw_command_counts": {
+        "controller_server": 561,
+        "behavior_server": 0
+      },
+      "map_sha256": "faa47a95e1be2ebf3400918df2c2f717a68c8294b2b49aa365f4baba754c620f",
+      "fixture_sha256": "631f19f08a426f4ba91666fadea3b38488580259fabde589b8532854a7ba873a",
+      "config_sha256": "ea1e0668db1e54cd6d31082317b3d3889843a3efa1377ba9d22bfb8c0a06f3b2",
+      "source_sha": "afe02f38d8396d11d786d39452ac572f27d72c22",
+      "image_id": "sha256:0efc243066ebe7f5c64723718886c15659fae2a67e2c05c8ffb7b5af57aa9cd3",
+      "expectation_met": true,
+      "start_reason": "Native NavigateToPose goal accepted after lifecycle, publisher, parameter and loaded binary audit",
+      "end_reason": "Native action status 4",
+      "final_actuator": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "controller": "rpp",
+      "scenario": "fully_blocked",
+      "returncode": 0,
+      "status": "NATIVE_RECORDED",
+      "outcome": "SAFE_WAIT",
+      "expected": "SAFE_WAIT",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": []
+      },
+      "error": null,
+      "terminal_fault": null,
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          175,
+          23,
+          59,
+          189,
+          221,
+          82,
+          77,
+          174,
+          144,
+          202,
+          17,
+          98,
+          80,
+          237,
+          228,
+          197
+        ],
+        "status": 6
+      },
+      "metrics": {
+        "footprint_collision_count": 0,
+        "boundary_violation_count": 0,
+        "min_conservative_clearance_m": 0.0,
+        "path_length_m": 0.0,
+        "sim_time_s": 8.999999999999993,
+        "wall_time_s": 9.042095262999965,
+        "plant_deadline_misses": 1,
+        "plant_max_wall_gap_s": 0.09079846299999872,
+        "runner_cpu_s": 1.5954777740000003,
+        "runner_peak_rss_kib": 91440,
+        "hold_nonzero_count": 0
+      },
+      "goal_distance_m": 2.6999999999999997,
+      "goal_yaw_error_rad": 0.8339491561648935,
+      "package_versions": {
+        "nav2_controller": "1.1.20",
+        "nav2_planner": "1.1.20",
+        "nav2_bt_navigator": "1.1.20",
+        "rclpy": "3.3.22",
+        "nav2_regulated_pure_pursuit_controller": "1.1.20"
+      },
+      "loaded_library_sha256": {
+        "/opt/ros/humble/lib/libnav2_regulated_pure_pursuit_controller.so": "d63cca14c5cd1f5d85b61d2d37e40f70c1cba0133fe2dcd574595386b969f497"
+      },
+      "raw_command_counts": {
+        "controller_server": 0,
+        "behavior_server": 43
+      },
+      "map_sha256": "5bbd3ddfdbd1175b1681e0c837bcb4f07902cb2ba77e457bbac9d0084cf4a986",
+      "fixture_sha256": "bba0caa89f1e18cb4383f9c25af54ca83fc916d5c75a39622ee4573b20cb886b",
+      "config_sha256": "ea1e0668db1e54cd6d31082317b3d3889843a3efa1377ba9d22bfb8c0a06f3b2",
+      "source_sha": "afe02f38d8396d11d786d39452ac572f27d72c22",
+      "image_id": "sha256:0efc243066ebe7f5c64723718886c15659fae2a67e2c05c8ffb7b5af57aa9cd3",
+      "expectation_met": true,
+      "start_reason": "Native NavigateToPose goal accepted after lifecycle, publisher, parameter and loaded binary audit",
+      "end_reason": "Native action status 6",
+      "final_actuator": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "controller": "rpp",
+      "scenario": "sensor_stale",
+      "returncode": 0,
+      "status": "NATIVE_RECORDED",
+      "outcome": "SAFE_WAIT",
+      "expected": "SAFE_WAIT",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": []
+      },
+      "error": null,
+      "terminal_fault": "SENSOR_STALE",
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          78,
+          202,
+          50,
+          151,
+          51,
+          9,
+          79,
+          26,
+          128,
+          244,
+          155,
+          131,
+          183,
+          11,
+          28,
+          122
+        ],
+        "cancel_ack_count": 1,
+        "status": 5
+      },
+      "metrics": {
+        "footprint_collision_count": 0,
+        "boundary_violation_count": 0,
+        "min_conservative_clearance_m": 0.0,
+        "path_length_m": 0.3284999936987105,
+        "sim_time_s": 6.8999999999999835,
+        "wall_time_s": 6.980990274000021,
+        "plant_deadline_misses": 1,
+        "plant_max_wall_gap_s": 0.08952869699999155,
+        "runner_cpu_s": 0.884821531,
+        "runner_peak_rss_kib": 91584,
+        "hold_nonzero_count": 0
+      },
+      "goal_distance_m": 2.371524272314708,
+      "goal_yaw_error_rad": 0.003567220286170958,
+      "package_versions": {
+        "nav2_controller": "1.1.20",
+        "nav2_planner": "1.1.20",
+        "nav2_bt_navigator": "1.1.20",
+        "rclpy": "3.3.22",
+        "nav2_regulated_pure_pursuit_controller": "1.1.20"
+      },
+      "loaded_library_sha256": {
+        "/opt/ros/humble/lib/libnav2_regulated_pure_pursuit_controller.so": "d63cca14c5cd1f5d85b61d2d37e40f70c1cba0133fe2dcd574595386b969f497"
+      },
+      "raw_command_counts": {
+        "controller_server": 45,
+        "behavior_server": 0
+      },
+      "map_sha256": "5bbd3ddfdbd1175b1681e0c837bcb4f07902cb2ba77e457bbac9d0084cf4a986",
+      "fixture_sha256": "18f21411987f2bfc3f792536c8e825cc54d5634c2d1f9d52dadc1569019eba25",
+      "config_sha256": "ea1e0668db1e54cd6d31082317b3d3889843a3efa1377ba9d22bfb8c0a06f3b2",
+      "source_sha": "afe02f38d8396d11d786d39452ac572f27d72c22",
+      "image_id": "sha256:0efc243066ebe7f5c64723718886c15659fae2a67e2c05c8ffb7b5af57aa9cd3",
+      "expectation_met": true,
+      "start_reason": "Native NavigateToPose goal accepted after lifecycle, publisher, parameter and loaded binary audit",
+      "end_reason": "Native action status 5",
+      "dropout_evidence": {
+        "fault_elapsed_sim_s": 2.249999999999994,
+        "fault_sensor_source_age_wall_s": 0.34996236200004205,
+        "zero_at_fault": [
+          0.0,
+          0.0
+        ],
+        "all_zero_after_fault": true,
+        "observed_zero_tail_sim_s": 3.099999999999989,
+        "recovery": {
+          "fault_latched": "SENSOR_STALE",
+          "final_output": [
+            0.0,
+            0.0
+          ],
+          "auto_resume": false,
+          "restart_requirement": "Terminate this run; create a fresh isolated run, acquire fresh scans, activate servers, accept a new goal and release epoch. HOLD/RELEASE alone cannot clear a latched fault."
+        }
+      },
+      "final_actuator": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "controller": "mppi",
+      "scenario": "empty",
+      "returncode": 0,
+      "status": "NATIVE_RECORDED",
+      "outcome": "GOAL_REACHED",
+      "expected": "GOAL_REACHED",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": []
+      },
+      "error": null,
+      "terminal_fault": null,
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          145,
+          59,
+          95,
+          30,
+          212,
+          239,
+          70,
+          36,
+          143,
+          37,
+          47,
+          42,
+          238,
+          9,
+          156,
+          118
+        ],
+        "status": 4
+      },
+      "metrics": {
+        "footprint_collision_count": 0,
+        "boundary_violation_count": 0,
+        "min_conservative_clearance_m": 0.0,
+        "path_length_m": 2.5940674916737314,
+        "sim_time_s": 22.550000000000185,
+        "wall_time_s": 22.637292957,
+        "plant_deadline_misses": 1,
+        "plant_max_wall_gap_s": 0.09001264599999104,
+        "runner_cpu_s": 4.231300271,
+        "runner_peak_rss_kib": 92220,
+        "hold_nonzero_count": 0
+      },
+      "goal_distance_m": 0.11470570455263811,
+      "goal_yaw_error_rad": 0.015552139675128362,
+      "package_versions": {
+        "nav2_controller": "1.1.20",
+        "nav2_planner": "1.1.20",
+        "nav2_bt_navigator": "1.1.20",
+        "rclpy": "3.3.22",
+        "nav2_mppi_controller": "1.1.20"
+      },
+      "loaded_library_sha256": {
+        "/opt/ros/humble/lib/libmppi_controller.so": "a43e86cb395940e9092fb014475fb18e50784e8de65937709c02914aaac6c765"
+      },
+      "raw_command_counts": {
+        "controller_server": 410,
+        "behavior_server": 0
+      },
+      "map_sha256": "5bbd3ddfdbd1175b1681e0c837bcb4f07902cb2ba77e457bbac9d0084cf4a986",
+      "fixture_sha256": "e6ee1aade91486d8019c8ad22d45ba0c7b6e46ad919d2308c81d18b6d58197d2",
+      "config_sha256": "955dce539bb825cae4f168111bc20176b8f9a49b0fc8919d5e93a8ef9f622b60",
+      "source_sha": "afe02f38d8396d11d786d39452ac572f27d72c22",
+      "image_id": "sha256:0efc243066ebe7f5c64723718886c15659fae2a67e2c05c8ffb7b5af57aa9cd3",
+      "expectation_met": true,
+      "start_reason": "Native NavigateToPose goal accepted after lifecycle, publisher, parameter and loaded binary audit",
+      "end_reason": "Native action status 4",
+      "final_actuator": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "controller": "mppi",
+      "scenario": "diagnostic_single_obstacle",
+      "returncode": 0,
+      "status": "NATIVE_RECORDED",
+      "outcome": "SAFE_WAIT",
+      "expected": "GOAL_REACHED",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": []
+      },
+      "error": null,
+      "terminal_fault": null,
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          41,
+          62,
+          11,
+          218,
+          176,
+          141,
+          77,
+          73,
+          183,
+          31,
+          83,
+          14,
+          3,
+          115,
+          49,
+          8
+        ],
+        "cancel_ack_count": 1,
+        "status": 5
+      },
+      "metrics": {
+        "footprint_collision_count": 0,
+        "boundary_violation_count": 0,
+        "min_conservative_clearance_m": 0.1095371510118565,
+        "path_length_m": 4.848746529639412,
+        "sim_time_s": 69.84999999999818,
+        "wall_time_s": 69.893644182,
+        "plant_deadline_misses": 1,
+        "plant_max_wall_gap_s": 0.09189845299999888,
+        "runner_cpu_s": 14.128736456999999,
+        "runner_peak_rss_kib": 93136,
+        "hold_nonzero_count": 0
+      },
+      "goal_distance_m": 0.26046619886897926,
+      "goal_yaw_error_rad": 0.02928258369152692,
+      "package_versions": {
+        "nav2_controller": "1.1.20",
+        "nav2_planner": "1.1.20",
+        "nav2_bt_navigator": "1.1.20",
+        "rclpy": "3.3.22",
+        "nav2_mppi_controller": "1.1.20"
+      },
+      "loaded_library_sha256": {
+        "/opt/ros/humble/lib/libmppi_controller.so": "a43e86cb395940e9092fb014475fb18e50784e8de65937709c02914aaac6c765"
+      },
+      "raw_command_counts": {
+        "controller_server": 1259,
+        "behavior_server": 22
+      },
+      "map_sha256": "faa47a95e1be2ebf3400918df2c2f717a68c8294b2b49aa365f4baba754c620f",
+      "fixture_sha256": "631f19f08a426f4ba91666fadea3b38488580259fabde589b8532854a7ba873a",
+      "config_sha256": "955dce539bb825cae4f168111bc20176b8f9a49b0fc8919d5e93a8ef9f622b60",
+      "source_sha": "afe02f38d8396d11d786d39452ac572f27d72c22",
+      "image_id": "sha256:0efc243066ebe7f5c64723718886c15659fae2a67e2c05c8ffb7b5af57aa9cd3",
+      "expectation_met": false,
+      "start_reason": "Native NavigateToPose goal accepted after lifecycle, publisher, parameter and loaded binary audit",
+      "end_reason": "Native progress checker failed, native Spin recovery executed; 65 s simulation budget expired, cancellation acknowledged, terminal CANCELED (5), followed by observed zero wait",
+      "final_actuator": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "controller": "mppi",
+      "scenario": "fully_blocked",
+      "returncode": 0,
+      "status": "NATIVE_RECORDED",
+      "outcome": "SAFE_WAIT",
+      "expected": "SAFE_WAIT",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": []
+      },
+      "error": null,
+      "terminal_fault": null,
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          105,
+          83,
+          85,
+          72,
+          6,
+          190,
+          65,
+          176,
+          141,
+          128,
+          122,
+          119,
+          161,
+          153,
+          154,
+          26
+        ],
+        "status": 6
+      },
+      "metrics": {
+        "footprint_collision_count": 0,
+        "boundary_violation_count": 0,
+        "min_conservative_clearance_m": 0.0,
+        "path_length_m": 0.0,
+        "sim_time_s": 9.049999999999994,
+        "wall_time_s": 9.138641280000002,
+        "plant_deadline_misses": 1,
+        "plant_max_wall_gap_s": 0.0903024250000044,
+        "runner_cpu_s": 1.6196274699999997,
+        "runner_peak_rss_kib": 91716,
+        "hold_nonzero_count": 0
+      },
+      "goal_distance_m": 2.6999999999999997,
+      "goal_yaw_error_rad": 0.8339491561648935,
+      "package_versions": {
+        "nav2_controller": "1.1.20",
+        "nav2_planner": "1.1.20",
+        "nav2_bt_navigator": "1.1.20",
+        "rclpy": "3.3.22",
+        "nav2_mppi_controller": "1.1.20"
+      },
+      "loaded_library_sha256": {
+        "/opt/ros/humble/lib/libmppi_controller.so": "a43e86cb395940e9092fb014475fb18e50784e8de65937709c02914aaac6c765"
+      },
+      "raw_command_counts": {
+        "controller_server": 0,
+        "behavior_server": 43
+      },
+      "map_sha256": "5bbd3ddfdbd1175b1681e0c837bcb4f07902cb2ba77e457bbac9d0084cf4a986",
+      "fixture_sha256": "bba0caa89f1e18cb4383f9c25af54ca83fc916d5c75a39622ee4573b20cb886b",
+      "config_sha256": "955dce539bb825cae4f168111bc20176b8f9a49b0fc8919d5e93a8ef9f622b60",
+      "source_sha": "afe02f38d8396d11d786d39452ac572f27d72c22",
+      "image_id": "sha256:0efc243066ebe7f5c64723718886c15659fae2a67e2c05c8ffb7b5af57aa9cd3",
+      "expectation_met": true,
+      "start_reason": "Native NavigateToPose goal accepted after lifecycle, publisher, parameter and loaded binary audit",
+      "end_reason": "Native action status 6",
+      "final_actuator": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "controller": "mppi",
+      "scenario": "sensor_stale",
+      "returncode": 0,
+      "status": "NATIVE_RECORDED",
+      "outcome": "SAFE_WAIT",
+      "expected": "SAFE_WAIT",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": []
+      },
+      "error": null,
+      "terminal_fault": "SENSOR_STALE",
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          224,
+          156,
+          34,
+          43,
+          35,
+          168,
+          66,
+          243,
+          151,
+          79,
+          61,
+          182,
+          112,
+          50,
+          28,
+          232
+        ],
+        "cancel_ack_count": 1,
+        "status": 5
+      },
+      "metrics": {
+        "footprint_collision_count": 0,
+        "boundary_violation_count": 0,
+        "min_conservative_clearance_m": 0.0,
+        "path_length_m": 0.253225643254649,
+        "sim_time_s": 7.049999999999983,
+        "wall_time_s": 7.113073479000036,
+        "plant_deadline_misses": 1,
+        "plant_max_wall_gap_s": 0.09123488700004145,
+        "runner_cpu_s": 0.970249431,
+        "runner_peak_rss_kib": 91844,
+        "hold_nonzero_count": 0
+      },
+      "goal_distance_m": 2.4468842080952724,
+      "goal_yaw_error_rad": 0.034990623209159466,
+      "package_versions": {
+        "nav2_controller": "1.1.20",
+        "nav2_planner": "1.1.20",
+        "nav2_bt_navigator": "1.1.20",
+        "rclpy": "3.3.22",
+        "nav2_mppi_controller": "1.1.20"
+      },
+      "loaded_library_sha256": {
+        "/opt/ros/humble/lib/libmppi_controller.so": "a43e86cb395940e9092fb014475fb18e50784e8de65937709c02914aaac6c765"
+      },
+      "raw_command_counts": {
+        "controller_server": 46,
+        "behavior_server": 0
+      },
+      "map_sha256": "5bbd3ddfdbd1175b1681e0c837bcb4f07902cb2ba77e457bbac9d0084cf4a986",
+      "fixture_sha256": "18f21411987f2bfc3f792536c8e825cc54d5634c2d1f9d52dadc1569019eba25",
+      "config_sha256": "955dce539bb825cae4f168111bc20176b8f9a49b0fc8919d5e93a8ef9f622b60",
+      "source_sha": "afe02f38d8396d11d786d39452ac572f27d72c22",
+      "image_id": "sha256:0efc243066ebe7f5c64723718886c15659fae2a67e2c05c8ffb7b5af57aa9cd3",
+      "expectation_met": true,
+      "start_reason": "Native NavigateToPose goal accepted after lifecycle, publisher, parameter and loaded binary audit",
+      "end_reason": "Native action status 5",
+      "dropout_evidence": {
+        "fault_elapsed_sim_s": 2.299999999999993,
+        "fault_sensor_source_age_wall_s": 0.3499510609999561,
+        "zero_at_fault": [
+          0.0,
+          0.0
+        ],
+        "all_zero_after_fault": true,
+        "observed_zero_tail_sim_s": 3.099999999999989,
+        "recovery": {
+          "fault_latched": "SENSOR_STALE",
+          "final_output": [
+            0.0,
+            0.0
+          ],
+          "auto_resume": false,
+          "restart_requirement": "Terminate this run; create a fresh isolated run, acquire fresh scans, activate servers, accept a new goal and release epoch. HOLD/RELEASE alone cannot clear a latched fault."
+        }
+      },
+      "final_actuator": [
+        0.0,
+        0.0
+      ]
+    }
+  ],
+  "status": "COMPLETED_WITH_FAILURES",
+  "actions_run_url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40099437117",
+  "artifact_url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40099437117/artifacts/12562342808",
+  "artifact_expires_at": "2026-11-07T13:49:59Z",
+  "retention_days": 14,
+  "local_revalidation": "8/8 PASS",
+  "expectations_met": 7,
+  "shared_fixture_and_non_controller_parameters": "4/4 pairs identical; independently checked from artifact",
+  "base_digest": "ros@sha256:566b87e6dfc48392189a9c32e594e84060fa9948de93b04e536f39475a1f6963",
+  "image_id": "sha256:0efc243066ebe7f5c64723718886c15659fae2a67e2c05c8ffb7b5af57aa9cd3",
+  "package_lock_sha256": "45f626571f4fd5388d7bc174cae017e5482a4c2396254a5adfb461342076a5de",
+  "source_sha": "afe02f38d8396d11d786d39452ac572f27d72c22",
+  "latest_main_observed": "104692fa0070ef085eee918913ea05fdb2d88c05",
+  "physical_robot_qualification": "NOT_RUN",
+  "comparison_limit": "One fixed fixture seed and one baseline each. MPPI RNG seed is not exposed; no winner or Jetson latency claim. Original 144-run plan remains historical/unexecuted as a whole."
+}

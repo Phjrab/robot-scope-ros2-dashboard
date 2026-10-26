@@ -1,0 +1,134 @@
+{
+  "generated_at_kst": "2026-10-24T21:29:58.421877+09:00",
+  "tested_code_sha": "9864f4d312b3c3b4adbff44d9c2eeeced9819cce",
+  "base_sha": "7f2a7070a17975d2a5f123cbf6aab0f99f04bf8a",
+  "remote_main_observed": "5d78fcb7c7589134a533d6dc0ddd09995f9163f9",
+  "evidence_class": "SYNTHETIC_ONLY",
+  "checks": [
+    {
+      "name": "c2_unit",
+      "command": "python3 -m unittest discover -s tests/competition_native -t tests -v",
+      "status": "PASS",
+      "tests": 65,
+      "skipped": 0,
+      "log": "c2-native-tests.log",
+      "local_log_sha256": "e0507b1b7e88571d14be0a9327c5ebefbc4998cb820691630aba114d98ac17a5",
+      "log_uploaded": false
+    },
+    {
+      "name": "python_full",
+      "command": "python3 -m unittest discover -s tests -v",
+      "status": "PASS",
+      "tests": 2756,
+      "passed": 2754,
+      "skipped": 2,
+      "duration_s": 90.32,
+      "log": "c2-final-python.log",
+      "local_log_sha256": "689bbd685711bc7cfae4bc3a48c83e939c6ad173fc589fc7b491dd2d5b0b2453",
+      "log_uploaded": false
+    },
+    {
+      "name": "javascript",
+      "command": "node --test tests/*.mjs",
+      "status": "PASS",
+      "tests": 660,
+      "skipped": 0,
+      "log": "c2-javascript.log",
+      "local_log_sha256": "3cb5568fa077e441fd5b00b64e6a7be732854e3162cb975dabf3d35fde129d61",
+      "log_uploaded": false
+    },
+    {
+      "name": "javascript_syntax",
+      "command": "node scripts/check_frontend_syntax.mjs",
+      "status": "PASS",
+      "modules": 104,
+      "log": "c2-js-syntax.log",
+      "local_log_sha256": "69ee1692f81359b0ad981f08de2bd12bd2e113a3a297368b04c34471929e8e32",
+      "log_uploaded": false
+    },
+    {
+      "name": "ruff",
+      "command": "ruff check --no-cache robot_dashboard scripts tests/competition_native",
+      "status": "PASS",
+      "version": "0.6.9"
+    },
+    {
+      "name": "mypy",
+      "command": "python3 -m mypy --config-file mypy.ini",
+      "status": "PASS",
+      "configured_source_files": 4,
+      "note": "Repository-configured files only; not a full type audit of C2.",
+      "log": "c2-mypy.log",
+      "local_log_sha256": "71144743c83babea384888a735db0c4daba3d4d7b7942b6839984bd5c21b52bb",
+      "log_uploaded": false
+    },
+    {
+      "name": "compileall",
+      "command": "python3 -m compileall -q robot_dashboard/mission_routes/competition_native tests/competition_native",
+      "status": "PASS"
+    },
+    {
+      "name": "secrets",
+      "command": "python3 scripts/check_repository_secrets.py",
+      "status": "PASS"
+    },
+    {
+      "name": "whitespace",
+      "command": "git diff --cached --check",
+      "status": "PASS"
+    },
+    {
+      "name": "browser_e2e",
+      "status": "NOT_RUN",
+      "reason": "No UI edits; clone has no installed project Playwright/Chromium. JavaScript unit/syntax checks ran."
+    },
+    {
+      "name": "native_nav2",
+      "status": "NOT_RUN",
+      "reason": "No native ROS execution in C2."
+    },
+    {
+      "name": "real_rgb_model_replay",
+      "status": "NOT_RUN",
+      "reason": "No actual model/video input or C4 integration."
+    },
+    {
+      "name": "robot_physical_qualification",
+      "status": "NOT_RUN",
+      "reason": "Hardware access/deployment prohibited; ports and observations are synthetic."
+    }
+  ],
+  "skip_reasons": [
+    "optional rosbags backend not installed",
+    "PCD_EDIT_NODE unset: optional JavaScript geometry parity"
+  ],
+  "environment": {
+    "python": "3.12.3",
+    "pydantic": "2.13.4",
+    "node": "v24.19.0",
+    "ruff": "0.6.9",
+    "os": "Linux x86_64"
+  },
+  "runtime_executables": {
+    "python": "/home/chosun/robot-scope-ros2-dashboard/.venv/bin/python",
+    "node": "/home/chosun/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node",
+    "quality_python": "/home/chosun/Documents/Codex/2026-10-19/robot-scope-lidar-https-github-com-2/work/robot-scope-venv/bin/python",
+    "ruff": "/home/chosun/Documents/Codex/2026-10-19/robot-scope-lidar-https-github-com-2/work/robot-scope-venv/bin/ruff"
+  },
+  "source_sha256": {
+    "robot_dashboard/mission_routes/competition_native/__init__.py": "0ea76b48012a2e7d0cc4fb426501749230608d9c6b213652b7fa3c0cacf0bf7c",
+    "robot_dashboard/mission_routes/competition_native/adapter.py": "913cdb622a269906ca211e464bd1e86812d5057af9b649c00e5fd0d132d2379a",
+    "robot_dashboard/mission_routes/competition_native/authority.py": "80f24ddcaa87f6a3e08ed8e2fab24cb56e5f3411ae480f05cc1456cdbf180bac",
+    "robot_dashboard/mission_routes/competition_native/contracts.py": "dc4c5a05b3387a9c3f35c963a0f1a36cf6e3bed28b82664e52c618d3aaf5928f",
+    "robot_dashboard/mission_routes/competition_native/coordinator.py": "19eb147c7af5a1bf91e2af361da6fbb5775355f4a1c1c4f753db37aa39f00658",
+    "robot_dashboard/mission_routes/competition_native/observations.py": "dce91d0f36dcc6a9a9694c4a1114d4c1f571288d34fd4fd7e21b50f65c86ccd7",
+    "robot_dashboard/mission_routes/competition_native/state.py": "f9cfe7f9656f0f3c6dec183b12a1058a2e4b9ba8e6bbd4ba5639897b009fcd46",
+    "tests/competition_native/__init__.py": "0669597121f2f9cb79b5c55b89930f97d8db811e2fedb37f151a1b8b7d4a823d",
+    "tests/competition_native/helpers.py": "5ea2763e4280e4ef5f7f6946ee75ed9c213a1dbfc72c03ca3eeb905b1f8a38a7",
+    "tests/competition_native/test_actions.py": "b7d612b7a453d9b3e34d58c63400e1ce22fddca87a71042e5152cab68afffd6e",
+    "tests/competition_native/test_authority.py": "72f862cd37b6243207294e691f34ffbb7d979921c38e4bba0753974d8c532d66",
+    "tests/competition_native/test_coordinator.py": "2f0e558e2b6754bbd2ea80538ff080553dd8666d7a74f54e5f8fbff60f96a306",
+    "tests/competition_native/test_observations.py": "3d115eddcb63ba679cd50c4271c9f0696e344ee35d4922202f10adc7e85536c7"
+  },
+  "remote_ci": "Query after pushing final submission HEAD; local checks do not imply remote PASS."
+}

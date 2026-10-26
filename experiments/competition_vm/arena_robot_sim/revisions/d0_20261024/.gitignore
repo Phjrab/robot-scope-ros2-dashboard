@@ -1,0 +1,6 @@
+__pycache__/
+results/*__repeat*.json
+results/summary_partial.json
+SHA256SUMS.txt
+CHANGED_FILES.txt
+rendering/ffmpeg.log

@@ -1233,7 +1233,10 @@ class StationaryRelocalizationTests(unittest.TestCase):
         deadline = time.monotonic() + 3.0
         while time.monotonic() < deadline:
             job = manager.job(job_id)
-            if job["state"] in {"candidate_ready", "ambiguous", "rejected", "failed"}:
+            # Terminal status precedes worker cleanup. A subsequent start must
+            # wait for the manager to release the active job as well.
+            if (job["state"] in {"candidate_ready", "ambiguous", "rejected", "failed"}
+                    and manager.snapshot()["active"] is None):
                 return job
             time.sleep(0.01)
         raise AssertionError("job did not settle")

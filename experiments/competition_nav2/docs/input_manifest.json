@@ -1,0 +1,31 @@
+{
+  "base_commit": "7f2a7070a17975d2a5f123cbf6aab0f99f04bf8a",
+  "remote_main": "7f2a7070a17975d2a5f123cbf6aab0f99f04bf8a",
+  "checked_at": "2026-10-24T12:06:00.192329+00:00",
+  "inputs": {
+    "AGENTS.md": "946364996d0a9986ac873d2b15562e3d388b94c4b8f51193aad0a4e59981eadc",
+    "config/nav2_params_go2_humble.yaml": "b69ad567f6ab2a6cc8b8a651191676ae69b02e8d9fca162f1afdce5f8007b6c0",
+    "experiments/competition_vm/avoidance/VM_TO_CODEX_HANDOFF.md": "7f3eccfd877a27382e47b840c4d218bb0a3ccbf1390303638b52c422baa3a4d5",
+    "experiments/competition_vm/avoidance/config/mppi_polygon_vm_candidate.yaml": "a5d54a4aa71c231475617554bff74b5c7b099fbf549b2b7c7f19a3ded7bc3fab",
+    "experiments/competition_vm/arena_robot_sim/simulate.py": "231b99c3b58d4d61bb1813abb655f849a70e073415682c84e4fb23000bb10947",
+    "experiments/competition_vm/arena_robot_sim/README.md": "e82384f1957dddb5915499dd2d9d7cb8d14dd6daeabb602cc78aa83397a5ac64",
+    "assets/competition-arena/revisions/rulebook-20261015/geometry.py": "6b5d78393dadd6db0921fe11c108be88529503608c6d26192d2da86bacab3422",
+    "assets/competition-arena/revisions/rulebook-20261015/arena.semantic.json": "f8c64d2e4a6ed992fb917a1d94cc1063f97ef90df2a9991d000ddcbde8cd27a9",
+    "assets/competition-arena/revisions/rulebook-20261015/collision/virtual_fences.json": "dc6827fc3b8f2c5043cbdf39d0ba74fee85f3bda621a28e0a79958dfab79fb0d",
+    "assets/competition-arena/revisions/rulebook-20261015/scenario_parking_boundary.json": "7490c63b3f567e490fee8d83e9c6d8731c0b597684b2fd7a429458d64dff5631"
+  },
+  "task_context": {
+    "zip_name": "robot_scope_parallel_prompts_20261024.zip",
+    "zip_sha256": "9bbbebbda807872c2e2d7cdd5295ac80a07d77c33b1d6d479a9ba78f3c76075e",
+    "member": "robot_scope_parallel_prompts_20261024/04_CODEX_C3_NAV2_NATIVE_BENCHMARK.txt",
+    "member_sha256": "949de83e58ce2f52fb78f731100bbc83f632c78f6d067dd944abd5d9733f0c99",
+    "resolution": "C3 Nav2 benchmark inferred from concurrent C2 task context and this local role pack; attached RGB dataset not consumed by Nav2."
+  },
+  "nav2_reference_commit": "3c3db59d6969d8ecee8e68468693d006397f4a0c",
+  "submission_override": {
+    "kind": "explicit_user_request",
+    "sha256": "d1bb103054c4f3d990d137d7603d7e81a0d88b83ade8f477ab8bd78bf8820016",
+    "branch": "review/20261024-c3-nav2-benchmark",
+    "scope": "branch commit/push and C3 review document authorized; main/merge/PR/device work prohibited"
+  }
+}

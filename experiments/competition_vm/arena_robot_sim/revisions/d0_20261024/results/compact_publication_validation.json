@@ -1,0 +1,10 @@
+{
+  "test_command": "python3 -m unittest discover -s <compact checkout>/experiments/competition_vm/arena_robot_sim/revisions/d0_20261024 -p test_regression.py -v",
+  "unit_returncode": 0,
+  "unit_passed": 13,
+  "unit_skips": 0,
+  "full_raw_trace_count_present": 0,
+  "audit_without_trace_returncode": 1,
+  "audit_without_trace_message": "INPUT_REQUIRED: full 24 repeat1 traces are local-only. Run regression.py first; no zero-case PASS.\n",
+  "shadow_directory": "/tmp/d0_arena_compact_check_20261024"
+}

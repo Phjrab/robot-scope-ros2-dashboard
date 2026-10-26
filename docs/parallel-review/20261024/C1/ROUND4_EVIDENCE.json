@@ -1,0 +1,157 @@
+{
+  "schema": "c1-review-revisions.v1",
+  "scope": "READONLY_REVIEW_NOT_MOTION_AUTHORIZATION",
+  "integration_base": "85c5b6b85ca85e74503876b075e5ceba92dd4565",
+  "runtime_adoptions": [
+    {
+      "role": "C1",
+      "source_commit": "this-candidate; exact commit in ROUND4.md and submission",
+      "files_sha256": {
+        "robot_dashboard/mission_routes/competition_native/ingress.py": "07b397ed709c07d31a1e710d377a754dcd11c7d27fba4d3c4f594170d57215b5",
+        "robot_dashboard/mission_routes/competition_native/session.py": "71ce41c95e6eaca7e477b1c53122cb9b58ccb97254332d7d56b1bef100fcf537",
+        "robot_dashboard/mission_routes/competition_native/replay_review.py": "a2ea747ecb8a0ca82bbce7ce3d432f274beed09bb6224cb6522de56c35e09dba",
+        "robot_dashboard/static/features/mission_route/rgb_review.js": "60eb48a92cc1b0329ece6689d1a4a46d2f349aba3d466ca2ae982ab6c6bbab9d",
+        "robot_dashboard/static/features/mission_route/workspace.js": "fff9e7c73f5ba19b7261eca42da0e6233df3f34c3dc77c4f0ad4a8c49dfe8b67",
+        "tests/competition_fixture_server.py": "3d0926014234c3bdfb41b88b075c8caea7afa8795975d45693423bf9228eee35",
+        "tests/competition_integration/demo.py": "31759908a59502de4491010815b9efdb96592eeb67af6a5f5a18b5809dae3982",
+        "tests/competition_integration/harness.py": "9a9a6854567c1b14a11db04837a79134374615692ec2ebde81837140437c0b3c"
+      }
+    },
+    {
+      "role": "C2",
+      "source_commit": "0dd534fecbd8b2f485d8ab043426e05dcea2afc7",
+      "report_head": "2f85adbb19da9c0ace02e561e54474cbf57b7c9b",
+      "files_sha256": {
+        "robot_dashboard/mission_routes/competition_native/fragments.py": "1753cb6ebf7c1d16e20cc6b8fec3b7af32c73fbe9bb36e82bcbea4f5fa52bb95"
+      }
+    },
+    {
+      "role": "C4",
+      "source_commit": "9e9ebcc0cbc613d5b0a7f50a27a7b256c3f829bd",
+      "files_sha256": {
+        "robot_dashboard/competition_traffic/artifacts.py": "89b331e82405bbe56cd0f144812641464da13404c5b23834c69bde17a43a1bd1",
+        "robot_dashboard/competition_traffic/association.py": "557e033b7a2282db892c74da465d35d35ada9c7eadab556dbda29a473ce39661",
+        "robot_dashboard/competition_traffic/experiments.py": "3c892dd49a39f1441bafc37f3736b96637f493ea91297f93a7384f523f2a096c",
+        "robot_dashboard/competition_traffic/inference.py": "799dc9d2611918fed16a0c56d10e3720443d9151d5b20ed8976eb3389e992dd4",
+        "robot_dashboard/competition_traffic/lamp.py": "e6f090ce3afb724e26b83f26798286e38aa9e98a1f1023a9a1fe7620a469b6d5",
+        "robot_dashboard/competition_traffic/model.py": "daa32e024dbe6e74cbaeb52c8f6b3628b3acecaa0646c5957ce1e2043df903fe",
+        "robot_dashboard/competition_traffic/pipeline.py": "e8cefd7e7aa5548b6dc86b2654734e9a7881290f1434e0365594384018dd1931",
+        "robot_dashboard/competition_traffic/replay.py": "c78122e65522ffb859ffa6855861b0fbbdfeb7b207522168543876999bb5226c"
+      }
+    },
+    {
+      "role": "C3",
+      "source_commit": "32914885d84b9bf98e799492366aeab0f908f547",
+      "scope": "ISOLATED_EXPERIMENT_NOT_PRODUCTION_CONFIG",
+      "files_sha256": {
+        "experiments/competition_nav2/configure.py": "b686135c0497b03155cc9da4ca92ff2d1f88711c1f79a52c1fe0b7e910a89318",
+        "experiments/competition_nav2/container/manage.py": "a6989be508416c8f6f031687b3ab4c93ec62eca736ef8b3e5098ad68389b37b7",
+        "experiments/competition_nav2/core.py": "75f3c997c3ea7325d6dace4b9a4aa57800e02836eb35b5cc8d152cafd99b8d81",
+        "experiments/competition_nav2/d0_adapter.py": "b931f309def92d256ce35fcd02bdbb934426fc7d8f4056df6c8f85b08543839f",
+        "experiments/competition_nav2/d0_sensor_worker.py": "ef14864ba49aee9fffe0d0565e7bd3b3fcd29f98f7a7a2f0ba7a3ec4f15acdc4",
+        "experiments/competition_nav2/execute.py": "4bf7eeda315371ffabd2d10e1f133faa86db741017e8164646fdec3487600b2e",
+        "experiments/competition_nav2/fixtures.py": "bdc6a9c0cfa844c3f1978da7904cf1cd14aa34f98125f02778b809d31a3c5560",
+        "experiments/competition_nav2/native_runner.py": "36c9ffc03f50dbfb7497c9d93104d0ff740c195d21aba437b89bdeb11dd8818c",
+        "experiments/competition_nav2/observations.py": "0e964df23303269fdb3c66abc7a60cd4a15b00a8d83155a2263c7e317bae4475",
+        "experiments/competition_nav2/prepare_d0.py": "b2aaf98ee0f92a883f698de4d6ca036211ceb86e76aaa93e37cb25daa079059a",
+        "experiments/competition_nav2/rpp_contract.py": "a4a21e9ff9e6a09290253c4865e7c528bfc41b17c826cbb95e24c51b1dbae9e9",
+        "experiments/competition_nav2/run_d0.py": "cc19f5937adf2f66884b311d9479cff300902a489c41966ce8591eaf3cc1a8e4",
+        "experiments/competition_nav2/run_extension.py": "f89e579f745f06cc574f004c78e30020f959a03416d2e6385c5bdc2c1d128167",
+        "experiments/competition_nav2/run_minimum.py": "ee85bdfbc52a1cfd299a941c43abc30054d8315c57c2e6d0789b1ebc6d8de7c9",
+        "experiments/competition_nav2/tests/test_d0_adapter.py": "3c4f418c902e601d2ae01797148bc20ac09c5c9a36fed6a121cc17146252194e",
+        "experiments/competition_nav2/tests/test_extension.py": "1a31683ff76675ca46292fdf14c502896ff5800f9dcca53e0cc780a78292074a",
+        "experiments/competition_nav2/validate.py": "57db16f3f9347dedc54818bde4477d651a5b24f37089d5d098b8a7be481e23eb"
+      }
+    }
+  ],
+  "immutable_inputs": {
+    "D0": {
+      "source_commit": "83f4ee8d6971d00ab31b2de0eeebf329542dd5d6",
+      "shared_path": "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025",
+      "manifest_sha256": "1e995e63e9e601433399f052d6a9630b4d5fb53081cfd1b00003aae2b16ef84e",
+      "files_sha256": {
+        "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/blocked.observations.json": "25de56e97e48bb02bc25dc8f0270ceb374df08993f80ce92562ef0616c44e783",
+        "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/blocked.truth.json": "57dbad059970041edadd84bc1207049382cfd59a223e1fa3ee5c78f232f65d3e",
+        "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/empty.observations.json": "5af41ff492e48fc383bbbbd3e9e709f8e0784e64ed151bbc3d747d9ee5a06e34",
+        "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/empty.truth.json": "9c1d7bbeddfdbdea2e7640ef23fdc7d3fee3b37cc3e82a6e8d6dbbe7895f42c4",
+        "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/feasible1.observations.json": "a31e4ff282de46f8d2dd4404596397354b41788c3dd6af3711215b471453188f",
+        "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/feasible1.truth.json": "cbd6674dd7f01ffc0dc60039badbe2a2da361bcbc407bb7c0ecae8efe5aff3ad",
+        "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/feasible2.observations.json": "5e17e10e8c781f61ab342469ed2f4c7fa7feecfced24be9a0a798b56b826550f",
+        "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/feasible2.truth.json": "6a0cd39cfae9adf21bb98e882d4866fe2b3ea786bcc93bcf856ae9f34d6febf0",
+        "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/geometry.json": "2a65764c6fa377ce8d830ac5ec44060bd671e10da90d135777b20948ace331df",
+        "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/manifest.json": "049f77d2e4e4d0e121049240026f2f5e51d98a57c348417a247500079edb7003",
+        "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/open_diagnostic.observations.json": "1b620cc76633f0bd379d9be1368f7fa265d27e0b7f4f583b2c6ce931063373eb",
+        "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/open_diagnostic.truth.json": "28927f352e7570ec5d27cad548cc293f3a0d7eecb60b531e169c9922283c61c4",
+        "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/original_tight5.observations.json": "7e2821af811a145f7a96be8b364da1afa66306e0c1ec551a522063d355fb1f08",
+        "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/original_tight5.truth.json": "31296dea92c26493530c7fe2ab43131295cefdd7d484ac01eafa85bcc2d8f677",
+        "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/sensor_dropout.observations.json": "d2776378caab08b9e37abdaf035983d0dd9dd658569e4b4dcbd8c92b9cc17496",
+        "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/fixtures/sensor_dropout.truth.json": "69794f3781dd1cf1c8f322050d8c4ca16dd2eff1d789f407294d49ebc160922a",
+        "experiments/competition_vm/arena_robot_sim/revisions/shared_scenarios_20261025/export_fixtures.py": "31eb2f7045bc8ad1f80b500a435316c07f5eea61a6cd9b81924f98288a0dd0f3",
+        "experiments/competition_vm/arena_robot_sim/revisions/left_slalom_20261024/simulate_slalom.py": "7d231ab0cff90cb7b781ec8a1f7218173648fa0e954981d73c483ca17408817b",
+        "experiments/competition_vm/arena_robot_sim/simulate.py": "231b99c3b58d4d61bb1813abb655f849a70e073415682c84e4fb23000bb10947",
+        "experiments/competition_vm/avoidance/core.py": "73b4861f1e984611c75dc9ad548434558882d0f92972865967d2e1b3c89e5e5d",
+        "assets/competition-arena/revisions/rulebook-20261015/geometry.py": "6b5d78393dadd6db0921fe11c108be88529503608c6d26192d2da86bacab3422",
+        "assets/competition-arena/revisions/rulebook-20261015/collision/virtual_fences.json": "dc6827fc3b8f2c5043cbdf39d0ba74fee85f3bda621a28e0a79958dfab79fb0d",
+        "assets/competition-arena/revisions/corridor-parallel-20261024/geometry.py": "2f190a554c9ce891d0b997f0ba67648c81e3a6a77e44d25533fb7e476c21856d",
+        "assets/competition-arena/revisions/corridor-parallel-20261024/collision/virtual_fences.json": "6c8a3a21712e0daff0f7c4d2d93ee59aeab19d69caf077980d5df5877e776b37"
+      },
+      "usage": "Read-only D0 source dependency; sensor code is imported in a separate process, never copied into the C3 implementation. Witnesses excluded."
+    },
+    "legacy_runtime_registry": {
+      "path": "robot_dashboard/mission_routes/competition_evidence_revisions.json",
+      "sha256": "9f8eb23c192a11a7be9be6c8535fddc7a90bba31bb284fe0b2d577224dde5b3f",
+      "unchanged": true
+    }
+  },
+  "historical_executions": [
+    {
+      "kind": "NATIVE_NAV2_VIRTUAL_SENSORS",
+      "source_commit": "7a220d458fe8bce8cdd366caa4e9a546bddebd60",
+      "run_id": 40162921802,
+      "conclusion": "success",
+      "scenario_expectations": "7/7",
+      "evidence": "docs/parallel-review/20261024/C3/ROUND3_NATIVE.json"
+    },
+    {
+      "kind": "NATIVE_NAV2_D0_VIRTUAL_SENSORS",
+      "source_commit": "5eacacf42378ad91319a5de323df7844f34ea33b",
+      "run_id": 40164154349,
+      "conclusion": "failure",
+      "D0_evidence_safety": "6/6",
+      "D0_scenario_expectations": "3/6",
+      "failed_reach_cases": [
+        "feasible1",
+        "feasible2",
+        "original_tight5"
+      ],
+      "evidence": "docs/parallel-review/20261024/C3/ROUND3_D0_NATIVE.json"
+    },
+    {
+      "kind": "RECORDED_RGB_DIAGNOSTIC",
+      "source_commit": "9f5d81433675752f8522d5478e184192e2e2dc57",
+      "evidence": "docs/mission-competition/traffic-input/round3-results.json",
+      "green_accuracy_approved": false,
+      "stable_green_verified": false
+    }
+  ],
+  "optional_research": {
+    "D0_head": "8ba7affe1023fc0791136aa47ca1cd8884b54685",
+    "videos_large_traces_adopted": false,
+    "strict_narrow_success": false,
+    "map_transform": null
+  },
+  "current_tests": "ROUND4.md distinguishes current candidate tests, private RGB observation and historical native runs. No native run at the C1 integration SHA.",
+  "runtime_gating": "This review index is not a global capability gate. Existing per-revision D0 validation and C3 contract/source hashes remain enforced. Documentation edits do not disable unrelated runtime features.",
+  "reviewed_but_not_adopted": [
+    {
+      "role": "C3",
+      "head": "20d7f56f24cff768e716a56813250ebbd3c2c234",
+      "reason": "New optional SE2 planner/config and diagnostic recorder; no completed native result in this submission. Keep reviewed 32914885 baseline for the readonly candidate."
+    },
+    {
+      "role": "D0",
+      "head": "da7230bb65722e4a1d3f4ab0c1d16e63fcd344e3",
+      "reason": "Independent feasible1 audit only; shared input files unchanged. Reference analysis without copying optional image/source or rebinding historic evidence."
+    }
+  ]
+}

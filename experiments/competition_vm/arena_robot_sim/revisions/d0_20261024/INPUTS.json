@@ -1,0 +1,34 @@
+[
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/simulate.py",
+    "sha256": "231b99c3b58d4d61bb1813abb655f849a70e073415682c84e4fb23000bb10947"
+  },
+  {
+    "path": "experiments/competition_vm/arena_robot_sim/rendering/standing_bounds.json",
+    "sha256": "2ec6ea5fb27489ff4f4ee1b7c4329acdd5c77633c16311ee21d4d15d1d5bcbad"
+  },
+  {
+    "path": "experiments/competition_vm/avoidance/core.py",
+    "sha256": "73b4861f1e984611c75dc9ad548434558882d0f92972865967d2e1b3c89e5e5d"
+  },
+  {
+    "path": "assets/competition-arena/revisions/rulebook-20261015/geometry.py",
+    "sha256": "6b5d78393dadd6db0921fe11c108be88529503608c6d26192d2da86bacab3422"
+  },
+  {
+    "path": "assets/competition-arena/revisions/rulebook-20261015/arena.semantic.json",
+    "sha256": "f8c64d2e4a6ed992fb917a1d94cc1063f97ef90df2a9991d000ddcbde8cd27a9"
+  },
+  {
+    "path": "assets/competition-arena/revisions/rulebook-20261015/ASSUMPTIONS.md",
+    "sha256": "9d13391c86a4013aec2d42c6a13ce81c44be052328710795767cd99c333daa3f"
+  },
+  {
+    "path": "assets/competition-arena/revisions/rulebook-20261015/collision/virtual_fences.json",
+    "sha256": "dc6827fc3b8f2c5043cbdf39d0ba74fee85f3bda621a28e0a79958dfab79fb0d"
+  },
+  {
+    "path": "assets/competition-arena/revisions/rulebook-20261015/collision/terrain_meshes.json",
+    "sha256": "32dc84f9a5002d5585fdfa843e40474447ceb316998078847c8c60da4c102499"
+  }
+]

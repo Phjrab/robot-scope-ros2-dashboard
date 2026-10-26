@@ -1,0 +1,35 @@
+{
+  "retained_frame_fields": [
+    "t",
+    "v",
+    "w",
+    "sensor_fresh"
+  ],
+  "downsampling": false,
+  "numeric_rounding": false,
+  "all_pass": true,
+  "rows": [
+    {
+      "source_file": "results/delayed_offset_1__legacy_parking_allowed__repeat1.json",
+      "source_file_sha256": "23482a95669a9ac1a8de163d8d12cf084e02ab3fe98f8a265103f6f683aaae61",
+      "fixture_file": "fixtures/delayed_offset_1__legacy_parking_allowed.json",
+      "fixture_file_sha256": "00ddbb2682213d751258d5b1b3f0ee6f4d4759a4810d63faa41b4d4708c06e7f",
+      "source_frames": 71,
+      "fixture_frames": 71,
+      "all_tested_fields_exactly_equal": true,
+      "all_metrics_exactly_equal": true,
+      "source_hash_matches": true
+    },
+    {
+      "source_file": "results/dropout_offset_1__legacy_parking_allowed__repeat1.json",
+      "source_file_sha256": "733db264f4200ab772557cf58b3aabf0edb8ae9496f27e494c13f88d471d2e7a",
+      "fixture_file": "fixtures/dropout_offset_1__legacy_parking_allowed.json",
+      "fixture_file_sha256": "f3d3eeb19801e98b1510cfe05727d32f9f93dfc884581b7947c49d4f8690e42d",
+      "source_frames": 218,
+      "fixture_frames": 218,
+      "all_tested_fields_exactly_equal": true,
+      "all_metrics_exactly_equal": true,
+      "source_hash_matches": true
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "kind": "SYNTHETIC_CONTRACT_EXAMPLE_NOT_REAL_GREEN_EVIDENCE",
+  "input": {
+    "received_s": 10.0,
+    "source_age_s": 0.02,
+    "processing_started_s": 10.01,
+    "clock_at_completion_s": 10.08,
+    "source_clock": "synchronized_ros",
+    "clock_verified": true,
+    "identity_verified": true
+  },
+  "context": {
+    "first_received_s": 10.0,
+    "source_age_at_first_receipt_s": 0.02,
+    "processed_s": 10.08,
+    "processing_started_s": 10.01,
+    "queue_residence_s": 0.009999999999999787,
+    "source_age_s": 0.10000000000000007,
+    "receiver_age_s": 0.08000000000000007,
+    "source_id": "camera-1",
+    "producer_epoch": "epoch-1",
+    "sequence": 0,
+    "source_stamp_ns": "0",
+    "binding_id": "camera-heading-revision-1",
+    "source_clock": "synchronized_ros",
+    "clock_verified": true,
+    "identity_verified": true
+  },
+  "positive": {
+    "now_s": 10.15,
+    "received_s": 10.0,
+    "current_source_age_s": 0.16999999999999993,
+    "fragment": {
+      "signal_id": "signal_01",
+      "crossing_id": "crossing_01",
+      "raw_state": "GREEN",
+      "stable_state": "UNKNOWN",
+      "confidence": 0.9,
+      "quality_flags": [],
+      "roi_xyxy_native": [
+        0,
+        0,
+        64,
+        64
+      ],
+      "native_image_size": [
+        64,
+        64
+      ],
+      "exposure_metadata": {},
+      "model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "preprocess_profile": "vm-combined-ce33166e41f041be",
+      "native_image": "frame-0",
+      "processed_image": null
+    }
+  },
+  "reject_processed_as_first": {
+    "now_s": 10.15,
+    "received_s": 10.08,
+    "error": "FIRST_RECEIPT_MISMATCH"
+  },
+  "expired": {
+    "now_s": 10.240001,
+    "status": {
+      "fragment": null,
+      "reasons": [
+        "SIGNAL_EVIDENCE_EXPIRED"
+      ],
+      "last_valid_observation_s": null,
+      "identity": {
+        "source_id": "camera-1",
+        "producer_epoch": "epoch-1",
+        "sequence": 0,
+        "source_stamp_ns": "0",
+        "binding_id": "camera-heading-revision-1"
+      },
+      "first_received_s": 10.0
+    }
+  },
+  "c1_c2_call": "signal_fragment(observation, now_s=now) # use its recorded first receipt; omit received_s or confirm the same value",
+  "c2_stamp": "ComponentStamp.first_received_s=context.first_received_s; source age at first=context.source_age_at_first_receipt_s; check all explicit arguments agree"
+}

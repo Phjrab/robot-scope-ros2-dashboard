@@ -1,0 +1,385 @@
+{
+  "frame_id": "arena_design",
+  "evidence_type": "SIMULATION_ASSUMPTION",
+  "walls": [
+    {
+      "id": "wall_outer_01",
+      "a": [
+        0,
+        0.491
+      ],
+      "b": [
+        1.4,
+        0.491
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    },
+    {
+      "id": "wall_outer_02",
+      "a": [
+        1.4,
+        0.491
+      ],
+      "b": [
+        3.3,
+        2.2928932188134525
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    },
+    {
+      "id": "wall_outer_03",
+      "a": [
+        3.3,
+        2.2928932188134525
+      ],
+      "b": [
+        5.592893218813453,
+        0.0
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    },
+    {
+      "id": "wall_outer_04",
+      "a": [
+        5.592893218813453,
+        0.0
+      ],
+      "b": [
+        5.6,
+        0
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    },
+    {
+      "id": "wall_outer_05",
+      "a": [
+        5.6,
+        0
+      ],
+      "b": [
+        8,
+        0
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    },
+    {
+      "id": "wall_outer_06",
+      "a": [
+        8,
+        0
+      ],
+      "b": [
+        8,
+        1.018
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    },
+    {
+      "id": "wall_outer_07",
+      "a": [
+        8,
+        1.018
+      ],
+      "b": [
+        6.5,
+        1.018
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    },
+    {
+      "id": "wall_outer_08",
+      "a": [
+        6.5,
+        1.018
+      ],
+      "b": [
+        6.5,
+        2.25
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    },
+    {
+      "id": "wall_outer_09",
+      "a": [
+        6.5,
+        2.25
+      ],
+      "b": [
+        8,
+        2.25
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    },
+    {
+      "id": "wall_outer_10",
+      "a": [
+        8,
+        2.25
+      ],
+      "b": [
+        8,
+        3.75
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    },
+    {
+      "id": "wall_outer_11",
+      "a": [
+        8,
+        3.75
+      ],
+      "b": [
+        6.5,
+        3.75
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    },
+    {
+      "id": "wall_outer_12",
+      "a": [
+        6.5,
+        3.75
+      ],
+      "b": [
+        6.5,
+        4.982
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    },
+    {
+      "id": "wall_outer_13",
+      "a": [
+        6.5,
+        4.982
+      ],
+      "b": [
+        8,
+        4.982
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    },
+    {
+      "id": "wall_outer_14",
+      "a": [
+        8,
+        4.982
+      ],
+      "b": [
+        8,
+        6
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    },
+    {
+      "id": "wall_outer_15",
+      "a": [
+        8,
+        6
+      ],
+      "b": [
+        5.6,
+        6
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    },
+    {
+      "id": "wall_outer_16",
+      "a": [
+        5.6,
+        6
+      ],
+      "b": [
+        5.592893218813453,
+        6.0
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    },
+    {
+      "id": "wall_outer_17",
+      "a": [
+        5.592893218813453,
+        6.0
+      ],
+      "b": [
+        3.3,
+        3.7071067811865475
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    },
+    {
+      "id": "wall_outer_18",
+      "a": [
+        3.3,
+        3.7071067811865475
+      ],
+      "b": [
+        1.4,
+        5.509
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    },
+    {
+      "id": "wall_outer_19",
+      "a": [
+        1.4,
+        5.509
+      ],
+      "b": [
+        0,
+        5.509
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    },
+    {
+      "id": "wall_outer_20",
+      "a": [
+        0,
+        5.509
+      ],
+      "b": [
+        0,
+        0.491
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    },
+    {
+      "id": "wall_inner_0_01",
+      "a": [
+        1,
+        1.6
+      ],
+      "b": [
+        2.5928932188134524,
+        3.0
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    },
+    {
+      "id": "wall_inner_0_02",
+      "a": [
+        2.5928932188134524,
+        3.0
+      ],
+      "b": [
+        1,
+        4.4
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    },
+    {
+      "id": "wall_inner_0_03",
+      "a": [
+        1,
+        4.4
+      ],
+      "b": [
+        1,
+        1.6
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    },
+    {
+      "id": "wall_inner_1_01",
+      "a": [
+        5.482,
+        1.5251067811865475
+      ],
+      "b": [
+        5.482,
+        4.474893218813452
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    },
+    {
+      "id": "wall_inner_1_02",
+      "a": [
+        5.482,
+        4.474893218813452
+      ],
+      "b": [
+        4.007106781186548,
+        3.0
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    },
+    {
+      "id": "wall_inner_1_03",
+      "a": [
+        4.007106781186548,
+        3.0
+      ],
+      "b": [
+        5.482,
+        1.5251067811865475
+      ],
+      "height_m": 0.6,
+      "kind": "VIRTUAL_FENCE",
+      "physical_thickness_m": null
+    }
+  ],
+  "default_profile": "closed_legacy_outline",
+  "experimental_openings": {
+    "status": "PROVISIONAL",
+    "remove_fence_at_x8_in_y": [
+      [
+        0,
+        1.018
+      ],
+      [
+        4.982,
+        6
+      ]
+    ]
+  },
+  "sdf_load_status": "NOT_RUN"
+}

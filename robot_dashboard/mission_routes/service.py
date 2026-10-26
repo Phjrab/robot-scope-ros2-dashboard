@@ -22,6 +22,11 @@ def utc():
 
 
 class MissionRoutes:
+    # Retention: at most 64 definitions, 32 historical runs and 256 durable
+    # intent receipts. No automatic eviction or active-ledger clearing. Explicit
+    # idle-definition deletion preserves run history; full history requires an
+    # operator archive. Native sensor ticks live only in the bounded session and
+    # per-component epoch/sequence high-water; restart restores no authority.
     def __init__(self, root, maps, routes, coordinator, context, planner):
         self.maps, self.routes, self.coordinator = maps, routes, coordinator
         self.context, self.planner = context, planner
@@ -31,6 +36,7 @@ class MissionRoutes:
         self._generation = 0
         self._last_observation = {}
         self._preview_active = False
+        self._software_native_sessions = {}
         self._validate_store()
         self._persisted = copy.deepcopy(self.data)
         self.fixture_runs = FixtureRuns(self)
@@ -336,7 +342,16 @@ class MissionRoutes:
         return await self._transaction(body.request_id, {"fixture_run": identifier, **body.model_dump()}, operation)
 
     async def close(self):
+        for session in self._software_native_sessions.values():
+            await session.close()
         await self.fixture_runs.close()
+
+    async def create_software_native_session(self, **bindings):
+        """Explicit in-process test injection. No HTTP/API or startup registration."""
+        from .competition_native.session import SoftwareNativeSession
+        session = await SoftwareNativeSession.create(self, **bindings)
+        self._software_native_sessions[session.adapter.scope.mission_run_id] = session
+        return session
 
     async def preview(self, identifier, body):
         # Native planning shares the map/resource window, but claims no motion

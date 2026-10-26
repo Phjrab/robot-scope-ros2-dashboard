@@ -1,0 +1,77 @@
+{
+  "status": "PASS",
+  "base_commit": "7f2a7070a17975d2a5f123cbf6aab0f99f04bf8a",
+  "revision": "corridor-parallel-20261024-v1",
+  "cross_sections": [
+    {
+      "arm": "NE",
+      "axis_distance_m": 0.6,
+      "before_width_m": 0.985175828459713,
+      "after_width_m": 1.0000000000000002
+    },
+    {
+      "arm": "NE",
+      "axis_distance_m": 1.0,
+      "before_width_m": 0.9258791422985636,
+      "after_width_m": 1.0000000000000002
+    },
+    {
+      "arm": "NE",
+      "axis_distance_m": 1.5,
+      "before_width_m": 0.8517582845971262,
+      "after_width_m": 1.0000000000000002
+    },
+    {
+      "arm": "NE",
+      "axis_distance_m": 2.0,
+      "before_width_m": 0.7776374268956899,
+      "after_width_m": 1.0000000000000004
+    },
+    {
+      "arm": "NE",
+      "axis_distance_m": 2.5,
+      "before_width_m": 0.7035165691942532,
+      "after_width_m": 1.0000000000000004
+    },
+    {
+      "arm": "SE",
+      "axis_distance_m": 0.6,
+      "before_width_m": 0.9851758284597126,
+      "after_width_m": 1.0000000000000002
+    },
+    {
+      "arm": "SE",
+      "axis_distance_m": 1.0,
+      "before_width_m": 0.9258791422985636,
+      "after_width_m": 1.0000000000000004
+    },
+    {
+      "arm": "SE",
+      "axis_distance_m": 1.5,
+      "before_width_m": 0.8517582845971265,
+      "after_width_m": 0.9999999999999998
+    },
+    {
+      "arm": "SE",
+      "axis_distance_m": 2.0,
+      "before_width_m": 0.7776374268956907,
+      "after_width_m": 0.9999999999999998
+    },
+    {
+      "arm": "SE",
+      "axis_distance_m": 2.5,
+      "before_width_m": 0.7035165691942539,
+      "after_width_m": 0.9999999999999999
+    }
+  ],
+  "checks": {
+    "floor_boundary_symdiff_m2": 0.0,
+    "dense_cross_sections_checked": 402
+  },
+  "unchanged_floor_count": 8,
+  "physical_measurement": "NOT_RUN",
+  "map_registration": "NOT_RUN",
+  "native_navigation": "NOT_RUN",
+  "scope": "Right NE/SE diagonal corridors only; left-side geometry unchanged",
+  "dimension_status": "1m width and 45deg retained from provisional central platform, NOT a new official measurement"
+}

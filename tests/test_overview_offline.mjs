@@ -256,7 +256,7 @@ test('Overview declares one fail-closed reset for all eight KPI fields', () => {
     assert.match(resetSource, new RegExp(`ui\\.${id}\\.textContent\\s*=`), `${id} must be reset centrally`);
   }
   assert.match(resetSource, /cameraStatusMeta\s*=\s*null/);
-  assert.match(resetSource, /resetLiveRobotSessionView\(\)/);
+  assert.match(resetSource, /resetLiveRobotSessionView\(/);
   assert.doesNotMatch(resetSource, /disconnectCamera|disconnectCameraSlot|stopCameraRecording|cameraRecording\s*=/);
   assert.doesNotMatch(resetSource, /offlineCloudSnapshot\s*=|selectedSavedMap(?:Id|Meta)\s*=|clearSavedMap|savedMapCatalog\s*=/);
   const liveResetSource = functionSource('resetLiveRobotSessionView');
@@ -485,6 +485,41 @@ test('state request failure resets Overview and connect/disconnect invalidate ol
   for (const name of ['setRobotIp', 'disconnectRobotTarget']) {
     assert.match(functionSource(name), /invalidateStateRequests\(\)/, `${name} must fence requests explicitly`);
   }
+});
+
+test('agent link loss clears stale Maps output without claiming the robot target changed', async () => {
+  const reasons = [], clears = [];
+  const sandbox = loadFunctions(
+    ['refreshState', 'renderOverviewUnavailable', 'resetLiveRobotSessionView'], {
+      stateRequestGeneration: 0, overviewTelemetryAvailability: true,
+      api: async () => { throw new Error('network disconnected'); },
+      latestState: { health: { robot_online: true } }, latestStateAt: 100,
+      ui: uiFixture(), activePage: 'maps', cameraStatusMeta: {},
+      savedMapObservation: { reset: reason => reasons.push(reason) },
+      resetLiveCloudAccumulator() { clears.push('cloud'); },
+      lastCloudSnapshot: { seq: 757 }, pointcloudTransport: { reset() {} },
+      cockpitWorkspace: null, cloudSeq: 757, poseTrail: [{ x: 1 }],
+      sceneCloudDataKey: 'old', sceneCloudSourceKey: 'old',
+      liveMap2dDataKey: 'old', liveMap2dSourceKey: 'old', liveSceneHadCloud: true,
+      clearLivePose() { clears.push('pose'); },
+      scene3d: null, liveMap2d: null, navigationScene3d: null,
+      navigationModelPanelKey: '', updateNavigationModelPanel() {},
+      renderLidarSourceIdentity() {},
+    });
+  await sandbox.refreshState();
+  assert.deepEqual(reasons, ['AGENT_CONNECTION_LOST']);
+  assert.equal(sandbox.latestState, null);
+  assert.equal(sandbox.latestStateAt, 0);
+  assert.equal(sandbox.lastCloudSnapshot, null);
+  assert.equal(sandbox.poseTrail.length, 0);
+  assert.deepEqual(clears, ['cloud', 'pose']);
+  await sandbox.refreshState();
+  assert.equal(reasons.length, 1, 'repeated failed polls must not repeat the reset');
+  sandbox.resetLiveRobotSessionView();
+  assert.equal(reasons.at(-1), 'ROBOT_TARGET_CHANGED', 'explicit target changes still invalidate the observation');
+  sandbox.overviewTelemetryAvailability = true;
+  sandbox.renderOverviewUnavailable('로봇 응답 없음');
+  assert.equal(reasons.at(-1), 'ROBOT_TELEMETRY_UNAVAILABLE', 'server-reported robot loss is distinct from link loss');
 });
 
 

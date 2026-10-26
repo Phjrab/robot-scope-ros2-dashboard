@@ -1,0 +1,53 @@
+{
+  "backend": "nav2_native_sim",
+  "status": "NOT_RUN",
+  "rows": [],
+  "unmatched_or_unfair_pairs": [],
+  "aggregates": [
+    {
+      "controller": "rpp",
+      "variant": "baseline",
+      "runs": 0,
+      "valid_native_runs": 0,
+      "goal_reached": 0,
+      "safe_wait": 0,
+      "failures": 0,
+      "median_path_length_m": null,
+      "median_wall_time_s": null
+    },
+    {
+      "controller": "rpp",
+      "variant": "tuned",
+      "runs": 0,
+      "valid_native_runs": 0,
+      "goal_reached": 0,
+      "safe_wait": 0,
+      "failures": 0,
+      "median_path_length_m": null,
+      "median_wall_time_s": null
+    },
+    {
+      "controller": "mppi",
+      "variant": "baseline",
+      "runs": 0,
+      "valid_native_runs": 0,
+      "goal_reached": 0,
+      "safe_wait": 0,
+      "failures": 0,
+      "median_path_length_m": null,
+      "median_wall_time_s": null
+    },
+    {
+      "controller": "mppi",
+      "variant": "tuned",
+      "runs": 0,
+      "valid_native_runs": 0,
+      "goal_reached": 0,
+      "safe_wait": 0,
+      "failures": 0,
+      "median_path_length_m": null,
+      "median_wall_time_s": null
+    }
+  ],
+  "recommendation": "NO_RECOMMENDATION until complete matched repeats, zero collisions/boundary/hold violations, stale-stop and recovery hold checks pass. Rank safety first, then goal success, then measured completion/deadline/resource metrics. Host timings are not Jetson predictions."
+}

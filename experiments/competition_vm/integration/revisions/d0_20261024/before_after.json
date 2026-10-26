@@ -1,0 +1,51 @@
+{
+  "evidence_type": "SYNTHETIC_IN_PROCESS",
+  "base_commit": "7f2a7070a17975d2a5f123cbf6aab0f99f04bf8a",
+  "baseline_adapter_sha256": "cfe1ae1934a456b8366ae1afe953e211f45887551775a8c025daa8eda3d354a5",
+  "baseline_traffic_sha256": "5a3e786243662547588365982d9784293f1025922d0e0f90d28e23d0cedc8f17",
+  "cases": [
+    {
+      "case": "fresh approach action self-HOLD",
+      "before": [
+        0.0,
+        0.0,
+        "SIGNAL_HOLD"
+      ],
+      "after": [
+        0.25,
+        0.0,
+        "FOLLOWING"
+      ]
+    },
+    {
+      "case": "same producer packet restamped with new receiver sequence",
+      "before": [
+        0.25,
+        0.0,
+        "FOLLOWING"
+      ],
+      "after": [
+        0.0,
+        0.0,
+        "SIGNAL_HOLD"
+      ]
+    },
+    {
+      "case": "source age .2 s plus receiver residence .06 s",
+      "before": [
+        0.25,
+        0.0,
+        "FOLLOWING"
+      ],
+      "after": [
+        0.0,
+        0.0,
+        "SIGNAL_HOLD"
+      ],
+      "note": "baseline has no source-age input; same receiver-only receipt stays fresh"
+    }
+  ],
+  "status": "PASS",
+  "native_ros": "NOT_RUN",
+  "robot": "NOT_RUN"
+}

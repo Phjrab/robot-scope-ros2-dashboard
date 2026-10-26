@@ -1,0 +1,8 @@
+# Hardware-free D0/C3/C4 and combined software integration tests only.
+# No torch, Ultralytics, private weights or camera acquisition in CI.
+numpy==1.26.4
+scipy==1.11.4
+opencv-python-headless==4.10.0.84
+jsonschema==4.10.3
+PyYAML==6.0.1
+Pillow==12.3.0

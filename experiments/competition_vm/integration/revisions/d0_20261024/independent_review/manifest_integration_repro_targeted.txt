@@ -1,0 +1,17 @@
+test_vm_manifest_uses_published_hashes_without_registration_or_native_promotion (test_competition_mission.CompetitionContractTests.test_vm_manifest_uses_published_hashes_without_registration_or_native_promotion) ... FAIL
+
+======================================================================
+FAIL: test_vm_manifest_uses_published_hashes_without_registration_or_native_promotion (test_competition_mission.CompetitionContractTests.test_vm_manifest_uses_published_hashes_without_registration_or_native_promotion)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/scratch/b09eacf6919d/robot-scope-d0-20261024/tests/test_competition_mission.py", line 97, in test_vm_manifest_uses_published_hashes_without_registration_or_native_promotion
+    self.assertEqual(vm_evidence()['traffic_signals']['scope'], 'SYNTHETIC_ONLY')
+AssertionError: 'UNAVAILABLE_OR_CHANGED' != 'SYNTHETIC_ONLY'
+- UNAVAILABLE_OR_CHANGED
++ SYNTHETIC_ONLY
+
+
+----------------------------------------------------------------------
+Ran 1 test in 0.001s
+
+FAILED (failures=1)

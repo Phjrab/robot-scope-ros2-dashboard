@@ -1,0 +1,1177 @@
+{
+  "schema": "c3-native-extension.v1",
+  "planned": 7,
+  "attempted": 7,
+  "native_recorded": 7,
+  "cases": [
+    {
+      "controller": "rpp",
+      "scenario": "diagnostic_single_obstacle",
+      "repeat": 0,
+      "returncode": 0,
+      "status": "NATIVE_RECORDED",
+      "outcome": "GOAL_REACHED",
+      "expected": "GOAL_REACHED",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "error": null,
+      "terminal_fault": null,
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          160,
+          18,
+          8,
+          252,
+          12,
+          206,
+          74,
+          202,
+          156,
+          57,
+          197,
+          31,
+          23,
+          210,
+          9,
+          252
+        ],
+        "status": 4
+      },
+      "metrics": {
+        "footprint_collision_count": 0,
+        "boundary_violation_count": 0,
+        "min_conservative_clearance_m": 0.2753644026651811,
+        "path_length_m": 4.277803149010795,
+        "sim_time_s": 30.6000000000003,
+        "wall_time_s": 30.66512068899999,
+        "plant_deadline_misses": 1,
+        "plant_max_wall_gap_s": 0.09409059699999034,
+        "runner_cpu_s": 5.879499101,
+        "runner_peak_rss_kib": 93092,
+        "hold_nonzero_count": 0
+      },
+      "goal_distance_m": 0.11662388463705281,
+      "goal_yaw_error_rad": 0.16689739686757976,
+      "package_versions": {
+        "nav2_controller": "1.1.20",
+        "nav2_planner": "1.1.20",
+        "nav2_bt_navigator": "1.1.20",
+        "rclpy": "3.3.22",
+        "nav2_regulated_pure_pursuit_controller": "1.1.20"
+      },
+      "loaded_library_sha256": {
+        "/opt/ros/humble/lib/libnav2_regulated_pure_pursuit_controller.so": "d63cca14c5cd1f5d85b61d2d37e40f70c1cba0133fe2dcd574595386b969f497"
+      },
+      "raw_command_counts": {
+        "controller_server": 569,
+        "behavior_server": 0
+      },
+      "map_sha256": "faa47a95e1be2ebf3400918df2c2f717a68c8294b2b49aa365f4baba754c620f",
+      "d0_scene_sha256": null,
+      "d0_source_commit": null,
+      "fixture_sha256": "631f19f08a426f4ba91666fadea3b38488580259fabde589b8532854a7ba873a",
+      "config_sha256": "ea1e0668db1e54cd6d31082317b3d3889843a3efa1377ba9d22bfb8c0a06f3b2",
+      "source_sha": "5eacacf42378ad91319a5de323df7844f34ea33b",
+      "image_id": "sha256:5aacc553cc20dea7f8d9c0970b411309b1112961ec13580aa6703ddc251be5e0",
+      "expectation_met": true,
+      "independent_validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "independent_swept_clearance_m": 0.2753644026651811,
+      "clearance_resampling_delta_m": 0.0,
+      "raw_native_samples": 569,
+      "accepted_raw_samples": 568,
+      "final_actuator_samples": 612,
+      "shutdown_actuator": [
+        0.0,
+        0.0
+      ],
+      "evidence_gate": "PASS",
+      "safety_gate": "PASS",
+      "liveness_gate": "PASS",
+      "artifact_hashes": {
+        "native.log": "03d14a428da92d8532c0b26d85f9812235bdd843fdba1d5dba8e2967c26daf34",
+        "raw_commands.jsonl": "8f00867723ecb1c79f98db7a13859d0914b116b6618f75365fcb59145ea25264",
+        "trace.jsonl": "12bfe3990abcb8693b7dcb8e81f8b58cfffbfed3350d3d1a89508349f6251859",
+        "scans.jsonl": "cf9226c9d52356308e74868060bc2b5a366c0d6173b41fe3f48d64e967fee28b",
+        "observations.jsonl": "5d3fd47a28d1a3cd8907556ceadfc54d5ebd78bb8452f9c045aa47ea1e520c83",
+        "fixture.json": "46f4047decbeeb2decd31d9c3d8fc4f3c1de87506080290abd21e2fe0f24540a",
+        "params.yaml": "8c19af531917d1163b97972dda8fe61d4fbd7df9145d3a7637f31fb04828717b",
+        "environment.json": "88f79f7b6dee91bd426b3fc0abae71524b012db161a6fb7c9d636124cce8aad3",
+        "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+        "resources.jsonl": "b195b6625ee397840ec4872fbdb75851b6e843f00cd91b095ed1296d51269003"
+      },
+      "scans": 298,
+      "native_log_findings": []
+    },
+    {
+      "controller": "rpp",
+      "scenario": "d0_empty",
+      "repeat": 0,
+      "returncode": 0,
+      "status": "NATIVE_RECORDED",
+      "outcome": "GOAL_REACHED",
+      "expected": "GOAL_REACHED",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "error": null,
+      "terminal_fault": null,
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          73,
+          174,
+          154,
+          11,
+          36,
+          1,
+          72,
+          252,
+          132,
+          53,
+          215,
+          252,
+          59,
+          233,
+          96,
+          211
+        ],
+        "status": 4
+      },
+      "metrics": {
+        "footprint_collision_count": 0,
+        "boundary_violation_count": 0,
+        "min_conservative_clearance_m": 0.05399999999999994,
+        "path_length_m": 3.9831605986641794,
+        "sim_time_s": 27.350000000000254,
+        "wall_time_s": 27.3924174,
+        "plant_deadline_misses": 1,
+        "plant_max_wall_gap_s": 0.09064055399997528,
+        "runner_cpu_s": 4.710192433,
+        "runner_peak_rss_kib": 85732,
+        "hold_nonzero_count": 0
+      },
+      "goal_distance_m": 0.11864662884625896,
+      "goal_yaw_error_rad": 5.988410567425717e-08,
+      "package_versions": {
+        "nav2_controller": "1.1.20",
+        "nav2_planner": "1.1.20",
+        "nav2_bt_navigator": "1.1.20",
+        "rclpy": "3.3.22",
+        "nav2_regulated_pure_pursuit_controller": "1.1.20"
+      },
+      "loaded_library_sha256": {
+        "/opt/ros/humble/lib/libnav2_regulated_pure_pursuit_controller.so": "d63cca14c5cd1f5d85b61d2d37e40f70c1cba0133fe2dcd574595386b969f497"
+      },
+      "raw_command_counts": {
+        "controller_server": 503,
+        "behavior_server": 0
+      },
+      "map_sha256": "0a8d0abdedd83324762fd545accc238291249a6382098e13ece85f67ca5dca17",
+      "d0_scene_sha256": "bc8a9e3a728d6ce96d078a2d9e2ab167f90e17e5172069e28d79e72c4e262bdd",
+      "d0_source_commit": "83f4ee8d6971d00ab31b2de0eeebf329542dd5d6",
+      "fixture_sha256": "36880bd5e36d3f229e2118c6e918681c0056f566bb69a4425133ac3345764b2a",
+      "config_sha256": "5caef12a8f7774d55570f6404b6797ef55056c78e459d5bbfc2dd05c04826609",
+      "source_sha": "5eacacf42378ad91319a5de323df7844f34ea33b",
+      "image_id": "sha256:5aacc553cc20dea7f8d9c0970b411309b1112961ec13580aa6703ddc251be5e0",
+      "expectation_met": true,
+      "independent_validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "independent_swept_clearance_m": 0.05399999999999994,
+      "clearance_resampling_delta_m": 0.0,
+      "raw_native_samples": 503,
+      "accepted_raw_samples": 502,
+      "final_actuator_samples": 547,
+      "shutdown_actuator": [
+        0.0,
+        0.0
+      ],
+      "evidence_gate": "PASS",
+      "safety_gate": "PASS",
+      "liveness_gate": "PASS",
+      "artifact_hashes": {
+        "native.log": "ed570792fc34af6a715f46d9ad38a7b61b807e6a48e78d93a24fb99ff36f30ea",
+        "raw_commands.jsonl": "ab58ae8bf6905331420d3277efab26698f58afc695de9f0fe9c1e501d89c3eba",
+        "trace.jsonl": "9fe700e2ddebeec680558a141bd5dbc176cd96eb1b3d4a6b94bbe25d66851af1",
+        "scans.jsonl": "0dbd04d0213402b3dd2106fc2c58cf0d987ad2063431bc17c26fdf0c2cf59a54",
+        "observations.jsonl": "1eb4b9db5396d136167c2395b34dc9c942cbe4cdfe1bbcf291c27fe9c5dd679e",
+        "fixture.json": "faa672e2f587f41dea53229bb9013544903ce5802a670b2862860267e1aced54",
+        "params.yaml": "52c942954b83dd2aff2bab1ea6a6b60b2245b37afdd4dd90e7ce4c53420c29cd",
+        "environment.json": "dd73f73a2f6baa0d550de5a74a70504540181d177d313ffc47b40f423f364031",
+        "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+        "resources.jsonl": "9a8842dce467ee12ac74ecf64baead3ccdc9b0bc471b0079bd9c77d66336c4af",
+        "d0_conformance.json": "1b37baa50465bfb437b3d4cc33d6e82d574743ac6212e3eb8edd3140b7d0ca3d"
+      },
+      "scans": 137,
+      "native_log_findings": [],
+      "sensor_conformance": {
+        "status": "PASS",
+        "probes": 3,
+        "beams_per_delivered_probe": 360,
+        "max_range_delta_m": 0.0,
+        "source_commit": "83f4ee8d6971d00ab31b2de0eeebf329542dd5d6",
+        "manifest_sha256": "1e995e63e9e601433399f052d6a9630b4d5fb53081cfd1b00003aae2b16ef84e"
+      },
+      "d0_original_expectation": {
+        "basis": "Independent full-body swept witness certifies empty/same-side full-size cone route. See FEASIBILITY.md and witnesses/. Native Nav2 result NOT_RUN; witness must not be supplied as its path.",
+        "outcome": "GEOMETRIC_WITNESS_NATIVE_NOT_RUN"
+      },
+      "d0_input_hashes": {
+        "empty.truth.json": "970cbf64ddd6de74069bc3fc5db76c2d5298a32fb55ca99df84c283cbb301a8f",
+        "geometry.json": "163af586ff5429cec348bc68b87b337e857dc63408e24c64d356677cd07da76d",
+        "empty.observations.json": "8ba80f772ca3eada7012315453ad10c7f0c2063f1826dd096f320672947a4457"
+      }
+    },
+    {
+      "controller": "rpp",
+      "scenario": "d0_feasible1",
+      "repeat": 0,
+      "returncode": 0,
+      "status": "NATIVE_RECORDED",
+      "outcome": "SAFE_WAIT",
+      "expected": "GOAL_REACHED",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "error": null,
+      "terminal_fault": null,
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          146,
+          18,
+          144,
+          162,
+          42,
+          245,
+          75,
+          62,
+          183,
+          167,
+          172,
+          156,
+          216,
+          254,
+          177,
+          88
+        ],
+        "status": 6
+      },
+      "metrics": {
+        "footprint_collision_count": 0,
+        "boundary_violation_count": 0,
+        "min_conservative_clearance_m": 0.05399999999999994,
+        "path_length_m": 0.8054999813151877,
+        "sim_time_s": 11.500000000000028,
+        "wall_time_s": 11.543386248000019,
+        "plant_deadline_misses": 1,
+        "plant_max_wall_gap_s": 0.09142212199998312,
+        "runner_cpu_s": 1.7976449140000001,
+        "runner_peak_rss_kib": 85076,
+        "hold_nonzero_count": 0
+      },
+      "goal_distance_m": 3.2947729474834277,
+      "goal_yaw_error_rad": 0.29767885026315133,
+      "package_versions": {
+        "nav2_controller": "1.1.20",
+        "nav2_planner": "1.1.20",
+        "nav2_bt_navigator": "1.1.20",
+        "rclpy": "3.3.22",
+        "nav2_regulated_pure_pursuit_controller": "1.1.20"
+      },
+      "loaded_library_sha256": {
+        "/opt/ros/humble/lib/libnav2_regulated_pure_pursuit_controller.so": "d63cca14c5cd1f5d85b61d2d37e40f70c1cba0133fe2dcd574595386b969f497"
+      },
+      "raw_command_counts": {
+        "controller_server": 97,
+        "behavior_server": 18
+      },
+      "map_sha256": "0a8d0abdedd83324762fd545accc238291249a6382098e13ece85f67ca5dca17",
+      "d0_scene_sha256": "339a754ab4dd636092aa9b3aceb777ea43684c47519f661576e161f822a0affc",
+      "d0_source_commit": "83f4ee8d6971d00ab31b2de0eeebf329542dd5d6",
+      "fixture_sha256": "9dc29e53fd7ab721f0d6617493ac33b7a2d042113024985e2d27bbba14464d05",
+      "config_sha256": "5caef12a8f7774d55570f6404b6797ef55056c78e459d5bbfc2dd05c04826609",
+      "source_sha": "5eacacf42378ad91319a5de323df7844f34ea33b",
+      "image_id": "sha256:5aacc553cc20dea7f8d9c0970b411309b1112961ec13580aa6703ddc251be5e0",
+      "expectation_met": false,
+      "independent_validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "independent_swept_clearance_m": 0.05399999999999994,
+      "clearance_resampling_delta_m": 0.0,
+      "raw_native_samples": 115,
+      "accepted_raw_samples": 113,
+      "final_actuator_samples": 230,
+      "shutdown_actuator": [
+        0.0,
+        0.0
+      ],
+      "evidence_gate": "PASS",
+      "safety_gate": "PASS",
+      "liveness_gate": "FAIL",
+      "artifact_hashes": {
+        "native.log": "f8321e21d1ddfd1382c9f143af21be339221d12f3726e045f378d1a0d0a966db",
+        "raw_commands.jsonl": "2e554f6ef730b200a159119ca444808874f2013ceedddedefe2cf48a5cbd9472",
+        "trace.jsonl": "dd2640fdc080121ad180efd232b645557799cf5e3d5038c2e17dfcb7dabb8b85",
+        "scans.jsonl": "2312c8d8780d6b82c5c5bcfafbb99364ccc56f54a1d364b3f88849ca5b14a9ad",
+        "observations.jsonl": "3e7ff8870fa1cb985da864979dd1a803dbe13aeb2fcaf6333b23420d0fd7addf",
+        "fixture.json": "7f6104bf116e83de4be5882fef6ca15a3270bc90df606a3c73e8576b116a2bf5",
+        "params.yaml": "52c942954b83dd2aff2bab1ea6a6b60b2245b37afdd4dd90e7ce4c53420c29cd",
+        "environment.json": "dd73f73a2f6baa0d550de5a74a70504540181d177d313ffc47b40f423f364031",
+        "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+        "resources.jsonl": "2ad9ff7e3260de26c665ec384e003007f02d6c2eada9c21129eba3e223b9e8b1",
+        "d0_conformance.json": "1b37baa50465bfb437b3d4cc33d6e82d574743ac6212e3eb8edd3140b7d0ca3d"
+      },
+      "scans": 58,
+      "native_log_findings": [
+        "[controller_server-3] [ERROR] [1792904808.540106401] [c3_nav2.controller_server]: RegulatedPurePursuitController detected collision ahead!",
+        "[behavior_server-4] [WARN] [1792904810.449059220] [c3_nav2.behavior_server]: Collision Ahead - Exiting Spin",
+        "[bt_navigator-5] [ERROR] [1792904810.488400048] [c3_nav2.bt_navigator]: Goal failed"
+      ],
+      "sensor_conformance": {
+        "status": "PASS",
+        "probes": 3,
+        "beams_per_delivered_probe": 360,
+        "max_range_delta_m": 0.0,
+        "source_commit": "83f4ee8d6971d00ab31b2de0eeebf329542dd5d6",
+        "manifest_sha256": "1e995e63e9e601433399f052d6a9630b4d5fb53081cfd1b00003aae2b16ef84e"
+      },
+      "d0_original_expectation": {
+        "basis": "Independent full-body swept witness certifies empty/same-side full-size cone route. See FEASIBILITY.md and witnesses/. Native Nav2 result NOT_RUN; witness must not be supplied as its path.",
+        "outcome": "GEOMETRIC_WITNESS_NATIVE_NOT_RUN"
+      },
+      "d0_input_hashes": {
+        "feasible1.truth.json": "f95fdbc90becfa9967d717aba8d37fc66f221fc434948de45f789fcdfb4b5dc5",
+        "geometry.json": "163af586ff5429cec348bc68b87b337e857dc63408e24c64d356677cd07da76d",
+        "feasible1.observations.json": "d76b89c38c0c64ebe859eeba0d1a85b17547a1a213bd2c42e0e7f5c4256e49c9"
+      }
+    },
+    {
+      "controller": "rpp",
+      "scenario": "d0_feasible2",
+      "repeat": 0,
+      "returncode": 0,
+      "status": "NATIVE_RECORDED",
+      "outcome": "SAFE_WAIT",
+      "expected": "GOAL_REACHED",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "error": null,
+      "terminal_fault": null,
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          11,
+          166,
+          13,
+          130,
+          148,
+          79,
+          72,
+          175,
+          159,
+          246,
+          56,
+          74,
+          229,
+          175,
+          86,
+          224
+        ],
+        "status": 6
+      },
+      "metrics": {
+        "footprint_collision_count": 0,
+        "boundary_violation_count": 0,
+        "min_conservative_clearance_m": 0.05399999999999994,
+        "path_length_m": 0.28349991839794353,
+        "sim_time_s": 8.74999999999999,
+        "wall_time_s": 8.834204363000026,
+        "plant_deadline_misses": 1,
+        "plant_max_wall_gap_s": 0.0915988319999883,
+        "runner_cpu_s": 1.2225210949999998,
+        "runner_peak_rss_kib": 85436,
+        "hold_nonzero_count": 0
+      },
+      "goal_distance_m": 3.816890620913534,
+      "goal_yaw_error_rad": 0.27331293608724394,
+      "package_versions": {
+        "nav2_controller": "1.1.20",
+        "nav2_planner": "1.1.20",
+        "nav2_bt_navigator": "1.1.20",
+        "rclpy": "3.3.22",
+        "nav2_regulated_pure_pursuit_controller": "1.1.20"
+      },
+      "loaded_library_sha256": {
+        "/opt/ros/humble/lib/libnav2_regulated_pure_pursuit_controller.so": "d63cca14c5cd1f5d85b61d2d37e40f70c1cba0133fe2dcd574595386b969f497"
+      },
+      "raw_command_counts": {
+        "controller_server": 39,
+        "behavior_server": 20
+      },
+      "map_sha256": "0a8d0abdedd83324762fd545accc238291249a6382098e13ece85f67ca5dca17",
+      "d0_scene_sha256": "4c39f22b058538de7b6626d024d353bb6327892fdb03c74ffb339b1d274dacc7",
+      "d0_source_commit": "83f4ee8d6971d00ab31b2de0eeebf329542dd5d6",
+      "fixture_sha256": "1b404d4f8c37102571d6d8a6fc89cbb84e65407e2266530431489c45b05a7902",
+      "config_sha256": "5caef12a8f7774d55570f6404b6797ef55056c78e459d5bbfc2dd05c04826609",
+      "source_sha": "5eacacf42378ad91319a5de323df7844f34ea33b",
+      "image_id": "sha256:5aacc553cc20dea7f8d9c0970b411309b1112961ec13580aa6703ddc251be5e0",
+      "expectation_met": false,
+      "independent_validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "independent_swept_clearance_m": 0.05399999999999994,
+      "clearance_resampling_delta_m": 0.0,
+      "raw_native_samples": 59,
+      "accepted_raw_samples": 56,
+      "final_actuator_samples": 175,
+      "shutdown_actuator": [
+        0.0,
+        0.0
+      ],
+      "evidence_gate": "PASS",
+      "safety_gate": "PASS",
+      "liveness_gate": "FAIL",
+      "artifact_hashes": {
+        "native.log": "9dd6d7914cf3f14b66b16a62c4915449acf9a8988ca3a228f5225c5041e150fb",
+        "raw_commands.jsonl": "7fe2dc939b35b9e77608df64449e6b839a734639e976d083bc64b0177ff71905",
+        "trace.jsonl": "17cd078659df04eb03ccc28ee5d270204f4218414459ce732a7fe9a93b25dfe5",
+        "scans.jsonl": "eac8f1d659b946fa07ab44ba2062a8300c3549fb508d25fbf6cfd206217b642f",
+        "observations.jsonl": "595ea213b5df21d5f59e3d8bb6c68cb52c0f1ba4a7f11cd0e3b63bcffaa15962",
+        "fixture.json": "6a97635a438cebb4ba29ee2372317861f63d40d415c70c7573439e1f8f01dd6a",
+        "params.yaml": "52c942954b83dd2aff2bab1ea6a6b60b2245b37afdd4dd90e7ce4c53420c29cd",
+        "environment.json": "3e472a346ca49945bf4e2e4b78825d551bbe778785a3c7aec7eb49acd8d2722c",
+        "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+        "resources.jsonl": "08a2ca7d823e5e53ac11a821f2687cc4e51e9bf173c629efe980812bedaa5125",
+        "d0_conformance.json": "1b37baa50465bfb437b3d4cc33d6e82d574743ac6212e3eb8edd3140b7d0ca3d"
+      },
+      "scans": 44,
+      "native_log_findings": [
+        "[controller_server-3] [ERROR] [1792904820.235574114] [c3_nav2.controller_server]: RegulatedPurePursuitController detected collision ahead!",
+        "[behavior_server-4] [WARN] [1792904822.234673248] [c3_nav2.behavior_server]: Collision Ahead - Exiting Spin",
+        "[bt_navigator-5] [ERROR] [1792904822.274026643] [c3_nav2.bt_navigator]: Goal failed"
+      ],
+      "sensor_conformance": {
+        "status": "PASS",
+        "probes": 3,
+        "beams_per_delivered_probe": 360,
+        "max_range_delta_m": 0.0,
+        "source_commit": "83f4ee8d6971d00ab31b2de0eeebf329542dd5d6",
+        "manifest_sha256": "1e995e63e9e601433399f052d6a9630b4d5fb53081cfd1b00003aae2b16ef84e"
+      },
+      "d0_original_expectation": {
+        "basis": "Independent full-body swept witness certifies empty/same-side full-size cone route. See FEASIBILITY.md and witnesses/. Native Nav2 result NOT_RUN; witness must not be supplied as its path.",
+        "outcome": "GEOMETRIC_WITNESS_NATIVE_NOT_RUN"
+      },
+      "d0_input_hashes": {
+        "feasible2.truth.json": "6fc0e983700fbb46427cebffdc4960c04341a4f51ad581c07f50161d633b3b26",
+        "geometry.json": "163af586ff5429cec348bc68b87b337e857dc63408e24c64d356677cd07da76d",
+        "feasible2.observations.json": "04ca183ae3127f8dcf6a7546402a33db391693931307a1936f54d0600becb0aa"
+      }
+    },
+    {
+      "controller": "rpp",
+      "scenario": "d0_original_tight5",
+      "repeat": 0,
+      "returncode": 0,
+      "status": "NATIVE_RECORDED",
+      "outcome": "SAFE_WAIT",
+      "expected": "GOAL_REACHED",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "error": null,
+      "terminal_fault": null,
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          202,
+          37,
+          2,
+          74,
+          165,
+          1,
+          77,
+          55,
+          128,
+          69,
+          49,
+          150,
+          104,
+          220,
+          212,
+          55
+        ],
+        "status": 6
+      },
+      "metrics": {
+        "footprint_collision_count": 0,
+        "boundary_violation_count": 0,
+        "min_conservative_clearance_m": 0.03717512324848371,
+        "path_length_m": 0.0,
+        "sim_time_s": 6.299999999999986,
+        "wall_time_s": 6.343469384000002,
+        "plant_deadline_misses": 1,
+        "plant_max_wall_gap_s": 0.09113613499999929,
+        "runner_cpu_s": 0.825055894,
+        "runner_peak_rss_kib": 85228,
+        "hold_nonzero_count": 0
+      },
+      "goal_distance_m": 4.1,
+      "goal_yaw_error_rad": 0.06299999999999972,
+      "package_versions": {
+        "nav2_controller": "1.1.20",
+        "nav2_planner": "1.1.20",
+        "nav2_bt_navigator": "1.1.20",
+        "rclpy": "3.3.22",
+        "nav2_regulated_pure_pursuit_controller": "1.1.20"
+      },
+      "loaded_library_sha256": {
+        "/opt/ros/humble/lib/libnav2_regulated_pure_pursuit_controller.so": "d63cca14c5cd1f5d85b61d2d37e40f70c1cba0133fe2dcd574595386b969f497"
+      },
+      "raw_command_counts": {
+        "controller_server": 1,
+        "behavior_server": 9
+      },
+      "map_sha256": "0a8d0abdedd83324762fd545accc238291249a6382098e13ece85f67ca5dca17",
+      "d0_scene_sha256": "4485bc958ed0894f4a8a33767cf6fbe55ae4c3f42382b010f0ff7cd18bbab605",
+      "d0_source_commit": "83f4ee8d6971d00ab31b2de0eeebf329542dd5d6",
+      "fixture_sha256": "5f5ff700255c543e99cd8949122e7d802ca37b469e616abc027fc555fb443343",
+      "config_sha256": "5caef12a8f7774d55570f6404b6797ef55056c78e459d5bbfc2dd05c04826609",
+      "source_sha": "5eacacf42378ad91319a5de323df7844f34ea33b",
+      "image_id": "sha256:5aacc553cc20dea7f8d9c0970b411309b1112961ec13580aa6703ddc251be5e0",
+      "expectation_met": false,
+      "independent_validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "independent_swept_clearance_m": 0.03717512324848371,
+      "clearance_resampling_delta_m": 0.0,
+      "raw_native_samples": 10,
+      "accepted_raw_samples": 7,
+      "final_actuator_samples": 126,
+      "shutdown_actuator": [
+        0.0,
+        0.0
+      ],
+      "evidence_gate": "PASS",
+      "safety_gate": "PASS",
+      "liveness_gate": "FAIL",
+      "artifact_hashes": {
+        "native.log": "ac37c29c2646184c0d05c87a29938329f6189b1191e4cef976516ebceecdb8ee",
+        "raw_commands.jsonl": "1d889e2b3524889022aee98d02430e82de7a242025ed73d6d2d849530c2b7e93",
+        "trace.jsonl": "ad4963ce02601866c2c3f8fcf72362a794d2d0d2c3caca902f9dc6a037733289",
+        "scans.jsonl": "a4d6bb565930450e61be25d8a9f4760246883fd16d58379de837f786175aa9a5",
+        "observations.jsonl": "196d6bfe36093c80419720ff6728ea43e6805d234f8a766aa524d8de126e1e5e",
+        "fixture.json": "5896603871e361b8979aea3be2d75ed6acdfcff228e6ff6292d66c744053b769",
+        "params.yaml": "52c942954b83dd2aff2bab1ea6a6b60b2245b37afdd4dd90e7ce4c53420c29cd",
+        "environment.json": "dd73f73a2f6baa0d550de5a74a70504540181d177d313ffc47b40f423f364031",
+        "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+        "resources.jsonl": "28f12d7b0c7c17d1983d1aead8e8075185f2e4e119be1759fd88ba9ee230defd",
+        "d0_conformance.json": "1b37baa50465bfb437b3d4cc33d6e82d574743ac6212e3eb8edd3140b7d0ca3d"
+      },
+      "scans": 32,
+      "native_log_findings": [
+        "[controller_server-3] [ERROR] [1792904829.913656918] [c3_nav2.controller_server]: RegulatedPurePursuitController detected collision ahead!",
+        "[behavior_server-4] [WARN] [1792904831.411570005] [c3_nav2.behavior_server]: Collision Ahead - Exiting Spin",
+        "[bt_navigator-5] [ERROR] [1792904831.450915669] [c3_nav2.bt_navigator]: Goal failed"
+      ],
+      "sensor_conformance": {
+        "status": "PASS",
+        "probes": 3,
+        "beams_per_delivered_probe": 360,
+        "max_range_delta_m": 0.0,
+        "source_commit": "83f4ee8d6971d00ab31b2de0eeebf329542dd5d6",
+        "manifest_sha256": "1e995e63e9e601433399f052d6a9630b4d5fb53081cfd1b00003aae2b16ef84e"
+      },
+      "d0_original_expectation": {
+        "basis": "Independent full-body continuous sweep certifies a witness without shrinking geometry. See FEASIBILITY.md and witnesses/original_tight5.json. Geometric witness is audit-only, not a native planner path or controller result.",
+        "outcome": "GEOMETRIC_WITNESS_NATIVE_NOT_RUN",
+        "prior_controller_outcome": "NOT_ADOPTED_SAFE_WAIT"
+      },
+      "d0_input_hashes": {
+        "original_tight5.truth.json": "1063b7ca704eda9578a135d4d0fbe396a9a033915cc947e2868115fc30c74c80",
+        "geometry.json": "163af586ff5429cec348bc68b87b337e857dc63408e24c64d356677cd07da76d",
+        "original_tight5.observations.json": "0aae26935daa59b0dd62dba0e7a58eb34623257030f261b57cea075444af5f90"
+      }
+    },
+    {
+      "controller": "rpp",
+      "scenario": "d0_blocked",
+      "repeat": 0,
+      "returncode": 0,
+      "status": "NATIVE_RECORDED",
+      "outcome": "SAFE_WAIT",
+      "expected": "SAFE_WAIT",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "error": null,
+      "terminal_fault": null,
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          27,
+          191,
+          57,
+          102,
+          107,
+          76,
+          74,
+          204,
+          189,
+          74,
+          33,
+          13,
+          170,
+          182,
+          53,
+          230
+        ],
+        "status": 6
+      },
+      "metrics": {
+        "footprint_collision_count": 0,
+        "boundary_violation_count": 0,
+        "min_conservative_clearance_m": 0.04181424537607892,
+        "path_length_m": 0.0,
+        "sim_time_s": 6.149999999999986,
+        "wall_time_s": 6.247298146999981,
+        "plant_deadline_misses": 1,
+        "plant_max_wall_gap_s": 0.09102129499996181,
+        "runner_cpu_s": 0.7676776819999999,
+        "runner_peak_rss_kib": 85760,
+        "hold_nonzero_count": 0
+      },
+      "goal_distance_m": 4.1,
+      "goal_yaw_error_rad": 0.04499999999999993,
+      "package_versions": {
+        "nav2_controller": "1.1.20",
+        "nav2_planner": "1.1.20",
+        "nav2_bt_navigator": "1.1.20",
+        "rclpy": "3.3.22",
+        "nav2_regulated_pure_pursuit_controller": "1.1.20"
+      },
+      "loaded_library_sha256": {
+        "/opt/ros/humble/lib/libnav2_regulated_pure_pursuit_controller.so": "d63cca14c5cd1f5d85b61d2d37e40f70c1cba0133fe2dcd574595386b969f497"
+      },
+      "raw_command_counts": {
+        "controller_server": 0,
+        "behavior_server": 7
+      },
+      "map_sha256": "0a8d0abdedd83324762fd545accc238291249a6382098e13ece85f67ca5dca17",
+      "d0_scene_sha256": "f2861ed1ba6ce252c5fc019fe9ef62f2de6342602b798881affcde1f1c59d3a0",
+      "d0_source_commit": "83f4ee8d6971d00ab31b2de0eeebf329542dd5d6",
+      "fixture_sha256": "13eac676304a794efc218f31d617d14d30b0573aa26ad351f72903cd8e08f394",
+      "config_sha256": "5caef12a8f7774d55570f6404b6797ef55056c78e459d5bbfc2dd05c04826609",
+      "source_sha": "5eacacf42378ad91319a5de323df7844f34ea33b",
+      "image_id": "sha256:5aacc553cc20dea7f8d9c0970b411309b1112961ec13580aa6703ddc251be5e0",
+      "expectation_met": true,
+      "independent_validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "independent_swept_clearance_m": 0.04181424537607892,
+      "clearance_resampling_delta_m": 0.0,
+      "raw_native_samples": 7,
+      "accepted_raw_samples": 6,
+      "final_actuator_samples": 123,
+      "shutdown_actuator": [
+        0.0,
+        0.0
+      ],
+      "evidence_gate": "PASS",
+      "safety_gate": "PASS",
+      "liveness_gate": "PASS",
+      "artifact_hashes": {
+        "native.log": "552f42fb5545223f651b9e285b17eeed2e5aabf5b5381e8a0c8f09f61f85ff9d",
+        "raw_commands.jsonl": "9998d3a7b5b29d554037e4806d04028fd16370397ca1bec6783e4bba3ca5ce34",
+        "trace.jsonl": "fbd8915cf50f463dcde9cada0d08ff79c6761066f843733cebf0d786db0ef67a",
+        "scans.jsonl": "ef2610f254de3dde26e480ebebad547201b07f54f60c613168e600acc8951d25",
+        "observations.jsonl": "d7968b40eb7208102dfd28108c1e3710c955d02d0370348328d4a7ece8013258",
+        "fixture.json": "afd08a044f773728f117b88e0cc68546bf741e823cd1135d9327c95b9e43a814",
+        "params.yaml": "52c942954b83dd2aff2bab1ea6a6b60b2245b37afdd4dd90e7ce4c53420c29cd",
+        "environment.json": "3e472a346ca49945bf4e2e4b78825d551bbe778785a3c7aec7eb49acd8d2722c",
+        "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+        "resources.jsonl": "326122ac68172d16a139d6de2ba4db5c4c44a07e4ce42aacac902adb53a5a834",
+        "d0_conformance.json": "1b37baa50465bfb437b3d4cc33d6e82d574743ac6212e3eb8edd3140b7d0ca3d"
+      },
+      "scans": 31,
+      "native_log_findings": [
+        "[planner_server-2] [WARN] [1792904838.883123912] [c3_nav2.planner_server]: Planning algorithm GridBased failed to generate a valid path to (0.50, 5.05)",
+        "[behavior_server-4] [WARN] [1792904840.281066685] [c3_nav2.behavior_server]: Collision Ahead - Exiting Spin",
+        "[bt_navigator-5] [ERROR] [1792904840.320249869] [c3_nav2.bt_navigator]: Goal failed"
+      ],
+      "sensor_conformance": {
+        "status": "PASS",
+        "probes": 3,
+        "beams_per_delivered_probe": 360,
+        "max_range_delta_m": 0.0,
+        "source_commit": "83f4ee8d6971d00ab31b2de0eeebf329542dd5d6",
+        "manifest_sha256": "1e995e63e9e601433399f052d6a9630b4d5fb53081cfd1b00003aae2b16ef84e"
+      },
+      "d0_original_expectation": {
+        "basis": "Three .26 m square bases across x=.15,.50,.85 at y=2.5 form a barrier; preserved goal also conflicts with upper cone. See independent feasibility report.",
+        "outcome": "SAFE_WAIT"
+      },
+      "d0_input_hashes": {
+        "blocked.truth.json": "db317bce2a4df190fb9fe76282776b42abd33fd564e4fed203e01681f00db15a",
+        "geometry.json": "163af586ff5429cec348bc68b87b337e857dc63408e24c64d356677cd07da76d",
+        "blocked.observations.json": "97f895d1336e52d508efcd4b7e06e033ad534d0a47e696703a94d97356642c41"
+      }
+    },
+    {
+      "controller": "rpp",
+      "scenario": "d0_sensor_dropout",
+      "repeat": 0,
+      "returncode": 0,
+      "status": "NATIVE_RECORDED",
+      "outcome": "SAFE_WAIT",
+      "expected": "SAFE_WAIT",
+      "validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "error": null,
+      "terminal_fault": "SENSOR_STALE",
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          109,
+          31,
+          237,
+          166,
+          193,
+          109,
+          76,
+          66,
+          139,
+          35,
+          239,
+          162,
+          101,
+          141,
+          225,
+          163
+        ],
+        "cancel_ack_count": 1,
+        "status": 5
+      },
+      "metrics": {
+        "footprint_collision_count": 0,
+        "boundary_violation_count": 0,
+        "min_conservative_clearance_m": 0.05399999999999994,
+        "path_length_m": 0.6705000069244751,
+        "sim_time_s": 8.79999999999999,
+        "wall_time_s": 8.884004112000014,
+        "plant_deadline_misses": 1,
+        "plant_max_wall_gap_s": 0.0919710119999877,
+        "runner_cpu_s": 1.29962065,
+        "runner_peak_rss_kib": 85984,
+        "hold_nonzero_count": 0
+      },
+      "goal_distance_m": 3.429499993075545,
+      "goal_yaw_error_rad": 2.0617912710463315e-08,
+      "package_versions": {
+        "nav2_controller": "1.1.20",
+        "nav2_planner": "1.1.20",
+        "nav2_bt_navigator": "1.1.20",
+        "rclpy": "3.3.22",
+        "nav2_regulated_pure_pursuit_controller": "1.1.20"
+      },
+      "loaded_library_sha256": {
+        "/opt/ros/humble/lib/libnav2_regulated_pure_pursuit_controller.so": "d63cca14c5cd1f5d85b61d2d37e40f70c1cba0133fe2dcd574595386b969f497"
+      },
+      "raw_command_counts": {
+        "controller_server": 83,
+        "behavior_server": 0
+      },
+      "map_sha256": "0a8d0abdedd83324762fd545accc238291249a6382098e13ece85f67ca5dca17",
+      "d0_scene_sha256": "3f2bf3000a84ee5795aeb4e77acd13ada0c09262dcbe0ecb0af86d1a05f80e34",
+      "d0_source_commit": "83f4ee8d6971d00ab31b2de0eeebf329542dd5d6",
+      "fixture_sha256": "729ae3dd85a5786f9975f91a825bf17164d27ea6f01760b35ebe7190508dbaa4",
+      "config_sha256": "5caef12a8f7774d55570f6404b6797ef55056c78e459d5bbfc2dd05c04826609",
+      "source_sha": "5eacacf42378ad91319a5de323df7844f34ea33b",
+      "image_id": "sha256:5aacc553cc20dea7f8d9c0970b411309b1112961ec13580aa6703ddc251be5e0",
+      "expectation_met": true,
+      "independent_validation": {
+        "status": "PASS",
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null
+      },
+      "independent_swept_clearance_m": 0.05399999999999994,
+      "clearance_resampling_delta_m": 0.0,
+      "raw_native_samples": 83,
+      "accepted_raw_samples": 81,
+      "final_actuator_samples": 176,
+      "shutdown_actuator": [
+        0.0,
+        0.0
+      ],
+      "evidence_gate": "PASS",
+      "safety_gate": "PASS",
+      "liveness_gate": "PASS",
+      "artifact_hashes": {
+        "native.log": "6da8c7147d70a25879890dae40ef63ffe142baf972405b3100d1cb33f95a625b",
+        "raw_commands.jsonl": "fed7ef186ce7112d994da4ee54513437b2ed506c0ef10b3b5beedf8bc6cfa9c4",
+        "trace.jsonl": "74cb46b5a9d41800a0f3af84dc75ddb49f635176244e91bfd47017a96c9deb99",
+        "scans.jsonl": "ab18bb1cd709e48e19fa10d62476e0843f04521e5ba2923079acf87ce5268810",
+        "observations.jsonl": "1fa2e98a7abc9fa4896d14df79101dc731a917ff948b861498b76552e5166f95",
+        "fixture.json": "578ff39873fda7012bd12907dcf09a40258e2fa243bc6d4e5dc143581d6ddf7c",
+        "params.yaml": "52c942954b83dd2aff2bab1ea6a6b60b2245b37afdd4dd90e7ce4c53420c29cd",
+        "environment.json": "3cab68bd4c12e298ebcef1e99f882c346ac3a1b043f3d835de75b142f00e2f0b",
+        "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+        "resources.jsonl": "02520f8e5406929c439619e94104500d119eb50b521e348b41ed737252110fa3",
+        "d0_conformance.json": "1b37baa50465bfb437b3d4cc33d6e82d574743ac6212e3eb8edd3140b7d0ca3d"
+      },
+      "scans": 28,
+      "native_log_findings": [],
+      "sensor_conformance": {
+        "status": "PASS",
+        "probes": 3,
+        "beams_per_delivered_probe": 360,
+        "max_range_delta_m": 0.0,
+        "source_commit": "83f4ee8d6971d00ab31b2de0eeebf329542dd5d6",
+        "manifest_sha256": "1e995e63e9e601433399f052d6a9630b4d5fb53081cfd1b00003aae2b16ef84e"
+      },
+      "d0_original_expectation": {
+        "basis": "Empty route, no new scans at t>=4; stale nonzero commands must not be repeated while planning.",
+        "outcome": "SENSOR_STALE_HOLD"
+      },
+      "d0_input_hashes": {
+        "sensor_dropout.truth.json": "8d8bf48583ab4a5ea58937486bd584717b3667a1bcca8975659cbd6e038418be",
+        "geometry.json": "163af586ff5429cec348bc68b87b337e857dc63408e24c64d356677cd07da76d",
+        "sensor_dropout.observations.json": "adb568a192e76d3a031d2461aa88a12abdb956237ba82c25fb9076eafff7f1c6"
+      },
+      "first_stale_elapsed_s": 4.149999999999987,
+      "stale_nonzero_samples": 0,
+      "last_scan_source_elapsed_s": 3.899999999999988
+    }
+  ],
+  "status": "COMPLETED_WITH_FAILURES",
+  "source_sha": "5eacacf42378ad91319a5de323df7844f34ea33b",
+  "workflow_run_id": 40164154349,
+  "workflow_conclusion": "failure",
+  "failure_kind": "RPP native goal failures on three D0 cases; execution/evidence/safety pass",
+  "artifact_id": 12588085458,
+  "artifact_url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40164154349/artifacts/12588085458",
+  "artifact_expires_at": "2026-11-08T05:07:36Z",
+  "artifact_digest": "sha256:c2d20937c7e2d7d2d20527994e8eaa116d2fab1d556638562ce688972317d8cb",
+  "base_digest": "ros@sha256:566b87e6dfc48392189a9c32e594e84060fa9948de93b04e536f39475a1f6963",
+  "image_id": "sha256:5aacc553cc20dea7f8d9c0970b411309b1112961ec13580aa6703ddc251be5e0",
+  "packages_sha256": "45f626571f4fd5388d7bc174cae017e5482a4c2396254a5adfb461342076a5de",
+  "d0_source_commit": "83f4ee8d6971d00ab31b2de0eeebf329542dd5d6",
+  "d0_manifest_sha256": "1e995e63e9e601433399f052d6a9630b4d5fb53081cfd1b00003aae2b16ef84e",
+  "common_ci": {
+    "conclusion": "failure",
+    "jobs": [
+      {
+        "completedAt": "2026-10-25T05:06:42Z",
+        "conclusion": "failure",
+        "databaseId": 121081647471,
+        "name": "hardware-free-tests (ubuntu-24.04, 3.12)",
+        "startedAt": "2026-10-25T05:03:49Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Check out repository",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Set up Python",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Set up Node.js",
+            "number": 4,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Install Python dependencies",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Install JavaScript dependencies",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Audit JavaScript dependency resolution",
+            "number": 7,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run Python static checks",
+            "number": 8,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Scan tracked source for credentials",
+            "number": 9,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Audit Python dependency resolution",
+            "number": 10,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run Python tests with coverage",
+            "number": 11,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run JavaScript tests",
+            "number": 12,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Check JavaScript syntax",
+            "number": 13,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Install Chromium for browser tests",
+            "number": 14,
+            "status": "completed"
+          },
+          {
+            "conclusion": "failure",
+            "name": "Run hardware-free browser E2E",
+            "number": 15,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "Post Set up Node.js",
+            "number": 28,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "Post Set up Python",
+            "number": 29,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Check out repository",
+            "number": 30,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 31,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40164154330/job/121081647471"
+      },
+      {
+        "completedAt": "2026-10-25T05:07:38Z",
+        "conclusion": "failure",
+        "databaseId": 121081647660,
+        "name": "hardware-free-tests (ubuntu-22.04, 3.10)",
+        "startedAt": "2026-10-25T05:03:49Z",
+        "status": "completed",
+        "steps": [
+          {
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Check out repository",
+            "number": 2,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Set up Python",
+            "number": 3,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Set up Node.js",
+            "number": 4,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Install Python dependencies",
+            "number": 5,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Install JavaScript dependencies",
+            "number": 6,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Audit JavaScript dependency resolution",
+            "number": 7,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run Python static checks",
+            "number": 8,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Scan tracked source for credentials",
+            "number": 9,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Audit Python dependency resolution",
+            "number": 10,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run Python tests with coverage",
+            "number": 11,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Run JavaScript tests",
+            "number": 12,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Check JavaScript syntax",
+            "number": 13,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Install Chromium for browser tests",
+            "number": 14,
+            "status": "completed"
+          },
+          {
+            "conclusion": "failure",
+            "name": "Run hardware-free browser E2E",
+            "number": 15,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "Post Set up Node.js",
+            "number": 28,
+            "status": "completed"
+          },
+          {
+            "conclusion": "skipped",
+            "name": "Post Set up Python",
+            "number": 29,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Post Check out repository",
+            "number": 30,
+            "status": "completed"
+          },
+          {
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 31,
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40164154330/job/121081647660"
+      }
+    ],
+    "status": "completed"
+  },
+  "local_checks": {
+    "c3-round3-d0-focused.log": "e7fe7a8b40552a98292998a09c3118659b2fc9f0f39dca05edb027a818dee86e",
+    "c3-round3-d0-full.log": "813913b6cffdecfe6d47539e4a556903855a94812bafcbba59d0a5a6cec3001f",
+    "c3-round3-d0-js.log": "037e5888b3d94b5b4bc7aaba58c0c917a2a73e06093c45a7ae9742b06d25bdb1",
+    "c3-round3-d0-common-ci-failed.log": "5664172e376c018740f87af1041286f9bbef7268363ded4f65c51008aabf73eb"
+  },
+  "totals": {
+    "native": 7,
+    "evidence_pass": 7,
+    "safety_pass": 7,
+    "expectations_pass": 4,
+    "d0_native": 6,
+    "d0_expectations_pass": 3
+  }
+}

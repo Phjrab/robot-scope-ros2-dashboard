@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+runtime/
+generated/
+*.pgm
+*.pcd
+*.npy
+
+d0_input/

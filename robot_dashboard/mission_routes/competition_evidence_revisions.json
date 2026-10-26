@@ -1,0 +1,34 @@
+{
+  "D0-20261024": {
+    "manifest": "experiments/competition_vm/integration/revisions/d0_20261024/D0_SOURCE_EVIDENCE.json",
+    "files": {
+      "experiments/competition_vm/integration/revisions/d0_20261024/D0_SOURCE_EVIDENCE.json": "3aaf3c4893e9b552ff78612ee2aec65d82cfa603a7ed250fa0f11cc64d11c2ad",
+      "experiments/competition_vm/traffic_signals/core.py": "075747e0ab18f0d05035baec3edb9efea6bdda92ac3d0a932c11221611fc79fc",
+      "experiments/competition_vm/traffic_signals/lifecycle.py": "aaf8fa341dba2fe090dfe6cd7f93821020560a1b264bde57b8a09f8f91af4bec",
+      "experiments/competition_vm/integration/adapter.py": "a34232ddc69e17093ae31e5f9d7a62be10e25b421fc484e39ba72bc0008e12c4",
+      "experiments/competition_vm/integration/smoke.py": "3dac58f36c9899bff618e83d161b59c5f0f0a0a3c267c1558c4c59fe5dc70c5c",
+      "experiments/competition_vm/traffic_signals/revisions/d0-20261024/VALIDATION.json": "cbda61b78057148f46bcf6a65f9db111782477e4a5972468da3a504852540463",
+      "experiments/competition_vm/integration/revisions/d0_20261024/VALIDATION.json": "513d72a879eef6575a3369ded2aa1e4d2adc053a14cfae34999e9025719b4b1e",
+      "experiments/competition_vm/arena_robot_sim/revisions/d0_20261024/VALIDATION.json": "a757e2658a6b0be997c5c119be7cd23ff78a8861571f5b6f2cc6dc398e3b801f",
+      "experiments/competition_vm/traffic_signals/revisions/d0-20261024/results/unit_tests.txt": "3fef0d4d9bf2125cfb50d3e8daae8d1d6dbe32e3c67933fe3faf94ea2341c2cb",
+      "experiments/competition_vm/integration/revisions/d0_20261024/tests.txt": "fb8f5ef368c8ee2c0a5b0956c7aeb2443085588d57f7eee966dafa9620a6b3d3",
+      "experiments/competition_vm/integration/revisions/d0_20261024/trace.jsonl": "baf82d1de7296bd6689aa1c5e77997bad4ca3a561ec0bb55d77c382ce5b9ae23",
+      "experiments/competition_vm/arena_robot_sim/revisions/d0_20261024/results/summary.json": "3876bb21894307584d0d1bd48b3f6d21f424b954f4a2c0bfed7d1b5b53944a10",
+      "experiments/competition_vm/avoidance/core.py": "73b4861f1e984611c75dc9ad548434558882d0f92972865967d2e1b3c89e5e5d",
+      "experiments/competition_vm/avoidance/VALIDATION_RESULTS.json": "a53e53ad13fc45cfcf7a3ff2c503a004aa333add75166dcfc1099d6e82e9d377"
+    }
+  },
+  "publication-7f2a707": {
+    "manifest": null,
+    "files": {
+      "experiments/competition_vm/traffic_signals/revisions/d0-20261024/fixtures/base_core_7f2a707.txt": "5a3e786243662547588365982d9784293f1025922d0e0f90d28e23d0cedc8f17",
+      "experiments/competition_vm/traffic_signals/VALIDATION_RESULTS.json": "cef543a5f304eabb123b5abb1f4a14c0042ab6cd37e8db7dad2efbd0d63856fe",
+      "experiments/competition_vm/traffic_signals/results/replay.jsonl": "be438e625a0e39ccda131b93320d698665f58d679aaf22dc9c88b6dba8ef66ae",
+      "experiments/competition_vm/integration/revisions/d0_20261024/fixtures/baseline_adapter.py.txt": "cfe1ae1934a456b8366ae1afe953e211f45887551775a8c025daa8eda3d354a5",
+      "experiments/competition_vm/integration/results/tests.txt": "3d31a19159eab44a06b5f2353b58b342e1988327e8f320d368e531e913d625e6",
+      "experiments/competition_vm/integration/results/trace.jsonl": "392b30e08093378ab73ef9063d4db5b74569f237b05171797acce1b664734460",
+      "experiments/competition_vm/avoidance/core.py": "73b4861f1e984611c75dc9ad548434558882d0f92972865967d2e1b3c89e5e5d",
+      "experiments/competition_vm/avoidance/VALIDATION_RESULTS.json": "a53e53ad13fc45cfcf7a3ff2c503a004aa333add75166dcfc1099d6e82e9d377"
+    }
+  }
+}
