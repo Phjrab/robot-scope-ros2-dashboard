@@ -55,6 +55,21 @@ def plugin_library_names(share, plugin):
     return names
 
 
+def loaded_plugin_paths(maps, names, variant):
+    prefix = (
+        "/opt/c3-overlay/lib/"
+        if variant == "omni_checked_overlay"
+        else "/opt/ros/humble/lib/"
+    )
+    return {
+        line.split()[-1]
+        for line in maps.splitlines()
+        if line.strip()
+        and line.split()[-1].startswith(prefix)
+        and Path(line.split()[-1]).name in names
+    }
+
+
 def main(directory):
     isolation = require_isolated()  # before rclpy.init, no host ROS graph access
     import rclpy
@@ -958,12 +973,7 @@ def main(directory):
                 ):
                     maps = (proc / "maps").read_text()
                     report["loaded_libraries"] += sorted(
-                        {
-                            line.split()[-1]
-                            for line in maps.splitlines()
-                            if "/opt/ros/humble/" in line
-                            and Path(line.split()[-1]).name in library_names
-                        }
+                        loaded_plugin_paths(maps, library_names, run["variant"])
                     )
                     report["controller_process"] = dict(
                         pid=int(proc.name), command=command
@@ -996,12 +1006,9 @@ def main(directory):
                     report["planner_process"] = dict(
                         pid=int(proc.name), command=command
                     )
-                    paths = {
-                        line.split()[-1]
-                        for line in (proc / "maps").read_text().splitlines()
-                        if "/opt/ros/humble/" in line
-                        and Path(line.split()[-1]).name in planner_libraries
-                    }
+                    paths = loaded_plugin_paths(
+                        (proc / "maps").read_text(), planner_libraries, run["variant"]
+                    )
                     report["planner_loaded_library_sha256"].update(
                         {
                             p: hashlib.sha256(Path(p).read_bytes()).hexdigest()

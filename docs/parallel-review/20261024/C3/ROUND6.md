@@ -86,3 +86,23 @@ The sequence is stock packet, same fixed C++ regressions, one planner-only feasi
 with original virtual sensors and actuator held, then one closed-loop feasible1
 only if a valid native path is published. Later fixed cases are conditional on
 success and stop at the first failure. Real robot qualification remains NOT_RUN.
+
+Actual fixed comparison [run40275939298](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40275939298)
+tested `e0bbb6e98194b0c86cbfe4cfc8fe8d8933e0370c`: **16/16 fixed C++ cases PASS**.
+[ROUND6_CHECKER.json](ROUND6_CHECKER.json) preserves stock/fixed packets, exact
+source/image/library hashes and the failed subsequent evidence stage. The revised
+normal corridor has actual center216/perimeter253 and is accepted by both native
+stock and overlay classes. Point16's synthetic actual-center93 differs from the
+stock integer lookup's adjacent raw0; cached perimeter is0 vs exact-pose254. This
+packet does not prove the historical B1 internal branch or a full-branch Smac
+execution for that point. It directly demonstrates the distinct coordinate mapping
+and cached-pose discrepancy without inventing the absent original raw snapshot.
+
+The first planner-stage container activated all five native servers but aborted
+**before any ComputePathToPose action**, because the retained provenance collector
+filtered libraries to /opt/ros/humble only. Movement0, raw commands0, contact0,
+graceful cleanup. This is an evidence-adapter defect, not planner infeasibility or
+path rejection. Only the collector is corrected to require the exact stock or
+explicit overlay library prefix. A regression rejects mixed or spoofed prefixes.
+The C++ patch/helper, inputs, YAML and budgets are unchanged; this does not create
+another correctness candidate. The first actual planner action is still pending.

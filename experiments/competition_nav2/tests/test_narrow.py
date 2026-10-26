@@ -10,11 +10,31 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from configure import candidate, validate_config
 from d0_adapter import load_fixture, input_path
-from native_runner import plugin_library_names
+from native_runner import loaded_plugin_paths, plugin_library_names
 from run_narrow import ORDER
 
 
 class NarrowTests(unittest.TestCase):
+    def test_library_proof_separates_overlay_and_preserved_stock(self):
+        maps = "\n".join(
+            "100-200 r-xp 0 0 1 " + path
+            for path in (
+                "/opt/c3-overlay/lib/libmppi_controller.so",
+                "/opt/ros/humble/lib/libmppi_controller.so",
+                "/tmp/opt/c3-overlay/lib/libmppi_controller.so",
+                "/opt/c3-overlay/lib/libunrelated.so",
+            )
+        )
+        names = {"libmppi_controller.so"}
+        self.assertEqual(
+            loaded_plugin_paths(maps, names, "omni_checked_overlay"),
+            {"/opt/c3-overlay/lib/libmppi_controller.so"},
+        )
+        self.assertEqual(
+            loaded_plugin_paths(maps, names, "omni_coverage"),
+            {"/opt/ros/humble/lib/libmppi_controller.so"},
+        )
+
     def test_candidate_changes_only_native_planner(self):
         fixture = load_fixture(input_path("feasible1"))
         baseline = candidate("rpp", fixture=fixture)

@@ -1,0 +1,838 @@
+{
+  "schema": "c3-round6-checker-checkpoint.v1",
+  "tested_code_sha": "e0bbb6e98194b0c86cbfe4cfc8fe8d8933e0370c",
+  "run_id": 40275939298,
+  "native_conclusion": "FAILURE: evidence adapter rejected overlay path before any planner action",
+  "checker_reproduced": "PASS",
+  "checker_fixed": "PASS 16/16",
+  "stock": {
+    "cases": [
+      {
+        "center_raw": 0.0,
+        "duration_us": 34.856,
+        "expected_collision": true,
+        "id": "free_center_corner",
+        "mppi_direct_collision": false,
+        "mppi_score_collision": false,
+        "regression_pass": false,
+        "smac_collision": false,
+        "smac_grid_input": [
+          50.45000457763672,
+          50.45000457763672,
+          0.0
+        ],
+        "stock_cached_pose": [
+          1.01,
+          1.01,
+          0.0
+        ],
+        "stock_perimeter_cost_at_actual_pose": 254.0,
+        "stock_perimeter_cost_at_cached_pose": 254.0,
+        "stock_smac_center_raw": 0
+      },
+      {
+        "center_raw": 78.0,
+        "duration_us": 7.851,
+        "expected_collision": true,
+        "id": "below_threshold_corner",
+        "mppi_direct_collision": false,
+        "mppi_score_collision": false,
+        "regression_pass": false,
+        "smac_collision": false,
+        "smac_grid_input": [
+          50.45000457763672,
+          50.45000457763672,
+          0.0
+        ],
+        "stock_cached_pose": [
+          1.01,
+          1.01,
+          0.0
+        ],
+        "stock_perimeter_cost_at_actual_pose": 254.0,
+        "stock_perimeter_cost_at_cached_pose": 254.0,
+        "stock_smac_center_raw": 78
+      },
+      {
+        "center_raw": 200.0,
+        "duration_us": 9.11,
+        "expected_collision": true,
+        "id": "fractional_pose_full_branch",
+        "mppi_direct_collision": true,
+        "mppi_score_collision": true,
+        "regression_pass": true,
+        "smac_collision": true,
+        "smac_grid_input": [
+          50.45000457763672,
+          50.45000457763672,
+          0.0
+        ],
+        "stock_cached_pose": [
+          1.01,
+          1.01,
+          0.0
+        ],
+        "stock_perimeter_cost_at_actual_pose": 254.0,
+        "stock_perimeter_cost_at_cached_pose": 254.0,
+        "stock_smac_center_raw": 200
+      },
+      {
+        "center_raw": 80.0,
+        "duration_us": 6.59,
+        "expected_collision": true,
+        "id": "b1_point10_synthetic_sparse",
+        "mppi_direct_collision": false,
+        "mppi_score_collision": false,
+        "regression_pass": false,
+        "smac_collision": false,
+        "smac_grid_input": [
+          27.000001907348633,
+          51.0,
+          11.457993507385254
+        ],
+        "stock_cached_pose": [
+          0.55,
+          1.03,
+          0.9599310755729675
+        ],
+        "stock_perimeter_cost_at_actual_pose": 254.0,
+        "stock_perimeter_cost_at_cached_pose": 0.0,
+        "stock_smac_center_raw": 80
+      },
+      {
+        "center_raw": 93.0,
+        "duration_us": 8.098,
+        "expected_collision": true,
+        "id": "b1_point16_synthetic_sparse",
+        "mppi_direct_collision": true,
+        "mppi_score_collision": true,
+        "regression_pass": false,
+        "smac_collision": false,
+        "smac_grid_input": [
+          30.635499954223633,
+          54.879005432128906,
+          12.6556396484375
+        ],
+        "stock_cached_pose": [
+          0.61,
+          1.09,
+          1.0471975803375244
+        ],
+        "stock_perimeter_cost_at_actual_pose": 254.0,
+        "stock_perimeter_cost_at_cached_pose": 0.0,
+        "stock_smac_center_raw": 0
+      },
+      {
+        "center_raw": 200.0,
+        "duration_us": 9.062,
+        "expected_collision": true,
+        "id": "interior_lethal",
+        "mppi_direct_collision": false,
+        "mppi_score_collision": false,
+        "regression_pass": false,
+        "smac_collision": false,
+        "smac_grid_input": [
+          50.0,
+          50.0,
+          0.0
+        ],
+        "stock_cached_pose": [
+          1.01,
+          1.01,
+          0.0
+        ],
+        "stock_perimeter_cost_at_actual_pose": 0.0,
+        "stock_perimeter_cost_at_cached_pose": 0.0,
+        "stock_smac_center_raw": 200
+      },
+      {
+        "center_raw": 200.0,
+        "duration_us": 8.508,
+        "expected_collision": true,
+        "id": "interior_unknown_disallowed",
+        "mppi_direct_collision": false,
+        "mppi_score_collision": false,
+        "regression_pass": false,
+        "smac_collision": false,
+        "smac_grid_input": [
+          50.0,
+          50.0,
+          0.0
+        ],
+        "stock_cached_pose": [
+          1.01,
+          1.01,
+          0.0
+        ],
+        "stock_perimeter_cost_at_actual_pose": 0.0,
+        "stock_perimeter_cost_at_cached_pose": 0.0,
+        "stock_smac_center_raw": 200
+      },
+      {
+        "center_raw": 200.0,
+        "duration_us": 5.89,
+        "expected_collision": true,
+        "id": "outside_map",
+        "mppi_direct_collision": true,
+        "mppi_score_collision": true,
+        "regression_pass": false,
+        "smac_collision": false,
+        "smac_grid_input": [
+          9.5,
+          49.5,
+          0.0
+        ],
+        "stock_cached_pose": [
+          0.19,
+          0.99,
+          0.0
+        ],
+        "stock_perimeter_cost_at_actual_pose": 254.0,
+        "stock_perimeter_cost_at_cached_pose": 254.0,
+        "stock_smac_center_raw": 0
+      },
+      {
+        "center_raw": 200.0,
+        "duration_us": 8.827,
+        "expected_collision": false,
+        "id": "nonlethal_inflation",
+        "mppi_direct_collision": false,
+        "mppi_score_collision": false,
+        "regression_pass": true,
+        "smac_collision": false,
+        "smac_grid_input": [
+          50.0,
+          50.0,
+          0.0
+        ],
+        "stock_cached_pose": [
+          1.01,
+          1.01,
+          0.0
+        ],
+        "stock_perimeter_cost_at_actual_pose": 253.0,
+        "stock_perimeter_cost_at_cached_pose": 253.0,
+        "stock_smac_center_raw": 200
+      },
+      {
+        "center_raw": 216.0,
+        "duration_us": 8.782,
+        "expected_collision": false,
+        "id": "valid_narrow_rectangle",
+        "mppi_direct_collision": false,
+        "mppi_score_collision": false,
+        "regression_pass": true,
+        "smac_collision": false,
+        "smac_grid_input": [
+          24.5,
+          99.5,
+          18.0
+        ],
+        "stock_cached_pose": [
+          0.49,
+          1.99,
+          1.570796251296997
+        ],
+        "stock_perimeter_cost_at_actual_pose": 253.0,
+        "stock_perimeter_cost_at_cached_pose": 253.0,
+        "stock_smac_center_raw": 216
+      },
+      {
+        "center_raw": 0.0,
+        "duration_us": 6.238,
+        "expected_collision": false,
+        "id": "free",
+        "mppi_direct_collision": false,
+        "mppi_score_collision": false,
+        "regression_pass": true,
+        "smac_collision": false,
+        "smac_grid_input": [
+          50.0,
+          50.0,
+          0.0
+        ],
+        "stock_cached_pose": [
+          1.01,
+          1.01,
+          0.0
+        ],
+        "stock_perimeter_cost_at_actual_pose": 0.0,
+        "stock_perimeter_cost_at_cached_pose": 0.0,
+        "stock_smac_center_raw": 0
+      },
+      {
+        "center_raw": 200.0,
+        "duration_us": 16.117,
+        "expected_collision": false,
+        "id": "rotation_endpoints_clear",
+        "lattice_primitive_valid": true,
+        "mppi_direct_collision": false,
+        "mppi_score_collision": false,
+        "regression_pass": false,
+        "smac_collision": false,
+        "smac_grid_input": [
+          100.0,
+          100.0,
+          18.0
+        ],
+        "stock_cached_pose": [
+          2.0100000000000002,
+          2.0100000000000002,
+          1.570796251296997
+        ],
+        "stock_perimeter_cost_at_actual_pose": 0.0,
+        "stock_perimeter_cost_at_cached_pose": 0.0,
+        "stock_smac_center_raw": 200
+      },
+      {
+        "center_raw": 200.0,
+        "duration_us": 6.029,
+        "expected_collision": true,
+        "id": "rotation_midpoint_collides",
+        "mppi_direct_collision": true,
+        "mppi_score_collision": true,
+        "regression_pass": true,
+        "smac_collision": true,
+        "smac_grid_input": [
+          100.0,
+          100.0,
+          6.0
+        ],
+        "stock_cached_pose": [
+          2.0100000000000002,
+          2.0100000000000002,
+          0.5235987901687622
+        ],
+        "stock_perimeter_cost_at_actual_pose": 254.0,
+        "stock_perimeter_cost_at_cached_pose": 254.0,
+        "stock_smac_center_raw": 200
+      },
+      {
+        "center_raw": 200.0,
+        "duration_us": 20.347,
+        "expected_collision": false,
+        "id": "interior_unknown_allowed",
+        "mppi_direct_collision": false,
+        "mppi_score_collision": false,
+        "regression_pass": true,
+        "smac_collision": false,
+        "smac_grid_input": [
+          50.0,
+          50.0,
+          0.0
+        ],
+        "stock_cached_pose": [
+          1.01,
+          1.01,
+          0.0
+        ],
+        "stock_perimeter_cost_at_actual_pose": 0.0,
+        "stock_perimeter_cost_at_cached_pose": 0.0,
+        "stock_smac_center_raw": 200
+      },
+      {
+        "center_raw": 200.0,
+        "duration_us": 12.191,
+        "expected_collision": true,
+        "id": "unknown_must_not_mask_lethal",
+        "mppi_direct_collision": false,
+        "mppi_score_collision": false,
+        "regression_pass": false,
+        "smac_collision": false,
+        "smac_grid_input": [
+          50.0,
+          50.0,
+          0.0
+        ],
+        "stock_cached_pose": [
+          1.01,
+          1.01,
+          0.0
+        ],
+        "stock_perimeter_cost_at_actual_pose": 0.0,
+        "stock_perimeter_cost_at_cached_pose": 0.0,
+        "stock_smac_center_raw": 200
+      },
+      {
+        "center_raw": 200.0,
+        "duration_us": 6.592,
+        "expected_collision": true,
+        "id": "outside_map_unknown_allowed",
+        "mppi_direct_collision": true,
+        "mppi_score_collision": true,
+        "regression_pass": false,
+        "smac_collision": false,
+        "smac_grid_input": [
+          9.5,
+          49.5,
+          0.0
+        ],
+        "stock_cached_pose": [
+          0.19,
+          0.99,
+          0.0
+        ],
+        "stock_perimeter_cost_at_actual_pose": 254.0,
+        "stock_perimeter_cost_at_cached_pose": 254.0,
+        "stock_smac_center_raw": 0
+      }
+    ],
+    "mode": "stock",
+    "status": "CHECKER_REPRODUCED",
+    "loaded_libraries": {
+      "/opt/ros/humble/lib/libmppi_critics.so": "570f0e692329a00721140320b126c336ea56e322bb806c66d3dac2a4196e6f7b",
+      "/opt/ros/humble/lib/libnav2_smac_planner_lattice.so": "2c4c5568c78626c1f66d91a4518ae325af6a4e48c93cac46c1dac91383b6679b"
+    },
+    "underlay_image_id": "sha256:5c71aab4fcd3e783e982c514b3bc17d372cd8f9892dac149201e3dbb0949fbd8",
+    "probe_image_id": "sha256:2693af03e598523a05a537a7fec33c85e3401091cc252ad803cacc14219a8dc8",
+    "cases_sha256": "569d23d9375ca1d960ac68fb7835ba415dd3255e9e145bfd0157a5c66633322d"
+  },
+  "fixed": {
+    "cases": [
+      {
+        "center_raw": 0.0,
+        "duration_us": 50.17,
+        "expected_collision": true,
+        "id": "free_center_corner",
+        "mppi_direct_collision": true,
+        "mppi_score_collision": true,
+        "regression_pass": true,
+        "smac_collision": true,
+        "smac_grid_input": [
+          50.45000457763672,
+          50.45000457763672,
+          0.0
+        ],
+        "stock_cached_pose": [
+          1.01,
+          1.01,
+          0.0
+        ],
+        "stock_perimeter_cost_at_actual_pose": 254.0,
+        "stock_perimeter_cost_at_cached_pose": 254.0,
+        "stock_smac_center_raw": 0
+      },
+      {
+        "center_raw": 78.0,
+        "duration_us": 18.065,
+        "expected_collision": true,
+        "id": "below_threshold_corner",
+        "mppi_direct_collision": true,
+        "mppi_score_collision": true,
+        "regression_pass": true,
+        "smac_collision": true,
+        "smac_grid_input": [
+          50.45000457763672,
+          50.45000457763672,
+          0.0
+        ],
+        "stock_cached_pose": [
+          1.01,
+          1.01,
+          0.0
+        ],
+        "stock_perimeter_cost_at_actual_pose": 254.0,
+        "stock_perimeter_cost_at_cached_pose": 254.0,
+        "stock_smac_center_raw": 78
+      },
+      {
+        "center_raw": 200.0,
+        "duration_us": 14.616,
+        "expected_collision": true,
+        "id": "fractional_pose_full_branch",
+        "mppi_direct_collision": true,
+        "mppi_score_collision": true,
+        "regression_pass": true,
+        "smac_collision": true,
+        "smac_grid_input": [
+          50.45000457763672,
+          50.45000457763672,
+          0.0
+        ],
+        "stock_cached_pose": [
+          1.01,
+          1.01,
+          0.0
+        ],
+        "stock_perimeter_cost_at_actual_pose": 254.0,
+        "stock_perimeter_cost_at_cached_pose": 254.0,
+        "stock_smac_center_raw": 200
+      },
+      {
+        "center_raw": 80.0,
+        "duration_us": 7.853,
+        "expected_collision": true,
+        "id": "b1_point10_synthetic_sparse",
+        "mppi_direct_collision": true,
+        "mppi_score_collision": true,
+        "regression_pass": true,
+        "smac_collision": true,
+        "smac_grid_input": [
+          27.000001907348633,
+          51.0,
+          11.457993507385254
+        ],
+        "stock_cached_pose": [
+          0.55,
+          1.03,
+          0.9599310755729675
+        ],
+        "stock_perimeter_cost_at_actual_pose": 254.0,
+        "stock_perimeter_cost_at_cached_pose": 0.0,
+        "stock_smac_center_raw": 80
+      },
+      {
+        "center_raw": 93.0,
+        "duration_us": 18.958,
+        "expected_collision": true,
+        "id": "b1_point16_synthetic_sparse",
+        "mppi_direct_collision": true,
+        "mppi_score_collision": true,
+        "regression_pass": true,
+        "smac_collision": true,
+        "smac_grid_input": [
+          30.635499954223633,
+          54.879005432128906,
+          12.6556396484375
+        ],
+        "stock_cached_pose": [
+          0.61,
+          1.09,
+          1.0471975803375244
+        ],
+        "stock_perimeter_cost_at_actual_pose": 254.0,
+        "stock_perimeter_cost_at_cached_pose": 0.0,
+        "stock_smac_center_raw": 0
+      },
+      {
+        "center_raw": 200.0,
+        "duration_us": 11.386,
+        "expected_collision": true,
+        "id": "interior_lethal",
+        "mppi_direct_collision": true,
+        "mppi_score_collision": true,
+        "regression_pass": true,
+        "smac_collision": true,
+        "smac_grid_input": [
+          50.0,
+          50.0,
+          0.0
+        ],
+        "stock_cached_pose": [
+          1.01,
+          1.01,
+          0.0
+        ],
+        "stock_perimeter_cost_at_actual_pose": 0.0,
+        "stock_perimeter_cost_at_cached_pose": 0.0,
+        "stock_smac_center_raw": 200
+      },
+      {
+        "center_raw": 200.0,
+        "duration_us": 12.634,
+        "expected_collision": true,
+        "id": "interior_unknown_disallowed",
+        "mppi_direct_collision": true,
+        "mppi_score_collision": true,
+        "regression_pass": true,
+        "smac_collision": true,
+        "smac_grid_input": [
+          50.0,
+          50.0,
+          0.0
+        ],
+        "stock_cached_pose": [
+          1.01,
+          1.01,
+          0.0
+        ],
+        "stock_perimeter_cost_at_actual_pose": 0.0,
+        "stock_perimeter_cost_at_cached_pose": 0.0,
+        "stock_smac_center_raw": 200
+      },
+      {
+        "center_raw": 200.0,
+        "duration_us": 5.305,
+        "expected_collision": true,
+        "id": "outside_map",
+        "mppi_direct_collision": true,
+        "mppi_score_collision": true,
+        "regression_pass": true,
+        "smac_collision": true,
+        "smac_grid_input": [
+          9.5,
+          49.5,
+          0.0
+        ],
+        "stock_cached_pose": [
+          0.19,
+          0.99,
+          0.0
+        ],
+        "stock_perimeter_cost_at_actual_pose": 254.0,
+        "stock_perimeter_cost_at_cached_pose": 254.0,
+        "stock_smac_center_raw": 0
+      },
+      {
+        "center_raw": 200.0,
+        "duration_us": 19.482,
+        "expected_collision": false,
+        "id": "nonlethal_inflation",
+        "mppi_direct_collision": false,
+        "mppi_score_collision": false,
+        "regression_pass": true,
+        "smac_collision": false,
+        "smac_grid_input": [
+          50.0,
+          50.0,
+          0.0
+        ],
+        "stock_cached_pose": [
+          1.01,
+          1.01,
+          0.0
+        ],
+        "stock_perimeter_cost_at_actual_pose": 253.0,
+        "stock_perimeter_cost_at_cached_pose": 253.0,
+        "stock_smac_center_raw": 200
+      },
+      {
+        "center_raw": 216.0,
+        "duration_us": 17.777,
+        "expected_collision": false,
+        "id": "valid_narrow_rectangle",
+        "mppi_direct_collision": false,
+        "mppi_score_collision": false,
+        "regression_pass": true,
+        "smac_collision": false,
+        "smac_grid_input": [
+          24.5,
+          99.5,
+          18.0
+        ],
+        "stock_cached_pose": [
+          0.49,
+          1.99,
+          1.570796251296997
+        ],
+        "stock_perimeter_cost_at_actual_pose": 253.0,
+        "stock_perimeter_cost_at_cached_pose": 253.0,
+        "stock_smac_center_raw": 216
+      },
+      {
+        "center_raw": 0.0,
+        "duration_us": 16.983,
+        "expected_collision": false,
+        "id": "free",
+        "mppi_direct_collision": false,
+        "mppi_score_collision": false,
+        "regression_pass": true,
+        "smac_collision": false,
+        "smac_grid_input": [
+          50.0,
+          50.0,
+          0.0
+        ],
+        "stock_cached_pose": [
+          1.01,
+          1.01,
+          0.0
+        ],
+        "stock_perimeter_cost_at_actual_pose": 0.0,
+        "stock_perimeter_cost_at_cached_pose": 0.0,
+        "stock_smac_center_raw": 0
+      },
+      {
+        "center_raw": 200.0,
+        "duration_us": 639.646,
+        "expected_collision": false,
+        "id": "rotation_endpoints_clear",
+        "lattice_primitive_valid": false,
+        "mppi_direct_collision": false,
+        "mppi_score_collision": false,
+        "regression_pass": true,
+        "smac_collision": false,
+        "smac_grid_input": [
+          100.0,
+          100.0,
+          18.0
+        ],
+        "stock_cached_pose": [
+          2.0100000000000002,
+          2.0100000000000002,
+          1.570796251296997
+        ],
+        "stock_perimeter_cost_at_actual_pose": 0.0,
+        "stock_perimeter_cost_at_cached_pose": 0.0,
+        "stock_smac_center_raw": 200
+      },
+      {
+        "center_raw": 200.0,
+        "duration_us": 15.662,
+        "expected_collision": true,
+        "id": "rotation_midpoint_collides",
+        "mppi_direct_collision": true,
+        "mppi_score_collision": true,
+        "regression_pass": true,
+        "smac_collision": true,
+        "smac_grid_input": [
+          100.0,
+          100.0,
+          6.0
+        ],
+        "stock_cached_pose": [
+          2.0100000000000002,
+          2.0100000000000002,
+          0.5235987901687622
+        ],
+        "stock_perimeter_cost_at_actual_pose": 254.0,
+        "stock_perimeter_cost_at_cached_pose": 254.0,
+        "stock_smac_center_raw": 200
+      },
+      {
+        "center_raw": 200.0,
+        "duration_us": 28.131,
+        "expected_collision": false,
+        "id": "interior_unknown_allowed",
+        "mppi_direct_collision": false,
+        "mppi_score_collision": false,
+        "regression_pass": true,
+        "smac_collision": false,
+        "smac_grid_input": [
+          50.0,
+          50.0,
+          0.0
+        ],
+        "stock_cached_pose": [
+          1.01,
+          1.01,
+          0.0
+        ],
+        "stock_perimeter_cost_at_actual_pose": 0.0,
+        "stock_perimeter_cost_at_cached_pose": 0.0,
+        "stock_smac_center_raw": 200
+      },
+      {
+        "center_raw": 200.0,
+        "duration_us": 14.54,
+        "expected_collision": true,
+        "id": "unknown_must_not_mask_lethal",
+        "mppi_direct_collision": true,
+        "mppi_score_collision": true,
+        "regression_pass": true,
+        "smac_collision": true,
+        "smac_grid_input": [
+          50.0,
+          50.0,
+          0.0
+        ],
+        "stock_cached_pose": [
+          1.01,
+          1.01,
+          0.0
+        ],
+        "stock_perimeter_cost_at_actual_pose": 0.0,
+        "stock_perimeter_cost_at_cached_pose": 0.0,
+        "stock_smac_center_raw": 200
+      },
+      {
+        "center_raw": 200.0,
+        "duration_us": 5.914,
+        "expected_collision": true,
+        "id": "outside_map_unknown_allowed",
+        "mppi_direct_collision": true,
+        "mppi_score_collision": true,
+        "regression_pass": true,
+        "smac_collision": true,
+        "smac_grid_input": [
+          9.5,
+          49.5,
+          0.0
+        ],
+        "stock_cached_pose": [
+          0.19,
+          0.99,
+          0.0
+        ],
+        "stock_perimeter_cost_at_actual_pose": 254.0,
+        "stock_perimeter_cost_at_cached_pose": 254.0,
+        "stock_smac_center_raw": 0
+      }
+    ],
+    "mode": "overlay",
+    "status": "CHECKER_FIXED",
+    "loaded_libraries": {
+      "/opt/c3-overlay/lib/libmppi_critics.so": "483a7ee177bbee2aef1e57549ad16334605637c9171189215aaf8df8bd5865db",
+      "/opt/c3-overlay/lib/libnav2_smac_planner_lattice.so": "29edd1a762e6db296f1274914d5188619d0917fa8ede7593e9f1e032c02e4193"
+    },
+    "cases_sha256": "569d23d9375ca1d960ac68fb7835ba415dd3255e9e145bfd0157a5c66633322d",
+    "returncode": 0
+  },
+  "overlay": {
+    "upstream": {
+      "upstream_commit": "a097086719c88f781aa59788eca29ac6ca5e56db",
+      "upstream_tag": "1.1.20",
+      "source_sha256": {
+        "nav2_smac_planner/src/collision_checker.cpp": "2be59308f6b216130abc6247aed60709137bac8b9bcd888d1afcb59a13f3b939",
+        "nav2_smac_planner/src/node_lattice.cpp": "86eb7052ea22d74438e771f5f254dedfcf0588f9b145e8f7b41c1888a59a5ae8",
+        "nav2_smac_planner/src/smac_planner_lattice.cpp": "701438227aa7d60299955fa299dbc569e38e51269416a78d2636dfd5075b901b",
+        "nav2_mppi_controller/src/critics/cost_critic.cpp": "0630dc3f8302d146d7f5317ee2c3fc940cc6f6ad63f26b19bf0aa630accc7fa4",
+        "nav2_smac_planner/include/nav2_smac_planner/collision_checker.hpp": "ecc2d62ed0d00a33dd46a94ba61e36028fec73414f1f080e7da823da715114d6",
+        "nav2_smac_planner/src/analytic_expansion.cpp": "771e1ab17587a83a00d9fbb6cecba7e5b62cc0677fc75b561bedee4f1dc266eb",
+        "nav2_mppi_controller/CMakeLists.txt": "fc57ba2c7b090ec24ee98c02ab9176dcb531cff49a15c95cc5dfa1c4b9942004"
+      },
+      "d0_commit": "dc24b598e70dfd028a67b5bc5c11f3dcabb81ec3",
+      "d0_inputs": {
+        "experiments/competition_vm/arena_robot_sim/revisions/footprint_costfield_audit_20261026/results/checker_cases.json": "308b9d332fdd257909057906a1819930559864f6de22e724e32d22dae9b0fae3",
+        "experiments/competition_vm/arena_robot_sim/revisions/footprint_costfield_audit_20261026/results/coverage.json": "0a061bc8174e33a61d97026e013f9983c758aee57ecaf4d7022a821e8929b596"
+      }
+    },
+    "patch_sha256": "1f099f26287ee13355783a21d69f46e113464dea3c79fa316c34f08283753c43",
+    "exact_checker_sha256": "5207de4150b4c3326315a32410b3a87afb3390bf1bc942bd8a8520fefc06da05",
+    "overlay_prefix": "/opt/c3-overlay",
+    "underlay_image_id": "sha256:5c71aab4fcd3e783e982c514b3bc17d372cd8f9892dac149201e3dbb0949fbd8",
+    "original_package_lock_sha256": "45f626571f4fd5388d7bc174cae017e5482a4c2396254a5adfb461342076a5de",
+    "modified_sources": {
+      "nav2_smac_planner/src/collision_checker.cpp": "49977aef5a36a82dfc4c6a41eaf437145948894614b10e9665426b429fe654c3",
+      "nav2_smac_planner/src/node_lattice.cpp": "de960d3c9c74e4760481e9993413d15d24153515db0533ace6945be43a0b9ad1",
+      "nav2_smac_planner/src/smac_planner_lattice.cpp": "979875f14bc9d88344ca9976d7f59d008594beb66305072a223d94e9eea82879",
+      "nav2_mppi_controller/src/critics/cost_critic.cpp": "9a6f8f9c0ed7ebe151b9872af0244e7f28197bd643f3545536c86cc33d98a768",
+      "nav2_smac_planner/include/nav2_smac_planner/collision_checker.hpp": "367bf85b808e1450a2cc50b74d40416d2e96c22af8cb66c9e9c4909999ac6f94",
+      "nav2_smac_planner/src/analytic_expansion.cpp": "695c11c40b28844c6fbba390d118ffe624eb065f66f9a7a42cafe7b998f4e04a",
+      "nav2_mppi_controller/CMakeLists.txt": "2f28a571e853d633340c741b6cdc07dfed1ee9a974ce850adb475735427caecf"
+    },
+    "build_tools": "Existing locked GCC/CMake/colcon; no apt additions/upgrades",
+    "overlay_image_id": "sha256:1d0a382c7c255821842ea4a0af6309c154a239ece07123e3ccdd907cac9ad864",
+    "runtime_package_delta": []
+  },
+  "planner_action_attempted": false,
+  "gate": {
+    "planner_returncode": 1,
+    "closed_loop": "NOT_RUN",
+    "regressions": "NOT_RUN"
+  },
+  "pre_action_result": "RuntimeError: no native controller shared library found in process maps",
+  "artifact": {
+    "id": 12630511528,
+    "node_id": "MDg6QXJ0aWZhY3QxMjYzMDUxMTUyOA==",
+    "name": "c3-native-e0bbb6e98194b0c86cbfe4cfc8fe8d8933e0370c-1",
+    "size_in_bytes": 86013,
+    "url": "https://api.github.com/repos/Phjrab/robot-scope-ros2-dashboard/actions/artifacts/12630511528",
+    "archive_download_url": "https://api.github.com/repos/Phjrab/robot-scope-ros2-dashboard/actions/artifacts/12630511528/zip",
+    "expired": false,
+    "digest": "sha256:cafe8f9ff48102e232cf30c04c1fbea80a8219ea2d409ab880f42594763b9f1c",
+    "created_at": "2026-10-26T05:50:54Z",
+    "updated_at": "2026-10-26T05:50:54Z",
+    "expires_at": "2026-11-09T05:50:53Z",
+    "workflow_run": {
+      "id": 40275939298,
+      "repository_id": 1326271247,
+      "head_repository_id": 1326271247,
+      "head_branch": "review/20261024-c3-nav2-benchmark",
+      "head_sha": "e0bbb6e98194b0c86cbfe4cfc8fe8d8933e0370c"
+    }
+  },
+  "zip_sha256_verified": "cafe8f9ff48102e232cf30c04c1fbea80a8219ea2d409ab880f42594763b9f1c",
+  "point16_limit": "Synthetic true world center raw93, but stock integer lookup reads adjacent raw0; cached perimeter also0 vs actual254. Does NOT prove which internal branch historical B1 took.",
+  "robot_qualified": "NOT_RUN"
+}
