@@ -1,0 +1,472 @@
+{
+  "schema": "c3-round5-first-failure.v1",
+  "tested_source": "a70f22dd703502b6c6779946f34bd9c7261696c5",
+  "classification": "COVERAGE_APPLIED_BUT_NATIVE_PATH_COLLISION; later PROGRESS_FAILURE; goal not reached",
+  "no_new_native_execution": true,
+  "first_native_path": {
+    "source_sim_s": 1.95,
+    "receipt_monotonic": 195.451124384,
+    "points": 185,
+    "grid_source_sim_s": 1.35,
+    "grid_receipt_monotonic": 194.830971385,
+    "bad_native_poses": [
+      {
+        "native_index": 10,
+        "pose": [
+          0.549999987706542,
+          1.029999976977706,
+          0.9998985528945923
+        ],
+        "corners": [
+          [
+            0.5757703643728864,
+            0.4964637666915861
+          ],
+          [
+            1.0459076354314636,
+            1.2284958331761042
+          ],
+          [
+            0.5242296110401976,
+            1.5635361872638258
+          ],
+          [
+            0.054092339981620496,
+            0.8315041207793077
+          ]
+        ],
+        "center_occupancy": 31,
+        "possible_raw_cost_values": [
+          79,
+          80,
+          81
+        ],
+        "raw_cost_semantics": "Lossy publisher preimage interval only; not a uniquely recovered raw byte or an atomic checker value.",
+        "original_truth_collision": false,
+        "grid_hits": [
+          {
+            "cell": [
+              28,
+              24
+            ],
+            "bbox": [
+              [
+                0.5599999874830246,
+                0.47999998927116394
+              ],
+              [
+                0.5799999870359898,
+                0.4999999888241291
+              ]
+            ],
+            "occupancy": 100
+          }
+        ]
+      },
+      {
+        "native_index": 16,
+        "pose": [
+          0.6227099851658195,
+          1.10758000759229,
+          1.1044129133224487
+        ],
+        "corners": [
+          [
+            0.7040004755498648,
+            0.5796435945905709
+          ],
+          [
+            1.0952037157171186,
+            1.3567279046127474
+          ],
+          [
+            0.5414194947817743,
+            1.6355164205940087
+          ],
+          [
+            0.15021625461452054,
+            0.8584321105718324
+          ]
+        ],
+        "center_occupancy": 36,
+        "possible_raw_cost_values": [
+          92,
+          93,
+          94
+        ],
+        "raw_cost_semantics": "Lossy publisher preimage interval only; not a uniquely recovered raw byte or an atomic checker value.",
+        "original_truth_collision": true,
+        "grid_hits": [
+          {
+            "cell": [
+              54,
+              66
+            ],
+            "bbox": [
+              [
+                1.0799999758601189,
+                1.3199999704957008
+              ],
+              [
+                1.099999975413084,
+                1.339999970048666
+              ]
+            ],
+            "occupancy": 100
+          },
+          {
+            "cell": [
+              54,
+              67
+            ],
+            "bbox": [
+              [
+                1.0799999758601189,
+                1.339999970048666
+              ],
+              [
+                1.099999975413084,
+                1.3599999696016312
+              ]
+            ],
+            "occupancy": 100
+          },
+          {
+            "cell": [
+              53,
+              68
+            ],
+            "bbox": [
+              [
+                1.0599999763071537,
+                1.3599999696016312
+              ],
+              [
+                1.0799999758601189,
+                1.3799999691545963
+              ]
+            ],
+            "occupancy": 100
+          },
+          {
+            "cell": [
+              54,
+              68
+            ],
+            "bbox": [
+              [
+                1.0799999758601189,
+                1.3599999696016312
+              ],
+              [
+                1.099999975413084,
+                1.3799999691545963
+              ]
+            ],
+            "occupancy": 100
+          }
+        ]
+      }
+    ],
+    "interval_audit": {
+      "source_sim_s": 1.95,
+      "receipt_monotonic": 195.451124384,
+      "grid_source_sim_s": 1.35,
+      "points": 185,
+      "samples": 2772,
+      "first_truth_collision": {
+        "segment": 15,
+        "pose": [
+          0.6148481302377482,
+          1.096705761021761,
+          0.9070842155476206
+        ]
+      },
+      "first_grid_collision": {
+        "segment": 9,
+        "pose": [
+          0.549999987706542,
+          1.029999976977706,
+          1.073864217462211
+        ],
+        "kind": "lethal_or_unknown"
+      }
+    }
+  },
+  "receipt_constrained_path_audit": {
+    "paths": 51,
+    "truth_colliding_paths": 15,
+    "grid_colliding_paths": 51,
+    "source_only_map_selection_changed": [
+      {
+        "path_source_sim_s": 14.85,
+        "source_only_map": 14.85,
+        "source_only_receipt": 208.329891376,
+        "path_receipt": 208.318905831,
+        "last_received_map": 13.85,
+        "last_received_receipt": 207.32534524
+      }
+    ],
+    "conclusion": "FAIL unchanged; first path unaffected. Historical native validation artifact is preserved unchanged."
+  },
+  "first_truth_bad_point_primitive": {
+    "trajectory_id": 21,
+    "native_start_path_index": 15,
+    "first_bad_path_index": 16,
+    "primitive": {
+      "trajectory_id": 21,
+      "start_angle_index": 2,
+      "end_angle_index": 4,
+      "left_turn": true,
+      "trajectory_radius": 0.06828,
+      "trajectory_length": 0.06535,
+      "arc_length": 0.05363,
+      "straight_length": 0.01172,
+      "poses": [
+        [
+          0.01271,
+          0.01758,
+          1.1044129388162032
+        ],
+        [
+          0.01926,
+          0.03825,
+          1.423427714234958
+        ],
+        [
+          0.02,
+          0.06,
+          1.5707963267948966
+        ]
+      ]
+    },
+    "source_supported_limit": "1.1.20 Lattice uses 72 angle-bin footprints and integer cell placement; intermediate checks use XY separation only. The emitted point lies between primitive endpoints and has actual yaw 1.104413. This source/geometry correlation does not trace the precise internal branch."
+  },
+  "terminal_events": [
+    {
+      "line": 583,
+      "log": "[controller_server-3] [ERROR] [1792982986.117803990] [c3_nav2.controller_server]: Failed to make progress",
+      "nearest_native_command": {
+        "sim_t": 28.800000000000274,
+        "receipt_monotonic": 222.240782552,
+        "source_timestamp_ns": 1792982986117831621,
+        "dds_received_timestamp_ns": 1792982986117878216,
+        "source_age_s": 0.008363776,
+        "owner": "controller_server",
+        "v": 0.0,
+        "w": 0.0,
+        "vy": 0.0,
+        "accepted": true,
+        "epoch": 2,
+        "fault": null,
+        "held": false,
+        "active_action_owners": [
+          "controller_server"
+        ],
+        "origin": "native_nav2"
+      },
+      "nearest_trace": {
+        "sim_t": 28.800000000000274,
+        "elapsed_s": 26.85000000000027,
+        "pose": [
+          0.5230824530642312,
+          1.8913511959122014,
+          1.5813943991172175
+        ],
+        "applied_previous": [
+          0.0005859089433215559,
+          0.0011466552969068289,
+          -0.0002365844848100096
+        ],
+        "actuator": [
+          0.000633575429674238,
+          0.0011332036228850484,
+          -0.0003775322693400085
+        ],
+        "held": false,
+        "reason": "RELEASE",
+        "raw_sequence": 477,
+        "epoch": 2,
+        "monotonic": 222.235223793,
+        "command_source_age_s": 0.00305787099998156,
+        "command_receipt_age_s": 0.0027346029999932853,
+        "sensor_source_age_s": 0.15107476199997905,
+        "sensor_receipt_age_s": 0.1289408769999909,
+        "published_ros": {
+          "clock_s": 28.800000000000274,
+          "tf_stamp_s": 28.800000000000274,
+          "odom_stamp_s": 28.800000000000274,
+          "tf_frames": [
+            "map",
+            "odom",
+            "base_link"
+          ]
+        },
+        "action_owners": {
+          "controller_server": true,
+          "behavior_server": false
+        },
+        "wall_gap_s": 0.050532731000004105,
+        "collision_count": 0,
+        "boundary_count": 0
+      },
+      "correlation": "nearest DDS source/receipt; not atomic causal trace"
+    },
+    {
+      "line": 589,
+      "log": "[behavior_server-4] [WARN] [1792982987.971897054] [c3_nav2.behavior_server]: Collision Ahead - Exiting Spin",
+      "nearest_native_command": {
+        "sim_t": 30.6500000000003,
+        "receipt_monotonic": 224.102676055,
+        "source_timestamp_ns": 1792982987971868139,
+        "dds_received_timestamp_ns": 1792982987971911741,
+        "source_age_s": 0.016221283,
+        "owner": "behavior_server",
+        "v": 0.0,
+        "w": 0.0,
+        "vy": 0.0,
+        "accepted": true,
+        "epoch": 3,
+        "fault": null,
+        "held": false,
+        "active_action_owners": [
+          "behavior_server"
+        ],
+        "origin": "native_nav2"
+      },
+      "nearest_trace": {
+        "sim_t": 30.6500000000003,
+        "elapsed_s": 28.7000000000003,
+        "pose": [
+          0.5230254606307553,
+          1.8913822729650922,
+          1.8363755225037501
+        ],
+        "applied_previous": [
+          0.0,
+          0.0,
+          0.6
+        ],
+        "actuator": [
+          0.0,
+          0.0,
+          0.6
+        ],
+        "held": false,
+        "reason": "RELEASE",
+        "raw_sequence": 494,
+        "epoch": 3,
+        "monotonic": 224.10081638,
+        "command_source_age_s": 0.06465195399999857,
+        "command_receipt_age_s": 0.06354685599998788,
+        "sensor_source_age_s": 0.018189361999986886,
+        "sensor_receipt_age_s": 0.0,
+        "published_ros": {
+          "clock_s": 30.6500000000003,
+          "tf_stamp_s": 30.6500000000003,
+          "odom_stamp_s": 30.6500000000003,
+          "tf_frames": [
+            "map",
+            "odom",
+            "base_link"
+          ]
+        },
+        "action_owners": {
+          "controller_server": false,
+          "behavior_server": true
+        },
+        "wall_gap_s": 0.05001724699999954,
+        "collision_count": 0,
+        "boundary_count": 0
+      },
+      "correlation": "nearest DDS source/receipt; not atomic causal trace"
+    },
+    {
+      "line": 593,
+      "log": "[bt_navigator-5] [ERROR] [1792982988.010687727] [c3_nav2.bt_navigator]: Goal failed",
+      "nearest_native_command": {
+        "sim_t": 30.6500000000003,
+        "receipt_monotonic": 224.102676055,
+        "source_timestamp_ns": 1792982987971868139,
+        "dds_received_timestamp_ns": 1792982987971911741,
+        "source_age_s": 0.016221283,
+        "owner": "behavior_server",
+        "v": 0.0,
+        "w": 0.0,
+        "vy": 0.0,
+        "accepted": true,
+        "epoch": 3,
+        "fault": null,
+        "held": false,
+        "active_action_owners": [
+          "behavior_server"
+        ],
+        "origin": "native_nav2"
+      },
+      "nearest_trace": {
+        "sim_t": 30.6500000000003,
+        "elapsed_s": 28.7000000000003,
+        "pose": [
+          0.5230254606307553,
+          1.8913822729650922,
+          1.8363755225037501
+        ],
+        "applied_previous": [
+          0.0,
+          0.0,
+          0.6
+        ],
+        "actuator": [
+          0.0,
+          0.0,
+          0.6
+        ],
+        "held": false,
+        "reason": "RELEASE",
+        "raw_sequence": 494,
+        "epoch": 3,
+        "monotonic": 224.10081638,
+        "command_source_age_s": 0.06465195399999857,
+        "command_receipt_age_s": 0.06354685599998788,
+        "sensor_source_age_s": 0.018189361999986886,
+        "sensor_receipt_age_s": 0.0,
+        "published_ros": {
+          "clock_s": 30.6500000000003,
+          "tf_stamp_s": 30.6500000000003,
+          "odom_stamp_s": 30.6500000000003,
+          "tf_frames": [
+            "map",
+            "odom",
+            "base_link"
+          ]
+        },
+        "action_owners": {
+          "controller_server": false,
+          "behavior_server": true
+        },
+        "wall_gap_s": 0.05001724699999954,
+        "collision_count": 0,
+        "boundary_count": 0
+      },
+      "correlation": "nearest DDS source/receipt; not atomic causal trace"
+    }
+  ],
+  "controller_loop_missed_rate_warning_count": 377,
+  "d0_review": {
+    "source": "dc24b598e70dfd028a67b5bc5c11f3dcabb81ec3",
+    "coverage_sha256": "0a061bc8174e33a61d97026e013f9983c758aee57ecaf4d7022a821e8929b596",
+    "checker_cases_sha256": "308b9d332fdd257909057906a1819930559864f6de22e724e32d22dae9b0fae3",
+    "independent_cost_for_d0_corner": 78,
+    "threshold": 82,
+    "native_direct_case_call": "NOT_RUN; no installed checker probe fabricated"
+  },
+  "source_sha256": {
+    "nav2_smac_planner/src/node_lattice.cpp": "86eb7052ea22d74438e771f5f254dedfcf0588f9b145e8f7b41c1888a59a5ae8",
+    "nav2_smac_planner/src/collision_checker.cpp": "2be59308f6b216130abc6247aed60709137bac8b9bcd888d1afcb59a13f3b939",
+    "nav2_smac_planner/src/smac_planner_lattice.cpp": "701438227aa7d60299955fa299dbc569e38e51269416a78d2636dfd5075b901b",
+    "nav2_smac_planner/include/nav2_smac_planner/utils.hpp": "ae14c889260b2348eb507dab42780937acbddf50f327138d0ee8bd899e43a7f4",
+    "nav2_costmap_2d/src/costmap_2d_publisher.cpp": "13a9ab4620f18120e9703183873d9176e7e20dde0bdd0121ffb7cf636fbc2fc9"
+  },
+  "decision": "REJECTED_AND_FROZEN; no additional optimizer/critic/native runs",
+  "next_one_task": "Separately version and evaluate a native exact-pose full-footprint fallback for Smac lattice primitive poses/intervals, without center-cost shortcut or coarse XY/yaw omission. Preserve body/geometry and first test the retained failures and valid corridor. No patch implemented in ROUND5."
+}

@@ -1,0 +1,2702 @@
+{
+  "schema": "c3-round5-native-review.v1",
+  "role": "C3",
+  "base_sha": "d253ee090a5f5c145c3842ed2cc0105d7d95fea3",
+  "tested_code_sha": "a70f22dd703502b6c6779946f34bd9c7261696c5",
+  "native_run_id": 40260839144,
+  "native_run_url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40260839144",
+  "image": {
+    "base_digest": "ros@sha256:566b87e6dfc48392189a9c32e594e84060fa9948de93b04e536f39475a1f6963",
+    "image_id": "sha256:b55b3d7258cc3e91208c15236063e1545b83226a41b59349e616e6b4aa7d28eb"
+  },
+  "package_lock_identical": true,
+  "packages_tsv_sha256": "45f626571f4fd5388d7bc174cae017e5482a4c2396254a5adfb461342076a5de",
+  "cases": [
+    {
+      "schema": "competition-nav2-result.omni-v1",
+      "status": "NATIVE_RECORDED",
+      "variant": "omni_coverage",
+      "scenario": "d0_feasible1",
+      "repeat": 0,
+      "outcome": "SAFE_WAIT",
+      "terminal_fault": null,
+      "error": null,
+      "metrics": {
+        "footprint_collision_count": 0,
+        "boundary_violation_count": 0,
+        "min_conservative_clearance_m": 0.05399999999999994,
+        "path_length_m": 0.9611031329792676,
+        "sim_time_s": 33.80000000000022,
+        "wall_time_s": 33.847914038,
+        "plant_deadline_misses": 1,
+        "plant_max_wall_gap_s": 0.09494450100001472,
+        "runner_cpu_s": 7.302258049999999,
+        "runner_peak_rss_kib": 87760,
+        "hold_nonzero_count": 0
+      },
+      "action": {
+        "accepted": true,
+        "goal_uuid": [
+          48,
+          244,
+          77,
+          26,
+          144,
+          94,
+          65,
+          240,
+          188,
+          42,
+          254,
+          142,
+          243,
+          171,
+          189,
+          44
+        ],
+        "status": 6
+      },
+      "goal_distance_m": 3.1587016505799377,
+      "goal_yaw_error_rad": 0.2955791957088536,
+      "config_sha256": "6d0c91060727d17f0bea77005dfe62a7d8130c3425f290346e00777c03bb36f0",
+      "fixture_sha256": "9dc29e53fd7ab721f0d6617493ac33b7a2d042113024985e2d27bbba14464d05",
+      "parameters": {
+        "use_sim_time": true,
+        "odom_topic": "odom",
+        "controller_frequency": 20.0,
+        "min_x_velocity_threshold": 0.01,
+        "min_theta_velocity_threshold": 0.01,
+        "progress_checker_plugin": "progress_checker",
+        "goal_checker_plugins": [
+          "goal_checker"
+        ],
+        "controller_plugins": [
+          "FollowPath"
+        ],
+        "progress_checker.plugin": "nav2_controller::SimpleProgressChecker",
+        "progress_checker.required_movement_radius": 0.1,
+        "progress_checker.movement_time_allowance": 10.0,
+        "goal_checker.plugin": "nav2_controller::SimpleGoalChecker",
+        "goal_checker.xy_goal_tolerance": 0.12,
+        "goal_checker.yaw_goal_tolerance": 0.2,
+        "goal_checker.stateful": true,
+        "FollowPath.plugin": "nav2_mppi_controller::MPPIController",
+        "FollowPath.motion_model": "Omni",
+        "FollowPath.model_dt": 0.05,
+        "FollowPath.time_steps": 56,
+        "FollowPath.batch_size": 1000,
+        "FollowPath.iteration_count": 1,
+        "FollowPath.vx_max": 0.16,
+        "FollowPath.vx_min": 0.0,
+        "FollowPath.vy_max": 0.08,
+        "FollowPath.wz_max": 0.6,
+        "FollowPath.vx_std": 0.08,
+        "FollowPath.vy_std": 0.06,
+        "FollowPath.wz_std": 0.1,
+        "FollowPath.temperature": 0.3,
+        "FollowPath.gamma": 0.015,
+        "FollowPath.regenerate_noises": false,
+        "FollowPath.critics": [
+          "ConstraintCritic",
+          "CostCritic",
+          "GoalCritic",
+          "GoalAngleCritic",
+          "PathFollowCritic",
+          "PreferForwardCritic",
+          "PathAlignCritic"
+        ],
+        "FollowPath.CostCritic.enabled": true,
+        "FollowPath.CostCritic.consider_footprint": true,
+        "FollowPath.CostCritic.collision_cost": 1000000.0,
+        "FollowPath.PathAlignCritic.use_path_orientations": true,
+        "FollowPath.PathAlignCritic.offset_from_furthest": 5,
+        "min_y_velocity_threshold": 0.001
+      },
+      "planner_parameters": {
+        "use_sim_time": true,
+        "planner_plugins": [
+          "GridBased"
+        ],
+        "GridBased.plugin": "nav2_smac_planner/SmacPlannerLattice",
+        "GridBased.tolerance": 0.0,
+        "GridBased.allow_unknown": false,
+        "GridBased.smooth_path": false,
+        "GridBased.lattice_filepath": "/repo/experiments/competition_nav2/config/omni-2cm-primitives.json",
+        "GridBased.max_iterations": 500000,
+        "GridBased.max_on_approach_iterations": 1000,
+        "GridBased.max_planning_time": 1.0,
+        "GridBased.lookup_table_size": 5.0,
+        "GridBased.analytic_expansion_max_length": 3.2,
+        "GridBased.cache_obstacle_heuristic": false,
+        "GridBased.allow_reverse_expansion": false
+      },
+      "costmap_parameters": {
+        "global_costmap": {
+          "footprint": "[[-0.43500000000000005, -0.31000000000000005], [0.43500000000000005, -0.31000000000000005], [0.43500000000000005, 0.31000000000000005], [-0.43500000000000005, 0.31000000000000005]]",
+          "footprint_padding": 0.0,
+          "resolution": 0.02,
+          "track_unknown_space": true,
+          "inflation_layer.inflation_radius": 0.58,
+          "inflation_layer.cost_scaling_factor": 5.0,
+          "obstacle_layer.scan.topic": "/c3_nav2/scan",
+          "obstacle_layer.scan.expected_update_rate": 0.25,
+          "plugins": [
+            "static_layer",
+            "obstacle_layer",
+            "inflation_layer"
+          ],
+          "inflation_layer.plugin": "nav2_costmap_2d::InflationLayer",
+          "inflation_layer.enabled": true,
+          "inflation_layer.inflate_unknown": false,
+          "inflation_layer.inflate_around_unknown": false
+        },
+        "local_costmap": {
+          "footprint": "[[-0.43500000000000005, -0.31000000000000005], [0.43500000000000005, -0.31000000000000005], [0.43500000000000005, 0.31000000000000005], [-0.43500000000000005, 0.31000000000000005]]",
+          "footprint_padding": 0.0,
+          "resolution": 0.02,
+          "track_unknown_space": true,
+          "inflation_layer.inflation_radius": 0.58,
+          "inflation_layer.cost_scaling_factor": 5.0,
+          "obstacle_layer.scan.topic": "/c3_nav2/scan",
+          "obstacle_layer.scan.expected_update_rate": 0.25,
+          "plugins": [
+            "static_layer",
+            "obstacle_layer",
+            "inflation_layer"
+          ],
+          "inflation_layer.plugin": "nav2_costmap_2d::InflationLayer",
+          "inflation_layer.enabled": true,
+          "inflation_layer.inflate_unknown": false,
+          "inflation_layer.inflate_around_unknown": false
+        }
+      },
+      "coverage": {
+        "inscribed_radius_m": 0.31000000000000005,
+        "circumscribed_radius_m": 0.5341582162618114,
+        "grid_allowance_m": 0.028284271247461905,
+        "required_support_m": 0.5624424875092733,
+        "inflation_cells": 29,
+        "inflation_radius_m": 0.58
+      },
+      "critic_inflation_layer_name": "",
+      "inflation_package_version": "1.1.20",
+      "inflation_library_sha256": {
+        "planner": {
+          "/opt/ros/humble/lib/liblayers.so": "8c54b99629fe99031c058c5eb5e16a9b0602a9e258d0cd4c0b89920a2dabd9f2"
+        },
+        "controller": {
+          "/opt/ros/humble/lib/liblayers.so": "8c54b99629fe99031c058c5eb5e16a9b0602a9e258d0cd4c0b89920a2dabd9f2"
+        }
+      },
+      "package_versions": {
+        "nav2_controller": "1.1.20",
+        "nav2_planner": "1.1.20",
+        "nav2_bt_navigator": "1.1.20",
+        "rclpy": "3.3.22",
+        "nav2_mppi_controller": "1.1.20",
+        "nav2_smac_planner": "1.1.20"
+      },
+      "loaded_library_sha256": {
+        "/opt/ros/humble/lib/libmppi_controller.so": "a43e86cb395940e9092fb014475fb18e50784e8de65937709c02914aaac6c765"
+      },
+      "planner_loaded_library_sha256": {
+        "/opt/ros/humble/lib/libnav2_smac_planner_lattice.so": "2c4c5568c78626c1f66d91a4518ae325af6a4e48c93cac46c1dac91383b6679b"
+      },
+      "motion_primitive_sha256": "bffe262d759b8866fa1b305d0d1529d6e2cbd7f9df389deedee30d5318f3b17c",
+      "artifact_relative_path": "narrow/omni_coverage/mppi-d0_feasible1-0/run",
+      "environment": {
+        "source_sha": "a70f22dd703502b6c6779946f34bd9c7261696c5",
+        "image_id": "sha256:b55b3d7258cc3e91208c15236063e1545b83226a41b59349e616e6b4aa7d28eb",
+        "package_lock_sha256": "45f626571f4fd5388d7bc174cae017e5482a4c2396254a5adfb461342076a5de",
+        "python": "3.10.12 (main, Aug 31 2026, 10:18:17) [GCC 11.4.0]",
+        "mppi_optimizer_seed": "not exposed by verified Humble source; stochastic repeats, not bitwise reproducible",
+        "fixture_seed": 20261024,
+        "repeat": 0
+      },
+      "geometry_sha256": "163af586ff5429cec348bc68b87b337e857dc63408e24c64d356677cd07da76d",
+      "scene_sha256": "339a754ab4dd636092aa9b3aceb777ea43684c47519f661576e161f822a0affc",
+      "original_sensor_conformance": {
+        "status": "PASS",
+        "probes": 3,
+        "beams_per_delivered_probe": 360,
+        "max_range_delta_m": 0.0,
+        "source_commit": "83f4ee8d6971d00ab31b2de0eeebf329542dd5d6",
+        "manifest_sha256": "1e995e63e9e601433399f052d6a9630b4d5fb53081cfd1b00003aae2b16ef84e"
+      },
+      "validation": {
+        "status": "FAIL",
+        "backend": "nav2_native_sim",
+        "errors": [
+          "B1 native path full-footprint interval collision"
+        ],
+        "replan": null,
+        "path_footprints": {
+          "status": "FAIL",
+          "path_count": 51,
+          "paths": [
+            {
+              "source_sim_s": 1.95,
+              "receipt_monotonic": 195.451124384,
+              "grid_source_sim_s": 1.35,
+              "points": 185,
+              "samples": 2772,
+              "first_truth_collision": {
+                "segment": 15,
+                "pose": [
+                  0.6148481302377482,
+                  1.096705761021761,
+                  0.9070842155476206
+                ]
+              },
+              "first_grid_collision": {
+                "segment": 9,
+                "pose": [
+                  0.549999987706542,
+                  1.029999976977706,
+                  1.073864217462211
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 2.499999999,
+              "receipt_monotonic": 195.989842055,
+              "grid_source_sim_s": 2.349999999,
+              "points": 184,
+              "samples": 2761,
+              "first_truth_collision": {
+                "segment": 15,
+                "pose": [
+                  0.6148481302377482,
+                  1.096705761021761,
+                  0.9070842155476206
+                ]
+              },
+              "first_grid_collision": {
+                "segment": 9,
+                "pose": [
+                  0.549999987706542,
+                  1.029999976977706,
+                  1.073864217462211
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 3.049999999,
+              "receipt_monotonic": 196.528613862,
+              "grid_source_sim_s": 2.349999999,
+              "points": 184,
+              "samples": 2756,
+              "first_truth_collision": {
+                "segment": 14,
+                "pose": [
+                  0.6148481302377482,
+                  1.096705761021761,
+                  0.9070842155476206
+                ]
+              },
+              "first_grid_collision": {
+                "segment": 8,
+                "pose": [
+                  0.549999987706542,
+                  1.029999976977706,
+                  1.073864217462211
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 3.599999999,
+              "receipt_monotonic": 197.070636601,
+              "grid_source_sim_s": 3.349999999,
+              "points": 184,
+              "samples": 2756,
+              "first_truth_collision": {
+                "segment": 13,
+                "pose": [
+                  0.6148481302377482,
+                  1.096705761021761,
+                  0.9070842155476206
+                ]
+              },
+              "first_grid_collision": {
+                "segment": 7,
+                "pose": [
+                  0.549999987706542,
+                  1.029999976977706,
+                  1.073864217462211
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 4.149999999,
+              "receipt_monotonic": 197.613400638,
+              "grid_source_sim_s": 3.349999999,
+              "points": 185,
+              "samples": 2767,
+              "first_truth_collision": {
+                "segment": 13,
+                "pose": [
+                  0.6148481302377482,
+                  1.096705761021761,
+                  0.9070842155476206
+                ]
+              },
+              "first_grid_collision": {
+                "segment": 7,
+                "pose": [
+                  0.549999987706542,
+                  1.029999976977706,
+                  1.073864217462211
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 4.699999999,
+              "receipt_monotonic": 198.157351461,
+              "grid_source_sim_s": 4.349999999,
+              "points": 182,
+              "samples": 2739,
+              "first_truth_collision": {
+                "segment": 13,
+                "pose": [
+                  0.6148481302377482,
+                  1.096705761021761,
+                  0.9070842155476206
+                ]
+              },
+              "first_grid_collision": {
+                "segment": 7,
+                "pose": [
+                  0.549999987706542,
+                  1.029999976977706,
+                  1.073864217462211
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 5.199999999,
+              "receipt_monotonic": 198.713954095,
+              "grid_source_sim_s": 4.349999999,
+              "points": 183,
+              "samples": 2740,
+              "first_truth_collision": {
+                "segment": 12,
+                "pose": [
+                  0.6148481302377482,
+                  1.096705761021761,
+                  0.9070842155476206
+                ]
+              },
+              "first_grid_collision": {
+                "segment": 6,
+                "pose": [
+                  0.549999987706542,
+                  1.029999976977706,
+                  1.073864217462211
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 5.749999999,
+              "receipt_monotonic": 199.235353586,
+              "grid_source_sim_s": 5.349999999,
+              "points": 181,
+              "samples": 2728,
+              "first_truth_collision": {
+                "segment": 12,
+                "pose": [
+                  0.6148481302377482,
+                  1.096705761021761,
+                  0.9070842155476206
+                ]
+              },
+              "first_grid_collision": {
+                "segment": 6,
+                "pose": [
+                  0.549999987706542,
+                  1.029999976977706,
+                  1.073864217462211
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 6.299999999,
+              "receipt_monotonic": 199.777594642,
+              "grid_source_sim_s": 5.349999999,
+              "points": 183,
+              "samples": 2745,
+              "first_truth_collision": {
+                "segment": 11,
+                "pose": [
+                  0.6148481302377482,
+                  1.096705761021761,
+                  0.9070842155476206
+                ]
+              },
+              "first_grid_collision": {
+                "segment": 5,
+                "pose": [
+                  0.549999987706542,
+                  1.029999976977706,
+                  1.073864217462211
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 6.849999999,
+              "receipt_monotonic": 200.32337475,
+              "grid_source_sim_s": 6.349999999,
+              "points": 183,
+              "samples": 2988,
+              "first_truth_collision": {
+                "segment": 12,
+                "pose": [
+                  0.5978618417405437,
+                  1.1408742213130607,
+                  0.9827268830279714
+                ]
+              },
+              "first_grid_collision": {
+                "segment": 12,
+                "pose": [
+                  0.5920964814599581,
+                  1.1328997738280062,
+                  0.8380191713264308
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 7.399999999,
+              "receipt_monotonic": 200.857920801,
+              "grid_source_sim_s": 7.349999999,
+              "points": 179,
+              "samples": 2689,
+              "first_truth_collision": {
+                "segment": 10,
+                "pose": [
+                  0.5978618417405437,
+                  1.1408742213130607,
+                  0.9827268830279714
+                ]
+              },
+              "first_grid_collision": {
+                "segment": 6,
+                "pose": [
+                  0.5883333201830586,
+                  1.1266666414837043,
+                  1.1071487665176394
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 7.899999999,
+              "receipt_monotonic": 201.397183625,
+              "grid_source_sim_s": 7.349999999,
+              "points": 171,
+              "samples": 2225,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 44,
+                "pose": [
+                  0.6299999859184027,
+                  1.9659999560564756,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 8.449999999,
+              "receipt_monotonic": 201.937791001,
+              "grid_source_sim_s": 8.349999999,
+              "points": 167,
+              "samples": 2176,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 38,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 8.999999999,
+              "receipt_monotonic": 202.477539979,
+              "grid_source_sim_s": 8.349999999,
+              "points": 165,
+              "samples": 2154,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 36,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 9.55,
+              "receipt_monotonic": 203.012558422,
+              "grid_source_sim_s": 9.349999999,
+              "points": 166,
+              "samples": 2160,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 35,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 10.1,
+              "receipt_monotonic": 203.547670068,
+              "grid_source_sim_s": 9.85,
+              "points": 165,
+              "samples": 2149,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 33,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 10.6,
+              "receipt_monotonic": 204.079856021,
+              "grid_source_sim_s": 9.85,
+              "points": 163,
+              "samples": 2132,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 30,
+                "pose": [
+                  0.6099999863654375,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 11.15,
+              "receipt_monotonic": 204.606689509,
+              "grid_source_sim_s": 10.85,
+              "points": 162,
+              "samples": 2121,
+              "first_truth_collision": {
+                "segment": 30,
+                "pose": [
+                  0.6099999863654375,
+                  1.9359999567270278,
+                  1.5707963705062866
+                ]
+              },
+              "first_grid_collision": {
+                "segment": 29,
+                "pose": [
+                  0.6099999863654375,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 11.65,
+              "receipt_monotonic": 205.13648306,
+              "grid_source_sim_s": 10.85,
+              "points": 162,
+              "samples": 2121,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 31,
+                "pose": [
+                  0.6299999859184027,
+                  1.9659999560564756,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 12.2,
+              "receipt_monotonic": 205.66645532,
+              "grid_source_sim_s": 11.85,
+              "points": 157,
+              "samples": 2066,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 27,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 12.75,
+              "receipt_monotonic": 206.198405942,
+              "grid_source_sim_s": 11.85,
+              "points": 154,
+              "samples": 2043,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 24,
+                "pose": [
+                  0.6099999863654375,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 13.25,
+              "receipt_monotonic": 206.725408885,
+              "grid_source_sim_s": 12.85,
+              "points": 152,
+              "samples": 2016,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 22,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 13.8,
+              "receipt_monotonic": 207.255851141,
+              "grid_source_sim_s": 12.85,
+              "points": 151,
+              "samples": 2000,
+              "first_truth_collision": {
+                "segment": 79,
+                "pose": [
+                  0.6179999861866236,
+                  3.0499999318271875,
+                  1.5707963705062866
+                ]
+              },
+              "first_grid_collision": {
+                "segment": 19,
+                "pose": [
+                  0.6099999863654375,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 14.3,
+              "receipt_monotonic": 207.784438398,
+              "grid_source_sim_s": 13.85,
+              "points": 149,
+              "samples": 1973,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 18,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 14.85,
+              "receipt_monotonic": 208.318905831,
+              "grid_source_sim_s": 14.85,
+              "points": 147,
+              "samples": 1956,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 17,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 15.4,
+              "receipt_monotonic": 208.846464534,
+              "grid_source_sim_s": 14.85,
+              "points": 146,
+              "samples": 1950,
+              "first_truth_collision": {
+                "segment": 73,
+                "pose": [
+                  0.6179999861866236,
+                  3.0299999322742224,
+                  1.5707963705062866
+                ]
+              },
+              "first_grid_collision": {
+                "segment": 15,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 15.9,
+              "receipt_monotonic": 209.374557576,
+              "grid_source_sim_s": 15.85,
+              "points": 142,
+              "samples": 1901,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 13,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 16.45,
+              "receipt_monotonic": 209.911274052,
+              "grid_source_sim_s": 15.85,
+              "points": 142,
+              "samples": 1901,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 11,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 16.95,
+              "receipt_monotonic": 210.435516934,
+              "grid_source_sim_s": 16.85,
+              "points": 139,
+              "samples": 1873,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 10,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 17.5,
+              "receipt_monotonic": 210.964136721,
+              "grid_source_sim_s": 16.85,
+              "points": 139,
+              "samples": 1868,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 9,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 18.05,
+              "receipt_monotonic": 211.511174165,
+              "grid_source_sim_s": 17.85,
+              "points": 139,
+              "samples": 1868,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 8,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 18.55,
+              "receipt_monotonic": 212.023412454,
+              "grid_source_sim_s": 17.85,
+              "points": 139,
+              "samples": 1853,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 8,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 19.1,
+              "receipt_monotonic": 212.552609229,
+              "grid_source_sim_s": 18.85,
+              "points": 137,
+              "samples": 1846,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 7,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 19.6,
+              "receipt_monotonic": 213.082859018,
+              "grid_source_sim_s": 18.85,
+              "points": 137,
+              "samples": 1836,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 7,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 20.15,
+              "receipt_monotonic": 213.612553212,
+              "grid_source_sim_s": 19.85,
+              "points": 140,
+              "samples": 1874,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 7,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 20.7,
+              "receipt_monotonic": 214.142767748,
+              "grid_source_sim_s": 19.85,
+              "points": 136,
+              "samples": 1840,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 7,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 21.2,
+              "receipt_monotonic": 214.675592554,
+              "grid_source_sim_s": 20.85,
+              "points": 135,
+              "samples": 1829,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 6,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 21.75,
+              "receipt_monotonic": 215.204921643,
+              "grid_source_sim_s": 20.85,
+              "points": 137,
+              "samples": 1846,
+              "first_truth_collision": {
+                "segment": 65,
+                "pose": [
+                  0.6179999861866236,
+                  3.0499999318271875,
+                  1.5707963705062866
+                ]
+              },
+              "first_grid_collision": {
+                "segment": 6,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 22.25,
+              "receipt_monotonic": 215.735288395,
+              "grid_source_sim_s": 21.85,
+              "points": 135,
+              "samples": 1829,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 6,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 22.8,
+              "receipt_monotonic": 216.263618588,
+              "grid_source_sim_s": 21.85,
+              "points": 135,
+              "samples": 1829,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 6,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 23.35,
+              "receipt_monotonic": 216.7926995,
+              "grid_source_sim_s": 22.85,
+              "points": 135,
+              "samples": 1829,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 6,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 23.85,
+              "receipt_monotonic": 217.334520953,
+              "grid_source_sim_s": 23.85,
+              "points": 138,
+              "samples": 1857,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 6,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 24.4,
+              "receipt_monotonic": 217.852915865,
+              "grid_source_sim_s": 23.85,
+              "points": 138,
+              "samples": 1857,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 6,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 24.9,
+              "receipt_monotonic": 218.385884546,
+              "grid_source_sim_s": 24.85,
+              "points": 138,
+              "samples": 1857,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 6,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 25.45,
+              "receipt_monotonic": 218.915512584,
+              "grid_source_sim_s": 24.85,
+              "points": 138,
+              "samples": 1857,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 6,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 26.0,
+              "receipt_monotonic": 219.443357244,
+              "grid_source_sim_s": 25.85,
+              "points": 138,
+              "samples": 1857,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 6,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 26.5,
+              "receipt_monotonic": 219.97312245,
+              "grid_source_sim_s": 25.85,
+              "points": 138,
+              "samples": 1857,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 6,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 27.05,
+              "receipt_monotonic": 220.509767744,
+              "grid_source_sim_s": 26.85,
+              "points": 138,
+              "samples": 1857,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 6,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 27.55,
+              "receipt_monotonic": 221.025573496,
+              "grid_source_sim_s": 26.85,
+              "points": 138,
+              "samples": 1857,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 6,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 28.1,
+              "receipt_monotonic": 221.553490845,
+              "grid_source_sim_s": 27.85,
+              "points": 138,
+              "samples": 1857,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 6,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            },
+            {
+              "source_sim_s": 28.6,
+              "receipt_monotonic": 222.083303276,
+              "grid_source_sim_s": 27.85,
+              "points": 138,
+              "samples": 1857,
+              "first_truth_collision": null,
+              "first_grid_collision": {
+                "segment": 6,
+                "pose": [
+                  0.6299999859184027,
+                  1.9259999569505453,
+                  1.5707963705062866
+                ],
+                "kind": "lethal_or_unknown"
+              }
+            }
+          ],
+          "method": "Independent original padded-body truth and closed lethal/unknown grid cells; <=2mm corner / .005rad interpolation. Published maps asynchronous, not atomic native checker snapshots."
+        }
+      },
+      "cleanup": {
+        "graceful": true,
+        "remaining_processes": [],
+        "return_codes": [
+          0,
+          0
+        ]
+      },
+      "first_contact": null,
+      "last_trace": {
+        "sim_t": 33.80000000000022,
+        "elapsed_s": 31.850000000000215,
+        "pose": [
+          0.5230254606307553,
+          1.8913822729650922,
+          1.8663755225037502
+        ],
+        "applied_previous": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actuator": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "held": false,
+        "reason": "RUN_FINISHED",
+        "raw_sequence": 495,
+        "epoch": 3,
+        "monotonic": 227.235112741,
+        "command_source_age_s": null,
+        "command_receipt_age_s": null,
+        "sensor_source_age_s": 0.15244812000000252,
+        "sensor_receipt_age_s": 0.13529235199999334,
+        "published_ros": {
+          "clock_s": 33.80000000000022,
+          "tf_stamp_s": 33.80000000000022,
+          "odom_stamp_s": 33.80000000000022,
+          "tf_frames": [
+            "map",
+            "odom",
+            "base_link"
+          ]
+        },
+        "action_owners": {
+          "controller_server": false,
+          "behavior_server": false
+        },
+        "wall_gap_s": 0.05003055799997469,
+        "collision_count": 0,
+        "boundary_count": 0
+      },
+      "first_nonzero_native_command": {
+        "sim_t": 2.0500000000000007,
+        "receipt_monotonic": 195.501193525,
+        "source_timestamp_ns": 1792982959376387176,
+        "dds_received_timestamp_ns": 1792982959376445675,
+        "source_age_s": 0.010219615,
+        "owner": "controller_server",
+        "v": 0.018595116212964058,
+        "w": 0.002658986020833254,
+        "vy": -0.00872743595391512,
+        "accepted": false,
+        "epoch": 2,
+        "fault": null,
+        "held": false,
+        "active_action_owners": [
+          "controller_server"
+        ],
+        "origin": "native_nav2"
+      },
+      "first_nonzero_actuator": {
+        "sim_t": 2.1500000000000004,
+        "elapsed_s": 0.1999999999999993,
+        "pose": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "applied_previous": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actuator": [
+          0.013631076817631392,
+          -0.006260490778831325,
+          -5.9234327636659145e-05
+        ],
+        "held": false,
+        "reason": "RELEASE",
+        "raw_sequence": 2,
+        "epoch": 2,
+        "monotonic": 195.584490319,
+        "command_source_age_s": 0.033353908999998794,
+        "command_receipt_age_s": 0.033091186000007156,
+        "sensor_source_age_s": 0.10210405099999775,
+        "sensor_receipt_age_s": 0.08488551199999961,
+        "published_ros": {
+          "clock_s": 2.1500000000000004,
+          "tf_stamp_s": 2.1500000000000004,
+          "odom_stamp_s": 2.1500000000000004,
+          "tf_frames": [
+            "map",
+            "odom",
+            "base_link"
+          ]
+        },
+        "action_owners": {
+          "controller_server": true,
+          "behavior_server": false
+        },
+        "wall_gap_s": 0.049979834999987816,
+        "collision_count": 0,
+        "boundary_count": 0
+      },
+      "last_nonzero_actuator": {
+        "sim_t": 30.6500000000003,
+        "elapsed_s": 28.7000000000003,
+        "pose": [
+          0.5230254606307553,
+          1.8913822729650922,
+          1.8363755225037501
+        ],
+        "applied_previous": [
+          0.0,
+          0.0,
+          0.6
+        ],
+        "actuator": [
+          0.0,
+          0.0,
+          0.6
+        ],
+        "held": false,
+        "reason": "RELEASE",
+        "raw_sequence": 494,
+        "epoch": 3,
+        "monotonic": 224.10081638,
+        "command_source_age_s": 0.06465195399999857,
+        "command_receipt_age_s": 0.06354685599998788,
+        "sensor_source_age_s": 0.018189361999986886,
+        "sensor_receipt_age_s": 0.0,
+        "published_ros": {
+          "clock_s": 30.6500000000003,
+          "tf_stamp_s": 30.6500000000003,
+          "odom_stamp_s": 30.6500000000003,
+          "tf_frames": [
+            "map",
+            "odom",
+            "base_link"
+          ]
+        },
+        "action_owners": {
+          "controller_server": false,
+          "behavior_server": true
+        },
+        "wall_gap_s": 0.05001724699999954,
+        "collision_count": 0,
+        "boundary_count": 0
+      },
+      "command_and_sensor_age_ranges_s": {
+        "command_source_age_s": {
+          "min": 0.0029390170000169746,
+          "max": 0.1206754549999971
+        },
+        "command_receipt_age_s": {
+          "min": 0.0022451779999812516,
+          "max": 0.1186407010000039
+        },
+        "sensor_source_age_s": {
+          "min": 0.016295863999999938,
+          "max": 0.16128644099998724
+        },
+        "sensor_receipt_age_s": {
+          "min": 0.0,
+          "max": 0.13945315300000516
+        }
+      },
+      "observations": {
+        "global_maps": 33,
+        "local_maps": 91,
+        "native_paths": 51,
+        "tf_transforms": 676,
+        "first_tf": {
+          "kind": "tf",
+          "sim_t": 0.05,
+          "receipt_monotonic": 193.506237968,
+          "source_sim_s": 0.05,
+          "source_elapsed_s": -1.0,
+          "frame": "odom",
+          "child_frame": "base_link",
+          "translation": [
+            0.5,
+            0.95,
+            0.0
+          ],
+          "quaternion": [
+            0.0,
+            0.0,
+            0.7071067811865475,
+            0.7071067811865476
+          ]
+        },
+        "initial_counterexample_center_occupancies": [
+          {
+            "pose": [
+              0.5099999886006117,
+              0.9499999787658453,
+              1.4162471294403076
+            ],
+            "native_occupancy": 46,
+            "map_source_sim_s": 2.349999999,
+            "qualification": "Recorded OccupancyGrid values, not raw cost bytes; layer is nonzero. Source/receipt retained separately."
+          },
+          {
+            "pose": [
+              0.4980243678448762,
+              0.9643053337596345,
+              1.4308869105440118
+            ],
+            "native_occupancy": 41,
+            "map_source_sim_s": 2.349999999,
+            "qualification": "Recorded OccupancyGrid values, not raw cost bytes; layer is nonzero. Source/receipt retained separately."
+          },
+          {
+            "pose": [
+              0.5,
+              0.95,
+              1.5707963267948966
+            ],
+            "native_occupancy": 46,
+            "map_source_sim_s": 2.349999999,
+            "qualification": "Recorded OccupancyGrid values, not raw cost bytes; layer is nonzero. Source/receipt retained separately."
+          }
+        ]
+      },
+      "artifact_file_sha256": {
+        "cleanup.json": "9cddd7b03d4b1f7f7912d96183acc5ef0c7640bbf4a4612002ce5128abdb9729",
+        "d0_conformance.json": "1b37baa50465bfb437b3d4cc33d6e82d574743ac6212e3eb8edd3140b7d0ca3d",
+        "environment.json": "029269cd8c63c86e4bdaf6641f604551d0254999617e39eb9767951deeb2a024",
+        "fixture.json": "7f6104bf116e83de4be5882fef6ca15a3270bc90df606a3c73e8576b116a2bf5",
+        "map.yaml": "8de76b07d270c4119b91b1b4bbf9d5e5c05800bbb26f26c07902df59b3274504",
+        "native.log": "2d001d4f80b26a0ebc950d0fb1dd0beb07134e123b2951880ff13d9a93c7f9b5",
+        "observations.jsonl": "2956d8fecf8d56bab3e4f6e9e957aa239010401cedc94a1fecb8a88dac21a068",
+        "params.yaml": "cab2b2716b42a192033a397d430151202db0818af5f4a1a79e80a3cf167ed872",
+        "raw_commands.jsonl": "b06787327e73675ed8ba72ce89e9cf400d17ef7d578a0640a2820a8f96f8498e",
+        "resources.jsonl": "e313ecaa8a1dbb6dfbbe120be61d8ec8f76427c0301713751b7096d0a67265ca",
+        "result.json": "e9aa3d2c98ce8d786cf3aa9f2231bbce209d9a9693741f2be5ce9c05b94af8c4",
+        "run.json": "3141d9baf8f48b5df6e8fd4f682946b24289a92749b6d4ff2bfd1a0bcadfd5d4",
+        "runner.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "scans.jsonl": "d4f0caccd3fe8c7c7ce11907c435bbe4b6ecf4b4e30f851ce58ac56565229c7e",
+        "trace.jsonl": "e76c1fed26b7e82cc64783c0a05c0efdcc833af8e218d4ec96a1711c53d07de0",
+        "validation.json": "3fe7ed9f3613d00e5fba51733a6a81cac9a588234a4b00c7c9d997367f5a30d8"
+      },
+      "first_transient_gate_reason": {
+        "sim_t": 2.000000000000001,
+        "elapsed_s": 0.04999999999999982,
+        "pose": [
+          0.5,
+          0.95,
+          1.5707963267948966
+        ],
+        "applied_previous": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "actuator": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "held": false,
+        "reason": "COMMAND_TTL",
+        "raw_sequence": 0,
+        "epoch": 1,
+        "monotonic": 195.434216797,
+        "command_source_age_s": null,
+        "command_receipt_age_s": null,
+        "sensor_source_age_s": 0.15181420999999773,
+        "sensor_receipt_age_s": 0.13414324300001113,
+        "published_ros": {
+          "clock_s": 2.000000000000001,
+          "tf_stamp_s": 2.000000000000001,
+          "odom_stamp_s": 2.000000000000001,
+          "tf_frames": [
+            "map",
+            "odom",
+            "base_link"
+          ]
+        },
+        "action_owners": {
+          "controller_server": false,
+          "behavior_server": false
+        },
+        "wall_gap_s": 0.04995862199999124,
+        "collision_count": 0,
+        "boundary_count": 0
+      },
+      "first_accepted_nonzero_native_command": {
+        "sim_t": 2.1000000000000005,
+        "receipt_monotonic": 195.551399133,
+        "source_timestamp_ns": 1792982959436549867,
+        "dds_received_timestamp_ns": 1792982959436604486,
+        "source_age_s": 0.000262723,
+        "owner": "controller_server",
+        "v": 0.025102835148572922,
+        "w": -5.9234327636659145e-05,
+        "vy": -0.011529248207807541,
+        "accepted": true,
+        "epoch": 2,
+        "fault": null,
+        "held": false,
+        "active_action_owners": [
+          "controller_server"
+        ],
+        "origin": "native_nav2"
+      }
+    }
+  ],
+  "summary": {
+    "schema": "c3-native-extension.v1",
+    "planned": 6,
+    "attempted": 1,
+    "native_recorded": 1,
+    "cases": [
+      {
+        "controller": "mppi",
+        "variant": "omni_coverage",
+        "scenario": "d0_feasible1",
+        "repeat": 0,
+        "returncode": 1,
+        "status": "NATIVE_RECORDED",
+        "outcome": "SAFE_WAIT",
+        "expected": "GOAL_REACHED",
+        "validation": {
+          "status": "FAIL",
+          "backend": "nav2_native_sim",
+          "errors": [
+            "B1 native path full-footprint interval collision"
+          ],
+          "replan": null,
+          "path_footprints": {
+            "status": "FAIL",
+            "path_count": 51,
+            "paths": [
+              {
+                "source_sim_s": 1.95,
+                "receipt_monotonic": 195.451124384,
+                "grid_source_sim_s": 1.35,
+                "points": 185,
+                "samples": 2772,
+                "first_truth_collision": {
+                  "segment": 15,
+                  "pose": [
+                    0.6148481302377482,
+                    1.096705761021761,
+                    0.9070842155476206
+                  ]
+                },
+                "first_grid_collision": {
+                  "segment": 9,
+                  "pose": [
+                    0.549999987706542,
+                    1.029999976977706,
+                    1.073864217462211
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 2.499999999,
+                "receipt_monotonic": 195.989842055,
+                "grid_source_sim_s": 2.349999999,
+                "points": 184,
+                "samples": 2761,
+                "first_truth_collision": {
+                  "segment": 15,
+                  "pose": [
+                    0.6148481302377482,
+                    1.096705761021761,
+                    0.9070842155476206
+                  ]
+                },
+                "first_grid_collision": {
+                  "segment": 9,
+                  "pose": [
+                    0.549999987706542,
+                    1.029999976977706,
+                    1.073864217462211
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 3.049999999,
+                "receipt_monotonic": 196.528613862,
+                "grid_source_sim_s": 2.349999999,
+                "points": 184,
+                "samples": 2756,
+                "first_truth_collision": {
+                  "segment": 14,
+                  "pose": [
+                    0.6148481302377482,
+                    1.096705761021761,
+                    0.9070842155476206
+                  ]
+                },
+                "first_grid_collision": {
+                  "segment": 8,
+                  "pose": [
+                    0.549999987706542,
+                    1.029999976977706,
+                    1.073864217462211
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 3.599999999,
+                "receipt_monotonic": 197.070636601,
+                "grid_source_sim_s": 3.349999999,
+                "points": 184,
+                "samples": 2756,
+                "first_truth_collision": {
+                  "segment": 13,
+                  "pose": [
+                    0.6148481302377482,
+                    1.096705761021761,
+                    0.9070842155476206
+                  ]
+                },
+                "first_grid_collision": {
+                  "segment": 7,
+                  "pose": [
+                    0.549999987706542,
+                    1.029999976977706,
+                    1.073864217462211
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 4.149999999,
+                "receipt_monotonic": 197.613400638,
+                "grid_source_sim_s": 3.349999999,
+                "points": 185,
+                "samples": 2767,
+                "first_truth_collision": {
+                  "segment": 13,
+                  "pose": [
+                    0.6148481302377482,
+                    1.096705761021761,
+                    0.9070842155476206
+                  ]
+                },
+                "first_grid_collision": {
+                  "segment": 7,
+                  "pose": [
+                    0.549999987706542,
+                    1.029999976977706,
+                    1.073864217462211
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 4.699999999,
+                "receipt_monotonic": 198.157351461,
+                "grid_source_sim_s": 4.349999999,
+                "points": 182,
+                "samples": 2739,
+                "first_truth_collision": {
+                  "segment": 13,
+                  "pose": [
+                    0.6148481302377482,
+                    1.096705761021761,
+                    0.9070842155476206
+                  ]
+                },
+                "first_grid_collision": {
+                  "segment": 7,
+                  "pose": [
+                    0.549999987706542,
+                    1.029999976977706,
+                    1.073864217462211
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 5.199999999,
+                "receipt_monotonic": 198.713954095,
+                "grid_source_sim_s": 4.349999999,
+                "points": 183,
+                "samples": 2740,
+                "first_truth_collision": {
+                  "segment": 12,
+                  "pose": [
+                    0.6148481302377482,
+                    1.096705761021761,
+                    0.9070842155476206
+                  ]
+                },
+                "first_grid_collision": {
+                  "segment": 6,
+                  "pose": [
+                    0.549999987706542,
+                    1.029999976977706,
+                    1.073864217462211
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 5.749999999,
+                "receipt_monotonic": 199.235353586,
+                "grid_source_sim_s": 5.349999999,
+                "points": 181,
+                "samples": 2728,
+                "first_truth_collision": {
+                  "segment": 12,
+                  "pose": [
+                    0.6148481302377482,
+                    1.096705761021761,
+                    0.9070842155476206
+                  ]
+                },
+                "first_grid_collision": {
+                  "segment": 6,
+                  "pose": [
+                    0.549999987706542,
+                    1.029999976977706,
+                    1.073864217462211
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 6.299999999,
+                "receipt_monotonic": 199.777594642,
+                "grid_source_sim_s": 5.349999999,
+                "points": 183,
+                "samples": 2745,
+                "first_truth_collision": {
+                  "segment": 11,
+                  "pose": [
+                    0.6148481302377482,
+                    1.096705761021761,
+                    0.9070842155476206
+                  ]
+                },
+                "first_grid_collision": {
+                  "segment": 5,
+                  "pose": [
+                    0.549999987706542,
+                    1.029999976977706,
+                    1.073864217462211
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 6.849999999,
+                "receipt_monotonic": 200.32337475,
+                "grid_source_sim_s": 6.349999999,
+                "points": 183,
+                "samples": 2988,
+                "first_truth_collision": {
+                  "segment": 12,
+                  "pose": [
+                    0.5978618417405437,
+                    1.1408742213130607,
+                    0.9827268830279714
+                  ]
+                },
+                "first_grid_collision": {
+                  "segment": 12,
+                  "pose": [
+                    0.5920964814599581,
+                    1.1328997738280062,
+                    0.8380191713264308
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 7.399999999,
+                "receipt_monotonic": 200.857920801,
+                "grid_source_sim_s": 7.349999999,
+                "points": 179,
+                "samples": 2689,
+                "first_truth_collision": {
+                  "segment": 10,
+                  "pose": [
+                    0.5978618417405437,
+                    1.1408742213130607,
+                    0.9827268830279714
+                  ]
+                },
+                "first_grid_collision": {
+                  "segment": 6,
+                  "pose": [
+                    0.5883333201830586,
+                    1.1266666414837043,
+                    1.1071487665176394
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 7.899999999,
+                "receipt_monotonic": 201.397183625,
+                "grid_source_sim_s": 7.349999999,
+                "points": 171,
+                "samples": 2225,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 44,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9659999560564756,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 8.449999999,
+                "receipt_monotonic": 201.937791001,
+                "grid_source_sim_s": 8.349999999,
+                "points": 167,
+                "samples": 2176,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 38,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 8.999999999,
+                "receipt_monotonic": 202.477539979,
+                "grid_source_sim_s": 8.349999999,
+                "points": 165,
+                "samples": 2154,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 36,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 9.55,
+                "receipt_monotonic": 203.012558422,
+                "grid_source_sim_s": 9.349999999,
+                "points": 166,
+                "samples": 2160,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 35,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 10.1,
+                "receipt_monotonic": 203.547670068,
+                "grid_source_sim_s": 9.85,
+                "points": 165,
+                "samples": 2149,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 33,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 10.6,
+                "receipt_monotonic": 204.079856021,
+                "grid_source_sim_s": 9.85,
+                "points": 163,
+                "samples": 2132,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 30,
+                  "pose": [
+                    0.6099999863654375,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 11.15,
+                "receipt_monotonic": 204.606689509,
+                "grid_source_sim_s": 10.85,
+                "points": 162,
+                "samples": 2121,
+                "first_truth_collision": {
+                  "segment": 30,
+                  "pose": [
+                    0.6099999863654375,
+                    1.9359999567270278,
+                    1.5707963705062866
+                  ]
+                },
+                "first_grid_collision": {
+                  "segment": 29,
+                  "pose": [
+                    0.6099999863654375,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 11.65,
+                "receipt_monotonic": 205.13648306,
+                "grid_source_sim_s": 10.85,
+                "points": 162,
+                "samples": 2121,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 31,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9659999560564756,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 12.2,
+                "receipt_monotonic": 205.66645532,
+                "grid_source_sim_s": 11.85,
+                "points": 157,
+                "samples": 2066,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 27,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 12.75,
+                "receipt_monotonic": 206.198405942,
+                "grid_source_sim_s": 11.85,
+                "points": 154,
+                "samples": 2043,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 24,
+                  "pose": [
+                    0.6099999863654375,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 13.25,
+                "receipt_monotonic": 206.725408885,
+                "grid_source_sim_s": 12.85,
+                "points": 152,
+                "samples": 2016,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 22,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 13.8,
+                "receipt_monotonic": 207.255851141,
+                "grid_source_sim_s": 12.85,
+                "points": 151,
+                "samples": 2000,
+                "first_truth_collision": {
+                  "segment": 79,
+                  "pose": [
+                    0.6179999861866236,
+                    3.0499999318271875,
+                    1.5707963705062866
+                  ]
+                },
+                "first_grid_collision": {
+                  "segment": 19,
+                  "pose": [
+                    0.6099999863654375,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 14.3,
+                "receipt_monotonic": 207.784438398,
+                "grid_source_sim_s": 13.85,
+                "points": 149,
+                "samples": 1973,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 18,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 14.85,
+                "receipt_monotonic": 208.318905831,
+                "grid_source_sim_s": 14.85,
+                "points": 147,
+                "samples": 1956,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 17,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 15.4,
+                "receipt_monotonic": 208.846464534,
+                "grid_source_sim_s": 14.85,
+                "points": 146,
+                "samples": 1950,
+                "first_truth_collision": {
+                  "segment": 73,
+                  "pose": [
+                    0.6179999861866236,
+                    3.0299999322742224,
+                    1.5707963705062866
+                  ]
+                },
+                "first_grid_collision": {
+                  "segment": 15,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 15.9,
+                "receipt_monotonic": 209.374557576,
+                "grid_source_sim_s": 15.85,
+                "points": 142,
+                "samples": 1901,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 13,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 16.45,
+                "receipt_monotonic": 209.911274052,
+                "grid_source_sim_s": 15.85,
+                "points": 142,
+                "samples": 1901,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 11,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 16.95,
+                "receipt_monotonic": 210.435516934,
+                "grid_source_sim_s": 16.85,
+                "points": 139,
+                "samples": 1873,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 10,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 17.5,
+                "receipt_monotonic": 210.964136721,
+                "grid_source_sim_s": 16.85,
+                "points": 139,
+                "samples": 1868,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 9,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 18.05,
+                "receipt_monotonic": 211.511174165,
+                "grid_source_sim_s": 17.85,
+                "points": 139,
+                "samples": 1868,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 8,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 18.55,
+                "receipt_monotonic": 212.023412454,
+                "grid_source_sim_s": 17.85,
+                "points": 139,
+                "samples": 1853,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 8,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 19.1,
+                "receipt_monotonic": 212.552609229,
+                "grid_source_sim_s": 18.85,
+                "points": 137,
+                "samples": 1846,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 7,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 19.6,
+                "receipt_monotonic": 213.082859018,
+                "grid_source_sim_s": 18.85,
+                "points": 137,
+                "samples": 1836,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 7,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 20.15,
+                "receipt_monotonic": 213.612553212,
+                "grid_source_sim_s": 19.85,
+                "points": 140,
+                "samples": 1874,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 7,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 20.7,
+                "receipt_monotonic": 214.142767748,
+                "grid_source_sim_s": 19.85,
+                "points": 136,
+                "samples": 1840,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 7,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 21.2,
+                "receipt_monotonic": 214.675592554,
+                "grid_source_sim_s": 20.85,
+                "points": 135,
+                "samples": 1829,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 6,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 21.75,
+                "receipt_monotonic": 215.204921643,
+                "grid_source_sim_s": 20.85,
+                "points": 137,
+                "samples": 1846,
+                "first_truth_collision": {
+                  "segment": 65,
+                  "pose": [
+                    0.6179999861866236,
+                    3.0499999318271875,
+                    1.5707963705062866
+                  ]
+                },
+                "first_grid_collision": {
+                  "segment": 6,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 22.25,
+                "receipt_monotonic": 215.735288395,
+                "grid_source_sim_s": 21.85,
+                "points": 135,
+                "samples": 1829,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 6,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 22.8,
+                "receipt_monotonic": 216.263618588,
+                "grid_source_sim_s": 21.85,
+                "points": 135,
+                "samples": 1829,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 6,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 23.35,
+                "receipt_monotonic": 216.7926995,
+                "grid_source_sim_s": 22.85,
+                "points": 135,
+                "samples": 1829,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 6,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 23.85,
+                "receipt_monotonic": 217.334520953,
+                "grid_source_sim_s": 23.85,
+                "points": 138,
+                "samples": 1857,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 6,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 24.4,
+                "receipt_monotonic": 217.852915865,
+                "grid_source_sim_s": 23.85,
+                "points": 138,
+                "samples": 1857,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 6,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 24.9,
+                "receipt_monotonic": 218.385884546,
+                "grid_source_sim_s": 24.85,
+                "points": 138,
+                "samples": 1857,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 6,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 25.45,
+                "receipt_monotonic": 218.915512584,
+                "grid_source_sim_s": 24.85,
+                "points": 138,
+                "samples": 1857,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 6,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 26.0,
+                "receipt_monotonic": 219.443357244,
+                "grid_source_sim_s": 25.85,
+                "points": 138,
+                "samples": 1857,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 6,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 26.5,
+                "receipt_monotonic": 219.97312245,
+                "grid_source_sim_s": 25.85,
+                "points": 138,
+                "samples": 1857,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 6,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 27.05,
+                "receipt_monotonic": 220.509767744,
+                "grid_source_sim_s": 26.85,
+                "points": 138,
+                "samples": 1857,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 6,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 27.55,
+                "receipt_monotonic": 221.025573496,
+                "grid_source_sim_s": 26.85,
+                "points": 138,
+                "samples": 1857,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 6,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 28.1,
+                "receipt_monotonic": 221.553490845,
+                "grid_source_sim_s": 27.85,
+                "points": 138,
+                "samples": 1857,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 6,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              },
+              {
+                "source_sim_s": 28.6,
+                "receipt_monotonic": 222.083303276,
+                "grid_source_sim_s": 27.85,
+                "points": 138,
+                "samples": 1857,
+                "first_truth_collision": null,
+                "first_grid_collision": {
+                  "segment": 6,
+                  "pose": [
+                    0.6299999859184027,
+                    1.9259999569505453,
+                    1.5707963705062866
+                  ],
+                  "kind": "lethal_or_unknown"
+                }
+              }
+            ],
+            "method": "Independent original padded-body truth and closed lethal/unknown grid cells; <=2mm corner / .005rad interpolation. Published maps asynchronous, not atomic native checker snapshots."
+          }
+        },
+        "error": null,
+        "terminal_fault": null,
+        "action": {
+          "accepted": true,
+          "goal_uuid": [
+            48,
+            244,
+            77,
+            26,
+            144,
+            94,
+            65,
+            240,
+            188,
+            42,
+            254,
+            142,
+            243,
+            171,
+            189,
+            44
+          ],
+          "status": 6
+        },
+        "metrics": {
+          "footprint_collision_count": 0,
+          "boundary_violation_count": 0,
+          "min_conservative_clearance_m": 0.05399999999999994,
+          "path_length_m": 0.9611031329792676,
+          "sim_time_s": 33.80000000000022,
+          "wall_time_s": 33.847914038,
+          "plant_deadline_misses": 1,
+          "plant_max_wall_gap_s": 0.09494450100001472,
+          "runner_cpu_s": 7.302258049999999,
+          "runner_peak_rss_kib": 87760,
+          "hold_nonzero_count": 0
+        },
+        "goal_distance_m": 3.1587016505799377,
+        "goal_yaw_error_rad": 0.2955791957088536,
+        "package_versions": {
+          "nav2_controller": "1.1.20",
+          "nav2_planner": "1.1.20",
+          "nav2_bt_navigator": "1.1.20",
+          "rclpy": "3.3.22",
+          "nav2_mppi_controller": "1.1.20",
+          "nav2_smac_planner": "1.1.20"
+        },
+        "loaded_library_sha256": {
+          "/opt/ros/humble/lib/libmppi_controller.so": "a43e86cb395940e9092fb014475fb18e50784e8de65937709c02914aaac6c765"
+        },
+        "raw_command_counts": {
+          "controller_server": 478,
+          "behavior_server": 17
+        },
+        "map_sha256": "0a8d0abdedd83324762fd545accc238291249a6382098e13ece85f67ca5dca17",
+        "d0_scene_sha256": "339a754ab4dd636092aa9b3aceb777ea43684c47519f661576e161f822a0affc",
+        "d0_source_commit": "83f4ee8d6971d00ab31b2de0eeebf329542dd5d6",
+        "fixture_sha256": "9dc29e53fd7ab721f0d6617493ac33b7a2d042113024985e2d27bbba14464d05",
+        "config_sha256": "6d0c91060727d17f0bea77005dfe62a7d8130c3425f290346e00777c03bb36f0",
+        "source_sha": "a70f22dd703502b6c6779946f34bd9c7261696c5",
+        "image_id": "sha256:b55b3d7258cc3e91208c15236063e1545b83226a41b59349e616e6b4aa7d28eb",
+        "expectation_met": false
+      }
+    ],
+    "status": "STOPPED_AT_FEASIBLE1"
+  },
+  "evidence_kind": "ACTUAL_NAV2_VIRTUAL_ORIGINAL_D0_SENSOR_SIM_GT",
+  "production_consumer": null,
+  "live_import_enabled": false,
+  "physical_robot_qualification": "NOT_RUN",
+  "artifact": {
+    "id": 12624488425,
+    "node_id": "MDg6QXJ0aWZhY3QxMjYyNDQ4ODQyNQ==",
+    "name": "c3-native-a70f22dd703502b6c6779946f34bd9c7261696c5-1",
+    "size_in_bytes": 1323365,
+    "url": "https://api.github.com/repos/Phjrab/robot-scope-ros2-dashboard/actions/artifacts/12624488425",
+    "archive_download_url": "https://api.github.com/repos/Phjrab/robot-scope-ros2-dashboard/actions/artifacts/12624488425/zip",
+    "expired": false,
+    "digest": "sha256:1786adfa172da15871d116c6dda966241537c174ea1fd2e4f17b2518f49bde4b",
+    "created_at": "2026-10-26T02:49:59Z",
+    "updated_at": "2026-10-26T02:49:59Z",
+    "expires_at": "2026-11-09T02:49:58Z",
+    "workflow_run": {
+      "id": 40260839144,
+      "repository_id": 1326271247,
+      "head_repository_id": 1326271247,
+      "head_branch": "review/20261024-c3-nav2-benchmark",
+      "head_sha": "a70f22dd703502b6c6779946f34bd9c7261696c5"
+    }
+  },
+  "native_status": "completed",
+  "native_conclusion": "failure",
+  "decision": "REJECTED_AND_FROZEN",
+  "next_one_task": "Separately version and evaluate a native exact-pose full-footprint fallback for Smac lattice primitive poses/intervals, without center-cost shortcut or coarse XY/yaw omission. Preserve body/geometry and first test the retained failures and valid corridor. No patch implemented in ROUND5.",
+  "common_ci": {
+    "id": 40260839136,
+    "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40260839136",
+    "status": "completed",
+    "conclusion": "failure",
+    "reason": "Both OS jobs: existing CommonJS GO2_JOINT_NAMES browser E2E collection error; C1 integrated fix is outside this role branch."
+  },
+  "local_checks": {
+    "c3": {
+      "run": 77,
+      "passed": 77,
+      "seconds": 3.103
+    },
+    "full_python": {
+      "run": 2691,
+      "passed": 2689,
+      "skipped": 2,
+      "seconds": 87.341
+    },
+    "javascript": {
+      "run": 70,
+      "passed": 70
+    },
+    "ruff": "PASS",
+    "secret_scan": "PASS",
+    "diff_check": "PASS",
+    "old_six_candidate_configurations": "UNCHANGED",
+    "logs_sha256": {
+      "c3-round5-focused.log": "0eb54bad0007dd169cffcd822a9d82fa69c0ca026e004b887e807e96be2c78c9",
+      "c3-round5-full.log": "3b4054a037430d9ef2d918df4e03a79d40aaed3b5f0649318f9e16591a16d041",
+      "c3-round5-js.log": "b2159e739bfb717385bc56dee073eb9c9281e159c420b643925555ef33f061da",
+      "c3-round5-common-failed.log": "4ae8d88fb12f006e64c55d3e7e06c43bc790483547a86ba6ba28fac7cced1031",
+      "c3-round5-native-failed.log": "0dd2ffd66c4bc6ba3ed64fd89c6e7f23150e65937a08537c5760d79f1678c977"
+    }
+  },
+  "not_run": [
+    "feasible1 repeat1",
+    "empty",
+    "blocked",
+    "sensor_dropout",
+    "feasible2",
+    "direct installed-checker raw-field probe",
+    "real RGB replay",
+    "robot observations",
+    "physical stopping/gait/stairs/sensor fusion",
+    "Jetson performance",
+    "real motion"
+  ],
+  "artifact_zip_sha256_verified": "1786adfa172da15871d116c6dda966241537c174ea1fd2e4f17b2518f49bde4b",
+  "actual_configuration_delta": [
+    {
+      "parameter": "global_costmap.global_costmap.ros__parameters.inflation_layer.inflation_radius",
+      "B": 0.4,
+      "B1": 0.58
+    },
+    {
+      "parameter": "local_costmap.local_costmap.ros__parameters.inflation_layer.inflation_radius",
+      "B": 0.4,
+      "B1": 0.58
+    }
+  ],
+  "readonly_cross_role_review": {
+    "C1": "c052db127f2952b693971642f0a33c8efcb43098",
+    "D0_latest": "dc24b598e70dfd028a67b5bc5c11f3dcabb81ec3",
+    "D0_comparison": "Published after B1 source was fixed. Independently confirmed the support-vs-threshold distinction; no source imported."
+  },
+  "input_required": [
+    "Atomic internal native checker/TF-buffer/raw-grid branch packet; not present in retained artifacts. No claim of an instrumented exact failing branch."
+  ],
+  "source_only_grid_selection_limitation": "One path at source sim14.85 selected a grid received 11ms after the path in the original post-run validator. Separate receipt-constrained offline recheck retains 51/51 grid and15/51 truth failures; first-path evidence unaffected. Native artifact and source remain unchanged."
+}
