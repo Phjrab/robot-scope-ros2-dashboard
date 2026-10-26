@@ -1,0 +1,39 @@
+{
+  "schema": "d0-round5-verification.v1",
+  "base_sha": "da7230bb65722e4a1d3f4ab0c1d16e63fcd344e3",
+  "new_source_sha256": {
+    "coverage.py": "b29f6448a626bea536bf5203b35c65d7f67141ebee42e9d82b1f548fae155da3",
+    "audit.py": "38999f7bafaf4cf1595b35b35fa3336e8125f980ba57452b156903a97dc3ed3e",
+    "test_audit.py": "098a4f76a502c2c25001eb78fcee19742642f5be6a45176c16aa463927014e7c"
+  },
+  "focused": {
+    "run": 17,
+    "passed": 17,
+    "private_artifact_test": "PASS"
+  },
+  "full_python": {
+    "run": 2691,
+    "failures": 1,
+    "errors": 25,
+    "skipped": 1,
+    "status": "FAIL",
+    "reason": "Existing manifest expectation; 25 VM socket PermissionErrors"
+  },
+  "javascript": {
+    "run": 660,
+    "passed": 660
+  },
+  "javascript_syntax": {
+    "files": 234,
+    "status": "PASS"
+  },
+  "python_compile": "PASS",
+  "raw_artifact_sha256": "43580b9a3ced0b6bba00211a14a6398650fb7018c2794243f2af092cc5c34c29",
+  "native_checker": "NATIVE_NOT_RUN",
+  "atomic_packet": "INPUT_REQUIRED",
+  "log_sha256": {
+    "d0-round5-python.log": "c21015952b5afdccf5931d6fbb5d9b999b6510efb4fe4f9a0bb4284e1d8941e6",
+    "d0-round5-js.log": "850b636e58c9c2a520b72b165fd10d653ca63ff0c85edb9e914d5b71097c1920",
+    "d0-round5-syntax.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}
