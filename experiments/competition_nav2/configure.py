@@ -7,6 +7,7 @@ from pathlib import Path
 import yaml
 
 from core import FOOTPRINT, LIMITS
+from footprint_coverage import OMNI_VARIANTS, coverage
 from fixtures import ROOT, REPO, digest
 
 PLUGINS = {
@@ -24,13 +25,13 @@ NAMESPACE = "c3_nav2"
 
 
 def candidate(controller, variant="baseline", fixture=None):
-    if variant not in ("baseline", "tuned", "se2_rpp", "omni_lattice"):
+    if variant not in ("baseline", "tuned", "se2_rpp", *OMNI_VARIANTS):
         raise ValueError("unknown candidate revision: " + variant)
     if variant == "se2_rpp" and (
         controller != "rpp" or not fixture or fixture.get("world_kind") != "d0_shared"
     ):
         raise ValueError("se2_rpp is an isolated D0/RPP candidate only")
-    if variant == "omni_lattice" and (
+    if variant in OMNI_VARIANTS and (
         controller != "mppi" or not fixture or fixture.get("world_kind") != "d0_shared"
     ):
         raise ValueError("omni_lattice is an isolated D0/MPPI candidate only")
@@ -99,7 +100,7 @@ def candidate(controller, variant="baseline", fixture=None):
         )
         if variant == "tuned":
             follow.update(time_steps=40, batch_size=1500)
-        if variant == "omni_lattice":
+        if variant in OMNI_VARIANTS:
             # Total linear speed <= hypot(.16, .08) < the existing .18 m/s bound.
             follow.update(
                 motion_model="Omni",
@@ -185,7 +186,7 @@ def candidate(controller, variant="baseline", fixture=None):
             analytic_expansion_max_length=3.2,
             cache_obstacle_heuristic=False,
         )
-    if variant == "omni_lattice":
+    if variant in OMNI_VARIANTS:
         cfg["planner_server"]["ros__parameters"]["GridBased"] = dict(
             plugin="nav2_smac_planner/SmacPlannerLattice",
             tolerance=0.0,
@@ -200,6 +201,14 @@ def candidate(controller, variant="baseline", fixture=None):
             cache_obstacle_heuristic=False,
             allow_reverse_expansion=False,
         )
+    if variant == "omni_coverage":
+        radius = coverage(fixture["effective_footprint"], fixture["resolution_m"])[
+            "inflation_radius_m"
+        ]
+        for name in ("global_costmap", "local_costmap"):
+            cfg[name][name]["ros__parameters"]["inflation_layer"][
+                "inflation_radius"
+            ] = radius
     return cfg
 
 

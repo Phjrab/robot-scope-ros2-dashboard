@@ -272,7 +272,7 @@ if __name__ == "__main__":
     p.add_argument("--controller", choices=["rpp", "mppi"], required=True)
     p.add_argument(
         "--variant",
-        choices=["baseline", "tuned", "se2_rpp", "omni_lattice"],
+        choices=["baseline", "tuned", "se2_rpp", "omni_lattice", "omni_coverage"],
         default="baseline",
     )
     selection = p.add_mutually_exclusive_group(required=True)

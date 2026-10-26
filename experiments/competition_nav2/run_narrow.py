@@ -7,6 +7,7 @@ No search, tuning, generated path, or geometry change is performed here.
 
 import argparse
 from pathlib import Path
+from footprint_coverage import OMNI_VARIANTS
 from run_d0 import input_path
 from run_minimum import execute
 
@@ -27,7 +28,7 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--baseline-debug", action="store_true")
     parser.add_argument(
-        "--variant", choices=["se2_rpp", "omni_lattice"], default="se2_rpp"
+        "--variant", choices=["se2_rpp", *OMNI_VARIANTS], default="se2_rpp"
     )
     args = parser.parse_args()
     fixtures = {name: input_path(name.removeprefix("d0_")) for _, name, _ in ORDER}
@@ -47,7 +48,7 @@ if __name__ == "__main__":
             args.lock,
             args.output / args.variant,
             [
-                ("mppi" if args.variant == "omni_lattice" else c, s, r)
+                ("mppi" if args.variant in OMNI_VARIANTS else c, s, r)
                 for c, s, r in ORDER
             ],
             "narrow-summary.json",

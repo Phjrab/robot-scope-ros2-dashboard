@@ -9,6 +9,7 @@ import re
 import yaml
 
 from configure import NODES, PLUGINS
+from footprint_coverage import OMNI_VARIANTS, coverage, path_footprints
 from core import LIMITS, propagate, swept_poses
 from fixtures import make_world, digest
 from observations import read_jsonl, replan_evidence
@@ -37,7 +38,7 @@ def validate_record(record):
         errors.append("controller plugin readback mismatch")
     if not record.get("loaded_libraries") or not record.get("package_versions"):
         errors.append("native binary/version provenance missing")
-    if record.get("variant") == "omni_lattice" and (
+    if record.get("variant") in OMNI_VARIANTS and (
         record.get("schema") != "competition-nav2-result.omni-v1"
         or record.get("motion_model") != "Omni"
         or record.get("command_axes") != ["linear.x", "linear.y", "angular.z"]
@@ -189,7 +190,7 @@ def validate_directory(directory):
         config = yaml.safe_load((directory / "params.yaml").read_text())
         if digest(config) != record.get("config_sha256"):
             errors.append("config hash mismatch")
-        if record.get("variant") in ("se2_rpp", "omni_lattice"):
+        if record.get("variant") in ("se2_rpp", *OMNI_VARIANTS):
             planner = config["planner_server"]["ros__parameters"]["GridBased"]
             if any(
                 record.get("planner_parameters", {}).get("GridBased." + k) != v
@@ -202,7 +203,7 @@ def validate_directory(directory):
                 != "1.1.20"
             ):
                 errors.append("installed Humble SE2 planner proof absent")
-            if record.get("variant") == "omni_lattice":
+            if record.get("variant") in OMNI_VARIANTS:
                 primitive_file = (
                     Path(__file__).parent / "config/omni-2cm-primitives.json"
                 )
@@ -253,7 +254,7 @@ def validate_directory(directory):
     if not trace:
         errors.append("empty actuator trace")
     else:
-        omni = record.get("variant") == "omni_lattice"
+        omni = record.get("variant") in OMNI_VARIANTS
         zero_command = [0.0, 0.0, 0.0] if omni else [0.0, 0.0]
         for row in trace:
             if len(row["actuator"]) != len(zero_command):
@@ -398,6 +399,50 @@ def validate_directory(directory):
             or cleanup.get("graceful") is not True
         ):
             errors.append("child process cleanup incomplete/non-graceful")
+    path_review = None
+    if record.get("variant") == "omni_coverage":
+        try:
+            expected_coverage = coverage(
+                fixture_data["effective_footprint"], fixture_data["resolution_m"]
+            )
+            if (
+                record.get("coverage") != expected_coverage
+                or record.get("critic_inflation_layer_name") != ""
+            ):
+                errors.append("B1 coverage/critic selector readback mismatch")
+            if (
+                record.get("inflation_package_version") != "1.1.20"
+                or set(record.get("inflation_library_sha256", {}))
+                != {"controller", "planner"}
+                or not all(record.get("inflation_library_sha256", {}).values())
+            ):
+                errors.append("B1 installed inflation library proof missing")
+            for cm in record.get("costmap_parameters", {}).values():
+                if (
+                    cm.get("inflation_layer.inflation_radius")
+                    != expected_coverage["inflation_radius_m"]
+                    or cm.get("plugins")
+                    != ["static_layer", "obstacle_layer", "inflation_layer"]
+                    or cm.get("inflation_layer.plugin")
+                    != "nav2_costmap_2d::InflationLayer"
+                    or cm.get("inflation_layer.enabled") is not True
+                    or cm.get("inflation_layer.inflate_unknown") is not False
+                    or cm.get("inflation_layer.inflate_around_unknown") is not False
+                ):
+                    errors.append("B1 actual inflation layer coverage/policy mismatch")
+            observations = read_jsonl(directory / "observations.jsonl")
+            if not any(r["kind"] == "tf" for r in observations):
+                errors.append("B1 delivered TF source/receipt evidence missing")
+            path_review = path_footprints(fixture_data, observations)
+            if path_review["status"] == "FAIL":
+                errors.append("B1 native path full-footprint interval collision")
+            if (
+                record.get("outcome") == "GOAL_REACHED"
+                and path_review["status"] != "PASS"
+            ):
+                errors.append("B1 goal lacks validated native path")
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            errors.append("B1 coverage/path evidence failure: " + str(exc))
     replan = None
     if (directory / "fixture.json").exists():
         fixture = json.loads((directory / "fixture.json").read_text())
@@ -416,6 +461,7 @@ def validate_directory(directory):
         backend="nav2_native_sim",
         errors=errors,
         replan=replan,
+        path_footprints=path_review,
     )
 
 

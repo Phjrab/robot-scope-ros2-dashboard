@@ -1,0 +1,220 @@
+{
+  "schema": "c3-round5-coverage-preflight.v1",
+  "evidence_kind": "INDEPENDENT_RECONSTRUCTION_NOT_NATIVE_CHECKER_EXECUTION",
+  "original_source": "2a1b1f172f30d010fa33d9b7f247a9163f175e82",
+  "original_run": 40168963222,
+  "base_sha": "d253ee090a5f5c145c3842ed2cc0105d7d95fea3",
+  "candidate": "omni_coverage",
+  "coverage": {
+    "inscribed_radius_m": 0.31000000000000005,
+    "circumscribed_radius_m": 0.5341582162618114,
+    "grid_allowance_m": 0.028284271247461905,
+    "required_support_m": 0.5624424875092733,
+    "inflation_cells": 29,
+    "inflation_radius_m": 0.58
+  },
+  "unchanged_computeCost_threshold": 82,
+  "samples": [
+    {
+      "name": "B first bad native path",
+      "pose": [
+        0.5099999886006117,
+        0.9499999787658453,
+        1.4162471294403076
+      ],
+      "map_kind": "costmap",
+      "map_source_sim_s": 1.3,
+      "map_receipt_monotonic": 1886.472850548,
+      "old_center": {
+        "observed_occupancy": 0,
+        "raw_cost": 0,
+        "distance_m": 0.46
+      },
+      "new_center": {
+        "observed_occupancy": 0,
+        "raw_cost": 119,
+        "distance_m": 0.46
+      },
+      "threshold": 82,
+      "old_full_footprint_branch": false,
+      "new_full_footprint_branch": true,
+      "independent_grid_overlap": "lethal_or_unknown",
+      "original_truth_collision": true
+    },
+    {
+      "name": "B first actuator boundary crossing",
+      "pose": [
+        0.4980243678448762,
+        0.9643053337596345,
+        1.4308869105440118
+      ],
+      "map_kind": "local_costmap",
+      "map_source_sim_s": 3.049999999,
+      "map_receipt_monotonic": 1888.205743932,
+      "old_center": {
+        "observed_occupancy": 0,
+        "raw_cost": 0,
+        "distance_m": 0.48
+      },
+      "new_center": {
+        "observed_occupancy": 0,
+        "raw_cost": 107,
+        "distance_m": 0.48
+      },
+      "threshold": 82,
+      "old_full_footprint_branch": false,
+      "new_full_footprint_branch": true,
+      "independent_grid_overlap": "lethal_or_unknown",
+      "original_truth_collision": true
+    },
+    {
+      "name": "same start, unchanged north yaw",
+      "pose": [
+        0.5,
+        0.95,
+        1.5707963267948966
+      ],
+      "map_kind": "costmap",
+      "map_source_sim_s": 1.3,
+      "map_receipt_monotonic": 1886.472850548,
+      "old_center": {
+        "observed_occupancy": 0,
+        "raw_cost": 0,
+        "distance_m": 0.46
+      },
+      "new_center": {
+        "observed_occupancy": 0,
+        "raw_cost": 119,
+        "distance_m": 0.46
+      },
+      "threshold": 82,
+      "old_full_footprint_branch": false,
+      "new_full_footprint_branch": true,
+      "independent_grid_overlap": null,
+      "original_truth_collision": false
+    },
+    {
+      "name": "normal narrow north corridor",
+      "pose": [
+        0.5,
+        1.5,
+        1.5707963267948966
+      ],
+      "map_kind": "costmap",
+      "map_source_sim_s": 1.3,
+      "map_receipt_monotonic": 1886.472850548,
+      "old_center": {
+        "observed_occupancy": 0,
+        "raw_cost": 0,
+        "distance_m": 0.4866210024238576
+      },
+      "new_center": {
+        "observed_occupancy": 0,
+        "raw_cost": 104,
+        "distance_m": 0.4866210024238576
+      },
+      "threshold": 82,
+      "old_full_footprint_branch": false,
+      "new_full_footprint_branch": true,
+      "independent_grid_overlap": null,
+      "original_truth_collision": false
+    }
+  ],
+  "old_path_intervals": {
+    "status": "FAIL",
+    "path_count": 3,
+    "paths": [
+      {
+        "source_sim_s": 1.7,
+        "receipt_monotonic": 1886.906750064,
+        "grid_source_sim_s": 1.3,
+        "points": 187,
+        "samples": 2995,
+        "first_truth_collision": {
+          "segment": 0,
+          "pose": [
+            0.5099999886006117,
+            0.9499999787658453,
+            1.4861622623034887
+          ]
+        },
+        "first_grid_collision": {
+          "segment": 0,
+          "pose": [
+            0.5099999886006117,
+            0.9499999787658453,
+            1.519279956817627
+          ],
+          "kind": "lethal_or_unknown"
+        }
+      },
+      {
+        "source_sim_s": 2.25,
+        "receipt_monotonic": 1887.454496257,
+        "grid_source_sim_s": 1.3,
+        "points": 188,
+        "samples": 3002,
+        "first_truth_collision": {
+          "segment": 0,
+          "pose": [
+            0.4899999890476465,
+            0.9499999787658453,
+            1.4861622623034887
+          ]
+        },
+        "first_grid_collision": {
+          "segment": 0,
+          "pose": [
+            0.4899999890476465,
+            0.9499999787658453,
+            1.519279956817627
+          ],
+          "kind": "lethal_or_unknown"
+        }
+      },
+      {
+        "source_sim_s": 2.7999999989999997,
+        "receipt_monotonic": 1888.008146037,
+        "grid_source_sim_s": 2.299999999,
+        "points": 187,
+        "samples": 2971,
+        "first_truth_collision": {
+          "segment": 1,
+          "pose": [
+            0.4899999890476465,
+            0.9699999783188105,
+            1.4088876417704992
+          ]
+        },
+        "first_grid_collision": {
+          "segment": 0,
+          "pose": [
+            0.4899999890476465,
+            0.9699999783188105,
+            1.4456850801195418
+          ],
+          "kind": "lethal_or_unknown"
+        }
+      }
+    ],
+    "method": "Independent original padded-body truth and closed lethal/unknown grid cells; <=2mm corner / .005rad interpolation. Published maps asynchronous, not atomic native checker snapshots."
+  },
+  "geometry_sha256": "163af586ff5429cec348bc68b87b337e857dc63408e24c64d356677cd07da76d",
+  "fixture_sha256": "9dc29e53fd7ab721f0d6617493ac33b7a2d042113024985e2d27bbba14464d05",
+  "source_sha256": {
+    "nav2_smac_planner/src/collision_checker.cpp": "2be59308f6b216130abc6247aed60709137bac8b9bcd888d1afcb59a13f3b939",
+    "nav2_mppi_controller/src/critics/cost_critic.cpp": "0630dc3f8302d146d7f5317ee2c3fc940cc6f6ad63f26b19bf0aa630accc7fa4",
+    "nav2_costmap_2d/include/nav2_costmap_2d/inflation_layer.hpp": "807a8371748515319f05ea147700d883cf40ac8f673734544254f44eddc2d9b5",
+    "nav2_costmap_2d/plugins/inflation_layer.cpp": "0d1cdb9a0c1717e95a0d2ac75790384e4bb86f54d59963f0042c8d648cc78f11",
+    "nav2_costmap_2d/src/costmap_2d.cpp": "2890457f44d146899cc6478763646ef8aa83c2e2455792845c6c0f8f1ba8ac67",
+    "nav2_costmap_2d/costmap_plugins.xml": "b6de309660abad203fda383ca0ec68125022df6fa317db274f749eedc45a4409",
+    "nav2_smac_planner/src/smac_planner_lattice.cpp": "701438227aa7d60299955fa299dbc569e38e51269416a78d2636dfd5075b901b",
+    "nav2_smac_planner/include/nav2_smac_planner/utils.hpp": "ae14c889260b2348eb507dab42780937acbddf50f327138d0ee8bd899e43a7f4"
+  },
+  "limitations": [
+    "Published grids are asynchronous; reconstruction uses retained lethal cells, not an atomic native costmap.",
+    "Native center threshold remains 82; support correction is not a proof against all rasterization/angle-bin aliasing.",
+    "Path interpolation checks <=2mm corner displacement/.005rad, not exact continuous or hard realtime safety.",
+    "No native Smac/CostCritic API was invoked by this preflight. B1 will execute unpatched installed plugins once."
+  ]
+}

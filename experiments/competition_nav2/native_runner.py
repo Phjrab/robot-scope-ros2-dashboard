@@ -14,6 +14,7 @@ import time
 import xml.etree.ElementTree as ET
 
 from configure import NODES, PLUGINS
+from footprint_coverage import OMNI_VARIANTS, coverage
 from core import Boundary, Command, LIMITS, propagate, swept_poses
 from fixtures import make_world, digest
 from preflight import require_isolated
@@ -79,7 +80,7 @@ def main(directory):
     fixture = json.loads((directory / "fixture.json").read_text())
     run = json.loads((directory / "run.json").read_text())
     expected = yaml.safe_load((directory / "params.yaml").read_text())
-    omni = run["variant"] == "omni_lattice"
+    omni = run["variant"] in OMNI_VARIANTS
     zero_command = (0.0, 0.0, 0.0) if omni else (0.0, 0.0)
     command_type = OmniCommand if omni else Command
 
@@ -171,6 +172,11 @@ def main(directory):
                     ),
                 ]
 
+            if run["variant"] == "omni_coverage":
+                self.tf_observer = self.create_subscription(
+                    TFMessage, "/tf", self.observe_tf, 100
+                )
+
             def bind_callback(owner):
                 def callback(msg, info):
                     self.receive_command(msg, info, owner)
@@ -213,6 +219,18 @@ def main(directory):
 
             return Time(sec=int(seconds), nanosec=int((seconds - int(seconds)) * 1e9))
 
+        def observe_tf(self, msg):
+            for transform in msg.transforms:
+                if transform.child_frame_id in ("odom", "base_link"):
+                    t, q = transform.transform.translation, transform.transform.rotation
+                    self.observe(
+                        "tf",
+                        transform,
+                        child_frame=transform.child_frame_id,
+                        translation=[t.x, t.y, t.z],
+                        quaternion=[q.x, q.y, q.z, q.w],
+                    )
+
         def observe(self, kind, msg, **data):
             source = msg.header.stamp.sec + msg.header.stamp.nanosec / 1e9
             self.observations.write(
@@ -248,6 +266,7 @@ def main(directory):
                 kind,
                 msg,
                 points=[[p.pose.position.x, p.pose.position.y] for p in msg.poses],
+                z=[p.pose.position.z for p in msg.poses],
                 quaternions=[
                     [
                         p.pose.orientation.x,
@@ -257,7 +276,7 @@ def main(directory):
                     ]
                     for p in msg.poses
                 ],
-                # Humble RPP arc messages leave quaternion zero: do not call it yaw.
+                # RPP arc default orientation does not encode projected heading.
                 receipt_pose=list(self.pose),
             )
 
@@ -794,7 +813,9 @@ def main(directory):
                 schema="competition-nav2-result.omni-v1",
                 motion_model="Omni",
                 command_axes=["linear.x", "linear.y", "angular.z"],
-                motion_contract="repro/omni-contract.json",
+                motion_contract="repro/omni-coverage-contract.json"
+                if run["variant"] == "omni_coverage"
+                else "repro/omni-contract.json",
                 motion_primitive_sha256=hashlib.sha256(
                     Path(flat_planner["GridBased.lattice_filepath"]).read_bytes()
                 ).hexdigest(),
@@ -821,6 +842,27 @@ def main(directory):
             "obstacle_layer.scan.topic",
             "obstacle_layer.scan.expected_update_rate",
         ]
+        coverage_defaults = {}
+        if run["variant"] == "omni_coverage":
+            coverage_defaults = {
+                "inflation_layer.enabled": True,
+                "inflation_layer.inflate_unknown": False,
+                "inflation_layer.inflate_around_unknown": False,
+            }
+            shared_keys += ["plugins", "inflation_layer.plugin", *coverage_defaults]
+            report["coverage"] = coverage(
+                fixture["effective_footprint"], fixture["resolution_m"]
+            )
+            request.names = ["FollowPath.CostCritic.inflation_layer_name"]
+            selector = node.service(
+                GetParameters, "controller_server/get_parameters", request
+            ).values[0]
+            if selector.type != 4:
+                raise RuntimeError("critic inflation selector is not a declared string")
+            actual = selector.string_value
+            report["critic_inflation_layer_name"] = actual
+            if actual != "":
+                raise RuntimeError("unexpected critic inflation layer selector")
         for costmap in ("global_costmap", "local_costmap"):
             flat_costmap = flatten(expected[costmap][costmap]["ros__parameters"])
             request = GetParameters.Request()
@@ -833,12 +875,54 @@ def main(directory):
                 actual = (
                     getattr(value, fields[value.type]) if value.type in fields else None
                 )
+                if value.type >= 5:
+                    actual = list(actual)
                 applied[key] = actual
-                if actual != flat_costmap[key]:
+                if actual != flat_costmap.get(key, coverage_defaults.get(key)):
                     raise RuntimeError(
                         "costmap parameter mismatch: " + costmap + "." + key
                     )
             report["costmap_parameters"][costmap] = applied
+        if run["variant"] == "omni_coverage":
+            share = Path(get_package_share_directory("nav2_costmap_2d"))
+            report["inflation_package_version"] = (
+                ET.parse(share / "package.xml").getroot().findtext("version")
+            )
+            names = plugin_library_names(share, "nav2_costmap_2d::InflationLayer")
+            report["inflation_library_sha256"] = {}
+            for proc in Path("/proc").glob("[0-9]*"):
+                try:
+                    command = (
+                        (proc / "cmdline").read_bytes().replace(b"\0", b" ").decode()
+                    )
+                    if not any(
+                        command.startswith("/opt/ros/humble/lib/" + part)
+                        for part in (
+                            "nav2_controller/controller_server ",
+                            "nav2_planner/planner_server ",
+                        )
+                    ):
+                        continue
+                    paths = {
+                        line.split()[-1]
+                        for line in (proc / "maps").read_text().splitlines()
+                        if Path(line.split()[-1]).name in names
+                    }
+                    report["inflation_library_sha256"][
+                        "controller" if "/controller_server " in command else "planner"
+                    ] = {
+                        p: hashlib.sha256(Path(p).read_bytes()).hexdigest()
+                        for p in paths
+                    }
+                except (OSError, UnicodeError):
+                    continue
+            if set(report["inflation_library_sha256"]) != {
+                "controller",
+                "planner",
+            } or not all(report["inflation_library_sha256"].values()):
+                raise RuntimeError(
+                    "inflation library not loaded in both native processes"
+                )
         package = (
             "nav2_mppi_controller"
             if run["controller"] == "mppi"
