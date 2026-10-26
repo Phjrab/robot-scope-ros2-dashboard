@@ -105,7 +105,9 @@ int main(int argc, char **argv) {
   result["loaded_maps"]=json::array();
   while(std::getline(maps,line)) if(line.find(".so")!=std::string::npos) result["loaded_maps"].push_back(line);
   result["status"]=fixed?(all?"CHECKER_FIXED":"CHECKER_FAILED"):(reproduced?"CHECKER_REPRODUCED":"NOT_REPRODUCED");
-  std::ofstream(argv[2])<<result.dump(2)<<"\n";
+  std::cout << result["status"] << "\n" << result["cases"].dump(2) << "\n";
+  std::ofstream output(argv[2]); output << result.dump(2) << "\n";
+  if(!output.good()) {std::cerr << "cannot persist checker packet\n"; return 3;}
   rclcpp::shutdown();
   return fixed?!all:!reproduced;
 }

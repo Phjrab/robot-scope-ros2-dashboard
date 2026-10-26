@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import subprocess
 
@@ -25,6 +26,7 @@ def main():
             "--iidfile", iid, "-f", ROOT / "Probe.Dockerfile", ROOT)
     image = iid.read_text().strip()
     command("docker", "run", "--rm", "--network", "none", "--cap-drop", "ALL",
+            "--user", f"{os.getuid()}:{os.getgid()}",
             "--security-opt", "no-new-privileges", "--read-only", "--memory", "4g",
             "--cpus", "4", "--pids-limit", "256", "--tmpfs", "/tmp:rw,size=512m",
             "-v", f"{ROOT}:/inputs:ro", "-v", f"{args.output.resolve()}:/results",
