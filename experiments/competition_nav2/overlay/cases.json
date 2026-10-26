@@ -1,0 +1,307 @@
+{
+  "schema": "c3-native-checker-input.v1",
+  "footprint": [
+    [
+      0.435,
+      0.31
+    ],
+    [
+      0.435,
+      -0.31
+    ],
+    [
+      -0.435,
+      -0.31
+    ],
+    [
+      -0.435,
+      0.31
+    ]
+  ],
+  "resolution": 0.02,
+  "threshold": 82,
+  "evidence": "Synthetic explicit raw bytes; B1 sparse cases use published lethal cell coordinates but assigned ordinary center costs, not recovered raw snapshots. D0 files are evaluation-only provenance.",
+  "cases": [
+    {
+      "id": "free_center_corner",
+      "pose": [
+        1.019,
+        1.019,
+        0
+      ],
+      "expected_collision": true,
+      "raw_cells": [
+        [
+          72,
+          66,
+          254
+        ]
+      ]
+    },
+    {
+      "id": "below_threshold_corner",
+      "pose": [
+        1.019,
+        1.019,
+        0
+      ],
+      "expected_collision": true,
+      "center_raw": 78,
+      "raw_cells": [
+        [
+          72,
+          66,
+          254
+        ]
+      ]
+    },
+    {
+      "id": "fractional_pose_full_branch",
+      "pose": [
+        1.019,
+        1.019,
+        0
+      ],
+      "expected_collision": true,
+      "center_raw": 200,
+      "raw_cells": [
+        [
+          72,
+          66,
+          254
+        ]
+      ]
+    },
+    {
+      "id": "b1_point10_synthetic_sparse",
+      "pose": [
+        0.549999987706542,
+        1.029999976977706,
+        0.9998985528945923
+      ],
+      "expected_collision": true,
+      "center_raw": 80,
+      "raw_cells": [
+        [
+          28,
+          24,
+          254
+        ]
+      ]
+    },
+    {
+      "id": "b1_point16_synthetic_sparse",
+      "pose": [
+        0.6227099851658195,
+        1.10758000759229,
+        1.1044129133224487
+      ],
+      "expected_collision": true,
+      "center_raw": 93,
+      "raw_cells": [
+        [
+          54,
+          66,
+          254
+        ],
+        [
+          54,
+          67,
+          254
+        ],
+        [
+          53,
+          68,
+          254
+        ],
+        [
+          54,
+          68,
+          254
+        ]
+      ]
+    },
+    {
+      "id": "interior_lethal",
+      "pose": [
+        1.01,
+        1.01,
+        0
+      ],
+      "expected_collision": true,
+      "center_raw": 200,
+      "raw_cells": [
+        [
+          52,
+          50,
+          254
+        ]
+      ]
+    },
+    {
+      "id": "interior_unknown_disallowed",
+      "pose": [
+        1.01,
+        1.01,
+        0
+      ],
+      "expected_collision": true,
+      "center_raw": 200,
+      "raw_cells": [
+        [
+          52,
+          50,
+          255
+        ]
+      ]
+    },
+    {
+      "id": "interior_unknown_allowed",
+      "pose": [
+        1.01,
+        1.01,
+        0
+      ],
+      "expected_collision": false,
+      "center_raw": 200,
+      "raw_cells": [
+        [
+          52,
+          50,
+          255
+        ]
+      ],
+      "allow_unknown": true
+    },
+    {
+      "id": "unknown_must_not_mask_lethal",
+      "pose": [
+        1.01,
+        1.01,
+        0
+      ],
+      "expected_collision": true,
+      "center_raw": 200,
+      "raw_cells": [
+        [
+          52,
+          50,
+          255
+        ],
+        [
+          53,
+          50,
+          254
+        ]
+      ],
+      "allow_unknown": true
+    },
+    {
+      "id": "outside_map",
+      "pose": [
+        0.2,
+        1,
+        0
+      ],
+      "expected_collision": true,
+      "center_raw": 200
+    },
+    {
+      "id": "outside_map_unknown_allowed",
+      "pose": [
+        0.2,
+        1,
+        0
+      ],
+      "expected_collision": true,
+      "center_raw": 200,
+      "allow_unknown": true
+    },
+    {
+      "id": "nonlethal_inflation",
+      "pose": [
+        1.01,
+        1.01,
+        0
+      ],
+      "expected_collision": false,
+      "center_raw": 200,
+      "default_raw": 253
+    },
+    {
+      "id": "valid_narrow_rectangle",
+      "pose": [
+        0.5,
+        2,
+        1.5707963267948966
+      ],
+      "expected_collision": false,
+      "center_raw": 200,
+      "default_raw": 253,
+      "wall_columns": [
+        7,
+        42
+      ]
+    },
+    {
+      "id": "free",
+      "pose": [
+        1.01,
+        1.01,
+        0
+      ],
+      "expected_collision": false
+    },
+    {
+      "id": "rotation_endpoints_clear",
+      "pose": [
+        2.01,
+        2.01,
+        1.5707963267948966
+      ],
+      "expected_collision": false,
+      "center_raw": 200,
+      "raw_cells": [
+        [
+          125,
+          100,
+          254
+        ]
+      ],
+      "primitive": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0.5235987755982988
+        ],
+        [
+          0,
+          0,
+          1.5707963267948966
+        ]
+      ]
+    },
+    {
+      "id": "rotation_midpoint_collides",
+      "pose": [
+        2.01,
+        2.01,
+        0.5235987755982988
+      ],
+      "expected_collision": true,
+      "center_raw": 200,
+      "raw_cells": [
+        [
+          125,
+          100,
+          254
+        ]
+      ]
+    }
+  ]
+}

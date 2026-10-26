@@ -1,0 +1,139 @@
+{
+  "schema": "d0-costfield-coverage.v1",
+  "classification": "INDEPENDENT_RECONSTRUCTION",
+  "native_checker_status": "NATIVE_NOT_RUN",
+  "ri_m": 0.31,
+  "rc_m": 0.5341582162618114,
+  "resolution_m": 0.02,
+  "native_formula_threshold": 82,
+  "conditions": {
+    "support": "h * ceil(inflation_radius / h) >= D_star",
+    "positive_smac_threshold": "C(D_star) >= T > 0; otherwise actual full-footprint path must bypass center shortcut",
+    "mppi": "C(D_star) >= 1 AND (C(D_star) >= T OR T < 1); consider_footprint=true; actual layer/readback must match",
+    "scope": "D_star is maximum center-cell to lethal raster boundary-cell offset for the checker/footprint/yaw lattice. Formula is a gate precondition, not collision proof.",
+    "conservative_vertex_bound": "Rc + sqrt(2)*h bounds floor-quantized vertex offsets. It is not a proof for every implementation of line rasterization, unknown/map edges, layer updates or sampled motion."
+  },
+  "smac_snapped_16_bin_vertex_sweep": {
+    "samples": 64,
+    "pose_center_m": [
+      1.01,
+      1.01
+    ],
+    "max_vertex_distance_m": 0.5458937625582473,
+    "expanded_058_radius_below_threshold": 24,
+    "headings_rad": [
+      0.0,
+      0.4636476090008061,
+      0.7853981633974483,
+      1.1071487177940904,
+      1.5707963267948966,
+      2.0344439357957027,
+      2.356194490192345,
+      2.677945044588987,
+      3.141592653589793,
+      3.6052402625905993,
+      3.9269908169872414,
+      4.2487413713838835,
+      4.71238898038469,
+      5.176036589385496,
+      5.497787143782138,
+      5.81953769817878
+    ],
+    "scope": "Snapped cell-center and original primitive 16 cardinal/atan headings; not planner replay or proof of internal bin interpolation"
+  },
+  "finite_sweep": {
+    "scope": "Arbitrary MPPI continuous poses, not Smac snapping",
+    "yaw_samples": 64,
+    "subcell_offsets_per_axis": [
+      0,
+      0.25,
+      0.5,
+      0.95
+    ],
+    "vertex_samples": 4096,
+    "max_vertex_distance_m": 0.5560575509783138,
+    "worst_pose": [
+      1.0,
+      1.0,
+      0.2945243112740431
+    ],
+    "center_cell": [
+      50,
+      50
+    ],
+    "vertex_cell": [
+      33,
+      28
+    ],
+    "old_radius_misses": 4096,
+    "expanded_058_radius_below_threshold": 2000,
+    "not_universal_proof": true
+  },
+  "vertex_bound_m": 0.5624424875092733,
+  "bound_support_candidate_m": 0.58,
+  "bound_formula_cost": 71,
+  "smac_snapped_corner_counterexample": {
+    "pose": [
+      1.01,
+      1.01,
+      0
+    ],
+    "center_cell": [
+      50,
+      50
+    ],
+    "single_lethal_cell": [
+      72,
+      66
+    ],
+    "note": "Check actual installed mapping separately; no native invocation"
+  },
+  "counterexample": {
+    "id": "quantized_corner_center_skip",
+    "pose": [
+      1.019,
+      1.019,
+      0.0
+    ],
+    "padded_size_m": [
+      0.87,
+      0.62
+    ],
+    "grid": {
+      "resolution": 0.02,
+      "origin": [
+        0,
+        0
+      ],
+      "width": 100,
+      "height": 100
+    },
+    "center_cell": [
+      50,
+      50
+    ],
+    "single_lethal_cell": [
+      72,
+      66
+    ],
+    "raw_lethal_cost": 254,
+    "center_source_distance_m": 0.5440588203494178,
+    "center_raw_cost_by_inflation_radius": {
+      "0.4": 0,
+      "0.5341582162618114": 0,
+      "0.56": 78,
+      "0.58": 78
+    },
+    "threshold": 82,
+    "expanded_058_source_gate": {
+      "smac_full_check_eligible": false,
+      "mppi_full_check_eligible": false
+    },
+    "expected_full_footprint_collision": true,
+    "expected_source_reconstructed_smac_full_check_eligible": false,
+    "expected_source_reconstructed_mppi_full_check_eligible": false,
+    "expected_native_checker_result": null,
+    "note": "Place a lethal cell at the floor-quantized padded corner. Construct the synthetic raw field by max emitted_cost over that source; not by reverse-mapping OccupancyGrid. Exact installed native result remains to be tested."
+  },
+  "decision": "Increasing support alone is not a universal discrete gate fix. Use collision eligibility plus exact oriented footprint, retaining narrow-corridor pass. Do not turn circumcircle/inflation into lethal geometry."
+}

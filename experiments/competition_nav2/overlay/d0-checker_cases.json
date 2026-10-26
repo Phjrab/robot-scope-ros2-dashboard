@@ -1,0 +1,323 @@
+{
+  "schema": "d0-small-native-checker-cases.v1",
+  "usage": "EVALUATION_ONLY; never runtime route/hidden obstacle prior",
+  "native_checker_status": "NATIVE_NOT_RUN",
+  "cases": [
+    {
+      "id": "retained_previous",
+      "classification": "INDEPENDENT_RECONSTRUCTION",
+      "pose": [
+        0.497979853172502,
+        0.9640031153580009,
+        1.4374741223317125
+      ],
+      "floor_y": 0.491,
+      "raw_size_m": [
+        0.81,
+        0.56
+      ],
+      "padded_size_m": [
+        0.87,
+        0.62
+      ],
+      "expected_raw_contact": false,
+      "expected_padded_floor_violation": false,
+      "published_snapshot": {
+        "relation": "last_received_before",
+        "source_age_sim_s": 0.2500000009999961,
+        "kind": "local_costmap",
+        "source_sim_s": 3.049999999,
+        "sim_t": 3.049999999999997,
+        "receipt_monotonic": 1888.205743932,
+        "frame": "odom",
+        "resolution": 0.019999999552965164,
+        "origin": [
+          -1.9799999997764826,
+          -1.5399999997764826
+        ],
+        "center_cell": [
+          123,
+          125
+        ],
+        "center_occupancy": 0,
+        "padded_lethal_edge_cells": [
+          {
+            "cell": [
+              133,
+              101
+            ],
+            "occupancy": 100,
+            "box": [
+              [
+                0.6799999407678843,
+                0.479999955072999
+              ],
+              [
+                0.6999999403208494,
+                0.49999995462596414
+              ]
+            ],
+            "edges": [
+              3
+            ]
+          },
+          {
+            "cell": [
+              134,
+              101
+            ],
+            "occupancy": 100,
+            "box": [
+              [
+                0.6999999403208494,
+                0.479999955072999
+              ],
+              [
+                0.7199999398738146,
+                0.49999995462596414
+              ]
+            ],
+            "edges": [
+              3
+            ]
+          },
+          {
+            "cell": [
+              135,
+              101
+            ],
+            "occupancy": 100,
+            "box": [
+              [
+                0.7199999398738146,
+                0.479999955072999
+              ],
+              [
+                0.7399999394267798,
+                0.49999995462596414
+              ]
+            ],
+            "edges": [
+              3
+            ]
+          },
+          {
+            "cell": [
+              136,
+              101
+            ],
+            "occupancy": 100,
+            "box": [
+              [
+                0.7399999394267798,
+                0.479999955072999
+              ],
+              [
+                0.7599999389797449,
+                0.49999995462596414
+              ]
+            ],
+            "edges": [
+              0,
+              3
+            ]
+          }
+        ],
+        "format": "nav_msgs/OccupancyGrid int8; NOT raw uint8 costmap"
+      },
+      "expected_native_checker_result": null,
+      "note": "Sparse observed cell evidence; not atomic raw costmap or runtime map."
+    },
+    {
+      "id": "retained_first_failure",
+      "classification": "INDEPENDENT_RECONSTRUCTION",
+      "pose": [
+        0.4980243678448762,
+        0.9643053337596345,
+        1.4308869105440118
+      ],
+      "floor_y": 0.491,
+      "raw_size_m": [
+        0.81,
+        0.56
+      ],
+      "padded_size_m": [
+        0.87,
+        0.62
+      ],
+      "expected_raw_contact": false,
+      "expected_padded_floor_violation": true,
+      "published_snapshot": {
+        "relation": "last_received_before",
+        "source_age_sim_s": 0.3000000009999959,
+        "kind": "local_costmap",
+        "source_sim_s": 3.049999999,
+        "sim_t": 3.049999999999997,
+        "receipt_monotonic": 1888.205743932,
+        "frame": "odom",
+        "resolution": 0.019999999552965164,
+        "origin": [
+          -1.9799999997764826,
+          -1.5399999997764826
+        ],
+        "center_cell": [
+          123,
+          125
+        ],
+        "center_occupancy": 0,
+        "padded_lethal_edge_cells": [
+          {
+            "cell": [
+              132,
+              101
+            ],
+            "occupancy": 100,
+            "box": [
+              [
+                0.6599999412149191,
+                0.479999955072999
+              ],
+              [
+                0.6799999407678843,
+                0.49999995462596414
+              ]
+            ],
+            "edges": [
+              3
+            ]
+          },
+          {
+            "cell": [
+              133,
+              101
+            ],
+            "occupancy": 100,
+            "box": [
+              [
+                0.6799999407678843,
+                0.479999955072999
+              ],
+              [
+                0.6999999403208494,
+                0.49999995462596414
+              ]
+            ],
+            "edges": [
+              3
+            ]
+          },
+          {
+            "cell": [
+              134,
+              101
+            ],
+            "occupancy": 100,
+            "box": [
+              [
+                0.6999999403208494,
+                0.479999955072999
+              ],
+              [
+                0.7199999398738146,
+                0.49999995462596414
+              ]
+            ],
+            "edges": [
+              3
+            ]
+          },
+          {
+            "cell": [
+              135,
+              101
+            ],
+            "occupancy": 100,
+            "box": [
+              [
+                0.7199999398738146,
+                0.479999955072999
+              ],
+              [
+                0.7399999394267798,
+                0.49999995462596414
+              ]
+            ],
+            "edges": [
+              3
+            ]
+          },
+          {
+            "cell": [
+              136,
+              101
+            ],
+            "occupancy": 100,
+            "box": [
+              [
+                0.7399999394267798,
+                0.479999955072999
+              ],
+              [
+                0.7599999389797449,
+                0.49999995462596414
+              ]
+            ],
+            "edges": [
+              0,
+              3
+            ]
+          }
+        ],
+        "format": "nav_msgs/OccupancyGrid int8; NOT raw uint8 costmap"
+      },
+      "expected_native_checker_result": null,
+      "note": "Sparse observed cell evidence; not atomic raw costmap or runtime map."
+    },
+    {
+      "id": "valid_narrow_corridor",
+      "classification": "INDEPENDENT_RECONSTRUCTION",
+      "pose": [
+        0.5,
+        2.0,
+        1.5707963267948966
+      ],
+      "raw_size_m": [
+        0.81,
+        0.56
+      ],
+      "padded_size_m": [
+        0.87,
+        0.62
+      ],
+      "corridor_x": [
+        0.16,
+        0.84
+      ],
+      "grid": {
+        "resolution": 0.02,
+        "origin": [
+          0,
+          0
+        ],
+        "lethal_wall_columns": [
+          7,
+          42
+        ],
+        "height_rows": 200
+      },
+      "expected_padded_collision": false,
+      "expected_circle_collision": true,
+      "expected_full_footprint_collision": false,
+      "raw_field_recipe": {
+        "inflation_radius_m": 0.58,
+        "cost_scaling_factor": 5,
+        "inscribed_radius_m": 0.31,
+        "source_cost": 254,
+        "other_costs": "max distance-inflated source wall cost; no OccupancyGrid inversion"
+      },
+      "expected_reconstructed_max_perimeter_raw_cost": 253,
+      "expected_native_checker_result": null,
+      "note": "0.68m corridor fits .62m lateral rectangle but not 1.068m circle. Do not convert inflation cost into lethal collision."
+    }
+  ]
+}

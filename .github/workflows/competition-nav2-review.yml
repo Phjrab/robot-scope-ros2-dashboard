@@ -28,19 +28,15 @@ jobs:
           git rev-parse HEAD > "$RUNNER_TEMP/c3-evidence/source-sha.txt"
           docker version > "$RUNNER_TEMP/c3-evidence/docker-version.txt"
           uname -a > "$RUNNER_TEMP/c3-evidence/runner.txt"
-      - name: Materialize pinned D0 inputs and original sensor source (read only)
-        run: |
-          git fetch --no-tags --depth=1 origin 83f4ee8d6971d00ab31b2de0eeebf329542dd5d6
-          python3 experiments/competition_nav2/prepare_d0.py
       - name: Build Humble image (download phase)
         timeout-minutes: 12
         run: |
           cp experiments/competition_nav2/repro/image-lock.json "$RUNNER_TEMP/c3-evidence/image-lock.json"
           python3 experiments/competition_nav2/container/manage.py build --lock "$RUNNER_TEMP/c3-evidence/image-lock.json"
-      - name: Single B1 coverage correction (conditional maximum six cases)
-        timeout-minutes: 20
+      - name: ROUND6 A - stock native checker small reproduction only
+        timeout-minutes: 10
         run: |
-          python3 experiments/competition_nav2/run_narrow.py --variant omni_coverage --lock "$RUNNER_TEMP/c3-evidence/image-lock.json" --output "$RUNNER_TEMP/c3-evidence/narrow"
+          python3 experiments/competition_nav2/overlay/probe.py --lock "$RUNNER_TEMP/c3-evidence/image-lock.json" --output "$RUNNER_TEMP/c3-evidence/checker"
       - name: Preserve native evidence even after failure
         if: always()
         uses: actions/upload-artifact@v4

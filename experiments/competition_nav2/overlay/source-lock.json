@@ -1,0 +1,15 @@
+{
+  "upstream_commit": "a097086719c88f781aa59788eca29ac6ca5e56db",
+  "upstream_tag": "1.1.20",
+  "source_sha256": {
+    "nav2_smac_planner/src/collision_checker.cpp": "2be59308f6b216130abc6247aed60709137bac8b9bcd888d1afcb59a13f3b939",
+    "nav2_smac_planner/src/node_lattice.cpp": "86eb7052ea22d74438e771f5f254dedfcf0588f9b145e8f7b41c1888a59a5ae8",
+    "nav2_smac_planner/src/smac_planner_lattice.cpp": "701438227aa7d60299955fa299dbc569e38e51269416a78d2636dfd5075b901b",
+    "nav2_mppi_controller/src/critics/cost_critic.cpp": "0630dc3f8302d146d7f5317ee2c3fc940cc6f6ad63f26b19bf0aa630accc7fa4"
+  },
+  "d0_commit": "dc24b598e70dfd028a67b5bc5c11f3dcabb81ec3",
+  "d0_inputs": {
+    "experiments/competition_vm/arena_robot_sim/revisions/footprint_costfield_audit_20261026/results/checker_cases.json": "308b9d332fdd257909057906a1819930559864f6de22e724e32d22dae9b0fae3",
+    "experiments/competition_vm/arena_robot_sim/revisions/footprint_costfield_audit_20261026/results/coverage.json": "0a061bc8174e33a61d97026e013f9983c758aee57ecaf4d7022a821e8929b596"
+  }
+}
