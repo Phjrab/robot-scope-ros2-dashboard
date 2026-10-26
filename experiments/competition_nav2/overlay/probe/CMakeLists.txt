@@ -7,9 +7,12 @@ find_package(nav2_mppi_controller REQUIRED)
 find_package(nav2_costmap_2d REQUIRED)
 find_package(xtensor REQUIRED)
 find_package(ompl REQUIRED)
+find_library(SMAC_LIBRARY nav2_smac_planner_lattice REQUIRED)
+find_library(MPPI_CRITICS_LIBRARY mppi_critics REQUIRED)
+find_library(MPPI_LIBRARY mppi_controller REQUIRED)
 add_executable(checker_probe checker_probe.cpp)
 target_include_directories(checker_probe PRIVATE ${OMPL_INCLUDE_DIRS})
-target_link_libraries(checker_probe nav2_smac_planner_lattice mppi_critics mppi_controller
+target_link_libraries(checker_probe ${SMAC_LIBRARY} ${MPPI_CRITICS_LIBRARY} ${MPPI_LIBRARY}
   xtensor xtensor::optimize xtensor::use_xsimd ${OMPL_LIBRARIES})
 ament_target_dependencies(checker_probe nav2_smac_planner nav2_mppi_controller nav2_costmap_2d)
 target_compile_options(checker_probe PRIVATE -O2 -mavx2 -mfma)
