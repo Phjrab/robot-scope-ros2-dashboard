@@ -1,0 +1,135 @@
+{
+  "schema": "c3-round6-grid-discrepancy.v1",
+  "tested_code_sha": "d33d2efc3a9bc25e21f45889c18b13ce543b2850",
+  "run_id": 40276802563,
+  "evidence": "OBSERVED published path/grids, independent bounded full-footprint validation; no atomic internal raw grid retained",
+  "path_index_zero_based": 2,
+  "path": {
+    "source_sim_s": 6.049999999,
+    "sim_t": 7.499999999999981,
+    "receipt_monotonic": 1455.862305634,
+    "frame": "map"
+  },
+  "points": 170,
+  "failing_segment": 97,
+  "segment_endpoints": [
+    [
+      0.6300741054846171,
+      3.0100029844790015
+    ],
+    [
+      0.6284049847333506,
+      3.038336113728519
+    ]
+  ],
+  "segment_quaternions": [
+    [
+      0.0,
+      0.0,
+      0.7071067966408575,
+      0.7071067657322372
+    ],
+    [
+      0.0,
+      0.0,
+      0.7071067966408575,
+      0.7071067657322372
+    ]
+  ],
+  "first_grid_collision": {
+    "segment": 97,
+    "pose": [
+      0.629962830767866,
+      3.0118918597623026,
+      1.5707963705062866
+    ],
+    "kind": "lethal_or_unknown"
+  },
+  "full_polygon_at_sample": [
+    [
+      0.9399628497823204,
+      2.576891873312834
+    ],
+    [
+      0.939962811753411,
+      3.446891873312833
+    ],
+    [
+      0.31996281175341157,
+      3.4468918462117712
+    ],
+    [
+      0.3199628497823209,
+      2.576891846211772
+    ]
+  ],
+  "original_truth_collision": null,
+  "before_after_published_maps": [
+    {
+      "source_sim_s": 5.549999999,
+      "receipt_monotonic": 1453.897779657,
+      "resolution": 0.019999999552965164,
+      "origin": [
+        0.0,
+        0.0
+      ],
+      "width": 400,
+      "height": 300,
+      "hits": [
+        {
+          "cell": [
+            15,
+            129
+          ],
+          "occupancy": 100,
+          "closed_box": [
+            0.29999999329447746,
+            2.579999942332506,
+            0.3199999928474426,
+            2.5999999418854713
+          ]
+        }
+      ]
+    },
+    {
+      "source_sim_s": 7.499999999,
+      "receipt_monotonic": 1455.875382448,
+      "resolution": 0.019999999552965164,
+      "origin": [
+        0.0,
+        0.0
+      ],
+      "width": 400,
+      "height": 300,
+      "hits": [
+        {
+          "cell": [
+            15,
+            129
+          ],
+          "occupancy": 100,
+          "closed_box": [
+            0.29999999329447746,
+            2.579999942332506,
+            0.3199999928474426,
+            2.5999999418854713
+          ]
+        }
+      ]
+    }
+  ],
+  "important_limit": "The path header is source sim6.05 and receipt sim7.50; published maps bracket it but are not an atomic planner-locked raw snapshot. A raw254 single-cell reconstruction is separate, never a runtime prior.",
+  "synthetic_raw_same_helper_check": {
+    "cell": [
+      15,
+      129
+    ],
+    "assigned_raw": 254,
+    "collision": true,
+    "execution": "Local C++ of the unchanged helper over a synthetic raw field; NOT an extra native Nav2 run or historical raw snapshot",
+    "helper_sha256": "5207de4150b4c3326315a32410b3a87afb3390bf1bc942bd8a8520fefc06da05"
+  },
+  "input_required": "Atomic raw costmap at the actual checker/path creation lock plus pose/segment association, only for exact cause attribution",
+  "freeze": "No checker/configuration changes or further native runs after this candidate outcome",
+  "next_one_task": "Capture an atomic planner-locked raw costmap/path packet and resolve the single sim6.05 segment97 vs cell(15,129) discrepancy before treating all emitted paths as valid. Do not infer an exact historical raw byte from OccupancyGrid."
+}
