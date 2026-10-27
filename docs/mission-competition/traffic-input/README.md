@@ -6,6 +6,11 @@ and its temporal filter. Importing the package starts nothing. There is no
 camera acquisition, ROS subscription, HTTP ingestion endpoint, command
 publisher, mission executor, or automatic registration.
 
+2026-10-27 follow-up: the teammate's actual `best.pt` is acquired and loaded.
+See [TEAMMATE_MODEL_INTAKE.md](TEAMMATE_MODEL_INTAKE.md) for the explicit three-class
+consensus config, comparison commands, current validation and remaining RGB gap.
+The historical model/environment and ROUND3/ROUND4 results below remain separate.
+
 The pinned base actually contains `traffic_signals/detector.py::LocalUltralytics`,
 not the prompt's proposed `OptionalYoloAdapter`/`detector_adapter.py` names.
 The VM loader and `core.py` are imported read-only. `OwnerModel.infer` uses
@@ -61,8 +66,9 @@ parent directory. Example row (replace the hash with actual original bytes):
 provided v3 Go2 imagery. Its manually inspected ROI is a diagnostic image
 region, not a calibrated course/map association. Do not promote it to a
 production binding. `verified=false` always prevents stable GREEN. Model
-classes are checked against the actual loaded names; class IDs are never
-interpreted as RED/GREEN. The provided model's class 9 is `traffic light`.
+classes are checked against the actual loaded names; this generic model's IDs
+carry no color semantics. Its class 9 is `traffic light`. The new teammate policy
+uses a separately verified three-class mapping and preserves both model and C4 color.
 Its checkpoint says version `8.0.0.dev0`; 8.3.203 is the explicitly tested
 compatible replay loader, not a claim about its exact training environment.
 The SHA and user-supplied path establish which file was inspected, not a

@@ -1,0 +1,704 @@
+{
+  "source": {
+    "source_sha": "fe523233aeca933942b81df5d305777db2bb6c5d",
+    "repository": "https://github.com/hjj021717-netizen/traffic-light-detector",
+    "files": [
+      {
+        "path": "best.pt",
+        "bytes": 5460506,
+        "sha256": "3bae0ae05522fe92cbda850b4d604e9babaa34ebbd130fd69cd9c7e61a9e44ec"
+      },
+      {
+        "path": "data.yaml",
+        "bytes": 108,
+        "sha256": "0f3396629b0eed6b44d220ebc0563292c1eb13d987bec68d6a62642eb56de497"
+      },
+      {
+        "path": "train.py",
+        "bytes": 201,
+        "sha256": "6e6eba4ebe0b7b89f6ba4b3dea109608f456d6df0e0bcaa49227f87d57eb8a3e"
+      },
+      {
+        "path": "training_results/args.yaml",
+        "bytes": 1776,
+        "sha256": "d2239760e45f11ccf77ce32ea55e3862b9e9523968b1bbaaedd0d374bedd4737"
+      },
+      {
+        "path": "color_detector.py",
+        "bytes": 2891,
+        "sha256": "9331a55201ef69a45a3ed208d34b157cdbc563be26f26a06c3f5b8bd296a2c10"
+      },
+      {
+        "path": "behavior.py",
+        "bytes": 3354,
+        "sha256": "689aaac1aef913d2294b20105f3fa896c46abd51b7e7ec0e1c5ed69e6cfe2182"
+      },
+      {
+        "path": "robot_node.py",
+        "bytes": 2168,
+        "sha256": "3d9fe0647562a87205cfd0e4cc980a6c3339fef78e4271fbbc63918476bb03cb"
+      },
+      {
+        "path": "README.md",
+        "bytes": 1258,
+        "sha256": "850c8ad023e7e766e7857576af67cb2e885e3d4585eb0718b140d0c94dc278eb"
+      }
+    ]
+  },
+  "load": {
+    "status": "MODEL_LOADED",
+    "setup_s": 5.6445394170004874,
+    "python": "3.13.2",
+    "platform": "macOS-26.3-arm64-arm-64bit-Mach-O",
+    "packages": {
+      "torch": "2.10.0",
+      "torchvision": "0.25.0",
+      "ultralytics": "8.4.15",
+      "numpy": "2.4.2",
+      "opencv-python": "4.13.0.92"
+    },
+    "names": {
+      "0": "traffic_light_green",
+      "1": "traffic_light_red",
+      "2": "crosswalk"
+    },
+    "task": "detect",
+    "checkpoint": {
+      "epoch": -1,
+      "date": "2026-09-12T04:09:55.855555+00:00",
+      "version": "8.4.148",
+      "license": "AGPL-3.0 (https://ultralytics.com/license)",
+      "docs": "https://docs.ultralytics.com"
+    },
+    "parameters": 2590425,
+    "blank_detections": [],
+    "first_inference_s": 0.07752837496809661,
+    "diagnostics": {
+      "post_nms_boxes": 0,
+      "allowlist_boxes": 0,
+      "non_allowlist_boxes": 0,
+      "tile_edge_rejected": 0,
+      "native_fusion_removed": 0,
+      "views": 1,
+      "model_confidence_floor": 0.25,
+      "below_model_floor": "NOT_OBSERVABLE_AFTER_NMS",
+      "input_encoding": "bgr8",
+      "result_original_shape_hw": [
+        720,
+        1280
+      ],
+      "coordinate_space": "native_xyxy",
+      "inverse_letterbox_applied": false,
+      "inference_profile": {
+        "version": "c4-search.v1",
+        "profile": "full640",
+        "imgsz": 640,
+        "search": "full",
+        "confidence_floor": 0.25,
+        "model_sha256": "3bae0ae05522fe92cbda850b4d604e9babaa34ebbd130fd69cd9c7e61a9e44ec",
+        "device": "cpu",
+        "rect": true,
+        "prediction_nms_iou": 0.7,
+        "max_det": 300,
+        "native_fusion_iou": 0.5,
+        "internal_edge_margin_px": 1,
+        "upper_tiles_normalized_xyxy": [
+          [
+            0,
+            0,
+            0.5,
+            0.6
+          ],
+          [
+            0.25,
+            0,
+            0.75,
+            0.6
+          ],
+          [
+            0.5,
+            0,
+            1,
+            0.6
+          ]
+        ]
+      },
+      "inference_settings_sha256": "0014cfdcb11636abaedbaedd4766d573c7c00458fad760829b1f279ee97158b9",
+      "inference_wall_s": 0.07748183305375278,
+      "model_reported_stage_s": {
+        "preprocess": 0.005140917026437819,
+        "inference": 0.04034912493079901,
+        "postprocess": 0.0006499580340459943
+      }
+    }
+  },
+  "class_mapping": {
+    "0": "traffic_light_green",
+    "1": "traffic_light_red",
+    "2": "crosswalk"
+  },
+  "model_architecture": {
+    "yaml_file": "yolo11n.yaml",
+    "nc": 3,
+    "scale": "n"
+  },
+  "checkpoint_train_args": {
+    "model": "yolo11n.pt",
+    "epochs": 50,
+    "imgsz": 640,
+    "batch": 16,
+    "name": "traffic_light_final_v3",
+    "cls_remap": false
+  },
+  "original_rgb": {
+    "status": "STATIC_RGB_NOT_RUN_INPUT_MISSING",
+    "unique_images": 0,
+    "target_cases": 0,
+    "missing_target_cases": 27,
+    "expected_unique_images": 25,
+    "expected_session_frames": 255
+  },
+  "config_sha256": "1266442c96c6678229bd66888b2e610d7e0b75b26ec7c3464131ea92018236ba",
+  "inference_settings_sha256": "4b40b9c7e5d3df9074e2cae9bd6a5b57a0d974e268cec58d718fd42acb8616ea",
+  "inference_settings": {
+    "version": "c4-search.v1",
+    "profile": "full640",
+    "imgsz": 640,
+    "search": "full",
+    "confidence_floor": 0.25,
+    "model_sha256": "3bae0ae05522fe92cbda850b4d604e9babaa34ebbd130fd69cd9c7e61a9e44ec",
+    "device": "cpu",
+    "rect": true,
+    "prediction_nms_iou": 0.7,
+    "max_det": 300,
+    "native_fusion_iou": 0.5,
+    "internal_edge_margin_px": 1,
+    "upper_tiles_normalized_xyxy": [
+      [
+        0,
+        0,
+        0.5,
+        0.6
+      ],
+      [
+        0.25,
+        0,
+        0.75,
+        0.6
+      ],
+      [
+        0.5,
+        0,
+        1,
+        0.6
+      ]
+    ],
+    "color_consensus": {
+      "name": "teammate-color-consensus-v1",
+      "model_classes": {
+        "0": "traffic_light_green",
+        "1": "traffic_light_red",
+        "2": "crosswalk"
+      },
+      "signal_classes": {
+        "0": "traffic_light_green",
+        "1": "traffic_light_red"
+      },
+      "color_profile_sha256": "ce33166e41f041bef5d3ce52baa38ee8b94f337b35d643291add89fc7a4e8786",
+      "agreement_required": true,
+      "conflict_state": "AMBIGUOUS",
+      "missing_color_state": "UNKNOWN"
+    }
+  },
+  "montage_smoke": {
+    "scope": "16 fixed layout panels from annotated training montage; native bbox/class/color integration smoke only. NOT original RGB, NOT accuracy or latency benchmark.",
+    "image_sha256": "c82c468d89ebd932172299fdd269be68c6c344a28d7b31a49790d408d81e4df3",
+    "panels": 16,
+    "boxes": 5,
+    "comparison_counts": {
+      "A_model": {
+        "RED": 3,
+        "GREEN": 2
+      },
+      "B_c4": {
+        "RED": 3,
+        "UNKNOWN": 1,
+        "GREEN": 1
+      },
+      "candidate": {
+        "RED": 3,
+        "UNKNOWN": 1,
+        "GREEN": 1
+      },
+      "C_upstream": {
+        "RED": 3,
+        "GREEN": 2
+      }
+    },
+    "non_allowlist_boxes": 59,
+    "detections": [
+      {
+        "panel": 11,
+        "observations": [
+          {
+            "stage": "detection-only",
+            "bbox_xyxy_native": [
+              70,
+              296,
+              84,
+              313
+            ],
+            "confidence": 0.3418954312801361,
+            "class_id": 1,
+            "class_name": "traffic_light_red",
+            "model_state": "RED",
+            "c4_raw_state": "RED",
+            "color_consensus": {
+              "policy": "teammate-color-consensus-v1",
+              "model_state": "RED",
+              "c4_raw_state": "RED",
+              "final_state": "RED",
+              "reasons": []
+            },
+            "raw_state": "RED",
+            "quality_flags": [],
+            "color_metrics": {
+              "channel_clip_fraction": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "white_clip_fraction": 0.0,
+              "blur_variance": 986.1821375609067,
+              "chroma_pixels": 92,
+              "red_component": 70,
+              "green_component": 0,
+              "enhanced_state": "RED"
+            },
+            "stable_state": null,
+            "mission_identity": null,
+            "upstream_comparison": {
+              "rgb": {
+                "state": "GREEN",
+                "uncalibrated_score": 0.877571502081804,
+                "wall_s": 0.009604124934412539
+              },
+              "hsv": {
+                "state": "RED",
+                "uncalibrated_score": 0.7083333333333334,
+                "wall_s": 0.00021466705948114395
+              },
+              "combined": {
+                "state": "RED",
+                "uncalibrated_score": 0.7083333333333334,
+                "wall_s": 0.00043479190208017826
+              },
+              "state": "RED",
+              "diagnostic_total_wall_s": 0.010259915958158672,
+              "score_is_probability": false
+            }
+          },
+          {
+            "stage": "detection-only",
+            "bbox_xyxy_native": [
+              394,
+              297,
+              411,
+              315
+            ],
+            "confidence": 0.2741771936416626,
+            "class_id": 1,
+            "class_name": "traffic_light_red",
+            "model_state": "RED",
+            "c4_raw_state": "RED",
+            "color_consensus": {
+              "policy": "teammate-color-consensus-v1",
+              "model_state": "RED",
+              "c4_raw_state": "RED",
+              "final_state": "RED",
+              "reasons": []
+            },
+            "raw_state": "RED",
+            "quality_flags": [],
+            "color_metrics": {
+              "channel_clip_fraction": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "white_clip_fraction": 0.0,
+              "blur_variance": 681.8578004186423,
+              "chroma_pixels": 133,
+              "red_component": 96,
+              "green_component": 0,
+              "enhanced_state": "RED"
+            },
+            "stable_state": null,
+            "mission_identity": null,
+            "upstream_comparison": {
+              "rgb": {
+                "state": "GREEN",
+                "uncalibrated_score": 0.8713696537847824,
+                "wall_s": 8.441600948572159e-05
+              },
+              "hsv": {
+                "state": "RED",
+                "uncalibrated_score": 0.6344086021505376,
+                "wall_s": 8.895795326679945e-05
+              },
+              "combined": {
+                "state": "RED",
+                "uncalibrated_score": 0.6344086021505376,
+                "wall_s": 0.0001538749784231186
+              },
+              "state": "RED",
+              "diagnostic_total_wall_s": 0.0003299169475212693,
+              "score_is_probability": false
+            }
+          }
+        ]
+      },
+      {
+        "panel": 12,
+        "observations": [
+          {
+            "stage": "detection-only",
+            "bbox_xyxy_native": [
+              464,
+              16,
+              479,
+              32
+            ],
+            "confidence": 0.37935662269592285,
+            "class_id": 0,
+            "class_name": "traffic_light_green",
+            "model_state": "GREEN",
+            "c4_raw_state": "UNKNOWN",
+            "color_consensus": {
+              "policy": "teammate-color-consensus-v1",
+              "model_state": "GREEN",
+              "c4_raw_state": "UNKNOWN",
+              "final_state": "UNKNOWN",
+              "reasons": [
+                "COLOR_EVIDENCE_MISSING"
+              ]
+            },
+            "raw_state": "UNKNOWN",
+            "quality_flags": [
+              "COLOR_EVIDENCE_MISSING"
+            ],
+            "color_metrics": {
+              "channel_clip_fraction": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "white_clip_fraction": 0.0,
+              "blur_variance": 14063.995815972223,
+              "chroma_pixels": 28,
+              "red_component": 0,
+              "green_component": 0,
+              "enhanced_state": "UNKNOWN"
+            },
+            "stable_state": null,
+            "mission_identity": null,
+            "upstream_comparison": {
+              "rgb": {
+                "state": "GREEN",
+                "uncalibrated_score": 1.0081912071987889,
+                "wall_s": 0.00010429194662719965
+              },
+              "hsv": {
+                "state": "GREEN",
+                "uncalibrated_score": 1.0,
+                "wall_s": 5.608308129012585e-05
+              },
+              "combined": {
+                "state": "GREEN",
+                "uncalibrated_score": 1.0081912071987889,
+                "wall_s": 9.32089751586318e-05
+              },
+              "state": "GREEN",
+              "diagnostic_total_wall_s": 0.0002564589958637953,
+              "score_is_probability": false
+            }
+          }
+        ]
+      },
+      {
+        "panel": 13,
+        "observations": [
+          {
+            "stage": "detection-only",
+            "bbox_xyxy_native": [
+              148,
+              99,
+              159,
+              112
+            ],
+            "confidence": 0.5900530219078064,
+            "class_id": 1,
+            "class_name": "traffic_light_red",
+            "model_state": "RED",
+            "c4_raw_state": "RED",
+            "color_consensus": {
+              "policy": "teammate-color-consensus-v1",
+              "model_state": "RED",
+              "c4_raw_state": "RED",
+              "final_state": "RED",
+              "reasons": []
+            },
+            "raw_state": "RED",
+            "quality_flags": [],
+            "color_metrics": {
+              "channel_clip_fraction": [
+                0.0,
+                0.0,
+                0.006993006993006993
+              ],
+              "white_clip_fraction": 0.0,
+              "blur_variance": 8626.08587216979,
+              "chroma_pixels": 73,
+              "red_component": 54,
+              "green_component": 0,
+              "enhanced_state": "RED"
+            },
+            "stable_state": null,
+            "mission_identity": null,
+            "upstream_comparison": {
+              "rgb": {
+                "state": "GREEN",
+                "uncalibrated_score": 0.9571010527642773,
+                "wall_s": 9.175005834549665e-05
+              },
+              "hsv": {
+                "state": "RED",
+                "uncalibrated_score": 0.7906976744186046,
+                "wall_s": 5.220796447247267e-05
+              },
+              "combined": {
+                "state": "RED",
+                "uncalibrated_score": 0.7906976744186046,
+                "wall_s": 8.274998981505632e-05
+              },
+              "state": "RED",
+              "diagnostic_total_wall_s": 0.00022899999748915434,
+              "score_is_probability": false
+            }
+          },
+          {
+            "stage": "detection-only",
+            "bbox_xyxy_native": [
+              303,
+              138,
+              311,
+              146
+            ],
+            "confidence": 0.3929996192455292,
+            "class_id": 0,
+            "class_name": "traffic_light_green",
+            "model_state": "GREEN",
+            "c4_raw_state": "GREEN",
+            "color_consensus": {
+              "policy": "teammate-color-consensus-v1",
+              "model_state": "GREEN",
+              "c4_raw_state": "GREEN",
+              "final_state": "GREEN",
+              "reasons": []
+            },
+            "raw_state": "GREEN",
+            "quality_flags": [],
+            "color_metrics": {
+              "channel_clip_fraction": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "white_clip_fraction": 0.0,
+              "blur_variance": 2934.486083984375,
+              "chroma_pixels": 36,
+              "red_component": 0,
+              "green_component": 19,
+              "enhanced_state": "UNKNOWN"
+            },
+            "stable_state": null,
+            "mission_identity": null,
+            "upstream_comparison": {
+              "rgb": {
+                "state": "GREEN",
+                "uncalibrated_score": 1.1088133809833833,
+                "wall_s": 3.925000783056021e-05
+              },
+              "hsv": {
+                "state": "GREEN",
+                "uncalibrated_score": 1.0,
+                "wall_s": 3.825000021606684e-05
+              },
+              "combined": {
+                "state": "GREEN",
+                "uncalibrated_score": 1.1088133809833833,
+                "wall_s": 7.087504491209984e-05
+              },
+              "state": "GREEN",
+              "diagnostic_total_wall_s": 0.00014945794828236103,
+              "score_is_probability": false
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "qualification": {
+    "MODEL_ACQUIRED": true,
+    "MODEL_LOADED": true,
+    "CLASS_MAPPING_VERIFIED": true,
+    "STATIC_RGB_TESTED": "NOT_RUN_INPUT_MISSING",
+    "TEMPORAL_REAL_NOT_RUN": true,
+    "JETSON_NOT_RUN": true,
+    "MOTION_NOT_AUTHORIZED": true,
+    "C1_ADAPTER_TESTED": true
+  },
+  "c1_cross_check": {
+    "status": "C1_ADAPTER_TESTED",
+    "input_kind": "training-visualization",
+    "model_sha256": "3bae0ae05522fe92cbda850b4d604e9babaa34ebbd130fd69cd9c7e61a9e44ec",
+    "config_hash": "1266442c96c6678229bd66888b2e610d7e0b75b26ec7c3464131ea92018236ba",
+    "inference_settings_sha256": "4b40b9c7e5d3df9074e2cae9bd6a5b57a0d974e268cec58d718fd42acb8616ea",
+    "worker_sha256": "604f59bd4b0464af45b1167ad224811296d78d900e64c6c35c807be73b9314c3",
+    "ingress_sha256": "07b397ed709c07d31a1e710d377a754dcd11c7d27fba4d3c4f594170d57215b5",
+    "inference_off_owner_loop": true,
+    "first_receipt_preserved": true,
+    "review": {
+      "inference_binding_matches": true,
+      "projection_reasons": [
+        "OFFLINE_REPLAY_NOT_ROBOT_EVIDENCE"
+      ],
+      "departure_authorized": false,
+      "complete_mission_evidence": false,
+      "independent_facts": {
+        "feet": null,
+        "physical_stop": null,
+        "path": null,
+        "departure": null
+      }
+    },
+    "main_regression": {
+      "tests": 173,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "skip_reasons": []
+    },
+    "signal_detections": [
+      {
+        "stage": "detection-only",
+        "bbox_xyxy_native": [
+          148,
+          99,
+          159,
+          112
+        ],
+        "confidence": 0.5900530219078064,
+        "class_id": 1,
+        "class_name": "traffic_light_red",
+        "model_state": "RED",
+        "c4_raw_state": "RED",
+        "color_consensus": {
+          "policy": "teammate-color-consensus-v1",
+          "model_state": "RED",
+          "c4_raw_state": "RED",
+          "final_state": "RED",
+          "reasons": []
+        },
+        "raw_state": "RED",
+        "quality_flags": [],
+        "color_metrics": {
+          "channel_clip_fraction": [
+            0.0,
+            0.0,
+            0.006993006993006993
+          ],
+          "white_clip_fraction": 0.0,
+          "blur_variance": 8626.08587216979,
+          "chroma_pixels": 73,
+          "red_component": 54,
+          "green_component": 0,
+          "enhanced_state": "RED"
+        },
+        "stable_state": null,
+        "mission_identity": null
+      },
+      {
+        "stage": "detection-only",
+        "bbox_xyxy_native": [
+          303,
+          138,
+          311,
+          146
+        ],
+        "confidence": 0.3929996192455292,
+        "class_id": 0,
+        "class_name": "traffic_light_green",
+        "model_state": "GREEN",
+        "c4_raw_state": "GREEN",
+        "color_consensus": {
+          "policy": "teammate-color-consensus-v1",
+          "model_state": "GREEN",
+          "c4_raw_state": "GREEN",
+          "final_state": "GREEN",
+          "reasons": []
+        },
+        "raw_state": "GREEN",
+        "quality_flags": [],
+        "color_metrics": {
+          "channel_clip_fraction": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "white_clip_fraction": 0.0,
+          "blur_variance": 2934.486083984375,
+          "chroma_pixels": 36,
+          "red_component": 0,
+          "green_component": 19,
+          "enhanced_state": "UNKNOWN"
+        },
+        "stable_state": null,
+        "mission_identity": null
+      }
+    ]
+  },
+  "validation": {
+    "c4_focused": {
+      "tests": 105,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "python_full_final": {
+      "tests": 2796,
+      "failures": 0,
+      "errors": 1,
+      "skipped": 3,
+      "error": "test_offline_registration.OfflineRegistrationTests.test_extended_matrix_records_failures_separately_from_acceptance: benchmark subprocess returned exit 1"
+    },
+    "isolated_failed_test_rerun": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "javascript": {
+      "tests": 660,
+      "failures": 0,
+      "skipped": 0
+    },
+    "frontend_modules": 104,
+    "ruff": "PASS",
+    "mypy": "PASS (repository-configured 4 sources)",
+    "secret_scan": "PASS"
+  },
+  "inspection_source_sha": "3f9f2ba33021f18418bb9bf2ab379f972d16f029",
+  "main_source_sha": "d6e3fe9675f31e436f5236b390e36e188934f473",
+  "c4_handoff_sha": "bf0436687a0a9dbab1ff7ac370f1bc0de42d07ad"
+}

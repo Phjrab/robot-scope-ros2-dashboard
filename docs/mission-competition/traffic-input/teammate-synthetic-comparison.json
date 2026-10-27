@@ -1,0 +1,265 @@
+{
+  "scope": "Synthetic manual ROI probes, not model predictions or real RGB accuracy. Hypothetical model states test both consensus directions.",
+  "image_size": [
+    64,
+    64
+  ],
+  "bbox": [
+    0,
+    0,
+    64,
+    64
+  ],
+  "upstream_source_sha256": "9331a55201ef69a45a3ed208d34b157cdbc563be26f26a06c3f5b8bd296a2c10",
+  "records": [
+    {
+      "case": "black",
+      "synthetic_recipe": {
+        "kind": "uniform",
+        "bgr": [
+          0,
+          0,
+          0
+        ]
+      },
+      "c4_state": "UNKNOWN",
+      "c4_flags": [
+        "LOW_CHROMA",
+        "BLURRED"
+      ],
+      "upstream_rgb": "GREEN",
+      "upstream_rgb_score": 1.0,
+      "upstream_hsv": "RED",
+      "upstream_combined": "RED",
+      "if_model_red": "UNKNOWN",
+      "if_model_green": "UNKNOWN"
+    },
+    {
+      "case": "white",
+      "synthetic_recipe": {
+        "kind": "uniform",
+        "bgr": [
+          255,
+          255,
+          255
+        ]
+      },
+      "c4_state": "UNKNOWN",
+      "c4_flags": [
+        "CLIPPED",
+        "LOW_CHROMA",
+        "BLURRED"
+      ],
+      "upstream_rgb": "GREEN",
+      "upstream_rgb_score": 1.0,
+      "upstream_hsv": "RED",
+      "upstream_combined": "RED",
+      "if_model_red": "UNKNOWN",
+      "if_model_green": "UNKNOWN"
+    },
+    {
+      "case": "gray",
+      "synthetic_recipe": {
+        "kind": "uniform",
+        "bgr": [
+          128,
+          128,
+          128
+        ]
+      },
+      "c4_state": "UNKNOWN",
+      "c4_flags": [
+        "LOW_CHROMA",
+        "BLURRED"
+      ],
+      "upstream_rgb": "GREEN",
+      "upstream_rgb_score": 1.0,
+      "upstream_hsv": "RED",
+      "upstream_combined": "RED",
+      "if_model_red": "UNKNOWN",
+      "if_model_green": "UNKNOWN"
+    },
+    {
+      "case": "low_chroma_green",
+      "synthetic_recipe": {
+        "kind": "uniform",
+        "bgr": [
+          246,
+          250,
+          246
+        ]
+      },
+      "c4_state": "UNKNOWN",
+      "c4_flags": [
+        "LOW_CHROMA",
+        "BLURRED"
+      ],
+      "upstream_rgb": "GREEN",
+      "upstream_rgb_score": 1.0053908355722496,
+      "upstream_hsv": "GREEN",
+      "upstream_combined": "GREEN",
+      "if_model_red": "UNKNOWN",
+      "if_model_green": "UNKNOWN"
+    },
+    {
+      "case": "blue",
+      "synthetic_recipe": {
+        "kind": "uniform",
+        "bgr": [
+          255,
+          0,
+          0
+        ]
+      },
+      "c4_state": "UNKNOWN",
+      "c4_flags": [
+        "BLURRED"
+      ],
+      "upstream_rgb": "GREEN",
+      "upstream_rgb_score": 1.9999999960784312,
+      "upstream_hsv": "GREEN",
+      "upstream_combined": "GREEN",
+      "if_model_red": "UNKNOWN",
+      "if_model_green": "UNKNOWN"
+    },
+    {
+      "case": "yellow",
+      "synthetic_recipe": {
+        "kind": "uniform",
+        "bgr": [
+          0,
+          255,
+          255
+        ]
+      },
+      "c4_state": "UNKNOWN",
+      "c4_flags": [
+        "BLURRED"
+      ],
+      "upstream_rgb": "GREEN",
+      "upstream_rgb_score": 1.0,
+      "upstream_hsv": "GREEN",
+      "upstream_combined": "GREEN",
+      "if_model_red": "UNKNOWN",
+      "if_model_green": "UNKNOWN"
+    },
+    {
+      "case": "red_lamp",
+      "synthetic_recipe": {
+        "kind": "circle",
+        "bgr": [
+          0,
+          0,
+          230
+        ],
+        "radius": 12,
+        "background_bgr": [
+          15,
+          15,
+          15
+        ],
+        "center": [
+          32,
+          32
+        ]
+      },
+      "c4_state": "RED",
+      "c4_flags": [],
+      "upstream_rgb": "GREEN",
+      "upstream_rgb_score": 0.8923339848431131,
+      "upstream_hsv": "RED",
+      "upstream_combined": "RED",
+      "if_model_red": "RED",
+      "if_model_green": "AMBIGUOUS"
+    },
+    {
+      "case": "green_small",
+      "synthetic_recipe": {
+        "kind": "circle",
+        "bgr": [
+          0,
+          230,
+          0
+        ],
+        "radius": 12,
+        "background_bgr": [
+          15,
+          15,
+          15
+        ],
+        "center": [
+          32,
+          32
+        ]
+      },
+      "c4_state": "GREEN",
+      "c4_flags": [],
+      "upstream_rgb": "GREEN",
+      "upstream_rgb_score": 1.107666015156887,
+      "upstream_hsv": "RED",
+      "upstream_combined": "RED",
+      "if_model_red": "AMBIGUOUS",
+      "if_model_green": "GREEN"
+    },
+    {
+      "case": "green_large",
+      "synthetic_recipe": {
+        "kind": "circle",
+        "bgr": [
+          0,
+          230,
+          0
+        ],
+        "radius": 24,
+        "background_bgr": [
+          15,
+          15,
+          15
+        ],
+        "center": [
+          32,
+          32
+        ]
+      },
+      "c4_state": "GREEN",
+      "c4_flags": [],
+      "upstream_rgb": "GREEN",
+      "upstream_rgb_score": 1.9999999956521743,
+      "upstream_hsv": "GREEN",
+      "upstream_combined": "GREEN",
+      "if_model_red": "AMBIGUOUS",
+      "if_model_green": "GREEN"
+    },
+    {
+      "case": "red_tiny",
+      "synthetic_recipe": {
+        "kind": "circle",
+        "bgr": [
+          0,
+          0,
+          230
+        ],
+        "radius": 1,
+        "background_bgr": [
+          15,
+          15,
+          15
+        ],
+        "center": [
+          32,
+          32
+        ]
+      },
+      "c4_state": "UNKNOWN",
+      "c4_flags": [
+        "LOW_CHROMA"
+      ],
+      "upstream_rgb": "GREEN",
+      "upstream_rgb_score": 0.9987792968803074,
+      "upstream_hsv": "RED",
+      "upstream_combined": "RED",
+      "if_model_red": "UNKNOWN",
+      "if_model_green": "UNKNOWN"
+    }
+  ]
+}
