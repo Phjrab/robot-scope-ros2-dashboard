@@ -1,0 +1,6 @@
+{
+  "c3_source": "8aef2fb972af1358929774b85b642b6fc5f6c06b",
+  "path": "experiments/competition_nav2/native_runner.py",
+  "base_sha256": "be0ab25667ac32a2c05879f54104838c5aba52c841f8ff6a78ccdfb70c664ce0",
+  "patched_sha256": "d203309a7173a5e81d8105491791f777eda933c5e407a4a09f3fa20e3df20a31"
+}

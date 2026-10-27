@@ -1,0 +1,102 @@
+--- a/experiments/competition_nav2/native_runner.py
++++ b/experiments/competition_nav2/native_runner.py
+@@ -22,0 +23 @@
++from native_observation import Observer, Sample
+@@ -70,0 +72,24 @@
++
++
++def raw_body_contact(world, poses, scene_time):
++    """Sampled original-truth contact, separate from effective padded counters.
++
++    Only D0 shared worlds expose qualified raw geometry. Other worlds are unknown.
++    This is offline observation only: truth is never sent to Nav2 or commands.
++    """
++    if not all(hasattr(world, x) for x in ("raw_body", "boundary", "forbidden")):
++        return None
++    from core import polygon, intersects
++    from d0_adapter import contains
++    import numpy as np
++    for pose in poses:
++        body = polygon(pose, world.raw_body)
++        if not contains(world.boundary, np.array([p[0] for p in body]),
++                        np.array([p[1] for p in body])).all():
++            return True
++        edges = zip(world.boundary, world.boundary[1:] + world.boundary[:1])
++        if any(intersects(body, [x, y]) for x, y in edges):
++            return True
++        if any(intersects(body, p) for p in world.forbidden + world.obstacles(scene_time)):
++            return True
++    return False
+@@ -132,0 +158 @@
++            self.raw_contact_observed = None
+@@ -406,0 +433,3 @@
++            contact = raw_body_contact(self.world, samples, scene_time)
++            if self.raw_contact_observed is not True:
++                self.raw_contact_observed = contact
+@@ -612,0 +642 @@
++                        raw_contact_observed=self.raw_contact_observed,
+@@ -1097,0 +1128,5 @@
++        observation_started = time.monotonic()
++        observer = Observer(fixture["timeout_s"] * 2 + 15.0)
++        observation_decision = None
++        terminal_action_status = None
++        terminal_action_elapsed_s = None
+@@ -1100 +1135,2 @@
+-            time.monotonic() < deadline
++            rclpy.ok()
++            and time.monotonic() < deadline
+@@ -1123,3 +1159,28 @@
+-            if result_future.done() and (
+-                not fixture.get("recovery_probe_s") or elapsed >= 6.0
+-            ):
++            # Native action lifetime is NOT observer lifetime. Never resubmit a
++            # finished goal; preserve boundary stop/TTL/latches while watching.
++            if terminal_action_status is None and result_future.done():
++                terminal_action_status = result_future.result().status
++                terminal_action_elapsed_s = time.monotonic() - observation_started
++            action_status = terminal_action_status if terminal_action_status is not None else 2
++            reached = (math.dist(node.pose[:2], fixture["goal"][:2]) <= 0.12 and
++                       abs((node.pose[2] - fixture["goal"][2] + math.pi) % (2 * math.pi) - math.pi) <= 0.2)
++            observation_decision = observer.step(Sample(
++                elapsed_s=time.monotonic() - observation_started,
++                action_status={1: "ACCEPTED", 2: "EXECUTING", 3: "CANCELING",
++                               4: "SUCCEEDED", 5: "CANCELED", 6: "ABORTED"}[action_status],
++                raw_contact=node.raw_contact_observed,
++                padded_violation=bool(node.collision_count or node.boundary_count),
++                goal_verified=reached,
++                # Padded-contact latch remains active, but is not proof of raw
++                # contact and does not by itself stop the observation lifetime.
++                infrastructure_error=(node.boundary.fault
++                    if node.boundary.fault != "FOOTPRINT_CONTACT" else None),
++                translation_speed_mps=math.hypot(node.previous_output[0],
++                    node.previous_output[1] if omni else 0.0),
++            ))
++            if (elapsed >= fixture["timeout_s"] and
++                    observation_decision["terminal_reason"] not in
++                    ("RAW_CONTACT", "INFRASTRUCTURE_ERROR", "OPERATOR_CANCEL")):
++                observation_decision = dict(observation_decision or {}, continue_observation=False,
++                    terminal_reason="OBSERVATION_TIMEOUT", goal_reached=False, navigation_accepted=False)
++            if not observation_decision["continue_observation"]:
+@@ -1127,2 +1188,14 @@
+-            if node.boundary.fault:
+-                break
++        if observation_decision is None or observation_decision["continue_observation"]:
++            observation_decision = dict(observation_decision or {}, continue_observation=False,
++                terminal_reason=("OBSERVATION_TIMEOUT" if rclpy.ok() else "OPERATOR_CANCEL"),
++                goal_reached=False, navigation_accepted=False)
++        observer_end = time.monotonic() - observation_started
++        observation_decision.update(
++            action_terminal_observed_elapsed_s=terminal_action_elapsed_s,
++            observer_terminal_elapsed_s=observer_end,
++            post_action_observation_s=(None if terminal_action_elapsed_s is None
++                else max(0.0, observer_end - terminal_action_elapsed_s)),
++            clock="runner_monotonic_elapsed_since_goal_observer_start",
++            cleanup_scope="Existing bounded cancel/result waits, 2.6s non-success settle and 0.5s zero shutdown are outside observation budget; not navigation progress.",
++        )
++        report["observation_lifecycle"] = observation_decision
+@@ -1155 +1228,2 @@
+-        if result.status == 4 and distance <= 0.12 and yaw_error <= 0.2:
++        if (result.status == 4 and distance <= 0.12 and yaw_error <= 0.2
++                and report["observation_lifecycle"]["terminal_reason"] == "GOAL_REACHED"):
+@@ -1184,0 +1259 @@
++                raw_contact_observed=node.raw_contact_observed,
