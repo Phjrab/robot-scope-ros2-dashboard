@@ -16,6 +16,7 @@ from .config import finite
 from .association import BoundedAssociation
 from .lamp import lamp_diagnostic
 from .emitter import profile_settings, validate_emitter
+from .consensus import COLORS, MODEL_CLASSES, combine, policy_settings
 
 
 @dataclass
@@ -105,6 +106,8 @@ class TrafficPipeline:
         names = getattr(self.detector, "names", {})
         if any(names.get(k) != v for k, v in self.config.document["class_map"].items()):
             return [], "MODEL_CLASS_NAME_MISMATCH"
+        if self.config.document.get("color_policy") and names != MODEL_CLASSES:
+            return [], "COLOR_POLICY_MODEL_METADATA_MISMATCH"
         space = getattr(self.detector, "coordinate_space", None)
         if space not in ("native_xyxy", "letterbox_xyxy"):
             return [], "COORDINATE_SPACE_UNKNOWN"
@@ -166,6 +169,11 @@ class TrafficPipeline:
         flags = self._clock_gate(f, now_s)
         clock_flags = list(flags)
         settings_hash = getattr(self.detector, "inference_settings_sha256", None)
+        color_policy = self.config.document.get("color_policy")
+        expected_policy = policy_settings(color_policy) if color_policy else None
+        if getattr(self.detector, "inference_settings", {}).get("color_consensus") != expected_policy:
+            self.invalidate()
+            raise ValueError("COLOR_POLICY_SETTINGS_MISMATCH")
         emitter_settings = getattr(self.detector, "inference_settings", {}).get("emitter_validation")
         if emitter_settings is not None and emitter_settings != profile_settings(emitter_settings.get("name")):
             self.invalidate()
@@ -198,6 +206,7 @@ class TrafficPipeline:
         emitter_wall_s = 0.
         selected_emitter = None
         raw_before_emitter = "UNKNOWN"
+        selected_model_color = None
         if (valid_image and (self.observation_mode == "detection-only" or
                             (size == a["native_image_size"] and f.binding_id == a["binding_id"]))
                 and not {"REPEATED_OR_REVERSED_FRAME", "RETIRED_EPOCH", "RECEIVER_CLOCK_INVALID"}.intersection(flags)):
@@ -212,8 +221,15 @@ class TrafficPipeline:
                     except Exception:
                         raw = {"raw_state": "UNKNOWN", "quality_flags": ["COLOR_ANALYSIS_EXCEPTION"], "metrics": {}}
                         flags.append("COLOR_ANALYSIS_EXCEPTION")
+                    class_name = self.detector.names[str(detection.class_id)]
+                    c4_state = raw["raw_state"]
+                    consensus = None
+                    if color_policy:
+                        raw, consensus = combine(raw, class_name)
                     record = {"stage": "detection-only", "bbox_xyxy_native": list(detection.bbox),
                               "confidence": detection.confidence, "class_id": detection.class_id,
+                              "class_name": class_name, "model_state": COLORS.get(class_name),
+                              "c4_raw_state": c4_state, "color_consensus": consensus,
                               "raw_state": raw["raw_state"], "quality_flags": raw["quality_flags"],
                               "color_metrics": raw["metrics"], "stable_state": None,
                               "mission_identity": None}
@@ -248,6 +264,12 @@ class TrafficPipeline:
                     try:
                         color = classify_roi(bgr, chosen.bbox, exposure_settling=f.exposure_settling,
                                              association_verified=a["verified"] or f.source_clock == "fixture")
+                        selected_model_color = {"class_id": chosen.class_id,
+                                                "class_name": self.detector.names[str(chosen.class_id)],
+                                                "confidence": chosen.confidence}
+                        if color_policy:
+                            color, consensus = combine(color, selected_model_color["class_name"])
+                            selected_model_color.update(consensus)
                         raw_before_emitter = color["raw_state"]
                         if emitter_settings is not None:
                             selected_emitter = next(r["emitter_validation"] for r in free_observations
@@ -320,6 +342,8 @@ class TrafficPipeline:
                                   "associated" if chosen and a["verified"] and self.association.last is not None else "detection-only"),
             "image_association": self.association.snapshot(),
             "free_observations": free_observations,
+            "color_policy": expected_policy,
+            "selected_model_color": selected_model_color,
             "inference_settings_sha256": getattr(self.detector, "inference_settings_sha256", None),
             "detection_candidates": [{"bbox_xyxy_native": list(d.bbox), "confidence": d.confidence,
                                       "class_id": d.class_id, "transient_index": d.track_id} for d in detections],

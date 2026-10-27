@@ -13,7 +13,7 @@ PROFILES = {
 }
 
 
-def settings(name, *, confidence_floor, model_sha256, emitter_profile=None):
+def settings(name, *, confidence_floor, model_sha256, emitter_profile=None, color_policy=None):
     if name not in PROFILES:
         raise ValueError("INFERENCE_PROFILE_UNKNOWN")
     result = {"version": "c4-search.v1", "profile": name, **PROFILES[name],
@@ -24,6 +24,9 @@ def settings(name, *, confidence_floor, model_sha256, emitter_profile=None):
     if emitter_profile is not None:
         from .emitter import profile_settings
         result["emitter_validation"] = profile_settings(emitter_profile)
+    if color_policy is not None:
+        from .consensus import policy_settings
+        result["color_consensus"] = policy_settings(color_policy)
     canonical = json.dumps(result, sort_keys=True, separators=(",", ":"), allow_nan=False)
     return result, hashlib.sha256(canonical.encode()).hexdigest()
 

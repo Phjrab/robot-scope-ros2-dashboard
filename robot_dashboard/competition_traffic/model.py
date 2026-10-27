@@ -45,6 +45,10 @@ class OwnerModel:
             if names.get(int(key)) != expected:
                 raise ValueError("MODEL_CLASS_NAME_MISMATCH")
         self.names = {str(k): str(v) for k, v in names.items()}
+        if config.document.get("color_policy"):
+            from .consensus import MODEL_CLASSES
+            if self.names != MODEL_CLASSES or self.adapter.model.task != "detect":
+                raise ValueError("COLOR_POLICY_MODEL_METADATA_MISMATCH")
         self.sha256 = self.adapter.sha256
         self.coordinate_space = "native_xyxy"
         self.model_size = None
@@ -52,7 +56,7 @@ class OwnerModel:
         self.confidence_floor = min(.25, config.document["min_confidence"])
         self.inference_settings, self.inference_settings_sha256 = settings(
             inference_profile, confidence_floor=self.confidence_floor, model_sha256=self.sha256,
-            emitter_profile=emitter_profile)
+            emitter_profile=emitter_profile, color_policy=config.document.get("color_policy"))
 
     def infer(self, bgr):
         start = time.monotonic()
@@ -79,7 +83,8 @@ class OwnerModel:
             for idx, (box, conf, cls) in enumerate(zip(
                     r.boxes.xyxy.tolist(), r.boxes.conf.tolist(), r.boxes.cls.tolist())):
                 post_nms += 1
-                if not all(math.isfinite(x) for x in box + [conf, cls]):
+                if (not all(math.isfinite(x) for x in box + [conf, cls])
+                        or cls != int(cls) or not 0 <= conf <= 1):
                     raise ValueError("MODEL_NONFINITE_DETECTION")
                 if int(cls) not in self.adapter.allowed:
                     non_allowlist += 1

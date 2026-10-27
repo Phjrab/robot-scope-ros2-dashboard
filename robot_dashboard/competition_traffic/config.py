@@ -1,4 +1,4 @@
-"""Strict local configuration. Model class names are identities, never colors."""
+"""Strict local configuration. Optional color semantics require an explicit policy."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -32,7 +32,7 @@ class TrafficConfig:
 
     @classmethod
     def parse(cls, value):
-        if not isinstance(value, dict) or set(value) != {
+        if not isinstance(value, dict) or set(value) - {"color_policy"} != {
             "schema_version", "model", "class_map", "association", "min_confidence"
         } or value["schema_version"] != "traffic-input-config.v0.1":
             raise ValueError("CONFIG_FIELDS_INVALID")
@@ -58,6 +58,11 @@ class TrafficConfig:
                 raise ValueError("CLASS_MAP_INVALID")
         if len(set(mapping.values())) != len(mapping):
             raise ValueError("CLASS_NAMES_AMBIGUOUS")
+        if "color_policy" in value:
+            from .consensus import SIGNAL_CLASSES, policy_settings
+            policy_settings(value["color_policy"])
+            if mapping != SIGNAL_CLASSES:
+                raise ValueError("COLOR_POLICY_CLASS_MAP_MISMATCH")
         a = value["association"]
         if not isinstance(a, dict) or set(a) != {
             "signal_id", "crossing_id", "binding_id", "native_image_size", "expected_roi_native", "verified"
