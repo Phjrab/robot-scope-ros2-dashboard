@@ -143,3 +143,126 @@ CPU는 `/proc/<pid>/stat` 프로세스 tick 차이로 볼 때 대시보드 약 1
 C1 통합 충돌 지점은 `static/app.js`의 `renderOverviewUnavailable`, `resetLiveRobotSessionView`, `refreshState` 세 함수와 `features/maps/live_observation.js`의 안내 함수와 초기 제안값 정리/reset 경로다. main 병합·자동 배포 없음. `.github/workflows/ci.yml`의 push 작업은 hardware-free CI이며 로봇 배포 단계가 없다.
 
 상세 API/프로세스/브리지 로그와 두 번째 부팅의 커널 로그는 로컬 비공개 `robot-scope-hardware-validation-private/l1-lidar-stale-20261025/`에 보관한다. 핵심 파일은 `baseline.jsonl`, `motion-1.jsonl`, `motion-2.jsonl`, `motion-2-kernel.txt`, `motion-2-after-window.txt`다. 마지막 파일의 service journal 조회는 `No entries`를 반환했으나 조회 원인을 확인하지 않아 서버 로그 부재의 증거로 쓰지 않았으며, 함께 회수한 bridge 로그만 사용했다. 첫 부팅 kernel 원본의 보존 한계는 위에 명시했다. 이 검토 브랜치에는 영상·점군·bag·인증정보·대형 환경 파일을 넣지 않는다.
+
+## 2026-10-27 재개: 정합 버튼 깜빡임과 현재 로봇 미표시 분석
+
+사용자가 Maps 정합 중 STALE 재발과 현재 로봇 아이콘 미표시를 보고했다. 깜빡인 대상은
+**정합 시작 버튼**이라고 확인했다. 이번 요청은 원인 분석이며, 장비 설정·서비스·정합
+후보·지도 데이터는 변경하지 않았다. 이전 USB 원인을 이번 현상에 그대로 적용하지 않는다.
+
+### 조사 실행본과 범위
+
+- 분석 소스/실행 release: `c98afbc9db6a07697dc9909286ed68356cf98149`.
+  읽기 시작 시 로컬 I1 HEAD는 문서 추가 커밋 `ca6e999639ad0f7d267f62b44a366de4975be3f7`.
+  최신 origin/main은 `a79dc18b50a0cddee2056fe4748781cdca03aec9`였다.
+- 실제 dashboard PID 1032, cwd `/home/unitree/robot-scope-releases/robot-scope-c98afbc9db6a`.
+  이번 부팅에서 서비스는 19:32:40 KST에 시작됐다. 이번 진단이 재시작한 것은 아니다.
+  Hesai 2875, C++ bridge 2832, FAST-LIO 6252. 별도 정합 worker는 조회 시 inactive.
+- 선택 cloud `/cloud_registered`, pose `/Odometry`, `camera_init → body` (FAST-LIO IMU).
+  메시지별 GID 미제공, subscription/단일 publisher graph 대체 관측 계약 사용.
+  센서 설정은 표시 30,000점 / 0.18초 간격, 실제 registered 스캔은 약 190점이었다.
+- 다른 장비 채팅 `C4 YOLO 통합 인수`는 활성 실행 상태가 아니었다. 원본 checkout의
+  사용자 CSS 두 파일은 보존했다. 새 ROS 구독·부하 시험·이동 명령은 실행하지 않았다.
+- 이 추가 기록만 기존 L1 브랜치에 남긴다. L1의 과거 코드가 현재 실행본이라는 뜻이
+  아니며 I1/main 이력을 이 브랜치에 합치거나 배포를 되돌리지 않았다.
+
+### 확인 1: 신선한 입력에서도 정합 버튼과 현재 pose 표시가 흔들림
+
+19:48:01~19:48:31 KST에 기존 pointcloud/pose WebSocket 한 쌍과 기존 state API(목표
+2Hz)를 30초 읽었다. 신규 ROS subscriber 없이 현재 수신 경로를 관측했다. 원문은
+비공개 `robot-scope-hardware-validation-private/l1-20261027/streams.json`에 보관했다.
+초기 수집기의 metadata padding 파싱 오류로 pose만 기록된 `streams-pose-only.json`은
+아래 비교에서 제외했다. padding 수정 후 수집에는 오류가 없었다.
+
+| 동일 30초 구간 | 표본 / 중앙값 / p95 / 최대 |
+| --- | --- |
+| 수신 pointcloud | 145개; 도착 간격 205.33 / 345.16 / 452.41ms |
+| 수신 pose | 272개; 도착 간격 101.76 / 212.23 / 337.80ms |
+| state API 응답 | 59개; 268.23 / 616.21 / 625.83ms |
+| 서버 pose age | 59개; 78 / 133 / 151ms |
+| 화면 모델의 pose age | 최대 352.38ms |
+| 화면 모델의 cloud age | 최대 383.00ms |
+| bridge 5초 집계 | 6개 모두 cloud 50 / reject 0, 합계 300 / 0 |
+| 해당 시간 kernel journal | 추가 항목 없음; USB 이탈 미관측 |
+
+서버 API cloud seq는 146, pose seq는 297 증가했다. WebSocket은 최신 snapshot을 별도로
+샘플링하므로 seq 증가량과 수신 표본 수가 같을 필요가 없다. **145개 cloud 중 20개는
+30초 전체 pose 스트림에도 같은 source stamp가 없었다.** 이를 원본 LiDAR 패킷 손실로
+세지 않는다. 이번 자료만으로 그 pose가 ROS callback 이전/이후 어느 경계에서 생략됐는지
+모두 확정할 수는 없다.
+
+실제 `LiveMapObservation`에 원래 입력·순서·도착 간격을 그대로 재생하고, 기존 UI와
+같이 100ms마다 snapshot했다. 지도 참조와 근사 anchor는 로컬 모델에만 주었으며 서버
+정합/장비 기준점은 변경하지 않았다. 0.5~29.9초 295회 확인 결과:
+
+| 같은 실측 입력의 로컬 재생 | 기본 모드 | 기존 근사 연속 관측 모드 |
+| --- | --- | --- |
+| 초기 입력 대기 | 3회 | 3회 |
+| WAITING_PAIRED_POSE | 55회 | 0회 |
+| 현재 pose 표시 가능 | 237회 | 292회 |
+| canAnchor 변화 | 63회 | 1회 (초기 준비) |
+| STALE | 0회 | 0회 |
+
+원인은 기본 `live_observation_contract.js::pair()`가 FAST-LIO의 **같은 source stamp**를
+브라우저 history에서 요구하고, `ready()/snapshot()`의 이 결과를 `canAnchor`와 현재
+pose 표시 양쪽에 사용하기 때문이다. `map_seed.js::draw()`는 `canAnchor`에 따라 시작
+버튼을 켰다 끄고, `live_observation.js::render()`는 pose가 없으면 현재 모델을 지운다.
+따라서 입력이 1초보다 신선해도 버튼과 현재 모델은 흔들릴 수 있다. 이것은 수치 정합을
+반복 실행했다는 증거가 아니다.
+
+기존 연속 모드는 이미 registered cloud의 고정 frame과 독립적인 신선한 pose를 사용한다.
+위 표는 **기존 두 표시 정책의 동일 입력 비교**이며 이번에 수정·배포한 성능 개선이 아니다.
+서버에서 정합 입력을 확보할 때의 정확한 cloud/pose pairing은 별도 조건으로 유지해야 한다.
+
+### 확인 2: 한 번의 공백 뒤 현재 로봇은 사라지고 STALE 상태가 남음
+
+같은 기록의 12.0~13.5초 이벤트만 전달하지 않는 로컬 재생을 추가했다. 실제 장비나
+네트워크를 끊지 않았으며, 해당 공백이 현장에서 발생했다고 주장하지 않는다.
+
+- 기본 모드는 첫 stale에서 `suspendStaleConnection()` → `invalidate()`가 anchor를
+  지운다. 새 입력이 돌아와 `canAnchor=true`가 되어도 anchor가 없으므로 pose는 복원되지
+  않는다. 14~29.9초의 160회 확인에서 현재 pose 표시 **0회**, anchor 없음이었다.
+- 이때 `snapshot()`의 신선한 입력/anchor 없음 경로가 기존 `this.reason='STALE'`을
+  그대로 반환한다. **수신은 회복됐는데 표시 상태가 STALE로 남는 구분 문제**를 확인했다.
+- 기존 연속 모드 + 같은 세션 복구는 실제 공백 중 7회 숨김을 유지했고, 새 cloud/pose가
+  모두 진행한 뒤 복구했다. 같은 160회 확인에서 현재 pose 표시 **160회**였다. 오래된
+  프레임의 시각을 갱신하거나 공백 중 LIVE를 유지한 결과가 아니다.
+- 주황 draft와 파란 candidate는 `scene3d.js::_drawInitializationPreview()`의 별도
+  레이어다. 위 live anchor 무효화로 자동 삭제되지 않는다. 따라서 **두 후보 로봇은 남고
+  현재 관측 로봇만 사라지는 현상**이 코드 경로와 일치한다.
+- 추가로 preview가 현재 모델보다 나중에 그려져 위치가 가까우면 겹칠 수 있다. 당시
+  화면에서 가려짐이 직접 원인이었는지는 미확정이다. 관절 freshness도 현재 모델의 조건이지만
+  조회 시 관절은 신선했고 그 소실을 원인으로 확인하지 않았다.
+
+### 당시 정합 결과와 아직 확정하지 않은 것
+
+최근 서버 job `e8ee030a7c66c3c8f6ee541c`는 map `f9892bac9cc1d59328601dc6` /
+revision `13eea513dad4b7bdbe8638e5063bb3cb3ca94ad899465b1f844defa86da41520`에서 끝났다.
+220점, 수치 처리 479.56ms, 생성→완료 **5.297초**, 19회 반복으로 수렴했으나
+RMSE .355260m / overlap .713636 / `HIGH_RESIDUAL`, `admissible=false`였다.
+해당 요청에는 5cm 제한 해제가 전달되지 않아 `enforced=true`였고 course weighting도 없었다.
+이전 확정 코스 지도와 다른 지도이며, 현재 Codex 브라우저의 체크 해제 상태와도 다르다.
+과거 요청 결과가 이후 체크 변경으로 소급 변경되지는 않는다. 어떤 브라우저/당시 선택이
+이 요청을 만들었는지 단정하지 않는다. 전체 5.297초 중 수치 계산 밖의 약 4.8초는 이번
+기록만으로 단계별 분해할 수 없으며 반복 worker 실행 시간으로 해석하지 않는다.
+
+이 rejected 후보는 현재 관측 위치로 적용될 수 없다. 사용자가 보았던 두 아이콘이 이
+job인지, 그때 다른 정상 후보를 적용했는지는 추가 확인이 필요하다. 조회 중 Codex 탭은
+`map_20261027_125427_edited`의 SAVED 2D 상태였고 3D live cloud demand가 꺼져 있었다.
+그 탭의 오래된 cloud 수신 요약 STALE은 **표시 구독 중단**과 구분해야 하며 서버 입력
+단절의 증거가 아니다. 임의로 지도를 바꾸거나 초기값을 적용하지 않았다.
+
+### 이번 검증·수정 경계와 다음 한 가지
+
+- 실행본과 같은 소스에서 기존 집중 JS 회귀 43개 모두 통과
+  (`test_live_observation.mjs`, `test_map_seed.mjs`, `test_observed_joints.mjs`).
+  실측 재생과 공백 주입 재생은 로컬 검사이며 실제 브라우저의 렌더 성능 시험은 아니다.
+- 이번 30초에는 실제 STALE/변환 거부/USB 이탈을 재현하지 못했다. 과거 정합 중의
+  브리지 backlog, callback 대기, CPU 경쟁, 브라우저 렌더 지연은 이번 자료로 배제하지 않는다.
+- 이번 커밋은 분석 기록만이다. 표시 정책·수치 정합·신선도·주행 watchdog 수정이나
+  서비스 재시작·배포를 하지 않았다. 원본 점군·pose·지도 데이터는 Git에 포함하지 않는다.
+- **다음 한 가지:** 초기값 정합 시작의 준비 조건과 현재 관측 표시를 브라우저의 우연한
+  exact-pair 수신 여부에서 분리한다. 기존 연속 관측 경로를 재사용하고, 명시적 후보 적용
+  이후의 같은 세션 복구·실제 단절 시 숨김·새 지도/출처 시 무효화·계산 중 기존 anchor 보존을
+  함께 검증한다. 회복된 입력의 “기준점 재연결 필요”와 실제 입력 STALE도 구분한다.
+  서버의 수치 정합용 정확한 pairing이나 1초 신선도 검사를 단순히 제거하는 수정은 아니다.
