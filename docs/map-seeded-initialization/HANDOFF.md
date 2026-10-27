@@ -1,9 +1,10 @@
 # I1 — 지도 클릭 초기값과 지역 정합
 
-작성: 2026-10-27 KST. 독립 개발 채팅의 구현·검증 인계다.
+작성: 2026-10-27 KST. 독립 개발·검증 후 사용자의 배포 승인으로 실장비에 적용했다.
 
 **지도 클릭/방향 → 실제 seed 기반 지역 ICP → 후보 비교 → 명시적 관측 기준점 적용을 구현했다.**
-배포·서비스 시작/정지·로봇 이동은 수행하지 않았다. 실장비 정지 정합은 `NOT_RUN`이다.
+배포와 실제 정지 점군의 후보 계산·관측 기준점 적용을 확인했다. 세 번 중 두 번은
+`NOT_CONVERGED`로 거부됐고 세 번째가 통과했다. 로봇 이동·운영 위치 적용은 `NOT_RUN`이다.
 
 ## 소스와 기존 작업 보존
 
@@ -11,6 +12,7 @@
 | --- | --- |
 | 검토 브랜치 | `review/20261026-i1-map-seed` |
 | 실제 검사한 구현 SHA | `f7c41d189a5f1766502b703bf72ae833a1f9051c` |
+| 실제 장비 배포 SHA | `54721fe6dd33f73de81a08cfb2d241218056b003` |
 | 최종 기준 main | `a79dc18b50a0cddee2056fe4748781cdca03aec9` |
 | main의 실행 코드 기준 | `d6e3fe9675f31e436f5236b390e36e188934f473` |
 | 기존 통합 branch HEAD | `7777f471654d6da0afd3580a870d80b7b0b3eb4d` |
@@ -129,7 +131,8 @@ telemetry robot과 별도 레이어다. 본체 extrinsic 검증이나 물리 이
 | 관련 Playwright | 관측·전역 제안·history 34/34 PASS; 최종 renderer/fixture 조정 후 해당 2개 및 최종 1개 재검사 PASS |
 | Ruff / mypy / JS syntax | PASS; mypy는 저장소 설정의 4개 source, JS 109 modules |
 | tracked source credential scan / diff whitespace | PASS |
-| 실제 장비에 이 기능 배포·정지 관측 | NOT_RUN |
+| 실제 장비에 이 기능 배포·정지 관측 | 배포 PASS; 실점군 3회 중 1회 후보 통과·관측 적용, 2회 미수렴 거부 |
+| Jetson 기존 Python 환경의 신규 수치/API 회귀 | 9/9 PASS, 2.289초; 합성 입력 테스트이며 아래 실점군 시험과 구분 |
 
 로컬 Python 3.13 환경이다. 첫 전체 실행은 `cv2` 부재로 오류 11개였고, 임시 검사 폴더에
 저장소 지정 OpenCV를 설치한 뒤 전체 재실행했다. 기존 venv/장비는 변경하지 않았다.
@@ -178,16 +181,20 @@ UI/JS는 클릭·두 번 탭·드래그·짧은 드래그·취소·Shift pan, CS
 
 구현 SHA `f7c41d189a5f1766502b703bf72ae833a1f9051c`의
 [GitHub Actions 40449936004](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40449936004)가
-시작됐다. 문서 작성 시 `IN_PROGRESS`이며 SUCCESS로 간주하지 않는다. 정확한 커밋에
-연결된 위 실행 결과가 최종 판정이다. 문서/합성 화면 commit의 CI는 별도로 실행된다.
+**SUCCESS**다. 배포 SHA `54721fe6dd33f73de81a08cfb2d241218056b003`의
+[GitHub Actions 40450252787](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40450252787)도
+**SUCCESS**를 확인한 뒤 전환했다. 두 실행 모두 Ubuntu 22.04/Python 3.10,
+Ubuntu 24.04/Python 3.12 hardware-free 검사와 competition-offline-integration이 통과했다.
 
-## 배포 인계와 복구 범위
+## 승인된 배포와 복구 범위
 
-현재 읽기 확인된 장비 실행 cwd는 `robot-scope-releases/robot-scope-d6e3fe9675f3`다.
+배포 전 읽기 확인된 장비 실행 cwd는 `robot-scope-releases/robot-scope-d6e3fe9675f3`였다.
 기존 checkout의 dirty Git HEAD `d7807de...`를 실행본으로 오인하지 않았다.
-초기 ownership readback은 busy/unknown 없음, FAST-LIO STOPPED였고 배포/재시작 승인은 없었다.
-이번 변경은 이 실행본에 적용하지 않았다. 새 source·static 파일이 모두 같은 release에 들어가야 한다.
-기존 main의 [배포/복구 기록](../integration-acceptance/MERGE_DEPLOY_VERIFY_20261026.md)을 따른다.
+사용자가 배포·정지 검증을 승인했고, 로봇 정지 상태 및 지도 seed를 직접 확인했다.
+소유 상태의 일시적인 UNKNOWN 때문에 첫 전환 시도는 서비스 변경 전에 중단됐다.
+다시 확인한 busy/unknown 없음, FAST-LIO STOPPED, 외부 broker의 소유 세션 없음 상태에서
+기존 고정 서비스 관리 도구로 Dashboard만 정지·시작했다. 기존 main의
+[배포/복구 기록](../integration-acceptance/MERGE_DEPLOY_VERIFY_20261026.md)을 따랐다.
 
 수정 실행 파일은 API router 1개, application의 `global_observation.py`/`anchor_proposal.py`,
 relocalization의 `seeded_initialization.py`/`observation_worker.py`, Maps의 `map_seed.js`/
@@ -195,14 +202,73 @@ relocalization의 `seeded_initialization.py`/`observation_worker.py`, Maps의 `m
 `scene3d.js`/`go2_official_model.js`다. 새 패키지·SLAM 엔진·설정값·지도/DB migration은 없다.
 기존 프리셋 데이터 형식도 변경하지 않았다.
 
-배포 담당은 이 브랜치의 구현 commit과 문서 commit을 검토·통합한 정확한 release로 배포한다.
-승인된 정지 관측 창에만 다음을 확인한다: 실제 저장 지도 선택 → 클릭/방향 → fresh FAST-LIO
-입력으로 지역 정합 → 후보 비교 → 명시적 관측 기준점 적용. 초안 편집 중 이전 관측 보존과
-source 단절 시 활성 geometry 제거도 확인한다. 실제 이동 시험은 이번 인계에 포함하지 않는다.
+2026-10-27 13:51 KST경 정확한 Git archive의 2,125개 파일을 별도 읽기 전용 release로
+설치했다. 실행 cwd는 `/home/unitree/robot-scope-releases/robot-scope-54721fe6dd33`,
+PID는 `71071`이며 모든 source hash를 대조했다. HTTP로 제공되는 `map_seed.js`,
+`live_observation.js`, `scene3d.js`도 배포 source hash와 일치했다. 서비스 unit과
+ExecStart는 유지하고 `robot-scope.env`의 `ROBOT_SCOPE_DIR` 한 값만 바꿨다.
+`control.env`와 제어 비활성값 0, venv, ROS workspace, camera 서비스와 container는 유지했다.
+main 병합은 하지 않았다.
 
-복구 시에는 이전 `d6e3fe9` release 선택과 기존 launcher 환경 파일을 복원하고 승인된
-Dashboard 재시작 절차를 사용한다. 지도·프리셋·관측 기록을 되돌릴 필요가 없다.
-단일 JS만 덮거나 기존 dirty checkout을 reset하지 않는다.
+장비 비공개 백업 폴더는 `/home/unitree/robot-scope-backups/i1-20261027-54721fe6dd33`다.
+두 환경 파일을 원문·권한 그대로 보존했다. Dashboard 정지 중 사용자 데이터 4,385개
+파일을 867,860,480-byte tar로 보존하고 archive 내 파일 hash를 대조했다. 전후 지도
+28개 ID/revision과 지도·preset 관련 82개 파일 hash가 동일했다. 기존 dirty checkout도
+그대로이며 로컬의 사용자 CSS 두 파일은 이 commit에 포함하지 않았다.
 
-**남은 다음 한 가지:** 배포 담당의 승인된 창에서 위 전체 흐름을 실제 정지 점군으로 확인하고,
-선택 지도/입력 count, source stamps, bounds, RMSE/overlap, runtime, 적용 전후를 기록한다.
+복구 시에는 활성 관측을 정상 종료하고 ownership/broker 무소유를 다시 확인한 뒤 위 백업의
+두 환경 파일을 복원하고 기존 고정 Dashboard 서비스 도구로 재시작한다. 이전 `d6e3fe9`
+release는 그대로 남아 있다. 백업의 `deploy.py rollback`이 이 환경 복원과 재시작을 수행한다.
+실행 경로·source hash·지도 보존·제어 비활성 검사 실패 시 자동 복구하도록 준비했으며,
+이번 전환은 통과하여 실제 rollback은 실행하지 않았다. 지도·프리셋·관측 기록을
+일괄 되돌릴 필요가 없다. 비공개 설정·점군·지도 원본은 Git에 넣지 않았다.
+
+## 실제 정지 점군으로 사용한 결과
+
+13:52 KST경 Maps에서 최신 저장 3D 지도 `map_20261026_173131`를 선택하고 기존
+관측 전용 FAST-LIO를 시작했다. 사용자가 지도에서 XY·방향을 직접 지정한 뒤
+“지정 완료, 이 값으로 정합”, “지금 저 위치가 초기위치 맞으니 저 위치로 진행하면됨”으로
+확인했다. 세 요청 모두 같은 seed revision 20, XY `(0.441751,-0.156115)m`, yaw
+`88.691837°`, Z/R/P=0(근사), 기본 범위를 사용했다. 바닥 높이를 검증된 IMU 높이로
+간주하지 않았다. 서버의 seed와 `initial_map_from_scan`까지 실제 전달을 확인했다.
+
+이 ROS runtime은 메시지별 publisher 정보를 제공하지 않아 기존
+`subscription_observation` 옵션을 사용했다. `/cloud_registered`와 `/Odometry`는
+동일 source stamp로 짝지었으며 ROS graph는 각각 단일 `laser_mapping` publisher였다.
+메시지별 출처, 본체 extrinsic, 절대 위치 정확도는 여전히 미검증이다.
+
+| 실점군 작업 | query / target 점 | 반복 | RMSE / overlap | 수치 작업 / job 생성→완료 | 판정 |
+| --- | --- | --- | --- | --- | --- |
+| `e7c3e6f295079d026af0d97d` | 211 / 24,895 | 40 | 0.04091m / 100% | 0.640 / 4.599초 | NOT_CONVERGED, 적용 차단 |
+| `c1fa31230d6cc01f536c264a` | 211 / 24,895 | 40 | 0.04476m / 100% | 0.565 / 4.430초 | NOT_CONVERGED, 적용 차단 |
+| `72db90f6cca27d2de2525b4b` | 209 / 24,895 | 38 | 0.04215m / 100% | 0.534 / 4.732초 | CANDIDATE, 관측 적용 |
+
+시간은 `run_seeded_arrays` 내부의 작업 시간으로 HTTP 왕복·UI 표시 완료 시간은 아니다.
+첫 작업의 job 생성→완료는 4.599초였고 실제 ICP는 0.117초였다. 성공 작업의 ICP는
+0.110초였다. 선택 footprint가 이 작은 지도 전체를 포함했으므로 target 감소나 전역
+탐색 대비 속도 우위를 주장하지 않는다. 서로 다른 스캔의 세 번 시도이며 반복 성공률의
+통계적 측정도 아니다. 앞선 거부를 숨기지 않았고 품질·수렴 기준을 완화하지 않았다.
+
+추가 독립 진단에서 새 실점군/pose 한 쌍 209점을 저장하고, 동일 입력에 반복 한도
+40/80/120을 비교했다. 세 조건 모두 28회에 수렴했고 RMSE 0.04662m로 같았다.
+이는 앞선 두 실패 스캔의 재현이 아니며, 반복 한도를 올리는 수정의 근거가 아니다.
+진단 프로세스 안에서만 비교했으며 서비스 코드·설정의 반복 한도 40은 유지했다.
+
+세 번째 결과는 초기값 대비 XY 0.17298m, yaw 4.93596°, Z 0.04837m, tilt 0.58922°로
+모든 요청 범위를 통과했다. seed stamp `1793077069793576955`에서 capture stamp
+`1793077069993793010`까지 약 0.200초의 같은 세대 odometry 전파를 확인했다.
+적용 시 새 proposal을 다시 읽었고 화면에 “제안 위치를 관측 기준점으로 적용했습니다”와
+`SAME_START_ODOMETRY_ESTIMATE`가 표시됐다. 약 `(0.395,-0.323,0.048)m`, yaw 93.7°의
+현재 관측과 원래 주황 seed가 분리되어 표시됐다. 새 계산·초안 편집 중 이전 활성 위치
+보존, late response·범위 이탈·잘못된 seed 회귀는 위 로컬/E2E 검사 결과이며, 이번
+실장비 창에서 모든 실패 조건을 강제로 재현한 것은 아니다.
+
+적용 후 control lease/출력/동작 pending 0, navigation/localization/goal idle를 확인했다.
+ARM·이동·자세·Nav2 goal·`/initialpose`·운영 TF 명령은 수행하지 않았다.
+실제 지도/제어 화면 PNG와 원문 job/pose/진단 배열은 로컬 비공개
+`robot-scope-hardware-validation-private/i1-20261027`에 보존했다. 관측은 30분 제한의
+기존 세션으로 사용자가 결과를 확인할 수 있게 유지했다.
+
+**남은 다음 한 가지:** 같은 초기값에서 미수렴한 정확한 스캔을 보존·재현해, 정지
+스캔별 수렴 편차의 원인을 좁힌다. 현재 구현의 지도 클릭→seed 전달→실수치 정합→
+거부/비교→명시적 관측 적용은 검증했지만, 안정적인 반복 수렴과 절대 정확도는 미검증이다.
