@@ -1,0 +1,428 @@
+{
+  "schema": "d0-atomic-snapshot-review.v1",
+  "classification": "INDEPENDENT_RECONSTRUCTION_OF_RETAINED_EVIDENCE",
+  "native_source_sha": "cf7662123bf13c9c38d565c03a978a4b9ae357a2",
+  "archive_sha256": "91a7d37428dc838e324de82152ff7f84082a0cd618546376e559dfb73fead404",
+  "artifact_id": 12638597871,
+  "native_execution_by_d0": "NOT_RUN",
+  "packet_identity_checks": [
+    {
+      "invocation": 1,
+      "path_index": 0,
+      "pose_count": 177,
+      "packet_sha256": "c227f5f32a996dadde5ad155166cbf307e9209ab72c262f1f9e0502c21d19aea",
+      "raw_sha256": "c424595a357b5d3de8d39d7523039e87889ecb72f80b22daeeff216c29059a5c",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 2,
+      "path_index": 1,
+      "pose_count": 177,
+      "packet_sha256": "41c0f44253ffb7b8193a173bfe0afc5e465fef4712c98a40dd251d926e7dfd0c",
+      "raw_sha256": "c424595a357b5d3de8d39d7523039e87889ecb72f80b22daeeff216c29059a5c",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 3,
+      "path_index": 2,
+      "pose_count": 172,
+      "packet_sha256": "db15914f5dba9df0618f78fe47ef363975e92e2561ca93e97bf8f8ae4b653c8b",
+      "raw_sha256": "ff1a97f642263682cb8b70d020570d2475f78db6df85e1279de44283665a498b",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 4,
+      "path_index": 3,
+      "pose_count": 165,
+      "packet_sha256": "a2dc64ee27f4d828a021dadc3a8b10345cc26a7a688361314aca22cbe0f43867",
+      "raw_sha256": "43d477588683b98acb258e6c3e41f4eff1fa6edd86f6e5b93052fffdc2e26935",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 5,
+      "path_index": 4,
+      "pose_count": 162,
+      "packet_sha256": "a613080921de563f3e26ad9c22e0ffb95a2bd6691352d0eaaa014ec58a8f9383",
+      "raw_sha256": "e05f5d5936e92734c9fad2df99233c4f1a4033e0d46a1141daaa630e16403a1b",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 6,
+      "path_index": 5,
+      "pose_count": 158,
+      "packet_sha256": "ca83e5c5b23d41654ffcdb47a724614bcb09c88d7e51f1c211a3b0363d43bcf9",
+      "raw_sha256": "e13a7980c9320a8d1add42a5d0c5d1249fd475efc3ce502a66010fe1ef45473f",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 7,
+      "path_index": 6,
+      "pose_count": 154,
+      "packet_sha256": "753401d24c9546b6a7bf5e57bcc0958a697dbd98428f9f353344ceef528bc21f",
+      "raw_sha256": "c1ee1256b8da5f86af64d20fcf6649d0f84c015169693565243220ac7a268e82",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 8,
+      "path_index": 7,
+      "pose_count": 152,
+      "packet_sha256": "e863737c404f1b73cf7fe2e6fb59b3e44bae74e3949366f41ce841990d2202c6",
+      "raw_sha256": "0a5dd8f08fdf89c3c3f0396aca6a92c0a8915aa278cc53c5f97b1bb5fc82a580",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 9,
+      "path_index": 8,
+      "pose_count": 150,
+      "packet_sha256": "ed1d55a98172df9562c8a30efab5eeef719d6f4b44c3644e9dbb2b9f84fc7e14",
+      "raw_sha256": "f8260e3e2bdf5606542491e3f2c6b25c05d0d798e8bdd0a7f3b75c792efbfa48",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 10,
+      "path_index": 9,
+      "pose_count": 148,
+      "packet_sha256": "40f5d47defa0df10d75533357ea0b1a0aaf6338937dc24298f48e5bd994b0f69",
+      "raw_sha256": "e9de2898fd1175bdfa611d94a6f0a70ff4b791f39b2e9655b216ea5a71ba382d",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 11,
+      "path_index": 10,
+      "pose_count": 147,
+      "packet_sha256": "b92b1bdc1aef5a1239cdc703af46e274364245597ad1baf5696723693e308ef1",
+      "raw_sha256": "63d5c75109c4ce15b034a022bd15f14a80a9330af133e3b986f595f9c13c6656",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 12,
+      "path_index": 11,
+      "pose_count": 143,
+      "packet_sha256": "55c3b14fc6be942635db2606e50a22c624da5c09d0128e9bf4b076bd3575f000",
+      "raw_sha256": "c03abdd752c8b41544fbafd700672d26b5de029cad44a77ba2883c58df08aaf2",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 13,
+      "path_index": 12,
+      "pose_count": 141,
+      "packet_sha256": "3da7e62de459d2fdf36be82e2e26f58bafb1731bc036908be25aebc3ba3e3de7",
+      "raw_sha256": "986a788986c098acece460070dc049db1ebb0112997da669b47b4cb8cc2ecdbe",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 14,
+      "path_index": 13,
+      "pose_count": 140,
+      "packet_sha256": "0beea22886b85bcd385402c1a4fe08237a2f0607e7a094ae3b1574020037b597",
+      "raw_sha256": "5f275103838174cedbc764f9fd152c43fcc1fc7dffc8d466a13e19c21f3b0161",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 15,
+      "path_index": 14,
+      "pose_count": 137,
+      "packet_sha256": "bcff9b7ff04c05b43131708f486b318db4e9b1768c07ea5edd69f7b904d2f1e8",
+      "raw_sha256": "adeb46b617d143d063ac003efe85bbd96f9717fe2c135596b990087db9883dc7",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 16,
+      "path_index": 15,
+      "pose_count": 136,
+      "packet_sha256": "50586cac0f595d80eaa71aa828d8058d4e80a03b9e64c1924fbed0da9bf6298c",
+      "raw_sha256": "e945341a46d49ac761e36e1158bb6a3a2657800b75b1f1fbf3b7e65cd4b8ead8",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 17,
+      "path_index": 16,
+      "pose_count": 134,
+      "packet_sha256": "3bf74e851ae648da8e3d06ccec49cd480a844ad4143caa67d61d4fa9211831a6",
+      "raw_sha256": "6dd6012e04c7e2fd6a03da2a1641e7e3bd59a4719c5953a070ccb014d6ace373",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 18,
+      "path_index": 17,
+      "pose_count": 133,
+      "packet_sha256": "62e5889ecf774bf436478465ecfd397b6c8094420387636d3e7fa28a90443655",
+      "raw_sha256": "821b8ca6b5454baf68ddcd1466f489ca88f58a9f941a3543f43f8bbd28e1b79a",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 19,
+      "path_index": 18,
+      "pose_count": 133,
+      "packet_sha256": "a4d1010b5ea0cf2a18f3f01026801effb6c92296008d8dddb891041a026498ab",
+      "raw_sha256": "79edb55ffc118ba4fa858a04c67f73644f3af917e7dc5533cc311fd1b6ce3b3b",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 20,
+      "path_index": 19,
+      "pose_count": 132,
+      "packet_sha256": "a33c6095f7333b700a67cb91ec5b1941d3577dbaafbe372d202e4ef5f2f10f10",
+      "raw_sha256": "2013a3a6a42c4085ef382cf8a5832afeffe900926266edc6f3c4670136a157b4",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 21,
+      "path_index": 20,
+      "pose_count": 132,
+      "packet_sha256": "40a021684328447a87818eee5e03793d33996fe3655d2137597bbc741553901e",
+      "raw_sha256": "12d3b328860854a86f74253fd4fbfb145289177c767446eb42706ee3db6e4b5a",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 22,
+      "path_index": 21,
+      "pose_count": 132,
+      "packet_sha256": "98da43baaa41071fa0a896131af9f86641380e38bdb7f8c41ea82398ca682712",
+      "raw_sha256": "6659e8eba11aceead82015f9586b705901f1430c1e601ef65b01550be6e96a64",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 23,
+      "path_index": 22,
+      "pose_count": 132,
+      "packet_sha256": "097b7ce9e377e665a26accf38c34f552acada3062927b6606ecc63fea331d05b",
+      "raw_sha256": "be25cf1d148045425de7bec7d291d5c25da3ae912269a837e1fa5e41ac750ee2",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 24,
+      "path_index": 23,
+      "pose_count": 133,
+      "packet_sha256": "18603cff09447c8175e00afecfef919f20785e7163fb56236bd21ae2eb48c568",
+      "raw_sha256": "287918db6560805f49edf2aceebdb8703523e0ee04b0093462368123386ab3f0",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 25,
+      "path_index": 24,
+      "pose_count": 133,
+      "packet_sha256": "33607eb6cae1865f1a8798252d699fdd2b9663984cbb4c694059b83ca182f7be",
+      "raw_sha256": "442c2c6b7701ed07a52700b374c9faff158ff1d7acd1ecc44a49087f1ba150f5",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 26,
+      "path_index": 25,
+      "pose_count": 133,
+      "packet_sha256": "af1047394a0038d8afb6561cc7bbc0595ef6b63a0d0846c6e95540c38df7001b",
+      "raw_sha256": "ca9985fb8841fa3c5a71d673cf22c1214b0db8e50e3310e49ea5b31840a875eb",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 27,
+      "path_index": 26,
+      "pose_count": 133,
+      "packet_sha256": "9febf8fcbbefd7681948c3b0d4107e9a6d35e0ebe37a3aa7b3adf6647be6cd2d",
+      "raw_sha256": "9b69c4b543d8035266dbd194ad79114f24a69f39514bc06753e6c1438d4e5cb1",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 28,
+      "path_index": 27,
+      "pose_count": 132,
+      "packet_sha256": "4a69e18812e6478df6172d6f1f78e3eadbff06bfbb95ac7387c3a187b79c4f76",
+      "raw_sha256": "a7118cf8de20eaf14c92181a94a5005fc0b09f8ccb945fd6542dce5e4cecbb58",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 29,
+      "path_index": 28,
+      "pose_count": 133,
+      "packet_sha256": "e937a420a34565da4bd84a0954c2f97ecf78f573c890bc978fa5fd190d35cb70",
+      "raw_sha256": "abc9076e77fe0ca235d990275f3dfee4c10718dbd817944dc9b3d8d2ed525e2b",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 30,
+      "path_index": 29,
+      "pose_count": 133,
+      "packet_sha256": "9153b7431a2144c59e79997370521739ae80981eed5e004e4ac0875d5a8e002b",
+      "raw_sha256": "8ede6d5c9a7c08be55bf17e03300340112bafda54b0b946afb607859d1542e85",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 31,
+      "path_index": 30,
+      "pose_count": 133,
+      "packet_sha256": "fa5afd8725c483f06604b21cbe2b26f32bcd99bd9eb900ecad50160cb9343613",
+      "raw_sha256": "e7c28de5f35e5e4c67dbe97e0bf512b6a70abcae06b01525100049428e611593",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 32,
+      "path_index": 31,
+      "pose_count": 133,
+      "packet_sha256": "b936ba04f01772cd976c48c77cce6bb8c5541d4cb881a9992d892e08bf3299bf",
+      "raw_sha256": "eccf8bd4b373e5b0758957e7222b5ae65f06898886a11857e750fb7d414004c7",
+      "raw_unchanged_under_lock_recorded": true
+    },
+    {
+      "invocation": 33,
+      "path_index": 32,
+      "pose_count": 133,
+      "packet_sha256": "e72c59a0888d6393a02cedf51588c6a98e2d26692a3457b90d8c6c409e078864",
+      "raw_sha256": "4fc8d36711722b6f82bcc784d32488acf97f45eadc38230369544e1d2df699c9",
+      "raw_unchanged_under_lock_recorded": true
+    }
+  ],
+  "selected_interval_checks": [
+    {
+      "invocation": 3,
+      "path_index": 2,
+      "segment": 49,
+      "cell": [
+        15,
+        121
+      ],
+      "samples": 11,
+      "raw_hits": [],
+      "preceding_published_hits": [
+        {
+          "sample": 8,
+          "hits": [
+            {
+              "cell": [
+                15,
+                121
+              ],
+              "value": 100,
+              "area_m2": 2.830580214663314e-11
+            }
+          ]
+        },
+        {
+          "sample": 9,
+          "hits": [
+            {
+              "cell": [
+                15,
+                121
+              ],
+              "value": 100,
+              "area_m2": 8.478628910069119e-11
+            }
+          ]
+        },
+        {
+          "sample": 10,
+          "hits": [
+            {
+              "cell": [
+                15,
+                121
+              ],
+              "value": 100,
+              "area_m2": 1.4109191592837078e-10
+            }
+          ]
+        }
+      ],
+      "cone_hit_samples": [],
+      "synthetic_254_hit_samples": [
+        8,
+        9,
+        10
+      ],
+      "raw_byte": 253,
+      "preceding_occupancy": 100,
+      "following_occupancy": 99,
+      "native_supplemental_collision_recorded": false,
+      "times": {
+        "capture_ros_ns": 6049999999,
+        "finish_ros_ns": 7549999999,
+        "path_receipt": 552.283266056,
+        "before_source": 5.549999999,
+        "before_receipt": 550.301802428,
+        "after_source": 7.549999999,
+        "after_receipt": 552.29398314
+      }
+    },
+    {
+      "invocation": 7,
+      "path_index": 6,
+      "segment": 81,
+      "cell": [
+        15,
+        130
+      ],
+      "samples": 16,
+      "raw_hits": [],
+      "preceding_published_hits": [
+        {
+          "sample": 14,
+          "hits": [
+            {
+              "cell": [
+                15,
+                130
+              ],
+              "value": 100,
+              "area_m2": 1.066205547350929e-06
+            }
+          ]
+        },
+        {
+          "sample": 15,
+          "hits": [
+            {
+              "cell": [
+                15,
+                130
+              ],
+              "value": 100,
+              "area_m2": 3.318604505586631e-06
+            }
+          ]
+        }
+      ],
+      "cone_hit_samples": [],
+      "synthetic_254_hit_samples": [
+        14,
+        15
+      ],
+      "raw_byte": 253,
+      "preceding_occupancy": 100,
+      "following_occupancy": 99,
+      "native_supplemental_collision_recorded": false,
+      "times": {
+        "capture_ros_ns": 10700000000,
+        "finish_ros_ns": 10900000000,
+        "path_receipt": 555.663055144,
+        "before_source": 10.2,
+        "before_receipt": 554.96599487,
+        "after_source": 11.2,
+        "after_receipt": 555.959781728
+      }
+    }
+  ],
+  "trace_observations": {
+    "samples": 628,
+    "recorded_contact_samples": 0,
+    "recorded_boundary_samples": 0,
+    "final_actuator": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "evidence_hashes": {
+    "observations.jsonl": "eec943a1f578e04421000dd978c92e23a68c875297a97cfcf08da15a6500d473",
+    "trace.jsonl": "80f7dd4f27e4f5fa0b8a3d566ebdcba674d3378fe48ca264eaf5164a70f7f0cd",
+    "fixture.json": "7f6104bf116e83de4be5882fef6ca15a3270bc90df606a3c73e8576b116a2bf5",
+    "params.yaml": "cab2b2716b42a192033a397d430151202db0818af5f4a1a79e80a3cf167ed872"
+  },
+  "historical_round6_atomic_attribution": "INPUT_REQUIRED_EXACT_HISTORICAL_BYTES",
+  "decision": "CURRENT_SELECTED_DISCREPANCIES_EXPLAINED_BY_SNAPSHOTS_NAVIGATION_NOT_ADOPTED",
+  "limits": [
+    "Full 33-path collision sweep count is C3-reported, not rerun by D0.",
+    "Two intervals are finite sampled checks, not continuous safety proof.",
+    "Recorded lock/immutability assertions are source-supported, not a second capture.",
+    "No runtime path/raw grid is exported; no controller tuning or physical qualification."
+  ]
+}
