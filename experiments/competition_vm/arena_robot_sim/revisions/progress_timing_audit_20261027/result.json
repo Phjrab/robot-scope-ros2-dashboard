@@ -1,0 +1,339 @@
+{
+  "schema": "d0-offline-progress-timing.v1",
+  "evidence_class": "INDEPENDENT_RECONSTRUCTION",
+  "native_execution": "NOT_RUN",
+  "source_sha": "cf7662123bf13c9c38d565c03a978a4b9ae357a2",
+  "records": {
+    "trace": 628,
+    "raw_commands": 119
+  },
+  "clocks": {
+    "sim_elapsed_s": 31.35000000000031,
+    "monotonic_elapsed_s": 31.334431956000003,
+    "plant_wall_gap_s": {
+      "n": 628,
+      "minimum": 0.03321595399995658,
+      "median": 0.049999149000029774,
+      "p95_nearest_rank": 0.050081161000093743,
+      "maximum": 0.09206535800001348,
+      "mean": 0.05006646407165609
+    },
+    "explanation": "sim advances fixed 0.05 per tick; monotonic measures receipts; source/DDS/log use same-container realtime. Never subtract sim or monotonic from realtime."
+  },
+  "owners": {
+    "behavior_server": {
+      "received": 15,
+      "accepted": 14,
+      "receipt_gap_s": {
+        "n": 14,
+        "minimum": 0.03971826899999087,
+        "median": 0.04999972100000605,
+        "p95_nearest_rank": 0.06122291700000915,
+        "maximum": 0.06122291700000915,
+        "mean": 0.05079547907142309
+      },
+      "source_gap_s": {
+        "n": 14,
+        "minimum": 0.049833373,
+        "median": 0.0500075745,
+        "p95_nearest_rank": 0.050207927,
+        "maximum": 0.050207927,
+        "mean": 0.05001055664285714
+      },
+      "gaps_over_75ms": 0,
+      "dds_source_to_received_s": {
+        "n": 15,
+        "minimum": 2.5717e-05,
+        "median": 3.6388e-05,
+        "p95_nearest_rank": 5.3059e-05,
+        "maximum": 5.3059e-05,
+        "mean": 3.7157000000000004e-05
+      },
+      "callback_source_age_s": {
+        "n": 15,
+        "minimum": 0.000198309,
+        "median": 0.000295622,
+        "p95_nearest_rank": 0.011452679,
+        "maximum": 0.011452679,
+        "mean": 0.002994819666666667
+      },
+      "first_sim_t": 27.550000000000257,
+      "last_sim_t": 28.250000000000266,
+      "rejected": [
+        {
+          "index": 105,
+          "sim_t": 27.550000000000257,
+          "epoch": 3
+        }
+      ]
+    },
+    "controller_server": {
+      "received": 104,
+      "accepted": 103,
+      "receipt_gap_s": {
+        "n": 103,
+        "minimum": 0.18828357999996115,
+        "median": 0.22236485500002345,
+        "p95_nearest_rank": 0.24350643599996147,
+        "maximum": 0.25871262900000147,
+        "mean": 0.22324765652427198
+      },
+      "source_gap_s": {
+        "n": 103,
+        "minimum": 0.188129919,
+        "median": 0.222809875,
+        "p95_nearest_rank": 0.240323632,
+        "maximum": 0.258723656,
+        "mean": 0.2231874276893204
+      },
+      "gaps_over_75ms": 103,
+      "dds_source_to_received_s": {
+        "n": 104,
+        "minimum": 2.027e-05,
+        "median": 4.0889e-05,
+        "p95_nearest_rank": 0.00149516,
+        "maximum": 0.002573704,
+        "mean": 0.00025476422115384615
+      },
+      "callback_source_age_s": {
+        "n": 104,
+        "minimum": 0.00022243,
+        "median": 0.000482888,
+        "p95_nearest_rank": 0.012665017,
+        "maximum": 0.025520673,
+        "mean": 0.0036398363846153843
+      },
+      "first_sim_t": 3.4999999999999956,
+      "last_sim_t": 26.50000000000024,
+      "rejected": [
+        {
+          "index": 1,
+          "sim_t": 3.4999999999999956,
+          "epoch": 2
+        }
+      ]
+    }
+  },
+  "phases": [
+    {
+      "reason": "HOLD",
+      "first_sim_t": 0.05,
+      "last_sim_t": 1.7500000000000009,
+      "samples": 35
+    },
+    {
+      "reason": "COMMAND_TTL",
+      "first_sim_t": 1.800000000000001,
+      "last_sim_t": 3.699999999999995,
+      "samples": 39
+    },
+    {
+      "reason": "RELEASE",
+      "first_sim_t": 3.7499999999999947,
+      "last_sim_t": 26.750000000000245,
+      "samples": 461
+    },
+    {
+      "reason": "COMMAND_TTL",
+      "first_sim_t": 26.800000000000246,
+      "last_sim_t": 27.600000000000257,
+      "samples": 17
+    },
+    {
+      "reason": "RELEASE",
+      "first_sim_t": 27.650000000000258,
+      "last_sim_t": 28.50000000000027,
+      "samples": 18
+    },
+    {
+      "reason": "COMMAND_TTL",
+      "first_sim_t": 28.55000000000027,
+      "last_sim_t": 30.900000000000304,
+      "samples": 48
+    },
+    {
+      "reason": "RUN_FINISHED",
+      "first_sim_t": 30.950000000000305,
+      "last_sim_t": 31.40000000000031,
+      "samples": 10
+    }
+  ],
+  "events": [
+    {
+      "event": "Failed to make progress",
+      "realtime_text_s": "1793005739.763273281"
+    },
+    {
+      "event": "Running wait",
+      "realtime_text_s": "1793005739.784447475"
+    },
+    {
+      "event": "wait completed successfully",
+      "realtime_text_s": "1793005740.784646163"
+    },
+    {
+      "event": "Running spin",
+      "realtime_text_s": "1793005740.814047936"
+    },
+    {
+      "event": "Collision Ahead - Exiting Spin",
+      "realtime_text_s": "1793005741.514520272"
+    },
+    {
+      "event": "Goal failed",
+      "realtime_text_s": "1793005741.553923900"
+    }
+  ],
+  "control_warnings": 104,
+  "active_control": {
+    "samples": 456,
+    "reasons": {
+      "RELEASE": 456
+    },
+    "last10_sample_range_s": [
+      16.5500000000001,
+      26.50000000000024
+    ],
+    "last10_sampled_distance_m": 0.08944121324557909,
+    "last10_net_displacement_m": 0.08440036040921367,
+    "last10_max_displacement_from_first_m": 0.08440036040921367,
+    "progress_checker_internal_baseline": "INPUT_REQUIRED; this window is not the internal baseline"
+  },
+  "periods": [
+    {
+      "sim_range_s": [
+        4,
+        10
+      ],
+      "trace_samples": 119,
+      "sampled_distance_m": 0.3814387893942071,
+      "raw_translation_mps": {
+        "n": 26,
+        "minimum": 0.05124889957414427,
+        "median": 0.06633819886292501,
+        "p95_nearest_rank": 0.06791310241478424,
+        "maximum": 0.06821423307536192,
+        "mean": 0.06505969546074346
+      },
+      "actuator_translation_mps": {
+        "n": 119,
+        "minimum": 0.045598345637509294,
+        "median": 0.06636905018162448,
+        "p95_nearest_rank": 0.06791310241478424,
+        "maximum": 0.06821423307536192,
+        "mean": 0.06466066956078563
+      },
+      "reasons": {
+        "RELEASE": 119
+      }
+    },
+    {
+      "sim_range_s": [
+        10,
+        16
+      ],
+      "trace_samples": 120,
+      "sampled_distance_m": 0.432343117111823,
+      "raw_translation_mps": {
+        "n": 26,
+        "minimum": 0.06451487881645618,
+        "median": 0.07486808989096977,
+        "p95_nearest_rank": 0.07768034157821314,
+        "maximum": 0.07771115753042952,
+        "mean": 0.07283063322369379
+      },
+      "actuator_translation_mps": {
+        "n": 120,
+        "minimum": 0.06451487881645618,
+        "median": 0.07421445021531461,
+        "p95_nearest_rank": 0.07768034157821314,
+        "maximum": 0.07771115753042952,
+        "mean": 0.07262388471049401
+      },
+      "reasons": {
+        "RELEASE": 120
+      }
+    },
+    {
+      "sim_range_s": [
+        16,
+        20
+      ],
+      "trace_samples": 80,
+      "sampled_distance_m": 0.10847493333573,
+      "raw_translation_mps": {
+        "n": 18,
+        "minimum": 0.008487752573379822,
+        "median": 0.019236568725285993,
+        "p95_nearest_rank": 0.06040717207648578,
+        "maximum": 0.06040717207648578,
+        "mean": 0.025230069569379912
+      },
+      "actuator_translation_mps": {
+        "n": 80,
+        "minimum": 0.008487752573379822,
+        "median": 0.020060159406419652,
+        "p95_nearest_rank": 0.06040717207648578,
+        "maximum": 0.06800381419871815,
+        "mean": 0.027224830280678902
+      },
+      "reasons": {
+        "RELEASE": 80
+      }
+    },
+    {
+      "sim_range_s": [
+        20,
+        26.5
+      ],
+      "trace_samples": 130,
+      "sampled_distance_m": 0.013816255623177868,
+      "raw_translation_mps": {
+        "n": 30,
+        "minimum": 0.00023201441438551327,
+        "median": 0.0017914370980962667,
+        "p95_nearest_rank": 0.005854855737692855,
+        "maximum": 0.0071590948417466875,
+        "mean": 0.0020530061139809445
+      },
+      "actuator_translation_mps": {
+        "n": 130,
+        "minimum": 0.00023201441438551327,
+        "median": 0.0018673742786049757,
+        "p95_nearest_rank": 0.005854855737692855,
+        "maximum": 0.008487752573379822,
+        "mean": 0.002129287137504833
+      },
+      "reasons": {
+        "RELEASE": 130
+      }
+    }
+  ],
+  "simulated_actuation": {
+    "previous_output_max_error": 0.0,
+    "pose_integration_max_error": 1.9884094371036554e-13,
+    "sampled_path_length_m": 0.9535087375453517,
+    "remaining_goal_distance_m": 3.1617271599113375,
+    "final_actuator": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "contact_counter_max": 0,
+    "boundary_counter_max": 0
+  },
+  "limitations": [
+    "No subscriber record proves absence of lost DDS messages; no isolated controller timing spans.",
+    "Source emission gaps and receipt gaps are observed separately, not per-cycle compute latency.",
+    "Diagnostic planner JSON/file IO under global map lock may perturb timing; magnitude unmeasured.",
+    "No actual robot, wheel slip, gait, Safe mode or physical control inference.",
+    "Command decay is observed; critic costs, selected rollout and progress baseline were not captured."
+  ],
+  "input_sha256": {
+    "params.yaml": "cab2b2716b42a192033a397d430151202db0818af5f4a1a79e80a3cf167ed872",
+    "trace.jsonl": "80f7dd4f27e4f5fa0b8a3d566ebdcba674d3378fe48ca264eaf5164a70f7f0cd",
+    "raw_commands.jsonl": "7ab78a024d364b8afa26358e81be449e7958c71de1028cb23db525ae268c3c51",
+    "native.log": "d6800cc427a1d53c7115196bf8b555f282785b22fdee1507770a96a6c746b9cf",
+    "fixture.json": "7f6104bf116e83de4be5882fef6ca15a3270bc90df606a3c73e8576b116a2bf5"
+  }
+}
