@@ -73,6 +73,7 @@ class GlobalObservationCoordinator:
         with self._lock:
             latest = next(reversed(self._jobs.values()), None) if self._jobs else None
             return dict(schema="robot-scope.raw-global-observations.v1", provider=self.provider_status(),
+                        seeded_local_provider=dict(available=True, backend_id="existing-isolated-se3"),
                         generation=self._generation, closed=self._closed,
                         active=self._public(self._jobs[self._active]) if self._active else None,
                         latest=self._public(latest) if latest else None, **_FLAGS)
@@ -96,25 +97,32 @@ class GlobalObservationCoordinator:
             return self._public(self._get(job_id))
 
     def start(self, request_id: str, map_id: str, map_revision: str, *, input_kind: str = "raw",
-              provenance_mode: str = "native_publisher") -> dict[str, Any]:
+              provenance_mode: str = "native_publisher", search_mode: str = "global", seed=None) -> dict[str, Any]:
         if (not isinstance(request_id, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}", request_id)
                 or not isinstance(map_id, str) or not re.fullmatch(r"[a-f0-9]{24}", map_id)
                 or not isinstance(map_revision, str) or not re.fullmatch(r"[a-f0-9]{64}", map_revision)):
             raise GlobalObservationValidationError("invalid raw global observation request")
         if input_kind not in {"raw", "fastlio_imu"} or provenance_mode not in {"native_publisher", "subscription_observation"}:
             raise GlobalObservationValidationError("invalid observation input kind or provenance mode")
+        from ..relocalization.seeded_initialization import validate_seed
+        if search_mode not in {'global', 'seeded_local'} or (search_mode == 'seeded_local') != (seed is not None):
+            raise GlobalObservationValidationError('SEED_SEARCH_MODE_MISMATCH')
+        if seed is not None:
+            if input_kind != 'fastlio_imu':
+                raise GlobalObservationValidationError('LOCAL_SEARCH_REQUIRES_FASTLIO_IMU')
+            seed = validate_seed(seed)
         with self._lock:
             previous = self._requests.get(request_id)
             if previous:
                 job = self._jobs[previous]
-                if (job["map_id"], job["map_revision"], job["input_kind"], job["provenance_mode"]) != (map_id, map_revision, input_kind, provenance_mode):
+                if (job["map_id"], job["map_revision"], job["input_kind"], job["provenance_mode"]) != (map_id, map_revision, input_kind, provenance_mode) or job.get("seed") != seed or job.get("search_mode", "global") != search_mode:
                     raise GlobalObservationConflict("request_id was already used for different input")
                 return self._public(job)
             if self._closed:
                 raise GlobalObservationUnavailable("raw global observation owner is closed")
             if self._active:
                 raise GlobalObservationBusy("a raw global observation worker is still active")
-            if not self.provider_status()["available"]:
+            if search_mode == "global" and not self.provider_status()["available"]:
                 raise GlobalObservationUnavailable("TRUSTED_LOCAL_RUNNER_UNAVAILABLE")
             if input_kind == "raw" and self._agent.raw_pointcloud_context_snapshot().get("pipeline_stage") not in {"raw", "converted"}:
                 raise GlobalObservationUnavailable("RAW_OR_CONVERTED_POINTCLOUD_SOURCE_REQUIRED")
@@ -125,11 +133,22 @@ class GlobalObservationCoordinator:
             if (metadata.get("revision") != map_revision or metadata.get("kind") != "pointcloud3d"
                     or metadata.get("format") != "pcd-binary"):
                 raise GlobalObservationConflict("raw global reference requires one unchanged binary PCD")
+            binding = None
+            if seed is not None:
+                from .anchor_proposal import bind_local_seed
+                from ..relocalization.observation_alignment import ObservationAlignmentError
+                if seed['map_frame'] != metadata.get('frame_id'):
+                    raise GlobalObservationConflict('SEED_MAP_FRAME_CHANGED')
+                try:
+                    binding = bind_local_seed(self._agent, seed, provenance_mode)
+                except ObservationAlignmentError as exc:
+                    raise GlobalObservationUnavailable(str(exc)) from exc
             self._generation += 1
             job_id, started = secrets.token_hex(12), time.monotonic()
             job = dict(schema="robot-scope.raw-global-observation-job.v1", job_id=job_id,
                        request_id=request_id, generation=self._generation, map_id=map_id,
-                       input_kind=input_kind, provenance_mode=provenance_mode,
+                       input_kind=input_kind, provenance_mode=provenance_mode, search_mode=search_mode, seed=seed,
+                       _seed_binding=binding,
                        map_revision=map_revision, state="capturing", reason=None,
                        captured_context=None, observed_completion_context=None,
                        created_monotonic_s=started, completed_monotonic_s=None,
@@ -207,6 +226,16 @@ class GlobalObservationCoordinator:
         if capture_cancel.is_set():
             cancel_event.set()
             raise GlobalObservationUnavailable("capture was cancelled before runner admission")
+        if context.get('search_mode') == 'seeded_local':
+            from ..relocalization.seeded_initialization import run_seeded_arrays
+            from ..relocalization.observation_alignment import ObservationAlignmentError
+            try:
+                return run_seeded_arrays(scan_bytes=scan_bytes, map_bytes=map_bytes, context=context,
+                                         cancel_event=cancel_event, timeout_s=self._timeout_s)
+            except ObservationAlignmentError as exc:
+                return dict(schema='robot-scope.seeded-local-result.v1', search_mode='seeded_local',
+                            status='REJECTED', admissible=False, reason=str(exc),
+                            seed_revision=context['seed']['revision'])
         return self._runner.run_arrays(scan_bytes=scan_bytes, map_bytes=map_bytes,
                                        context=context, cancel_event=cancel_event)
 
@@ -215,7 +244,11 @@ class GlobalObservationCoordinator:
         from ..relocalization.observation_alignment import ObservationAlignmentError
         from ..relocalization.external_global_observation import ExternalGlobalObservationError
         try:
-            return proposal_from_job(self.job(job_id), self._catalog, self._agent,
+            job = self.job(job_id)
+            if job.get('search_mode') == 'seeded_local':
+                from .anchor_proposal import local_proposal_from_job
+                return local_proposal_from_job(job, self._catalog, self._agent)
+            return proposal_from_job(job, self._catalog, self._agent,
                                      allow_ambiguous=self.provider_status()["allow_ambiguous"])
         except (ObservationAlignmentError, ExternalGlobalObservationError, SavedMapError, ValueError, KeyError, TypeError) as exc:
             raise GlobalObservationConflict("ANCHOR_PROPOSAL_UNAVAILABLE: " + str(exc)) from exc
@@ -233,7 +266,8 @@ class GlobalObservationCoordinator:
                 from .anchor_proposal import capture_registered_imu
                 scan_bytes, scan, anchor_capture = capture_registered_imu(self._agent,
                     mode=job["provenance_mode"], cancel=cancel, deadline=time.monotonic()+self._capture_timeout_s,
-                    max_points=self._max_points, max_bytes=self._max_bytes)
+                    max_points=self._max_points, max_bytes=self._max_bytes,
+                    **(dict(minimum_stamp_ns=job['_seed_binding']['source_stamp_ns']) if job.get('seed') else {}))
                 capture = dict(source_frame=scan["source_frame"], source_stamp_ns=scan["source_stamp_ns"],
                                pipeline_stage="registered_rebased_to_imu",
                                observation=dict(observer_id=anchor_capture["contract"]["observer_id"],
@@ -287,6 +321,14 @@ class GlobalObservationCoordinator:
             if anchor_capture is not None:
                 context.update(anchor_capture=anchor_capture, full_original_scope="CACHED_REGISTERED_XYZ_REBASED_TO_IMU",
                                source_stamp_basis="FASTLIO_OUTPUT_STAMP_EXACT", pose_reference="FASTLIO_IMU")
+            if job.get('seed') is not None:
+                from ..relocalization.experimental_se3 import compose
+                binding = job['_seed_binding']
+                if (binding['contract'] != anchor_capture['contract']
+                        or int(context['source_stamp_ns']) < int(binding['source_stamp_ns'])):
+                    raise GlobalObservationConflict('SEED_CAPTURE_SOURCE_CHANGED')
+                context.update(search_mode='seeded_local', seed=job['seed'], seed_binding=binding,
+                    T_map_imu_seed_capture=compose(binding['T_map_odom_seed'], anchor_capture['T_odom_imu']).tolist())
             ticket = secrets.token_hex(16)
             canonical = json.dumps(context, sort_keys=True, separators=(",", ":"), allow_nan=False)
             with self._lock:

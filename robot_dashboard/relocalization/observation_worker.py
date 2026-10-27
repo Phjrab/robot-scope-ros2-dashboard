@@ -27,15 +27,19 @@ class Channel:
         self.sock = sock
         self.sock.setblocking(False)
         self.buffer = bytearray()
+        self.cancel_event = None
 
     def wait(self, *, writing=False, deadline=float('inf')):
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
-            raise TimeoutError
-        ready = select.select([] if writing else [self.sock], [self.sock] if writing else [], [],
-                              None if remaining == float('inf') else remaining)
-        if not (ready[1] if writing else ready[0]):
-            raise TimeoutError
+        while True:
+            if self.cancel_event is not None and self.cancel_event.is_set():
+                raise InterruptedError('CANCELLED')
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError
+            timeout = min(remaining, .05) if self.cancel_event is not None else (None if remaining == float('inf') else remaining)
+            ready = select.select([] if writing else [self.sock], [self.sock] if writing else [], [], timeout)
+            if ready[1] if writing else ready[0]:
+                return
 
     def send(self, value, deadline=float('inf')):
         payload = pickle.dumps(value, protocol=5)
@@ -112,11 +116,12 @@ class RegistrationWorker:
             self.process = None
         self.phase = self.key = None
 
-    def solve(self, key, reference, target_frame, points, frame, stamp_ns, seed, deadline):
+    def solve(self, key, reference, target_frame, points, frame, stamp_ns, seed, deadline, *, cancel_event=None):
         from .observation_alignment import ObservationAlignmentError
         try:
             if self.process is None:
                 self._start()
+            self.channel.cancel_event = cancel_event
             if self.process.poll() is not None:
                 raise EOFError
             if self.phase == 'starting':

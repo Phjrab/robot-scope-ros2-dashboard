@@ -57,7 +57,7 @@ def source_contract(cloud, pose, mode, now):
                 pose_subscription=list(subscription_evidence_key(pose["observation"], now) or []) if mode == "subscription_observation" else None)
 
 
-def capture_registered_imu(agent, *, mode, cancel, deadline, max_points, max_bytes):
+def capture_registered_imu(agent, *, mode, cancel, deadline, max_points, max_bytes, minimum_stamp_ns=None):
     """Capture one fresh, exact output-stamp pair inside the existing timeout."""
     reason = "FASTLIO_INPUTS_UNAVAILABLE"
     while not cancel.is_set() and time.monotonic() < deadline:
@@ -65,6 +65,8 @@ def capture_registered_imu(agent, *, mode, cancel, deadline, max_points, max_byt
             cloud = agent.pointcloud_binary_snapshot()
             latest = agent.pose_snapshot()
             contract = source_contract(cloud, latest, mode, time.monotonic())
+            if minimum_stamp_ns is not None and int(cloud['observation']['source_stamp_ns']) < int(minimum_stamp_ns):
+                raise ObservationAlignmentError('SEED_CAPTURE_WAITING_FOR_NEWER_SCAN')
             pose = paired_pose(agent, cloud, contract, deadline)
             if pose is None:
                 raise ObservationAlignmentError("FASTLIO_EXACT_POSE_PENDING")
@@ -149,3 +151,47 @@ def proposal_from_job(job, catalog, agent, *, allow_ambiguous=False):
                 ambiguity_unresolved=(observation.get("ambiguity_override") or {}).get("applied") is True,
                 rmse_m=candidate["rmse_m"], overlap=candidate["overlap"],
                 absolute_accuracy_m=None, body_extrinsic_verified=False, operational_application="NOT_RUN")
+
+
+def bind_local_seed(agent, seed, mode):
+    """The explicit local-search action confirms the draft at this fresh pose."""
+    from ..relocalization.seeded_initialization import seed_matrix
+    cloud, pose = agent.pointcloud_binary_snapshot(), agent.pose_snapshot()
+    contract = source_contract(cloud, pose, mode, time.monotonic())
+    if contract != seed['source_contract']:
+        raise GlobalObservationConflict('SEED_SOURCE_CHANGED_RECONFIRM')
+    return dict(contract=contract, source_stamp_ns=pose['observation']['source_stamp_ns'],
+                T_map_odom_seed=compose(seed_matrix(seed), inverse(imu_matrix(pose))).tolist(),
+                T_odom_imu=imu_matrix(pose).tolist(), basis='EXPLICIT_SEARCH_ACTION_CURRENT_IMU')
+
+
+def local_proposal_from_job(job, catalog, agent):
+    context, result = job['captured_context'], job['result']
+    if (job['state'] != 'succeeded' or job['worker_active'] or result is None
+            or result['captured_context'] != context or not result['historical_only']):
+        raise GlobalObservationConflict('ANCHOR_PROPOSAL_NOT_READY')
+    metadata = catalog.metadata(job['map_id'])
+    if metadata.get('revision') != job['map_revision'] or metadata.get('frame_id') != context['map_frame']:
+        raise GlobalObservationConflict('ANCHOR_MAP_CHANGED')
+    value = result['observation']
+    if (value.get('schema') != 'robot-scope.seeded-local-result.v1'
+            or value.get('seed_revision') != context['seed']['revision'] or 'map_from_scan' not in value):
+        raise GlobalObservationConflict(value.get('reason') or 'LOCAL_RESULT_INVALID')
+    _, pose, odom_now, now = current_imu(agent, context)
+    transform = compose(validate_transform(value['map_from_scan']), inverse(context['anchor_capture']['T_odom_imu']))
+    proposed = compose(transform, odom_now)
+    return dict(schema='robot-scope.anchor-proposal.v1', job_id=job['job_id'], search_mode='seeded_local',
+                map=dict(id=job['map_id'], revision=job['map_revision'], frame=context['map_frame']),
+                seed_revision=context['seed']['revision'], seed=context['seed'],
+                pose=dict(zip(('x','y','z','roll','pitch','yaw'), [*proposed[:3,3].tolist(),
+                     *[math.degrees(v) for v in _rpy(proposed[:3,:3])]])), T_map_odom=transform.tolist(),
+                pose_reference='FASTLIO_IMU', units='metres_degrees', approximate_only=True, requires_reanchor=True,
+                source_contract=context['anchor_capture']['contract'], capture_stamp_ns=context['source_stamp_ns'],
+                seed_stamp_ns=context['seed_binding']['source_stamp_ns'],
+                proposal_stamp_ns=pose['observation']['source_stamp_ns'],
+                pose_age_s=now-pose['observation']['received_monotonic_s'], admissible=value['admissible'],
+                reason=value['reason'], delta=value['delta'], bounds=value['bounds'],
+                ambiguity_unresolved=value['ambiguity_unresolved'], runtime_ms=value['runtime_ms'],
+                rmse_m=value['numerical']['metrics']['rmse_m'], overlap=value['numerical']['metrics']['overlap_ratio'],
+                numerical=value['numerical'], evaluation_scope=value['evaluation_scope'],
+                absolute_accuracy_m=None, body_extrinsic_verified=False, operational_application='NOT_RUN')

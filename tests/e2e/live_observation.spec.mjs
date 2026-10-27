@@ -28,7 +28,7 @@ function binary(seq, observation, frameId='odom') {
   frame.writeUInt32LE(points.length/3,8); frame.writeUInt32LE(points.length*4,12); metadata.copy(frame,16);
   points.forEach((v,i)=>frame.writeFloatLE(v,offset+i*4)); return frame;
 }
-async function fixture(page, {identityUnavailable=false,subscriptionEvidence=false,provisional=false,imu=false,httpFallback=false,joints=false}={}) {
+async function fixture(page, {identityUnavailable=false,subscriptionEvidence=false,provisional=false,imu=false,httpFallback=false,joints=false,sessionReady=false}={}) {
   const state={ streaming:true, rejected:false, epoch:'c', lastCloud:null, jump:false, identityUnavailable,
     session:'1'.repeat(32),fingerprint:'2'.repeat(64),graphAge:.1,nonconverged:false,policyMismatch:false,
     x:0, z:.3, yaw:0, cloudSocketStreaming:true, httpClouds:0, jointsStreaming:true, sitting:false }, writes=[], errors=[];
@@ -45,6 +45,8 @@ async function fixture(page, {identityUnavailable=false,subscriptionEvidence=fal
     return binary(seq,state.lastCloud,imu?'camera_init':'odom');
   };
   const backend=await installDashboardBackend(page,{pointcloudFrame:()=>state.cloudSocketStreaming?nextCloud():null});
+  if(sessionReady) backend.on('/api/v1/observations/fastlio',({json})=>json({state:'READY',active:true,
+    session_id:'7'.repeat(32),can_start:false,can_stop:true,remaining_s:1800}));
   if(httpFallback) backend.on('/api/v1/pointcloud.bin',({route})=>{
     const frame=nextCloud();
     if(!frame) return route.fulfill({status:204,body:''});
@@ -104,7 +106,9 @@ async function fixture(page, {identityUnavailable=false,subscriptionEvidence=fal
   });
   await page.locator('#savedLiveEnabled').check();
   await page.locator('#savedLiveAnchorDetails > summary').click();
+  await page.locator('#savedLiveCoordinates > summary').click();
   await page.locator('#savedLiveAdvancedDetails > summary').click();
+  if(sessionReady) await expect(page.locator('#savedSessionState')).toHaveText('입력 준비 완료');
   await page.locator('#savedLiveConfirm').check();
   if(identityUnavailable) await expect(page.locator('#savedLiveState')).toHaveText('SOURCE_IDENTITY_UNAVAILABLE');
   else {
@@ -567,8 +571,9 @@ test('a fresh corrected IMU pose fills editable anchor fields and still requires
   await page.locator('#savedAnchorPresetCurrent').click();
   await expect(page.locator('#savedLive_x')).toHaveValue('0.2');
   await expect(page.locator('#savedLiveConfirm')).not.toBeChecked();
-  await expect(page.locator('#savedLiveRegistration')).not.toBeChecked();
-  await expect(page.locator('#savedAnchorPresetCurrent')).toBeDisabled();
+  await expect(page.locator('#savedLiveRegistration')).toBeChecked();
+  await expect(page.locator('#savedLiveCenter')).toBeEnabled();
+  await expect(page.locator('#savedAnchorPresetCurrent')).toBeEnabled();
   expect(errors).toEqual([]);
 });
 
@@ -675,10 +680,160 @@ test('agent connection loss after an IMU proposal keeps its reason and clears st
   await expect(page.locator('#savedLiveState')).toHaveText('AGENT_CONNECTION_LOST');
   await expect(page.locator('#savedLiveAvailability')).toContainText('LiDAR·pose 수신 상태를 확인할 수 없습니다');
   await expect(page.locator('#savedLiveCenter')).toBeDisabled();
-  await expect(page.locator('#savedLive_x')).toHaveValue('');
+  await expect(page.locator('#savedLive_x')).toHaveValue('0.7'); // Retained map prior; stale active geometry is still cleared.
   await expect(page.locator('#savedLiveConfirm')).not.toBeChecked();
   expect(await page.evaluate(()=>window.observationScene.pointCloudOverlay)).toBeNull();
   expect(await page.evaluate(()=>window.observationScene.robotPose)).toBeNull();
   await page.locator('#savedLiveObservation').screenshot({path:testInfo.outputPath('synthetic-agent-connection-lost.png')});
   expect(errors).toEqual([]);
+});
+
+function seededBackend(backend,{outside=false,running=false}={}) {
+  const flags={historical_only:true,current_result:null,body_pose:null,tracking_verified:false,body_pose_verified:false,
+    body_extrinsic_verified:false,operational_application:'NOT_RUN',absolute_accuracy_m:null};
+  const root='/api/v1/observations/global-jobs',jobId='8'.repeat(24),path=`${root}/${jobId}/anchor-proposal`;
+  const state={requests:[],job:null,value:null,proposalReads:0,cancels:0};
+  backend.on(root,({json,body,request})=>{
+    if(request.method()==='POST') {
+      state.requests.push(body);
+      expect(body.input_kind).toBe('fastlio_imu');expect(body.search_mode).toBe('seeded_local');
+      const captured={map_id:id,map_revision:revision,map_frame:'map',source_frame:'body',observer_id:'d'.repeat(32),
+        observer_epoch:'c'.repeat(32),source_stamp_ns:'1792309179130175352',seed:body.seed,search_mode:body.search_mode};
+      state.job={...flags,schema:'robot-scope.raw-global-observation-job.v1',job_id:jobId,generation:1,request_id:body.request_id,
+        input_kind:body.input_kind,provenance_mode:body.provenance_mode,seed:body.seed,search_mode:body.search_mode,map_id:id,map_revision:revision,
+        state:running?'running':'succeeded',worker_active:running,captured_context:captured,result:running?null:{...flags,
+          schema:'robot-scope.raw-global-observation-result.v1',job_id:jobId,generation:1,captured_context:captured,observation:{}}};
+      const pose={...body.seed.pose,x:body.seed.pose.x+(outside?2:.08)}, angle=pose.yaw*Math.PI/180;
+      // These UI fixtures have zero raw odometry XY/yaw and IMU height .3m.
+      // Numeric seed use is separately tested through the actual Python worker.
+      state.value={schema:'robot-scope.anchor-proposal.v1',job_id:jobId,search_mode:'seeded_local',seed_revision:body.seed.revision,
+        map:{id,revision,frame:'map'},pose,pose_reference:'FASTLIO_IMU',units:'metres_degrees',source_contract:body.seed.source_contract,
+        T_map_odom:[[Math.cos(angle),-Math.sin(angle),0,pose.x],[Math.sin(angle),Math.cos(angle),0,pose.y],[0,0,1,pose.z-.3],[0,0,0,1]],
+        approximate_only:true,requires_reanchor:true,operational_application:'NOT_RUN',absolute_accuracy_m:null,body_extrinsic_verified:false,
+        capture_stamp_ns:'1792309179130175352',proposal_stamp_ns:'1792309179130175353',pose_age_s:.1,
+        delta:{xy_m:outside?2:.08,yaw_deg:0,z_m:0,tilt_deg:0},bounds:body.seed.bounds,
+        admissible:!outside,reason:outside?'OUTSIDE_SEED_BOUNDS':'CANDIDATE',rmse_m:.02,overlap:.9,runtime_ms:350,ambiguity_unresolved:true,
+        numerical:{status:'CANDIDATE',metrics:{converged:true,geometry_min_max_eigen_ratio:.2,matched_geometry_min_max_eigen_ratio:.2}}};
+      return json(state.job,202);
+    }
+    return json({...flags,schema:'robot-scope.raw-global-observations.v1',provider:{available:false},seeded_local_provider:{available:true},
+      generation:state.job?1:0,closed:false,active:state.job?.worker_active?state.job:null,latest:state.job});
+  });
+  backend.on(path,({json})=>{state.proposalReads++;return json(state.value);});
+  backend.on(`${root}/${jobId}/cancel`,({json})=>{
+    state.cancels++;state.job={...state.job,state:'cancelled',worker_active:false,result:null};return json(state.job);
+  });
+  return {...state,root,path,state};
+}
+async function canvasPoint(page,x,y,z=0) {
+  await page.locator('#savedSceneCanvas').scrollIntoViewIfNeeded();
+  return page.evaluate(([x,y,z])=>{
+    const scene=window.observationScene;scene._cameraBasis();
+    const p=scene._project([x,y,z]),r=scene.canvas.getBoundingClientRect();
+    return {x:r.left+p.x*r.width/scene.width,y:r.top+p.y*r.height/scene.height};
+  },[x,y,z]);
+}
+async function seedTap(page,x,y) {const p=await canvasPoint(page,x,y);await page.mouse.click(p.x,p.y);}
+async function seedStart(page,x=-.6,y=.2) {
+  await page.locator('#mapSeedPlace').click();
+  // Wait for the intentional smooth scroll to settle before absolute pointer input.
+  await page.waitForTimeout(400);
+  await seedTap(page,x,y);await seedTap(page,x+1,y);
+}
+
+test('map seed clicks reach request and candidate apply; draft and active pose stay separate',async({page},testInfo)=>{
+  const {backend,writes,errors}=await fixture(page,{imu:true,sessionReady:true});const local=seededBackend(backend);
+  await page.locator('#savedLive_z').fill('2.4');
+  await seedStart(page);
+  await expect(page.locator('#savedLive_x')).toHaveValue('-0.6');
+  await expect(page.locator('#savedLive_yaw')).toHaveValue('0');
+  await expect(page.locator('#savedLive_z')).toHaveValue('2.4');
+  await expect(page.locator('#savedLiveCenter')).toBeEnabled();
+  await expect(page.locator('#mapSeedSearch')).toBeEnabled();
+  const original=await page.evaluate(()=>window.observationScene.sensorObservationOverlay.pose.origin);
+  await page.locator('#mapSeedSearch').click();
+  await expect(page.locator('#mapSeedApply')).toBeEnabled();
+  expect(local.state.requests).toHaveLength(1);
+  expect(local.state.requests[0].seed.pose).toMatchObject({z:2.4,roll:0,pitch:0,yaw:0});
+  expect(local.state.requests[0].seed.pose.x).toBeCloseTo(-.6,6);expect(local.state.requests[0].seed.pose.y).toBeCloseTo(.2,6);
+  expect(local.state.requests[0].seed.bounds).toEqual({xy_m:.75,yaw_deg:25,z_m:.3,tilt_deg:10});
+  expect(await page.evaluate(()=>window.observationScene.sensorObservationOverlay.pose.origin)).toEqual(original);
+  await expect(page.locator('#savedLive_x')).toHaveValue('-0.6');
+  await expect(page.locator('#mapSeedResult')).toContainText('미적용');
+  expect(await page.evaluate(()=>window.observationScene.initializationPreview.candidate.x)).toBeCloseTo(-.52,6);
+  await page.locator('#savedLiveAnchorDetails > summary').click();
+  await page.locator('#savedLiveAdvancedDetails > summary').click();
+  await page.locator('.saved-map-panel').screenshot({path:testInfo.outputPath('synthetic-map-seed-comparison.png')});
+  await page.locator('#savedLiveObservation').screenshot({path:testInfo.outputPath('synthetic-map-seed-controls.png')});
+  await page.locator('#mapSeedApply').click();
+  await expect(page.locator('#mapSeedResult')).toContainText('관측 기준점으로 적용');
+  await expect.poll(()=>page.evaluate(()=>window.observationScene.sensorObservationOverlay.pose.origin[0])).toBeCloseTo(-.52,6);
+  expect(local.state.proposalReads).toBe(2); // Revalidate against current input at Apply.
+  expect(writes).toEqual([local.root]);expect(errors).toEqual([]);
+});
+
+test('placement supports two taps, short drag, heading drag, cancel and ordinary camera gestures',async({page})=>{
+  const {errors,writes}=await fixture(page,{imu:true});
+  const camera=await page.evaluate(()=>JSON.stringify(window.observationScene.camera));
+  await page.locator('#mapSeedPlace').click();await page.waitForTimeout(400);
+  const p=await canvasPoint(page,-.5,.4);
+  await page.mouse.move(p.x,p.y);await page.mouse.down();await page.mouse.move(p.x+2,p.y+1);await page.mouse.up();
+  await expect(page.locator('#mapSeedSummary')).toContainText('방향 지정 대기');
+  await expect(page.locator('#mapSeedSearch')).toBeDisabled();
+  await seedTap(page,-1.5,.41);
+  expect(Number(await page.locator('#savedLive_yaw').inputValue())).toBeGreaterThan(179);
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#savedLive_x')).toHaveValue('0');
+  expect(await page.evaluate(()=>JSON.stringify(window.observationScene.camera))).toBe(camera);
+  await page.locator('#mapSeedPlace').click();await page.waitForTimeout(400);
+  const a=await canvasPoint(page,.7,-.3),b=await canvasPoint(page,.7,.7);
+  await page.mouse.move(a.x,a.y);await page.mouse.down();await page.mouse.move(b.x,b.y,{steps:10});await page.mouse.up();
+  expect(Number(await page.locator('#savedLive_yaw').inputValue())).toBeCloseTo(90,3);
+  const beforePan=await page.evaluate(()=>JSON.stringify(window.observationScene.camera.target));
+  await page.keyboard.down('Shift');await page.mouse.move(a.x,a.y);await page.mouse.down();await page.mouse.move(a.x+50,a.y+20);await page.mouse.up();await page.keyboard.up('Shift');
+  expect(await page.evaluate(()=>JSON.stringify(window.observationScene.camera.target))).not.toBe(beforePan);
+  await page.locator('#mapSeedCancel').click();
+  await expect(page.locator('#savedLiveCenter')).toBeEnabled();
+  expect(writes).toEqual([]);expect(errors).toEqual([]);
+});
+
+test('out-of-range candidate remains visible without changing draft or active anchor; widen requires another action',async({page})=>{
+  const {backend,errors}=await fixture(page,{imu:true});const local=seededBackend(backend,{outside:true});
+  await seedStart(page);await expect(page.locator('#mapSeedSearch')).toBeEnabled();await page.locator('#mapSeedSearch').click();
+  await expect(page.locator('#mapSeedResult')).toContainText('OUTSIDE_SEED_BOUNDS');
+  await expect(page.locator('#mapSeedApply')).toBeDisabled();await expect(page.locator('#savedLive_x')).toHaveValue('-0.6');
+  expect(await page.evaluate(()=>window.observationScene.initializationPreview.candidate.x)).toBeCloseTo(1.4,6);
+  await expect(page.locator('#savedLiveCenter')).toBeEnabled();
+  await page.locator('#mapSeedWiden').click();await expect(page.locator('#mapSeedSummary')).toContainText('반경 1.5m / ±50°');
+  expect(local.state.requests).toHaveLength(1);await expect(page.locator('#mapSeedSearch')).toBeEnabled();
+  await page.locator('#mapSeedBounds > summary').click();await page.locator('[data-seed-bound="xy_m"]').fill('99');
+  await expect(page.locator('#mapSeedSearch')).toBeDisabled();await expect(page.locator('#mapSeedResult')).toContainText('유효한 값');
+  expect(errors).toEqual([]);
+});
+
+test('late seed proposal cannot overwrite a newer numeric draft or replace the active observation',async({page})=>{
+  const {backend,errors}=await fixture(page,{imu:true});const local=seededBackend(backend);
+  let release,entered=false;const gate=new Promise(resolve=>{release=resolve;});
+  backend.on(local.path,async({json})=>{entered=true;await gate;return json(local.state.value);});
+  await seedStart(page);await expect(page.locator('#mapSeedSearch')).toBeEnabled();await page.locator('#mapSeedSearch').click();
+  await expect.poll(()=>entered).toBe(true);
+  await page.locator('#savedLive_x').fill('1.7');release();
+  await expect(page.locator('#mapSeedSearch')).toBeEnabled();await expect(page.locator('#mapSeedApply')).toBeDisabled();
+  await expect(page.locator('#savedLive_x')).toHaveValue('1.7');await expect(page.locator('#savedLiveCenter')).toBeEnabled();
+  expect(await page.evaluate(()=>window.observationScene.initializationPreview.candidate)).toBeNull();
+  expect(await page.evaluate(()=>window.observationScene.initializationPreview.draft.x)).toBe(1.7);
+  expect(errors).toEqual([]);
+});
+
+test('local cancellation and source replacement preserve the prior and never retain an applicable old candidate',async({page})=>{
+  const {backend,state,errors,writes}=await fixture(page,{imu:true});const local=seededBackend(backend,{running:true});
+  await seedStart(page);await expect(page.locator('#mapSeedSearch')).toBeEnabled();await page.locator('#mapSeedSearch').click();
+  await expect(page.locator('#mapSeedStop')).toBeEnabled();await page.locator('#mapSeedStop').click();
+  await expect(page.locator('#mapSeedSearch')).toBeEnabled();expect(local.state.cancels).toBe(1);
+  await expect(page.locator('#savedLiveCenter')).toBeEnabled();await expect(page.locator('#savedLive_x')).toHaveValue('-0.6');
+  state.epoch='e';await expect(page.locator('#savedLiveState')).toHaveText('CLOUD_SOURCE_CHANGED');
+  await expect(page.locator('#savedLiveCenter')).toBeDisabled();await expect(page.locator('#mapSeedApply')).toBeDisabled();
+  await expect(page.locator('#savedLive_x')).toHaveValue('-0.6');
+  await expect(page.locator('#mapSeedResult')).toContainText('다시 정합');
+  expect(writes).toEqual([local.root,local.path.replace('/anchor-proposal','/cancel')]);expect(errors).toEqual([]);
 });

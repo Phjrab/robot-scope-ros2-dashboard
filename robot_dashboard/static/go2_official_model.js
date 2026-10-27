@@ -469,7 +469,10 @@
       };
     };
 
-    prototype._drawRobot = function drawGo2OfficialOrFallback() {
+    prototype._drawRobot = function drawGo2OfficialOrFallback(previewPose = null, previewLabel = null) {
+      // Seed silhouettes use the existing metre-scale geometry at their own
+      // IMU prior. Never substitute the telemetry/observed robot here.
+      if (previewPose) return fallbackDrawRobot.call(this, previewPose, previewLabel);
       const config = this._ensureGo2OfficialConfig();
       if (!config.enabled) return fallbackDrawRobot.call(this);
       if (this._go2OfficialRuntime && this._go2OfficialLoadedUrl === config.assetUrl) {

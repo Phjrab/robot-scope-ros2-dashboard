@@ -61,3 +61,13 @@
 .saved-observation-session small { display: block; overflow-wrap: anywhere; color: var(--muted); }
 .saved-observation-session small:empty { display: none; }
 #savedSessionError { color: var(--amber); }
+
+/* One draft/candidate layer on the existing saved-map canvas. */
+.map-seed { display:grid; gap:10px; padding:14px; border:1px solid var(--border, #385348); border-radius:8px; }
+.map-seed p { margin:0; overflow-wrap:anywhere; }
+.map-seed .saved-live-actions { flex-wrap:wrap; }
+#mapSeedSummary { color:#ffc36b; }
+#mapSeedResult { color:#79caff; }
+#mapSeedBounds label { display:inline-flex; gap:8px; align-items:center; margin:8px; }
+#mapSeedBounds input { width:80px; }
+#savedLiveCoordinates summary { cursor:pointer; padding:10px 0; }

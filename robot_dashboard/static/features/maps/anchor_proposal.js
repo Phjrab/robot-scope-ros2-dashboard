@@ -33,9 +33,9 @@ export function validateAnchorProposal(value, jobId, map, inputs) {
 
 export function initializeAnchorProposal({ host, getState, getInputs, available, onStart, fillPose }) {
   const panel = document.createElement('div'); panel.className = 'saved-anchor-proposal';
-  panel.innerHTML = `<strong>초기 위치 자동 추정</strong>
+  panel.innerHTML = `<strong>지도 전체에서 초기 위치 찾기</strong>
     <small>관측기를 시작하고 입력 준비 후 사용하세요. 계산 중에는 정지하고, 제안값을 확인·수정한 뒤 기준점에 연결하세요.</small>
-    <div class="saved-live-actions"><button id="savedAnchorEstimateStart" type="button">초기 위치 자동 추정</button>
+    <div class="saved-live-actions"><button id="savedAnchorEstimateStart" type="button">지도 전체에서 찾기</button>
     <button id="savedAnchorEstimateRetry" type="button" hidden>같은 요청 재확인</button>
     <button id="savedAnchorEstimateCancel" type="button" disabled>추정 취소</button>
     <button id="savedAnchorEstimateApply" type="button" disabled>제안값으로 채우기</button></div>
@@ -99,5 +99,5 @@ export function initializeAnchorProposal({ host, getState, getInputs, available,
     draw();
   }
   const timer = setInterval(() => { if (available() || controller.snapshot().busy) void controller.poll(); }, 1000);
-  return { render, destroy() { disposed = true; token++; clearInterval(timer); controller.destroy(); panel.remove(); } };
+  return { render, invalidateDraft() { token++; message=''; controller.invalidate('DRAFT_CHANGED'); }, destroy() { disposed = true; token++; clearInterval(timer); controller.destroy(); panel.remove(); } };
 }

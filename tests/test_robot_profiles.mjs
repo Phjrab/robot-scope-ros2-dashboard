@@ -212,3 +212,17 @@ test('approximate URDF layer uses measured sitting joints and pure z motion inde
   now=1001; vertices=[]; scene._drawObservedRobotModel(); assert.equal(vertices.length,0);
   assert.equal(scene.setObservedRobotModel({...value,joints:{}}),false); assert.equal(scene.observedRobotModel,null);
 });
+
+test('official renderer forwards seed silhouettes to the metre-scale preview geometry without reading telemetry',()=>{
+  const calls=[];
+  class Scene {
+    _drawRobot(...args){calls.push(args);}
+    _effectiveRobotPose(){throw new Error('preview must not read telemetry');}
+    render(){}
+  }
+  const sandbox={RobotScene3D:Scene};sandbox.window=sandbox;sandbox.globalThis=sandbox;
+  runInNewContext(rendererSource,sandbox);
+  const scene=new Scene(),prior={x:2,y:3,z:1.4,roll:.1,pitch:.2,yaw:.3};
+  scene._drawRobot(prior,'사용자 초기값 · IMU 근사');
+  assert.deepEqual(calls,[[prior,'사용자 초기값 · IMU 근사']]);
+});

@@ -432,3 +432,39 @@ test('fallback robot world dimensions and full attitude stay fixed across zoom',
   const p = scene._robotWorldPoint([1, 0, 0], { x: 0, y: 0, z: 0, pitch: Math.PI / 2, roll: 0, yaw: 0 }, 1);
   assert.ok(Math.abs(p[0]) < 1e-8); assert.equal(p[2], -1);
 });
+
+test('map placement unprojects source metres across FIT, pan, zoom, CSS resize and DPR', () => {
+  const {scene,canvas,sandbox}=sceneHarness();
+  scene.setPointCloud({points:[[-201,399,2],[ -197,405,5]],frame_id:'map'});
+  const point=[-199.4,401.8,2.7], original=Array.from(scene.cloud.points);
+  for(const dpr of [1,2,3]) for(const size of [[640,360],[1130,620]]) {
+    sandbox.devicePixelRatio=dpr;
+    canvas.clientWidth=size[0];canvas.clientHeight=size[1];
+    // CSS scaling plus scrolled/nonzero origin: physical backing pixels never
+    // enter the inverse projection a second time.
+    canvas.getBoundingClientRect=()=>({left:83,top:174,width:size[0]*.85,height:size[1]*.85});
+    scene.resize();scene.topView();
+    for(const yaw of [-Math.PI/2,.63]) for(const zoom of [1,.6,1.7]) {
+      scene.camera.yaw=yaw;scene.camera.distance*=zoom;
+      scene.camera.target=[-200,402,2.7];scene._cameraBasis();
+      const p=scene._project(point), r=canvas.getBoundingClientRect();
+      assert.ok(p);
+      const hit=scene.screenToMapPlane(r.left+p.x*r.width/scene.width,r.top+p.y*r.height/scene.height,point[2]);
+      assert.ok(hit.every((v,i)=>Math.abs(v-point[i])<1e-9),`${dpr} / ${size} / ${zoom}`);
+    }
+  }
+  assert.deepEqual(Array.from(scene.cloud.points),original,'FIT must not move original map coordinates');
+  scene.destroy();
+});
+
+test('seed ghosts have their own frame-fenced layer and never set telemetry pose', () => {
+  const {scene}=sceneHarness();
+  scene.setPointCloud({points:[[0,0,0],[2,2,1]],frame_id:'map'});
+  const prior={x:1,y:1,z:2,roll:.1,pitch:.2,yaw:Math.PI};
+  scene.setInitializationPreview({frameId:'map',draft:prior,candidate:{...prior,x:1.1},radius:.75,yawRange:25});
+  assert.equal(scene.robotPose,null);
+  assert.equal(scene.initializationPreview.draft.z,2);
+  assert.equal(scene.initializationPreview.candidate.x,1.1);
+  scene.setInitializationPreview({frameId:'other',draft:prior});
+  assert.equal(scene.initializationPreview,null);scene.destroy();
+});

@@ -309,3 +309,33 @@ test('compact indexed residual sidecar uses stored candidate RMSE and rejects ma
   observation.residual_comparison_policy.candidate_index_basis = 'UNVERIFIED';
   assert.equal(globalResidualText(observation), '원본 5cm / 잠정 10cm 잔차 비교 미검증');
 });
+
+test('local request snapshots its seed, survives an uncertain retry and works without the global provider', async()=>{
+  let seed={revision:3,pose:{x:2},bounds:{xy_m:.75}},attempts=0;
+  const {model,calls}=controller(async(_url,options)=>{
+    if(options.method==='POST'){
+      if(++attempts===1)throw new Error('lost');
+      const body=JSON.parse(options.body);
+      return response(completed({search_mode:'seeded_local',seed:body.seed,input_kind:'fastlio_imu'}));
+    }
+    return response({...status(null,false),seeded_local_provider:{available:true}});
+  });
+  model.inputKind='fastlio_imu';model.getRequestOptions=()=>({search_mode:'seeded_local',seed});
+  await model.poll();assert.equal(model.snapshot().canStart,true);
+  await model.start();seed={...seed,pose:{x:8}};
+  await model.start();
+  const posts=calls.filter(c=>c.method==='POST');assert.equal(posts[0].body,posts[1].body);
+  assert.equal(model.record.seed.pose.x,2);
+});
+
+test('explicit rejected seed releases the request so a corrected seed uses a new id',async()=>{
+  let count=0;
+  const {model,calls}=controller(async(_url,options)=>options.method==='POST'
+    ? {ok:false,status:422,json:async()=>({detail:'INVALID_LOCAL_SEED'})}
+    : response({...status(null,false),seeded_local_provider:{available:true}}));
+  model.getRequestOptions=()=>({search_mode:'seeded_local',seed:{revision:count}});
+  model.requestId=()=>`seed-${++count}`;
+  await model.poll();await model.start();assert.equal(model.pending,null);assert.equal(model.snapshot().canStart,true);
+  await model.start();const bodies=calls.filter(c=>c.method==='POST').map(c=>JSON.parse(c.body));
+  assert.notEqual(bodies[0].request_id,bodies[1].request_id);
+});

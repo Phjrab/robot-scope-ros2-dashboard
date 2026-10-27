@@ -131,10 +131,10 @@ function validHistoricalJob(job, map, source) {
 
 export class GlobalObservationController {
   constructor({ request = (...args) => fetch(...args), changed = () => {}, requestId = globalObservationRequestId,
-    canChangeHistory = () => true, inputKind = 'raw', getProvenanceMode = () => 'native_publisher' } = {}) {
+    canChangeHistory = () => true, inputKind = 'raw', getProvenanceMode = () => 'native_publisher', getRequestOptions = () => ({}) } = {}) {
     this.request = request; this.changed = changed; this.requestId = requestId;
     this.canChangeHistory = canChangeHistory;
-    this.inputKind = inputKind; this.getProvenanceMode = getProvenanceMode;
+    this.inputKind = inputKind; this.getProvenanceMode = getProvenanceMode; this.getRequestOptions = getRequestOptions;
     this.map = null; this.source = null; this.provider = null; this.generation = 0;
     this.pending = null; this.job = null; this.record = null; this.error = '';
     this.busy = false; this.reading = false; this.cancelling = false; this.foreignBusy = false;
@@ -172,7 +172,7 @@ export class GlobalObservationController {
       canOpenHistorical: !historyLocked && !this.disposed && Boolean(this.map) && !this.historyBusy && !this.reading
         && !this.busy && !this.foreignBusy && !this.job?.worker_active && !this.pending,
       error: this.error, busy: this.busy || this.historyBusy || this.foreignBusy || Boolean(this.job?.worker_active),
-      canStart: !this.disposed && Boolean(this.map) && this.provider?.available === true
+      canStart: !this.disposed && Boolean(this.map) && (this.getRequestOptions().search_mode === 'seeded_local' ? this.seededLocalProvider?.available === true : this.provider?.available === true)
         && !this.busy && !this.historyBusy && !this.foreignBusy && !this.job?.worker_active && !this.pending,
       canRetry: Boolean(this.pending && !this.pending.invalidated && !this.job && !this.busy),
       canCancel: Boolean(this.job?.worker_active && !this.cancelling),
@@ -181,23 +181,32 @@ export class GlobalObservationController {
   async json(path, options = {}) {
     const response = await this.request(path, { ...options, signal: AbortSignal.timeout(10000) });
     const value = await response.json();
-    if (!response.ok) throw new Error(typeof value.detail === 'string' ? value.detail : `HTTP ${response.status}`);
+    if (!response.ok) {
+      const error = new Error(typeof value.detail === 'string' ? value.detail : `HTTP ${response.status}`);
+      error.status = response.status; throw error;
+    }
     return value;
   }
   async start() {
     if (!this.snapshot().canStart && !this.snapshot().canRetry) return;
     this.historyReadToken++; this.historyJob = null; this.historicalSelection = null;
     if (!this.pending) this.pending = { request_id: this.requestId(), ...this.map,
-      input_kind: this.inputKind, provenance_mode: this.getProvenanceMode(),
+      input_kind: this.inputKind, provenance_mode: this.getProvenanceMode(), ...clone(this.getRequestOptions()),
       generation: this.generation, source: clone(this.source), invalidated: false };
     const pending = this.pending;
     this.busy = true; this.error = ''; this.record = null; this.changed();
     try {
       const job = await this.json(ROOT, { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ request_id: pending.request_id, map_id: pending.map_id, map_revision: pending.map_revision,
-          ...(this.inputKind === 'raw' ? {} : { input_kind: pending.input_kind, provenance_mode: pending.provenance_mode }) }) });
+          ...(this.inputKind === 'raw' ? {} : { input_kind: pending.input_kind, provenance_mode: pending.provenance_mode }),
+          ...(pending.search_mode ? {search_mode:pending.search_mode,seed:pending.seed} : {}) }) });
       await this.accept(job, pending);
-    } catch (error) { this.error = `요청 결과 미확인 · ${error.message} · 기존 request_id 조회 후 재확인`; }
+    } catch (error) {
+      if ([400,403,404,409,422].includes(error.status)) {
+        if (this.pending === pending) this.pending = null;
+        this.error = `요청 거부 · ${error.message}`;
+      } else this.error = `요청 결과 미확인 · ${error.message} · 기존 request_id 조회 후 재확인`;
+    }
     finally { this.busy = false; this.changed(); }
   }
   async accept(job, pending = this.pending) {
@@ -210,7 +219,8 @@ export class GlobalObservationController {
       return;
     }
     const map = { map_id: pending.map_id, map_revision: pending.map_revision, map_frame: pending.map_frame };
-    if (!validateGlobalJob(job, map, pending.source) || (job.input_kind || 'raw') !== pending.input_kind
+    if ((pending.search_mode === 'seeded_local' && (job.search_mode !== pending.search_mode || !sameJsonValue(job.seed, pending.seed)))
+        || !validateGlobalJob(job, map, pending.source) || (job.input_kind || 'raw') !== pending.input_kind
         || (this.job?.job_id === job.job_id && this.job.generation !== job.generation)) {
         this.error = 'RESULT_CONTRACT_MISMATCH'; this.record = null;
         pending.invalidated = true;
@@ -232,7 +242,7 @@ export class GlobalObservationController {
       if (status.schema !== 'robot-scope.raw-global-observations.v1' || !restricted(status)
           || typeof status.provider?.available !== 'boolean'
           || !Number.isSafeInteger(status.generation) || status.generation < 0) throw new Error('STATUS_CONTRACT_MISMATCH');
-      this.provider = clone(status.provider);
+      this.provider = clone(status.provider); this.seededLocalProvider = clone(status.seeded_local_provider);
       this.serverGeneration = status.generation;
       this.updateHistory(status.latest);
       if (knownJob && knownJob === this.record?.job_id && status.generation !== this.record.generation) this.record = null;
@@ -244,7 +254,7 @@ export class GlobalObservationController {
       const match = [status.active, status.latest].find(job => job && job.request_id === this.pending?.request_id);
       if (match) await this.accept(match);
       else if (this.job?.worker_active && this.pending) await this.accept(await this.json(`${ROOT}/${this.job.job_id}`));
-    } catch (error) { this.provider = null; this.history = [];
+    } catch (error) { this.provider = null; this.seededLocalProvider = null; this.history = [];
       if (this.historicalSelection) this.record = null;
       this.error = `조회 실패 · ${error.message}`; }
     finally { this.reading = false; this.changed(); }

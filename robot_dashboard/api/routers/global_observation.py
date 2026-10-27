@@ -25,6 +25,8 @@ class GlobalObservationRequest(BaseModel):
     map_revision: str = Field(pattern=r"^[a-f0-9]{64}$")
     input_kind: Literal["raw", "fastlio_imu"] = "raw"
     provenance_mode: Literal["native_publisher", "subscription_observation"] = "native_publisher"
+    search_mode: Literal["global", "seeded_local"] = "global"
+    seed: dict[str, Any] | None = None
 
 
 def _owner(request: Request) -> Any:
@@ -64,7 +66,10 @@ async def global_observation_status(request: Request) -> JSONResponse:
 async def start_global_observation(request: Request, body: GlobalObservationRequest) -> JSONResponse:
     require_same_origin(request)
     try:
-        job = await run_in_threadpool(_owner(request).start, **body.model_dump())
+        values = body.model_dump(exclude={'search_mode', 'seed'})
+        if body.search_mode != 'global' or body.seed is not None:
+            values.update(search_mode=body.search_mode, seed=body.seed)
+        job = await run_in_threadpool(_owner(request).start, **values)
     except _ERRORS as exc:
         raise _translate(exc) from exc
     return JSONResponse(job, status_code=202)

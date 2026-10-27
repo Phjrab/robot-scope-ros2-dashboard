@@ -1,3 +1,5 @@
+import { initializeMapSeed } from './map_seed.js';
+import { matrixPose, multiply } from '../experiments/recorded_report.js';
 import { LiveMapObservation, rpyMatrix } from './live_observation_contract.js';
 import { ObservedJoints, GO2_JOINT_NAMES } from './observed_joints.js';
 import { initializeObservationSession } from './observation_session.js';
@@ -62,7 +64,7 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
       <summary><span>기준점 설정</span><small>지도 위치·방향</small></summary>
       <div class="saved-live-details-body">
         <p>지도 초기 위치는 확인·수정할 수 있는 근사값입니다. 본체 교정·시계·scan deskew는 미검증입니다.</p>
-        <div class="saved-live-anchor">${['x','y','z','roll','pitch','yaw'].map(k => `<label>${k.toUpperCase()} (${['x','y','z'].includes(k) ? 'm' : '°'})<input id="savedLive_${k}" type="number" step="0.01" value="0" aria-label="지도 후보 ${k}"></label>`).join('')}</div>
+        <details id="savedLiveCoordinates"><summary>고급 좌표 수정</summary><div class="saved-live-anchor">${['x','y','z','roll','pitch','yaw'].map(k => `<label>${k.toUpperCase()} (${['x','y','z'].includes(k) ? 'm' : '°'})<input id="savedLive_${k}" type="number" step="0.01" value="0" aria-label="지도 후보 ${k}"></label>`).join('')}</div></details>
         <label><input id="savedLiveConfirm" type="checkbox"> 정지 상태에서 입력한 위치·방향을 근사 기준점으로 사용합니다. 원점 0은 자동으로 검증되지 않습니다.</label>
         <div class="saved-live-actions"><button id="savedLiveAnchor" type="button">현재 pose를 기준점에 연결</button><button id="savedLiveClear" type="button">기준점 해제</button></div>
       </div>
@@ -92,7 +94,7 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
   const el = id => panel.querySelector(`#savedLive${id}`), model = new LiveMapObservation();
   const joints = new ObservedJoints();
   let geometryKey = '', inFlight = false, nextRequest = -Infinity, error = '', wasVisible = false, dynamicCleared = false, requestController = null, disposed = false, suspended = false;
-  let presetReference = null, presetMapKey = '', proposalFence = null;
+  let presetReference = null, presetMapKey = '', proposalFence = null, seedFeature = null;
   const proposalInputs = () => ({ cloud: model.cloud?.value, pose: model.pose?.value, mode: model.provenanceMode });
   const anchorMapKey = () => JSON.stringify([model.map?.id, model.map?.revision, model.map?.frame]);
   const currentReference = () => model.pose
@@ -102,7 +104,6 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     el(`_${k}`).value.trim() === '' ? NaN : Number(el(`_${k}`).value)]));
   const clearProposalInputs = () => {
     proposalFence = null; presetReference = null; presetMapKey = '';
-    for (const k of ANCHOR_FIELDS) el(`_${k}`).value = '';
     el('Confirm').checked = false;
   };
   const fillAnchorPose = (pose, reference) => {
@@ -111,9 +112,10 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
       proposalFence = null;
       presetReference = reference; presetMapKey = anchorMapKey();
       for (const k of ANCHOR_FIELDS) el(`_${k}`).value = String(Number(pose[k].toFixed(6)));
-      model.invalidate('ANCHOR_INPUT_CHANGED'); model.registrationEnabled = false;
-      el('Confirm').checked = false; el('Registration').checked = false;
-      requestController?.abort(); error = ''; clearDynamic(true); render();
+      el('Confirm').checked = false;
+      proposal.invalidateDraft();
+      seedFeature?.edit(pose, reference==='FASTLIO_IMU'?'preserved_prior':'approximate');
+      error = ''; render();
   };
   const presets = initializeAnchorPresets({
     host: el('AnchorDetails').querySelector('.saved-live-details-body'), getState: () => model.snapshot(),
@@ -123,10 +125,20 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     host: el('AnchorDetails').querySelector('.saved-live-details-body'), getState: () => model.snapshot(), getInputs: proposalInputs,
     available: () => !disposed && !suspended && model.enabled && getContext().visible,
     onStart: () => {
-      model.invalidate('INITIAL_ESTIMATE_RUNNING'); model.registrationEnabled = false;
-      el('Registration').checked = false; el('Confirm').checked = false; requestController?.abort(); clearDynamic(true); render();
+      el('Confirm').checked = false; render();
     },
     fillPose: (pose, fence) => { fillAnchorPose(pose, 'FASTLIO_IMU'); proposalFence = fence; },
+  });
+  seedFeature = initializeMapSeed({host:panel.querySelector('.saved-live-overview'),scene,
+    getState:()=>model.snapshot(),getInputs:proposalInputs,readPose:readAnchorPose,
+    writePose:pose=>{for(const k of ANCHOR_FIELDS) el(`_${k}`).value=Number.isFinite(pose[k])?String(Number(pose[k].toFixed(6))):'';},
+    edited:()=>{proposalFence=null;el('Confirm').checked=false;proposal.invalidateDraft();},
+    apply:value=>{
+      model.ready();
+      if(BigInt(model.pose.value.observation.source_stamp_ns)<BigInt(value.capture_stamp_ns)) throw new Error('새 pose 수신을 기다려 주세요.');
+      model.setAnchor(matrixPose(multiply(value.T_map_odom,model.pose.matrix)),true);
+      requestController?.abort();error='';render();
+    },
   });
   const resetSession = reason => {
     model.resetInputs(reason); model.registrationEnabled = false; el('Confirm').checked = false; el('Registration').checked = false;
@@ -152,7 +164,7 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     panel.hidden = !context.visible;
     model.setMap(context.meta, context.cloud);
     if (proposalFence && !sameAnchorSource(proposalFence, anchorSourceContract(proposalInputs()))) {
-      clearProposalInputs(); model.invalidate('INITIAL_ESTIMATE_SOURCE_CHANGED');
+      clearProposalInputs();
     }
     if (presetReference && presetMapKey !== anchorMapKey()) {
       presetReference = null; presetMapKey = '';
@@ -161,6 +173,7 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     }
     presets.render();
     proposal.render();
+    seedFeature?.render(context.visible && !suspended);
     if (!context.visible && wasVisible && model.enabled) model.invalidate('VIEW_SUSPENDED');
     wasVisible = context.visible;
     const state = model.snapshot();
@@ -254,7 +267,7 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     el('Confirm').checked = false; el('Registration').checked = false; requestController?.abort();
     error = ''; clearDynamic(); render();
   });
-  for (const k of ['x','y','z','roll','pitch','yaw']) el(`_${k}`).addEventListener('input', () => { model.invalidate('ANCHOR_INPUT_CHANGED'); el('Confirm').checked = false; render(); });
+  for (const k of ['x','y','z','roll','pitch','yaw']) el(`_${k}`).addEventListener('input', () => { proposalFence=null; proposal.invalidateDraft(); seedFeature?.edit(readAnchorPose()); el('Confirm').checked = false; render(); });
   el('Anchor').addEventListener('click', () => {
     try {
       if (presetReference && presetReference !== currentReference()) throw new Error('프리셋의 IMU/본체 기준이 현재 pose와 다릅니다.');
@@ -295,6 +308,6 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
       // Clear the proposal fence before resetting inputs, so the next render
       // preserves the reset cause instead of mistaking missing inputs for a new source.
       if (proposalFence) clearProposalInputs();
-      model.resetInputs(reason); clearDynamic(true);
-    }, destroy: () => { disposed = true; proposal.destroy(); presets.destroy(); session.destroy(); visibility.disconnect(); model.enable(false); requestController?.abort(); clearInterval(timer); clearDynamic(); panel.remove(); style.remove(); } };
+      seedFeature?.invalidateSource(); model.resetInputs(reason); clearDynamic(true);
+    }, destroy: () => { disposed = true; seedFeature?.destroy(); proposal.destroy(); presets.destroy(); session.destroy(); visibility.disconnect(); model.enable(false); requestController?.abort(); clearInterval(timer); clearDynamic(); panel.remove(); style.remove(); } };
 }

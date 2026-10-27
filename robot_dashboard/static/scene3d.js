@@ -890,6 +890,67 @@
       this.render();
     }
 
+    screenToMapPlane(clientX, clientY, planeZ = 0) {
+      const rect = this.canvas.getBoundingClientRect();
+      if (!rect.width || !rect.height || !Number.isFinite(planeZ)) return null;
+      const basis = this._cameraBasis();
+      const x = (clientX - rect.left) * this.width / rect.width;
+      const y = (clientY - rect.top) * this.height / rect.height;
+      const direction = add(basis.forward, add(multiply(basis.right, (x-this.width/2)/basis.focal),
+        multiply(basis.up, (this.height/2-y)/basis.focal)));
+      if (Math.abs(direction[2]) < 1e-8) return null;
+      const distance = (planeZ-basis.position[2])/direction[2];
+      if (distance <= 0) return null;
+      const point = add(basis.position, multiply(direction, distance));
+      return point.every(Number.isFinite) ? point : null;
+    }
+
+    setInitializationPreview(value) {
+      const valid = value && value.frameId === this.cloud.frameId;
+      this.initializationPreview = valid ? {
+        frameId: value.frameId, draft: normalizedPose(value.draft), candidate: normalizedPose(value.candidate), applied:value.applied === true,
+        radius: clamp(finite(value.radius, .75), .1, 3), yawRange: clamp(finite(value.yawRange, 25), 1, 90)*DEG,
+      } : null;
+      this.render();
+    }
+
+    _drawInitializationPreview() {
+      const value = this.initializationPreview;
+      if (!value || value.frameId !== this.cloud.frameId) return;
+      const ctx = this.ctx;
+      for (const [pose, label, color] of [[value.draft, '사용자 초기값 · IMU 근사', '#ffc36b'],
+        [value.candidate, value.applied ? '적용한 정합 후보' : '정합 후보 · 미적용', '#79caff']]) {
+        if (!pose) continue;
+        ctx.save(); ctx.globalAlpha = .42;
+        this._drawRobot(pose, label);
+        ctx.restore(); ctx.save(); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2;
+        const start = [pose.x, pose.y, pose.z];
+        const end = [pose.x+Math.cos(pose.yaw)*.9, pose.y+Math.sin(pose.yaw)*.9, pose.z];
+        this._stroke3DLine(start, end);
+        const handle = this._project(end);
+        if (handle) { ctx.beginPath(); ctx.arc(handle.x, handle.y, 6, 0, TAU); ctx.stroke(); }
+        if (pose === value.draft) {
+          let previous = null;
+          for (let i=0; i<=64; i++) {
+            const angle=i/64*TAU, point=[pose.x+value.radius*Math.cos(angle),pose.y+value.radius*Math.sin(angle),pose.z];
+            if (previous) this._stroke3DLine(previous, point); previous=point;
+          }
+          for (const angle of [pose.yaw-value.yawRange, pose.yaw+value.yawRange])
+            this._stroke3DLine(start,[pose.x+value.radius*Math.cos(angle),pose.y+value.radius*Math.sin(angle),pose.z]);
+        }
+        const tag = this._project([pose.x,pose.y,pose.z+.6]);
+        if (tag) {
+          ctx.font='12px sans-serif';
+          const width=ctx.measureText(label).width+12;
+          const x=clamp(tag.x+8,8,Math.max(8,this.width-width-8));
+          const y=clamp(tag.y,110,Math.max(110,this.height-54))+(pose===value.draft?0:24);
+          ctx.fillStyle='rgba(10,20,24,.9)';ctx.fillRect(x-4,y-15,width,20);
+          ctx.fillStyle=color;ctx.fillText(label,x+2,y);
+        }
+        ctx.restore();
+      }
+    }
+
     topView() {
       if (this.cloud.bounds) this.fitToPointCloud(false);
       this.camera.yaw = -90 * DEG;
@@ -1179,6 +1240,7 @@
       this._drawObservedRobotModel?.();
       this._drawSensorObservationOverlay();
       if (this.robotVisible) this._drawRobot();
+      this._drawInitializationPreview();
       this._drawHud();
       const completedAt = monotonicNow();
       const elapsed = clamp(completedAt - drawStartedAt, 0, 10_000);
@@ -1499,10 +1561,10 @@
       ];
     }
 
-    _drawRobot() {
-      const inputPose = this._effectiveRobotPose();
+    _drawRobot(previewPose = null, previewLabel = null) {
+      const inputPose = previewPose || this._effectiveRobotPose();
       if (!inputPose) return;
-      const origin = this._go2OfficialConfig?.poseOrigin === 'base'
+      const origin = previewPose || this._go2OfficialConfig?.poseOrigin === 'base'
         ? this._robotWorldPoint([0, 0, -0.44], inputPose, 1) : [inputPose.x, inputPose.y, inputPose.z];
       const pose = { ...inputPose, x: origin[0], y: origin[1], z: origin[2] };
       // Geometry stays in metres even when the official asset is unavailable.
@@ -1559,7 +1621,7 @@
       ctx.restore();
 
       const labelAnchor = this._project(this._robotWorldPoint([0, 0, 0.78], pose, scale));
-      if (labelAnchor) this._drawRobotLabel(labelAnchor, pose);
+      if (labelAnchor && !previewLabel) this._drawRobotLabel(labelAnchor, pose);
     }
 
     _drawRobotLimb(start, end, color, width) {
