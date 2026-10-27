@@ -1,0 +1,226 @@
+{
+  "schema": "robot-scope.public-deployment-verification.v1",
+  "inspection_date_kst": "2026-10-26",
+  "publication_date_kst": "2026-10-27",
+  "publication_is_new_device_inspection": false,
+  "overall_acceptance": "PARTIAL",
+  "repository": "Phjrab/robot-scope-ros2-dashboard",
+  "pull_request": {
+    "number": 3,
+    "state": "MERGED",
+    "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/pull/3"
+  },
+  "source": {
+    "merge_sha": "d6e3fe9675f31e436f5236b390e36e188934f473",
+    "tree_sha": "4979cc43072a5e424fa8c8cfdf966a8206f7a3d4",
+    "pr_head_sha": "7777f471654d6da0afd3580a870d80b7b0b3eb4d",
+    "synthetic_merge_sha": "fbc1550abff1d93b938ebb7ccc51a13092267341",
+    "deployment_verified_file_count": 2116
+  },
+  "ci": {
+    "synthetic_merge": {
+      "run_id": 40295719304,
+      "conclusion": "success"
+    },
+    "main_push": {
+      "run_id": 40298136083,
+      "conclusion": "success"
+    }
+  },
+  "deployment": {
+    "release_name": "robot-scope-d6e3fe9675f3",
+    "initial_pid": 139489,
+    "post_rollback_pid": 142080,
+    "last_observed_pid": 171712,
+    "rollback_status": "PASS",
+    "original_checkout_preserved": true,
+    "map_revisions_preserved": true,
+    "mission_definitions_preserved": true,
+    "mission_runs_preserved": true,
+    "unit_files_changed": false,
+    "dependency_or_os_upgrade": false,
+    "control_enabled": false,
+    "busy_components": [],
+    "unknown_components": [],
+    "motion_arm_nav_goal_posture_commands_sent": 0
+  },
+  "backups": [
+    {
+      "name": "static-runtime.tar",
+      "bytes": 3235809280,
+      "sha256": "643c3dc676083dff075e51ce7dfbb9143e4372dfc8a3f16fbf7762e620d3663e"
+    },
+    {
+      "name": "quiescent-user-data.tar",
+      "bytes": 871290880,
+      "sha256": "186bc2b65af1529fd89ad0609dd3636b63878ac9ba1bf04b824f5c54c296a26a"
+    },
+    {
+      "name": "vslam-pinned-image.tar",
+      "bytes": 13772803584,
+      "sha256": "a68d6c77e4ec4c795cb074c6ebf9bc8e57c3c28806d82488887ede8ddca8e9fc"
+    }
+  ],
+  "limits": {
+    "full_off_device_backup": false,
+    "image_restore_execution_tested": false,
+    "current_root_camera_owner_json_backed_up": false,
+    "root_camera_owner_json_changed": false,
+    "stereo_usb_repair_executed": false,
+    "stereo_successful_start_display_stop_verified": false,
+    "absolute_pose_accuracy_verified": false,
+    "real_traffic_light_accuracy_verified": false
+  },
+  "open_items": [
+    {
+      "id": "stereo-usb-pin",
+      "status": "BLOCKED_ROOT_AUTH",
+      "observed_usb": "001/008",
+      "configured_usb": "001/004",
+      "repair": "prepared_not_executed"
+    },
+    {
+      "id": "idle-unsaved-session",
+      "status": "RECOVERED_BY_DASHBOARD_RESTART_SOURCE_FIX_PENDING"
+    },
+    {
+      "id": "browser-reconnect",
+      "status": "FAIL_UNRESOLVED",
+      "http_telemetry_live": true,
+      "root_cause": "UNCONFIRMED"
+    },
+    {
+      "id": "traffic-model-footage-calibration",
+      "status": "INPUT_REQUIRED",
+      "blocks_other_merged_features": false
+    }
+  ],
+  "private_artifact_fingerprints": [
+    {
+      "name": "DEPLOYMENT_READONLY_ACCEPTANCE_20261026.md",
+      "bytes": 22110,
+      "sha256": "7a4cc1a218d2884333f6554ad327dff480212a16a9d61772d61576df4e48a568",
+      "uploaded": false
+    },
+    {
+      "name": "DEPLOYMENT_RECOVERY_RUNBOOK_20261026.md",
+      "bytes": 8357,
+      "sha256": "b5e1051d13c532294322eea676a281abe21b0ba32924d86b8ca41fbc3d89107d",
+      "uploaded": false
+    },
+    {
+      "name": "device-deployment-receipt.json",
+      "bytes": 1523,
+      "sha256": "7271c9621609540704878b00e43bc59bab3d7813bc9d98590fc1452177af5ade",
+      "uploaded": false
+    },
+    {
+      "name": "device-verification.json",
+      "bytes": 2877,
+      "sha256": "3a9c4596f65a446425c87229fb77b94be9e9c92c38c7275906f6ae0e1a15a751",
+      "uploaded": false
+    },
+    {
+      "name": "failed-stereo-ui-recovery.json",
+      "bytes": 16946,
+      "sha256": "67d56ed99957852806ebf77dfe64c574a0143816637a4fec4f58ebe0dfe5a867",
+      "uploaded": false
+    },
+    {
+      "name": "deployed-fastlio-observation.json",
+      "bytes": 2289,
+      "sha256": "f4340bf29e746b6593829a5d0e72b3e600bc4ecb2ad5d1f973d1531e883edffa",
+      "uploaded": false
+    },
+    {
+      "name": "final-api-readback.json",
+      "bytes": 30694,
+      "sha256": "81d3756badd360ccb3f942cf4c1d4a6eeaf8c29fe552ba8f4a41c128d50b5b97",
+      "uploaded": false
+    },
+    {
+      "name": "software-test-evidence.zip",
+      "bytes": 997626,
+      "sha256": "1dc079f4b5cca01703c8a0e89ffd6bfa5c6518f5a77c3bb7fd791694f9443c6f",
+      "uploaded": false
+    },
+    {
+      "name": "device-test-evidence.zip",
+      "bytes": 174420,
+      "sha256": "c81069c99562ffc00d984efc1d739b9b3fdec183f40dbddfeac880b29cb22318",
+      "uploaded": false
+    },
+    {
+      "name": "deployed-fastlio-live.jpg",
+      "bytes": 236713,
+      "sha256": "22ca155dc9d1a5e45548e57e7a61645b1cd1c4d5198482a830bb3a579e3275b2",
+      "uploaded": false
+    },
+    {
+      "name": "deployed-go2-camera.jpg",
+      "bytes": 85696,
+      "sha256": "1efdbf956f5c2fc2d5653e472622671b067771ee394c05b07a33cfc5ec687651",
+      "uploaded": false
+    },
+    {
+      "name": "deployed-saved-map.jpg",
+      "bytes": 86738,
+      "sha256": "2e316429b12982f901a652cdf2c2bf75733f4c8091daf08203924855117f8de0",
+      "uploaded": false
+    },
+    {
+      "name": "deployed-mission-panel.jpg",
+      "bytes": 208838,
+      "sha256": "425876007c49fc0bda39fefbe8bd2b36cc2faeaac6af9387d06faa17ebda7a9d",
+      "uploaded": false
+    },
+    {
+      "name": "deployed-stereo-usb-blocked.jpg",
+      "bytes": 187189,
+      "sha256": "496f0224eaffe01ca7aa04df9348929a04f509ecad4f7def5a527f037f999db2",
+      "uploaded": false
+    },
+    {
+      "name": "deployed-reconnect-unresolved.jpg",
+      "bytes": 120135,
+      "sha256": "499cacc0cdb522c97e3d05afbdc7bdf42b0f20225c4962e30870b3e7807596bc",
+      "uploaded": false
+    }
+  ],
+  "publication_excludes": [
+    "private keys and environment values",
+    "device user data and generated maps/PCD",
+    "raw indoor camera and map screenshots",
+    "private source and Docker runtime backups",
+    "device-specific one-shot recovery scripts",
+    "raw sensor/API logs containing local context"
+  ],
+  "publication_local_validation": {
+    "date_kst": "2026-10-27",
+    "python_full": {
+      "run": 2963,
+      "passed": 2960,
+      "skipped": 3,
+      "failed": 0,
+      "duration_s": 89.999
+    },
+    "pcd_codec_with_node_followup": {
+      "run": 24,
+      "passed": 24,
+      "skipped": 0,
+      "failed": 0,
+      "resolves_full_run_node_parity_skip": true
+    },
+    "remaining_optional_skips": [
+      "SVG plotting dependency absent",
+      "rosbags backend not installed"
+    ],
+    "javascript_test_files": {
+      "passed": 72,
+      "failed": 0
+    },
+    "javascript_syntax_modules": 108,
+    "tracked_source_secret_scan": "PASS",
+    "public_json_links_private_paths_whitespace": "PASS"
+  }
+}

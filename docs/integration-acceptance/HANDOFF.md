@@ -1,3 +1,13 @@
+# 2026-10-26 merge, deployment and stationary verification
+
+Read [MERGE_DEPLOY_VERIFY_20261026.md](MERGE_DEPLOY_VERIFY_20261026.md) first for
+the merged/deployed `d6e3fe9`, successful rollback test, partial hardware acceptance
+and unresolved Stereo USB, failed-session and browser-reconnection issues.
+Published on 2026-10-27; publication does not claim a new device inspection.
+Private device evidence remains outside Git. Earlier records below are preserved.
+
+---
+
 # Saved 3D observation/editor integration — local candidate, 2026-10-18
 
 Read [SAVED_3D_OBSERVATION.md](SAVED_3D_OBSERVATION.md) for the current source,
