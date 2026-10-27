@@ -337,8 +337,9 @@ ARM·이동·자세·Nav2 goal·`/initialpose`·운영 TF 명령은 수행하지
   초안을 덮어쓰지 않는다. 현재 정상 관측 anchor는 명시적 후보 적용 전까지 보존한다.
 
 실험실 자동 제안은 X [-1.082192,2.629171], Y [-4.020236,2.566195]m이며 map 점
-4,429개를 포함한다. **사용자 확인 대기 상태**이며 실제 장비에 저장·사용한 경계로
-간주하지 않는다. 이 가상 경계로 보관 입력을 로컬 비교한 결과는 아래와 같다.
+4,429개를 포함한다. **당시 사용자 확인 전인 초안**이며 실제 장비에 저장·사용한 경계로
+간주하지 않는다. 이후 확정·저장한 확장 경계는 아래에 별도로 기록했다. 이 가상 경계로
+보관 입력을 로컬 비교한 결과는 아래와 같다.
 
 | 같은 20개 보관 입력 | 동일 비중 + 수렴 보정 | 코스 1 / 주변 .25 + 수렴 보정 |
 | --- | --- | --- |
@@ -439,3 +440,60 @@ UI consistency **5/5**. 한 번의 전체 실행에서 기존 C++ extended bench
 실패했으나 단독 재실행과 브라우저 시험을 겹치지 않은 최종 전체 실행이 통과했다.
 이 실패를 코드 결함 또는 부하 원인으로 확정하지 않았다. 기준/timeout을 변경하지 않았다.
 Ruff, mypy, credential scan, diff check도 통과했다.
+
+### 최종 장비 실행본과 정지 검증
+
+오차 정책 구현·실제 검증 SHA는 **`c98afbc9db6a07697dc9909286ed68356cf98149`**다.
+`review/20261026-i1-map-seed`에 게시했으며 main 병합은 하지 않았다.
+실제 cwd `/home/unitree/robot-scope-releases/robot-scope-c98afbc9db6a`, PID 169852,
+source 2,130개 hash 일치를 확인했다. 기존 관측은 정상 종료한 뒤 전환했고
+`C4 YOLO 통합 인수` 채팅은 idle였다. 백업은
+`/home/unitree/robot-scope-backups/i1-20261027-c98afbc9db6a`다. 사용자 데이터 4,393개
+파일 / 865,566,720-byte tar, 환경 파일, map/preset/course 관련 84개 파일의 전후 hash를
+확인했다. 확정 course preset ID도 재시작 후 동일하다. 복구 대상은 `b8e438dfe409`
+release이며 백업의 `deploy.py rollback`으로 환경 selector를 복원하고 고정 서비스만
+재시작한다. 실제 rollback은 필요하지 않았다. 원본 지도·기존 preset·제어 설정·사용자
+checkout 변경은 보존했다.
+
+Maps에서 저장한 코스가 자동 로드된 것을 확인하고, 사용자 요청대로 5cm 한도 체크를
+해제했다. 기존 출처 미검증 옵션을 사용하고 같은 seed XY/yaw 및 근사 Z/R/P를 복원했다.
+현재 source stamp가 맞는 입력에서 실제 정합을 실행했다. 브라우저는 샘플링 시
+WAITING_PAIRED_POSE를 표시하기도 했고 유효 입력에서만 시작했다. 서버의 정확한
+FAST-LIO cloud/pose 짝짓기나 source 검사 조건을 우회하지 않았다.
+
+| 실제 최종 job `a9fe295540628c4dcde54806` | 결과 |
+| --- | --- |
+| 입력 / fine 반복 | 210점 / 32회 (1 pass) |
+| 전체 입력 RMSE / overlap | .04815905m / 100% |
+| 수치 작업 시간 | 539.66ms |
+| seed 대비 XY / yaw / Z / tilt | .169290m / 4.784396° / .024795m / .969035° |
+| 코스 / 주변 대응점 | 57 / 153 |
+| 코스 / 주변 비중 | 1 / .25 |
+| 코스 가중 기여 | 59.8425% |
+| residual policy | enforced=false, max=null, original .05m, original_passed=true |
+| 판정 / 적용 | CANDIDATE / 관측 기준점 적용 완료 |
+
+실제 요청의 polygon/지도 revision/비중이 서버에 저장한 values와 완전히 같고,
+`enforce_residual_limit:false`가 실제 result까지 전달됐음을 원문 JSON으로 검증했다.
+이번 스캔의 RMSE는 우연히 기존 .05m 조건도 통과했다. **5cm 초과에서 해제가 작동하는
+증거는 앞의 동일 합성 입력 수치 회귀이며**, 이 실장비 성공을 해당 증거로 대체하지 않는다.
+첫 배포의 .05690m 거부 스캔과 다른 입력이므로 .04816m를 가중치에 의한 정확도 개선으로
+해석하지 않는다.
+
+적용 버튼에서 최신 proposal을 다시 확인했고 실제 화면에 “제안 위치를 관측 기준점으로
+적용했습니다”, “전체 오차 한도 해제”, `ODOMETRY_PROPAGATED_SOURCE_UNVERIFIED`가
+표시됐다. 초기 draft는 유지됐다. 결과 확인 중 읽은 pose는 약 (.4103,-.3214,.0259)m /
+yaw 93.576°이며 source가 계속 갱신되는 근사 관측이다. 검증 중 controller pending output/action 0을 확인했다.
+실제 로봇 이동/ARM/Nav2/initialpose/운영 TF 명령 없음. 관측은 기존 30분 제한 세션이다.
+
+비공개 증거: `course-saved-receipt.json`, `final-weighted-live-job.json`,
+`final-weighted-live-proposal.json`, `final-ownership.json`, `course-saved-map.png`,
+`final-weighted-applied-controls.png`. 원본 지도·점군·실장비 이미지는 Git에 포함하지 않았다.
+
+최종 구현의 [원격 CI 40460186071](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40460186071)는
+이 기록 시점에 양쪽 Ubuntu/Python 환경의 Python·JS·정적 검사와 competition 통합을
+통과했고 전체 브라우저 E2E는 진행 중이다. 원격 전체 PASS로 보고하지 않는다.
+
+**남은 다음 한 가지:** 경기장 지도에서 실제 코스 경계를 저장한 뒤, 확인 가능한 정지
+위치에서 코스/주변 비중에 따른 위치 차이를 비교한다. 본체 extrinsic·절대 정확도·다른
+장소의 모호함은 아직 미검증이며 오차 한도 해제는 이 검증을 대신하지 않는다.
