@@ -23,10 +23,18 @@ BOUNDS = {'xy_m': (.1, 3.), 'yaw_deg': (1., 90.), 'z_m': (.01, 1.), 'tilt_deg': 
 def validate_seed(value):
     def invalid():
         raise GlobalObservationValidationError('INVALID_LOCAL_SEED')
-    if not isinstance(value, dict) or set(value) != {
+    required = {
         'revision', 'pose', 'pose_reference', 'units', 'map_frame', 'height_source', 'bounds', 'source_contract'
-    }:
+    }
+    if not isinstance(value, dict) or set(value) not in (required, required | {'course_region'}):
         invalid()
+    if 'course_region' in value:
+        from ..course_regions import course_values
+        from ..navigation_presets import PresetInvalid
+        try:
+            course_values(value['course_region'])
+        except PresetInvalid:
+            invalid()
     if (type(value['revision']) is not int or not 1 <= value['revision'] <= 9_007_199_254_740_991
             or value['pose_reference'] != 'FASTLIO_IMU' or value['units'] != 'metres_degrees'
             or not isinstance(value['map_frame'], str) or not 0 < len(value['map_frame']) <= 80
@@ -77,11 +85,31 @@ def run_seeded_arrays(*, scan_bytes, map_bytes, context, cancel_event, timeout_s
     if not 60 <= len(target) <= 100_000:
         raise ObservationAlignmentError('LOCAL_REFERENCE_POINT_LIMIT_60_TO_100000')
     worker = RegistrationWorker()
+    deadline = started + timeout_s
+    iterations = []
+    course = context['seed'].get('course_region')
+    if course is not None:
+        from ..course_regions import course_values
+        course = course_values(course)
+        if any(course[k] != context[k] for k in ('map_id', 'map_revision', 'map_frame')):
+            raise ObservationAlignmentError('COURSE_MAP_CHANGED')
+    options = dict(cancel_event=cancel_event, **({'course_region': course} if course else {}))
     try:
         result, transform = worker.solve(
             (context['map_id'], context['map_revision'], context['seed']['revision']), target,
             context['map_frame'], points, 'body', int(context['source_stamp_ns']), initial,
-            started + timeout_s, cancel_event=cancel_event)
+            deadline, **options)
+        iterations.append(result['metrics']['iterations'])
+        # One bounded continuation of this same frozen scan, hypothesis and
+        # deadline. A 40-step limit is not a quality failure or a new seed.
+        # All other rejection reasons and out-of-prior results remain rejected.
+        within = all(v <= bounds[k] + 1e-8 for k, v in prior_delta(initial, transform).items())
+        if result['reason'] == 'NOT_CONVERGED' and within:
+            result, transform = worker.solve(
+                (context['map_id'], context['map_revision'], context['seed']['revision']), target,
+                context['map_frame'], points, 'body', int(context['source_stamp_ns']), transform,
+                deadline, **options)
+            iterations.append(result['metrics']['iterations'])
     finally:
         worker.close()
     delta = prior_delta(initial, transform)
@@ -93,6 +121,8 @@ def run_seeded_arrays(*, scan_bytes, map_bytes, context, cancel_event, timeout_s
                 seed_revision=context['seed']['revision'], map_from_scan=transform.tolist(),
                 initial_map_from_scan=initial.tolist(), delta=delta, bounds=bounds,
                 numerical=result, ambiguity_unresolved=True, hypotheses_tested=1,
+                region_weighting=result.get('region_weighting'),
+                refinement_pass_iterations=iterations, total_refinement_iterations=sum(iterations),
                 search_method='single-seed-coarse-to-fine',
                 evaluation_scope='FULL_CAPTURE_AGAINST_PRIOR_REACHABLE_SCAN_FOOTPRINT',
                 scan_points=len(points), reference_points=len(target), full_map_points=len(reference),

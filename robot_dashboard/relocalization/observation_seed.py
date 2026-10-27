@@ -22,7 +22,7 @@ def voxel_centroids(points: np.ndarray) -> np.ndarray:
     return sums / counts[:, None]
 
 
-def prepare_seed(grid, points, target_frame, frame, stamp_ns, seed, deadline):
+def prepare_seed(grid, points, target_frame, frame, stamp_ns, seed, deadline, *, course_region=None):
     """Keep close seeds unchanged; smooth a poor local seed once, under one deadline.
 
     The half-voxel trigger is a work-selection threshold, not an acceptance
@@ -41,11 +41,13 @@ def prepare_seed(grid, points, target_frame, frame, stamp_ns, seed, deadline):
     query = voxel_centroids(points)
     if min(len(coarse), len(query)) < MIN_POINTS:
         return seed, None
+    from ..course_regions import course_weights
     result = register_se3(
         Cloud(coarse, target_frame, 'REGISTERED_MAP'),
         Cloud(query, frame, 'REGISTERED_QUERY', stamp_ns=stamp_ns), seed,
         reference_limit=100_000,
         nearest=lambda moved, _: coarse_grid.nearest(moved, deadline=deadline),
+        **({'reference_weights': course_weights(coarse, course_region)} if course_region else {}),
     )
     pose = result['pose']
     refined = from_translation_rpy([pose[k] for k in ('x', 'y', 'z')],

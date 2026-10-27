@@ -40,6 +40,8 @@ def anchor_values(value):
 
 
 class ObservationPresetStore:
+    values_validator = staticmethod(anchor_values)
+
     def __init__(self, directory: Path, catalog):
         self.directory, self.catalog = Path(directory), catalog
 
@@ -60,7 +62,7 @@ class ObservationPresetStore:
         if directory.is_symlink():
             raise PresetInvalid("프리셋 저장 디렉터리를 확인해 주세요.")
         directory.mkdir(exist_ok=True, mode=0o700)
-        return NavigationPresetStore(directory, anchor_values)
+        return NavigationPresetStore(directory, self.values_validator)
 
     def snapshot(self, map_id):
         context = self._context(map_id)

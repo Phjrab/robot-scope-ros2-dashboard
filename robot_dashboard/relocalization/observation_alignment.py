@@ -251,18 +251,21 @@ def project_query(cloud: dict[str, Any], pose: dict[str, Any], now: float, *,
     }
 
 
-def solve_prepared(reference, grid, target_frame, points, frame, stamp_ns, seed, deadline):
+def solve_prepared(reference, grid, target_frame, points, frame, stamp_ns, seed, deadline, *, course_region=None):
     """Pure numerical work shared by inline diagnostics and the isolated worker."""
     from .observation_seed import prepare_seed
     with measure("local_seed"):
-        seed, refinement = prepare_seed(grid, points, target_frame, frame, stamp_ns, seed, deadline)
+        seed, refinement = prepare_seed(grid, points, target_frame, frame, stamp_ns, seed, deadline,
+                                        **({'course_region': course_region} if course_region else {}))
+    from ..course_regions import course_membership, course_weights
     def nearest(query, _):
         with measure("nearest"):
             return grid.nearest(query, deadline=deadline)
     with measure("registration"):
         result = register_se3(Cloud(reference, target_frame, "REGISTERED_MAP"),
             Cloud(points, frame, "REGISTERED_QUERY", stamp_ns=stamp_ns), seed,
-            reference_limit=100_000, nearest=nearest)
+            reference_limit=100_000, nearest=nearest,
+            **({'reference_weights': course_weights(reference, course_region)} if course_region else {}))
     p = result["pose"]
     transform = from_translation_rpy([p[k] for k in ("x", "y", "z")], [p[k] for k in ("roll_rad", "pitch_rad", "yaw_rad")])
     indices, squared = nearest(transform_points(transform, points), reference)
@@ -277,6 +280,25 @@ def solve_prepared(reference, grid, target_frame, points, frame, stamp_ns, seed,
         result["status"], result["reason"] = "REJECTED", "DEGENERATE_MATCHED_GEOMETRY"
     result["metrics"]["matched_geometry_min_max_eigen_ratio"] = ratio
     result["metrics"]["inlier_count"] = len(matched)
+    if course_region is not None:
+        membership = course_membership(matched, course_region)
+        weights = course_weights(matched, course_region)
+        weighted_ratio = 0.
+        if len(matched) >= 60:
+            centered = matched - np.average(matched, axis=0, weights=weights)
+            eigen = np.linalg.eigvalsh((centered * weights[:, None]).T @ centered / weights.sum())
+            weighted_ratio = float(eigen[0] / max(eigen[-1], 1e-12))
+        # Weighting may not manufacture quality: full-input gates above remain,
+        # and the weighted geometry must also support the six-dimensional fit.
+        if not membership.any():
+            result['status'], result['reason'] = 'REJECTED', 'NO_COURSE_MATCHES'
+        elif weighted_ratio < MIN_GEOMETRY_RATIO:
+            result['status'], result['reason'] = 'REJECTED', 'WEIGHTED_DEGENERATE_MATCHED_GEOMETRY'
+        result['region_weighting'] = dict(course_matches=int(membership.sum()), surrounding_matches=int((~membership).sum()),
+            course_weight=1., surrounding_weight=course_region['outside_weight'],
+            course_weight_share=float(membership.sum()/weights.sum()) if len(weights) else 0.,
+            weighted_geometry_min_max_eigen_ratio=weighted_ratio,
+            full_input_unweighted_rmse_m=result['metrics']['rmse_m'])
     if refinement is not None:
         result["seed_refinement"] = refinement
     return result, transform

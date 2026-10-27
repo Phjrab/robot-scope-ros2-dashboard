@@ -186,9 +186,13 @@ def _nearest(source: np.ndarray, target: np.ndarray) -> tuple[np.ndarray, np.nda
     return indices, distances
 
 
-def _rigid_fit(source: np.ndarray, target: np.ndarray) -> np.ndarray:
-    source_center, target_center = source.mean(axis=0), target.mean(axis=0)
-    covariance = (source - source_center).T @ (target - target_center)
+def _rigid_fit(source: np.ndarray, target: np.ndarray, weights=None) -> np.ndarray:
+    if weights is None:
+        source_center, target_center = source.mean(axis=0), target.mean(axis=0)
+        covariance = (source - source_center).T @ (target - target_center)
+    else:
+        source_center, target_center = np.average(source, axis=0, weights=weights), np.average(target, axis=0, weights=weights)
+        covariance = ((source - source_center) * weights[:, None]).T @ (target - target_center)
     u, _, vt = np.linalg.svd(covariance)
     correction = np.eye(3)
     correction[2, 2] = np.linalg.det(vt.T @ u.T)
@@ -214,10 +218,16 @@ def register_se3(
     reference: Cloud, query: Cloud, initial_t_target_source: Any, *,
     reference_limit: int = MAX_POINTS,
     nearest: Callable[[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]] | None = None,
+    reference_weights=None,
 ) -> dict[str, Any]:
     """One bounded local hypothesis, not global relocalization or pose application."""
     target = reference.validated(reference=True, max_points=reference_limit)
     source = query.validated(reference=False)
+    if reference_weights is not None:
+        reference_weights = np.asarray(reference_weights, dtype=np.float64)
+        if (reference_weights.shape != (len(target.points),) or not np.isfinite(reference_weights).all()
+                or np.any(reference_weights < .1) or np.any(reference_weights > 1)):
+            raise ExperimentalSE3Error('invalid reference weights')
     nearest_points = nearest or _nearest
     pose = validate_transform(initial_t_target_source)
     started = time.monotonic()
@@ -235,7 +245,10 @@ def register_se3(
         if int(mask.sum()) < MIN_POINTS:
             reason = "INSUFFICIENT_OVERLAP"
             break
-        delta = _rigid_fit(moved[mask], target.points[indices[mask]])
+        if reference_weights is None:
+            delta = _rigid_fit(moved[mask], target.points[indices[mask]])
+        else:
+            delta = _rigid_fit(moved[mask], target.points[indices[mask]], reference_weights[indices[mask]])
         pose = compose(delta, pose)
         step_translation = float(np.linalg.norm(delta[:3, 3]))
         step_rotation = rotation_error_rad(delta, np.eye(4))

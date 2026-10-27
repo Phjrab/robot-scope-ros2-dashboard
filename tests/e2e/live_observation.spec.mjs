@@ -54,6 +54,7 @@ async function fixture(page, {identityUnavailable=false,subscriptionEvidence=fal
     return route.fulfill({status:200,contentType:'application/octet-stream',body:frame});
   });
   backend.on('/api/v1/saved-maps',({json})=>json({maps:[meta],total_size_bytes:1000}));
+  backend.on(`/api/v1/observations/course-regions/${id}`,({json})=>json({map:{map_id:id,map_revision:revision,map_frame:'map'},presets:[],incompatible_count:0}));
   backend.on(meta.data_url,({json})=>json({...meta,map_id:id,seq:1,points,units:'m',source_points:5}));
   backend.on('/api/v1/observations/map-alignment',({json,body})=>{
     const fallback=body.provenance_mode==='subscription_observation',candidate=fallback?'CANDIDATE_SOURCE_UNVERIFIED':'CANDIDATE';
@@ -745,6 +746,8 @@ test('map seed clicks reach request and candidate apply; draft and active pose s
   const {backend,writes,errors}=await fixture(page,{imu:true,sessionReady:true});const local=seededBackend(backend);
   await page.locator('#savedLive_z').fill('2.4');
   await seedStart(page);
+  await expect.poll(()=>page.evaluate(()=>window.observationScene.getOfficialRobotModelStatus().state)).toBe('ready');
+  await expect(page.locator('#mapSeed')).toContainText('Go2 URDF 모델');
   await expect(page.locator('#savedLive_x')).toHaveValue('-0.6');
   await expect(page.locator('#savedLive_yaw')).toHaveValue('0');
   await expect(page.locator('#savedLive_z')).toHaveValue('2.4');
@@ -836,4 +839,55 @@ test('local cancellation and source replacement preserve the prior and never ret
   await expect(page.locator('#savedLive_x')).toHaveValue('-0.6');
   await expect(page.locator('#mapSeedResult')).toContainText('다시 정합');
   expect(writes).toEqual([local.root,local.path.replace('/anchor-proposal','/cancel')]);expect(errors).toEqual([]);
+});
+
+test('course boundary manual drawing, save, reload and real seed payload preserve active observation',async({page},testInfo)=>{
+  const {backend,writes,errors}=await fixture(page,{imu:true});const local=seededBackend(backend);
+  const root=`/api/v1/observations/course-regions/${id}`,map={map_id:id,map_revision:revision,map_frame:'map'};let presets=[];
+  backend.on(root,({json,body,request})=>{
+    if(request.method()==='POST'){
+      const {name,...rest}=body,preset={id:'user-'+'d'.repeat(32),label:name,values:{...map,...rest,units:'m'}};
+      presets.push(preset);return json({preset,presets},201);
+    }
+    return json({map,presets,incompatible_count:0});
+  });
+  await seedStart(page);const original=await page.evaluate(()=>window.observationScene.sensorObservationOverlay.pose.origin);
+  await page.locator('#mapCourseDraw').click();await page.waitForTimeout(400);
+  for(const [x,y] of [[-1,-1],[1,-1],[1,1],[-1,1]])await seedTap(page,x,y);
+  await page.locator('#mapCourseFinish').click();await expect(page.locator('#mapSeedSearch')).toBeDisabled();
+  expect(await page.evaluate(()=>window.observationScene.courseRegionPreview.confirmed)).toBe(false);
+  await page.locator('#mapCourseName').fill('경기장 코스');await page.locator('#mapCourseSave').click();
+  await expect(page.locator('#mapCourseStatus')).toContainText('저장된 코스 영역 사용');
+  await expect(page.locator('#mapSeedSearch')).toBeEnabled();await page.locator('#mapSeedSearch').click();
+  await expect(page.locator('#mapSeedApply')).toBeEnabled();
+  const course=local.state.requests[0].seed.course_region;expect(course).toMatchObject({...map,outside_weight:.25,confirmed:true,units:'m'});
+  expect(course.polygon[0][0]).toBeCloseTo(-1,5);expect(course.polygon[2][1]).toBeCloseTo(1,5);
+  expect(await page.evaluate(()=>window.observationScene.sensorObservationOverlay.pose.origin)).toEqual(original);
+  await page.locator('#mapCourseSaved').selectOption('');await expect(page.locator('#mapSeedApply')).toBeDisabled();
+  await page.locator('#mapCourseReload').click();await expect(page.locator('#mapCourseSaved')).toHaveValue(presets[0].id);
+  expect(await page.evaluate(()=>window.observationScene.courseRegionPreview.confirmed)).toBe(true);
+  await page.locator('#mapCourseWeight').selectOption('0.5');await expect(page.locator('#mapSeedSearch')).toBeDisabled();
+  await page.locator('#mapCourseCancel').click();await expect(page.locator('#mapCourseWeight')).toHaveValue('0.25');
+  await page.locator('.saved-map-panel').screenshot({path:testInfo.outputPath('synthetic-saved-course.png')});
+  await page.locator('#mapCourse').screenshot({path:testInfo.outputPath('synthetic-course-controls.png')});
+  expect(writes).toEqual([root,local.root]);expect(errors).toEqual([]);
+});
+
+test('late saved course and late registration cannot overwrite a new boundary draft',async({page})=>{
+  const {backend,errors}=await fixture(page,{imu:true});const local=seededBackend(backend);
+  let release,entered=false;const gate=new Promise(r=>{release=r;});
+  const root=`/api/v1/observations/course-regions/${id}`;
+  backend.on(root,async({json})=>{entered=true;await gate;return json({map:{map_id:id,map_revision:revision,map_frame:'map'},
+    presets:[{id:'user-'+'e'.repeat(32),label:'old',values:{map_id:id,map_revision:revision,map_frame:'map',
+      polygon:[[-2,-2],[2,-2],[2,2],[-2,2]],outside_weight:.25,confirmed:true,units:'m'}}],incompatible_count:0});});
+  await page.locator('#mapCourseReload').click();await expect.poll(()=>entered).toBe(true);
+  await page.locator('#mapCourseSuggest').click();release();await page.waitForTimeout(100);
+  expect(await page.evaluate(()=>window.observationScene.courseRegionPreview.confirmed)).toBe(false);
+  await expect(page.locator('#mapCourseStatus')).toContainText('초안');await page.locator('#mapCourseCancel').click();
+  let proposalRelease,proposalEntered=false;const proposalGate=new Promise(r=>{proposalRelease=r;});
+  backend.on(local.path,async({json})=>{proposalEntered=true;await proposalGate;return json(local.state.value);});
+  await seedStart(page);await page.locator('#mapSeedSearch').click();await expect.poll(()=>proposalEntered).toBe(true);
+  await page.locator('#mapCourseSuggest').click();proposalRelease();await page.waitForTimeout(100);
+  await expect(page.locator('#mapSeedApply')).toBeDisabled();await expect(page.locator('#savedLiveCenter')).toBeEnabled();
+  expect(await page.evaluate(()=>window.observationScene.initializationPreview.candidate)).toBeNull();expect(errors).toEqual([]);
 });

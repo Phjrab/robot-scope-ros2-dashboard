@@ -62,6 +62,7 @@ class ApplicationRuntime:
     sensor_tracking: Any | None = None
     fastlio_observation: Any | None = None
     observation_presets: Any | None = None
+    course_regions: Any | None = None
 
     pipeline_coordination_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     json_cache: Dict[str, tuple[int, bytes]] = field(default_factory=dict)
@@ -70,6 +71,12 @@ class ApplicationRuntime:
     control_bindings: Dict[str, str] = field(default_factory=dict)
     robot_discovery: LocalRobotDiscovery = field(default_factory=LocalRobotDiscovery)
     resources: ResourceMonitor = field(default_factory=ResourceMonitor)
+
+    def configure_observation_stores(self, directory: Path, catalog: Any) -> None:
+        from ..observation_presets import ObservationPresetStore
+        from ..course_regions import CourseRegionStore
+        self.observation_presets = ObservationPresetStore(directory / 'observation-anchors', catalog)
+        self.course_regions = CourseRegionStore(directory / 'observation-courses', catalog)
 
     def require_agent(self) -> RosAgent:
         if self.agent is None:

@@ -905,6 +905,26 @@
       return point.every(Number.isFinite) ? point : null;
     }
 
+    setCourseRegionPreview(value) {
+      this.courseRegionPreview = value && value.frameId === this.cloud.frameId ? {
+        frameId:value.frameId, polygon:value.polygon.slice(0,64).map(p=>p.slice()), confirmed:value.confirmed === true,
+      } : null;
+      this.render();
+    }
+
+    _drawCourseRegionPreview() {
+      const value=this.courseRegionPreview;
+      if(!value || value.frameId!==this.cloud.frameId || !value.polygon.length)return;
+      const ctx=this.ctx,points=value.polygon.map(([x,y])=>this._project([x,y,this.options.groundZ||0]));
+      if(points.some(p=>!p))return;
+      ctx.save();ctx.strokeStyle=value.confirmed?'#66e0b0':'#f7c75f';ctx.fillStyle=value.confirmed?'rgba(102,224,176,.12)':'rgba(247,199,95,.12)';ctx.lineWidth=2;
+      if(!value.confirmed)ctx.setLineDash([6,4]);
+      ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
+      if(points.length>=3){ctx.closePath();ctx.fill();}ctx.stroke();ctx.setLineDash([]);
+      points.forEach((p,i)=>{ctx.beginPath();ctx.arc(p.x,p.y,4,0,TAU);ctx.stroke();ctx.fillStyle=ctx.strokeStyle;ctx.fillText(String(i+1),p.x+6,p.y-6);});
+      ctx.restore();
+    }
+
     setInitializationPreview(value) {
       const valid = value && value.frameId === this.cloud.frameId;
       this.initializationPreview = valid ? {
@@ -922,7 +942,7 @@
         [value.candidate, value.applied ? '적용한 정합 후보' : '정합 후보 · 미적용', '#79caff']]) {
         if (!pose) continue;
         ctx.save(); ctx.globalAlpha = .42;
-        this._drawRobot(pose, label);
+        this._drawRobot(pose, label, color);
         ctx.restore(); ctx.save(); ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2;
         const start = [pose.x, pose.y, pose.z];
         const end = [pose.x+Math.cos(pose.yaw)*.9, pose.y+Math.sin(pose.yaw)*.9, pose.z];
@@ -1241,6 +1261,7 @@
       this._drawSensorObservationOverlay();
       if (this.robotVisible) this._drawRobot();
       this._drawInitializationPreview();
+      this._drawCourseRegionPreview();
       this._drawHud();
       const completedAt = monotonicNow();
       const elapsed = clamp(completedAt - drawStartedAt, 0, 10_000);

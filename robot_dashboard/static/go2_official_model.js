@@ -293,7 +293,9 @@
           faces.push({
             points: screen,
             depth: (screen[0].depth + screen[1].depth + screen[2].depth) / 3,
-            fill: shadedColor(group.rgb, shade, alpha),
+            fill: shadedColor(observation?.tint
+              ? group.rgb.map((v, i) => v * .35 + observation.tint[i] * .65)
+              : group.rgb, shade, alpha),
           });
         }
       });
@@ -323,7 +325,7 @@
     ctx.restore();
 
     const labelAnchor = scene._project([pose.x, pose.y, baseZ + 0.42 * scale]);
-    if (labelAnchor) scene._drawRobotLabel(labelAnchor, pose);
+    if (labelAnchor && !observation?.suppressLabel) scene._drawRobotLabel(labelAnchor, pose);
   }
 
   function drawModelPlaceholder(scene) {
@@ -469,19 +471,28 @@
       };
     };
 
-    prototype._drawRobot = function drawGo2OfficialOrFallback(previewPose = null, previewLabel = null) {
-      // Seed silhouettes use the existing metre-scale geometry at their own
-      // IMU prior. Never substitute the telemetry/observed robot here.
-      if (previewPose) return fallbackDrawRobot.call(this, previewPose, previewLabel);
+    prototype._drawRobot = function drawGo2OfficialOrFallback(previewPose = null, previewLabel = null, previewColor = null) {
       const config = this._ensureGo2OfficialConfig();
-      if (!config.enabled) return fallbackDrawRobot.call(this);
+      if (!config.enabled) return fallbackDrawRobot.call(this, previewPose, previewLabel);
       if (this._go2OfficialRuntime && this._go2OfficialLoadedUrl === config.assetUrl) {
+        if (previewPose) {
+          // Reuse the actual URDF-derived mesh and joint hierarchy at the seed
+          // pose, in metres. Neither telemetry pose nor ground height is added.
+          const observed = this.observedRobotModel;
+          const joints = observed && performance.now() <= observed.expires_at
+            ? observed.joints : this._go2OfficialRuntime.asset.skeleton.default_joint_positions || {};
+          return drawOfficialRobot(this, this._go2OfficialRuntime, {
+            pose: previewPose, joints, suppressLabel: true,
+            tint: previewColor ? parseHex(previewColor) : null,
+          });
+        }
         return drawOfficialRobot(this, this._go2OfficialRuntime);
       }
       if ((!this._go2OfficialPromise || this._go2OfficialLoadingUrl !== config.assetUrl)
           && (this._go2OfficialState !== 'error' || this._go2OfficialFailedUrl !== config.assetUrl)) {
         this.loadOfficialRobotModel(config.assetUrl).catch(() => {});
       }
+      if (previewPose) return fallbackDrawRobot.call(this, previewPose, previewLabel);
       return this._robotModelType && this._robotModelType !== 'go2'
         ? drawModelPlaceholder(this)
         : fallbackDrawRobot.call(this);

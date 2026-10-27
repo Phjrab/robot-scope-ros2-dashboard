@@ -17,6 +17,7 @@ from robot_dashboard.application.runtime import ApplicationRuntime
 from robot_dashboard.relocalization.experimental_se3 import from_translation_rpy, transform_points
 from robot_dashboard.relocalization.global_observation_jobs import GlobalObservationConflict, GlobalObservationValidationError
 from robot_dashboard.relocalization.seeded_initialization import run_seeded_arrays, validate_seed, prior_delta
+from robot_dashboard.relocalization.observation_worker import RegistrationWorker
 from test_anchor_proposal import Catalog, Runner, set_pose, MAP_ID, REVISION
 from test_navigation_presets import LocalASGIClient
 from test_observation_alignment import Agent, inputs
@@ -78,6 +79,37 @@ class SeededInitializationTests(unittest.TestCase):
         result=self.solve(target=unrelated)
         self.assertFalse(result['admissible']);self.assertNotEqual(result['reason'],'CANDIDATE')
 
+    def test_continuation_keeps_input_deadline_and_original_bounds_and_never_loops(self):
+        first=self.initial.copy();first[0,3]+=.5
+        outside=self.initial.copy();outside[0,3]+=.9
+        rejected=dict(status='REJECTED',reason='NOT_CONVERGED',metrics=dict(iterations=40))
+        candidate=dict(status='CANDIDATE',reason='CANDIDATE',metrics=dict(iterations=24))
+        with patch.object(RegistrationWorker,'solve',side_effect=[(rejected,first),(candidate,outside)]) as solve:
+            result=self.solve()
+        self.assertEqual(solve.call_count,2)
+        a,b=solve.call_args_list
+        for index in (0,2,4,5,7):self.assertEqual(a.args[index],b.args[index])
+        for index in (1,3):self.assertIs(a.args[index],b.args[index])
+        np.testing.assert_array_equal(b.args[6],first)
+        self.assertIs(a.kwargs['cancel_event'],b.kwargs['cancel_event'])
+        self.assertEqual(result['reason'],'OUTSIDE_SEED_BOUNDS')
+        self.assertEqual(result['refinement_pass_iterations'],[40,24])
+        self.assertEqual(result['total_refinement_iterations'],64)
+        with patch.object(RegistrationWorker,'solve',return_value=(rejected,first)) as solve:
+            result=self.solve()
+        self.assertEqual(solve.call_count,2);self.assertEqual(result['reason'],'NOT_CONVERGED')
+        self.assertFalse(result['admissible']);self.assertEqual(result['total_refinement_iterations'],80)
+
+    def test_quality_or_bounds_failure_never_uses_continuation(self):
+        for reason,transform in [('HIGH_RESIDUAL',self.initial),('DEGENERATE_GEOMETRY',self.initial),
+                ('CANDIDATE',self.initial),('NOT_CONVERGED',self.initial)]:
+            transform=transform.copy()
+            if reason=='NOT_CONVERGED':transform[0,3]+=1
+            result=dict(status='CANDIDATE' if reason=='CANDIDATE' else 'REJECTED',reason=reason,metrics=dict(iterations=40))
+            with self.subTest(reason=reason),patch.object(RegistrationWorker,'solve',return_value=(result,transform)) as solve:
+                self.solve()
+                self.assertEqual(solve.call_count,1)
+
     def test_angle_wrap_and_all_six_bound_dimensions(self):
         a=from_translation_rpy([0,0,2],[0,0,math.radians(179)])
         b=from_translation_rpy([0,0,2.1],[.1,.2,math.radians(-179)])
@@ -112,6 +144,8 @@ class SeededInitializationTests(unittest.TestCase):
 
     def test_api_to_real_worker_and_seed_capture_current_propagation(self):
         owner,agent,seed,global_runner,odom=self.fixture()
+        seed['course_region']=dict(map_id=MAP_ID,map_revision=REVISION,map_frame='map',units='m',confirmed=True,
+            polygon=[[2,-5],[4,-5],[4,-1],[2,-1]],outside_weight=.25)
         delta=from_translation_rpy([.08,-.03,.02],[.01,-.01,.02]);odom_capture=odom@delta
         def capture(*args,**kwargs):
             set_pose(agent.pose,odom_capture)
@@ -127,6 +161,9 @@ class SeededInitializationTests(unittest.TestCase):
             job=self.wait(owner,response.json())
         self.assertEqual(job['state'],'succeeded',job)
         result=job['result']['observation'];self.assertTrue(result['admissible'],result)
+        self.assertGreater(result['region_weighting']['course_matches'],0)
+        self.assertGreater(result['region_weighting']['surrounding_matches'],0)
+        self.assertEqual(result['region_weighting']['surrounding_weight'],.25)
         np.testing.assert_allclose(job['captured_context']['T_map_imu_seed_capture'],self.initial@delta,atol=1e-10)
         self.assertIsNone(global_runner.context,'seeded jobs must not invoke an unavailable global backend')
         current=odom_capture@from_translation_rpy([.05,0,0],[0,0,.01]);set_pose(agent.pose,current)
@@ -138,6 +175,9 @@ class SeededInitializationTests(unittest.TestCase):
         self.assertNotEqual(proposal['proposal_stamp_ns'],proposal['capture_stamp_ns'])
         changed={**seed,'pose':{**seed['pose'],'x':8}}
         with self.assertRaises(GlobalObservationConflict):owner.start('seed-api',MAP_ID,REVISION,input_kind='fastlio_imu',search_mode='seeded_local',seed=changed)
+        changed_course={**seed,'course_region':{**seed['course_region'],'map_revision':'c'*64}}
+        with self.assertRaisesRegex(GlobalObservationConflict,'COURSE_MAP_CHANGED'):
+            owner.start('different-course',MAP_ID,REVISION,input_kind='fastlio_imu',search_mode='seeded_local',seed=changed_course)
         agent.pose['observation']['publisher_epoch']='a'*32
         with self.assertRaises(GlobalObservationConflict):owner.anchor_proposal(job['job_id'])
 

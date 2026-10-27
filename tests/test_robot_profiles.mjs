@@ -213,7 +213,7 @@ test('approximate URDF layer uses measured sitting joints and pure z motion inde
   assert.equal(scene.setObservedRobotModel({...value,joints:{}}),false); assert.equal(scene.observedRobotModel,null);
 });
 
-test('official renderer forwards seed silhouettes to the metre-scale preview geometry without reading telemetry',()=>{
+test('official renderer keeps metric seed fallback while the URDF asset is unavailable',()=>{
   const calls=[];
   class Scene {
     _drawRobot(...args){calls.push(args);}
@@ -225,4 +225,33 @@ test('official renderer forwards seed silhouettes to the metre-scale preview geo
   const scene=new Scene(),prior={x:2,y:3,z:1.4,roll:.1,pitch:.2,yaw:.3};
   scene._drawRobot(prior,'사용자 초기값 · IMU 근사');
   assert.deepEqual(calls,[[prior,'사용자 초기값 · IMU 근사']]);
+});
+
+test('seed preview uses URDF meshes at its own six-DoF pose, tint and metric scale without telemetry pose',async()=>{
+  const asset=JSON.parse(readFileSync(new URL('../robot_dashboard/static/assets/go2/go2-official-lite.json',import.meta.url),'utf8'));
+  let vertices=[],fills=[],now=0;
+  class Scene {
+    constructor(){this.width=640;this.height=360;this.options={};this.robotPose={x:99};this.ctx=new Proxy({}, {
+      get:()=>()=>{},set:(_obj,key,value)=>{if(key==='fillStyle')fills.push(value);return true;}});}
+    _drawRobot(){throw new Error('loaded URDF must not use procedural geometry');}
+    _effectiveRobotPose(){throw new Error('seed must not use telemetry pose');}
+    _drawRobotLabel(){throw new Error('seed labels are drawn by the preview layer');}
+    render(){}
+    _project(p){vertices.push(Array.from(p));return {x:320+p[0]*20,y:180+p[1]*20,depth:2};}
+  }
+  const sandbox={RobotScene3D:Scene,performance:{now:()=>now},fetch:async()=>({ok:true,json:async()=>asset})};
+  sandbox.window=sandbox;sandbox.globalThis=sandbox;runInNewContext(rendererSource,sandbox);
+  const scene=new Scene();await scene.loadOfficialRobotModel();scene.configureOfficialRobot({scale:8,poseOrigin:'ground'});
+  const prior={x:2,y:-3,z:1.4,roll:.1,pitch:.2,yaw:.3};
+  scene._drawRobot(prior,'seed','#ffc36b');const first=vertices,orange=fills;
+  assert.ok(first.length>1000,'actual mesh vertices, not the fallback cuboids');
+  vertices=[];fills=[];scene.configureOfficialRobot({scale:.2,poseOrigin:'base'});scene.camera={distance:200};
+  scene._drawRobot({...prior,x:prior.x+1,z:prior.z+.5},'candidate','#79caff');
+  vertices.forEach((p,i)=>{assert.ok(Math.abs(p[0]-first[i][0]-1)<1e-9);assert.ok(Math.abs(p[1]-first[i][1])<1e-9);assert.ok(Math.abs(p[2]-first[i][2]-.5)<1e-9);});
+  assert.notDeepEqual(fills,orange,'draft and candidate tint their actual meshes');
+  const joints={...asset.skeleton.default_joint_positions,FR_thigh_joint:1.4};
+  scene.observedRobotModel={joints,expires_at:100};vertices=[];scene._drawRobot(prior,'seed','#ffc36b');
+  assert.ok(vertices.some((p,i)=>Math.hypot(...p.map((v,k)=>v-first[i][k]))>.01));
+  now=101;vertices=[];scene._drawRobot(prior,'seed','#ffc36b');assert.deepEqual(vertices,first,'expired joints use preview defaults');
+  assert.deepEqual(scene.robotPose,{x:99});assert.equal(scene._go2OfficialPendingJoints,undefined);
 });

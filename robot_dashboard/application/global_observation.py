@@ -139,6 +139,9 @@ class GlobalObservationCoordinator:
                 from ..relocalization.observation_alignment import ObservationAlignmentError
                 if seed['map_frame'] != metadata.get('frame_id'):
                     raise GlobalObservationConflict('SEED_MAP_FRAME_CHANGED')
+                course = seed.get('course_region')
+                if course and (course['map_id'], course['map_revision'], course['map_frame']) != (map_id, map_revision, metadata.get('frame_id')):
+                    raise GlobalObservationConflict('COURSE_MAP_CHANGED')
                 try:
                     binding = bind_local_seed(self._agent, seed, provenance_mode)
                 except ObservationAlignmentError as exc:

@@ -71,3 +71,8 @@
 #mapSeedBounds label { display:inline-flex; gap:8px; align-items:center; margin:8px; }
 #mapSeedBounds input { width:80px; }
 #savedLiveCoordinates summary { cursor:pointer; padding:10px 0; }
+#mapCourse { border-top:1px solid var(--line); padding-top:10px; }
+#mapCourse > summary { cursor:pointer; padding:4px 0 10px; }
+#mapCourse > :not(summary) { margin-bottom:10px; }
+#mapCourse > label { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+#mapCourse :is(input,select) { max-width:100%; min-width:0; }
