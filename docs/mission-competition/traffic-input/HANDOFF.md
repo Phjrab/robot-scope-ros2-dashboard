@@ -2,7 +2,7 @@
 
 - 브랜치: `review/20261024-c4-traffic-replay`
 - 검증한 구현·코드 제출 SHA: `3f9f2ba33021f18418bb9bf2ab379f972d16f029`
-- 통합 대상 확인 기준 main: `d6e3fe9675f31e436f5236b390e36e188934f473`
+- 제출 직전 main: `a79dc18b50a0cddee2056fe4748781cdca03aec9` (실행 코드는 검사한 `d6e3fe9`와 동일)
 - [실제 팀원 모델 인수·비교·C1 연결 보고서](TEAMMATE_MODEL_INTAKE.md)
 - [작은 검증 결과 JSON](teammate-model-results.json) / [명시적 관측 config](teammate-model-example.json)
 

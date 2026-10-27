@@ -13,12 +13,15 @@ NOT_RUN이다. 학습 시각화로 실행한 실제 추론은 입출력 smoke로
 
 | 대상 | 확인한 SHA / 결과 |
 |---|---|
-| 최신 origin/main | `d6e3fe9675f31e436f5236b390e36e188934f473` |
+| 시작 시 origin/main / 교차검사 export | `d6e3fe9675f31e436f5236b390e36e188934f473` |
+| 제출 직전 origin/main | `a79dc18b50a0cddee2056fe4748781cdca03aec9` (통합·배포 검증 문서 3개만 추가) |
 | 기존 C4 HEAD | `bf0436687a0a9dbab1ff7ac370f1bc0de42d07ad` |
 | 팀원 저장소 HEAD / 다운로드 고정 commit | `fe523233aeca933942b81df5d305777db2bb6c5d` |
 | 이번 코드·검사 source | `3f9f2ba33021f18418bb9bf2ab379f972d16f029` |
 
 원격 fetch와 Git 변경사항, ROUND3/ROUND4 및 main의 C1 ROUND3/4/5를 확인했다.
+제출 직전 main의 `a79dc18` 추가 변경 및 통합 인계 문서도 확인했다. `robot_dashboard`,
+`experiments`, `scripts`, `tests`는 검사한 d6e3fe9와 byte 변경이 없어 교차 검사를 반복하지 않았다.
 로컬 main 및 I1 디렉터리의 미커밋 변경은 보존하고 기존 C4 원격 브랜치에서 별도 worktree를 열었다.
 이번 diff는 C4 모델/config/pipeline, C4 전용 비교·검사·문서에 한정된다.
 
