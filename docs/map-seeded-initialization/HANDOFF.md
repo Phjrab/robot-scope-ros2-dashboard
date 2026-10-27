@@ -382,3 +382,60 @@ JavaScript **678 pass**, Playwright 관측 전체 **28/28 pass**. 마지막 poin
 tracked-source credential scan, diff check가 통과했다. 최초 전체 실행의 API inventory
 수량 및 app.py 크기 제한 4개 실패는 새 endpoint 수 반영과 기존 runtime 구성 모듈로의
 저장소 초기화 이동으로 해결했으며 제한값을 올리지 않았다.
+
+### 코스 기능 첫 배포와 사용자 경계 확인
+
+`b8e438dfe4099aea8dcc1d62aef5fc2941ecfd5b`를 2026-10-27 15:00 KST경 배포했다.
+실제 cwd는 `/home/unitree/robot-scope-releases/robot-scope-b8e438dfe409`, PID 148083,
+source 2,130개 hash 일치, 지도 28개와 기존 지도/preset 파일 82개 hash가 보존됐다.
+백업은 `/home/unitree/robot-scope-backups/i1-20261027-b8e438dfe409`이며 사용자 데이터
+4,388개 파일 / 868,454,400-byte tar와 두 환경 파일을 보존했다. 기존 관측 세션은 30분
+제한으로 종료됐다. 일시적인 ownership UNKNOWN으로 첫 시도는 변경 전에 중단했고,
+재확인 후 고정 서비스 도구로 전환했다. rollback 대상은 이전 `54721fe6dd33` release다.
+control 비활성 0을 유지하고 실제 로봇 명령은 수행하지 않았다.
+
+새 장비 실행본에서 같은 사용자 seed로 계산한 job `0222ccde177e300812812139`는
+209점, fine 33회, 558.76ms, overlap 1.0, RMSE .05690371m였다. 수렴했지만 기존 .05m
+기준 때문에 HIGH_RESIDUAL로 거부됐고 관측 적용은 차단됐다. 앞의 보관 입력 20쌍과
+다른 새 스캔이므로 수렴 보정/가중 효과의 전후 비교로 쓰지 않는다.
+
+사용자는 초기 제안에서 위쪽을 30% 확장하고 좌우도 넓히도록 수정한 뒤 최종 그림에
+“이 경계로 저장”으로 확인했다. 최종 polygon은 X [-1.6388967931,3.1858759820],
+Y [-4.0202355385,4.5421241760]m다. 최초 제안 대비 상단 +1.975929m, 좌우 각각
+.556705m이며 지도점 6,328개를 포함한다. `실험실 중앙 코스 · 위·좌우 확장` 이름,
+ID `user-90302feea07b435eabd398617f1854a1`, 코스 1/주변 .25로 실제 서버에 저장했다.
+GET 재읽기와 실제 Maps의 “저장된 코스 영역 사용” 및 초록색 경계 표시를 확인했다.
+앞의 미확인 초기 제안 replay와 **최종 저장 경계는 다르다**.
+
+이 커밋의 원격 [CI 40458049716](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40458049716)는
+Python/JS/통합 검사를 통과했지만 UI consistency의 합성 API fixture에 새 course-regions
+GET이 없어 404로 실패했다. `ui_consistency.spec.mjs`에 실제 API와 같은 빈 저장 목록
+응답을 추가했으며 오류 무시/검사 완화는 하지 않았다. 수정 후 390/1440px·dark/light
+네 조건이 로컬에서 통과했다.
+
+### 사용자 추가 요청: 전체 점군 오차 한도 해제
+
+위 HIGH_RESIDUAL 결과를 본 뒤 사용자가 명시적으로 “전체 점군 오차 제한 해제”를
+요청했다. 앞 절의 기본 .05m 제한 유지 방침에 대한 **후속 사용자 변경**이다.
+새 UI `전체 점군 오차 한도 사용 (5cm)`를 끄면 해당 seeded-local 요청에만
+`enforce_residual_limit:false`를 전달한다. 서버 기본값과 기존 전역/일반 정합 경로의
+기본 .05m 정책은 유지한다. 선택은 이 브라우저에 저장되며 화면에 한도 해제를 표시한다.
+
+전체 RMSE는 그대로 계산·전달·표시하고, 후보가 원래 5cm 조건을 통과했는지도
+`residual_policy.original_passed`로 남긴다. 수렴·overlap·geometry·코스 대응점 존재·
+원래 seed 범위·source/시각·명시적 관측 적용 조건은 유지한다. 반경 .75m의 최근접
+대응점 탐색 gate는 이 RMSE 한도와 별개이며 변경하지 않는다. 미수렴 보정 두 pass도
+동일 입력과 deadline으로 제한한다. 한도 해제 후보는 오차 기준 통과나 정확도 보증으로
+표시하지 않는다. 한도를 다시 켜거나 정책을 바꾸면 이전 계산 후보를 무효화한다.
+
+실제 격리 수치 검사에서 동일 high-residual 입력의 transform/RMSE가 한도 해제 전후
+같고 적용 여부만 바뀜을 확인했다. 잘못된 코스, geometry/overlap/수렴/seed 범위 거부는
+유지되며 bool 이외 정책 입력을 거부한다. API→worker 전달, UI 요청, 후보 무효화,
+브라우저 새로고침 후 선택 유지도 검사했다.
+
+오차 정책 변경의 최종 로컬 검증: Python **2,851 tests, 실패/오류 0, 14 skips**
+(103.669초), JavaScript **679 pass**, 관측 E2E **29/29**, 최종 저장 선택/정책 유지 및
+UI consistency **5/5**. 한 번의 전체 실행에서 기존 C++ extended benchmark subprocess가
+실패했으나 단독 재실행과 브라우저 시험을 겹치지 않은 최종 전체 실행이 통과했다.
+이 실패를 코드 결함 또는 부하 원인으로 확정하지 않았다. 기준/timeout을 변경하지 않았다.
+Ruff, mypy, credential scan, diff check도 통과했다.

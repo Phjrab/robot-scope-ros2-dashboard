@@ -10,6 +10,9 @@ async function fixture(page) {
   const values = {
     '/api/v1/routes': { routes: [] }, '/api/v1/mission-plans': { definitions: [], context: {} }, '/api/v1/mission-runs': { runs: [] },
     '/api/v1/saved-maps': { maps: [map], total_size_bytes: 1000 },
+    [`/api/v1/observations/course-regions/${map.id}`]: {
+      map: { map_id: map.id, map_revision: map.revision, map_frame: map.frame_id }, presets: [], incompatible_count: 0,
+    },
     [`/api/v1/observations/anchor-presets/${map.id}`]: {
       map: { map_id: map.id, map_revision: map.revision, map_frame: map.frame_id },
       presets: [], incompatible_count: 0, approximate_only: true, requires_reanchor: true,

@@ -195,4 +195,5 @@ def local_proposal_from_job(job, catalog, agent):
                 rmse_m=value['numerical']['metrics']['rmse_m'], overlap=value['numerical']['metrics']['overlap_ratio'],
                 numerical=value['numerical'], evaluation_scope=value['evaluation_scope'],
                 region_weighting=value.get('region_weighting'),
+                residual_policy=value.get('residual_policy'),
                 absolute_accuracy_m=None, body_extrinsic_verified=False, operational_application='NOT_RUN')

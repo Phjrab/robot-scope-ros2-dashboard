@@ -65,8 +65,9 @@ class CourseRegionTests(unittest.TestCase):
     def test_existing_polygon_membership_includes_edges_and_all_heights(self):
         self.assertEqual(course_membership(np.array([[0,0,100],[2,2,-100],[3,0,0]]),region()).tolist(),[True,True,False])
 
-    def solve(self,points,target,course):
+    def solve(self,points,target,course,*,enforce_residual_limit=True):
         seed=dict(revision=1,bounds=dict(xy_m=.75,yaw_deg=25,z_m=.3,tilt_deg=10))
+        seed['enforce_residual_limit']=enforce_residual_limit
         if course is not None:seed['course_region']=course
         initial=np.eye(4);initial[:3,3]=[.02,.01,.01]
         return run_seeded_arrays(scan_bytes=points.astype('<f8').tobytes(),map_bytes=target.astype('<f8').tobytes(),
@@ -90,6 +91,12 @@ class CourseRegionTests(unittest.TestCase):
         bad=target.copy();bad[100:,0]+=.2
         rejected=self.solve(points,bad,region());self.assertFalse(rejected['admissible']);self.assertEqual(rejected['reason'],'HIGH_RESIDUAL')
         self.assertGreater(rejected['numerical']['metrics']['rmse_m'],.05)
+        unlimited=self.solve(points,bad,region(),enforce_residual_limit=False)
+        self.assertTrue(unlimited['admissible'],unlimited)
+        self.assertEqual(unlimited['residual_policy'],dict(enforced=False,max_rmse_m=None,original_max_rmse_m=.05,original_passed=False))
+        np.testing.assert_allclose(unlimited['map_from_scan'],rejected['map_from_scan'],atol=1e-9)
+        self.assertEqual(unlimited['numerical']['metrics']['rmse_m'],rejected['numerical']['metrics']['rmse_m'])
         wrong=copy.deepcopy(region());wrong['polygon']=[[20,20],[21,20],[21,21],[20,21]]
         self.assertEqual(self.solve(points,target,wrong)['reason'],'NO_COURSE_MATCHES')
+        self.assertEqual(self.solve(points,target,wrong,enforce_residual_limit=False)['reason'],'NO_COURSE_MATCHES')
         with self.assertRaisesRegex(ValueError,'COURSE_MAP_CHANGED'):self.solve(points,target,{**region(),'map_revision':'c'*64})

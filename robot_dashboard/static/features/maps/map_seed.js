@@ -7,7 +7,7 @@ import { initializeCourseRegion } from './course_region.js';
 const radians = p => p && ({...p, roll:p.roll*Math.PI/180, pitch:p.pitch*Math.PI/180, yaw:p.yaw*Math.PI/180});
 export const DEFAULT_SEED_BOUNDS = Object.freeze({xy_m:.75, yaw_deg:25, z_m:.3, tilt_deg:10});
 export class MapSeedDraft {
-  constructor() { this.revision=0; this.pose=null; this.direction=false; this.heightSource='approximate'; this.bounds={...DEFAULT_SEED_BOUNDS}; this.map=null; this.course=null; }
+  constructor() { this.revision=0; this.pose=null; this.direction=false; this.heightSource='approximate'; this.bounds={...DEFAULT_SEED_BOUNDS}; this.map=null; this.course=null; this.enforceResidualLimit=true; }
   setMap(map) {
     const next=map && {id:map.id,revision:map.revision,frame:map.frame};
     if(JSON.stringify(next)===JSON.stringify(this.map)) return false;
@@ -23,6 +23,7 @@ export class MapSeedDraft {
     if(!this.valid || !source) throw new Error('초기 위치·방향과 신선한 FAST-LIO 입력이 필요합니다.');
     return {revision:this.revision,pose:{...this.pose},pose_reference:'FASTLIO_IMU',units:'metres_degrees',
       map_frame:this.map.frame,height_source:this.heightSource,bounds:{...this.bounds},source_contract:source,
+      ...(!this.enforceResidualLimit?{enforce_residual_limit:false}:{}),
       ...(this.course?{course_region:structuredClone(this.course)}:{})};
   }
 }
@@ -45,7 +46,11 @@ export function validSeedCandidate(value, draft, inputs, jobId) {
     && ['xy_m','yaw_deg','z_m','tilt_deg'].every(k=>Number.isFinite(value.delta?.[k]) && value.delta[k]>=0
       && value.bounds?.[k]===draft.bounds[k] && (!value.admissible || value.delta[k]<=draft.bounds[k]+1e-8))
     && (!value.admissible || (value.reason==='CANDIDATE' && value.numerical?.status==='CANDIDATE'
-      && value.numerical.metrics?.converged===true && value.rmse_m!==null && value.rmse_m<=.05 && value.overlap>=.6
+      && value.numerical.metrics?.converged===true && value.rmse_m!==null
+      && (draft.enforceResidualLimit?value.rmse_m<=.05
+        :value.residual_policy?.enforced===false && value.residual_policy.max_rmse_m===null
+          && value.residual_policy.original_max_rmse_m===.05 && value.residual_policy.original_passed===(value.rmse_m<=.05))
+      && value.overlap>=.6
       && value.numerical.metrics.geometry_min_max_eigen_ratio>=.002
       && value.numerical.metrics.matched_geometry_min_max_eigen_ratio>=.002));
 }
@@ -59,10 +64,16 @@ export function initializeMapSeed({host,scene,getState,getInputs,readPose,writeP
     <p>Go2 URDF 모델로 위치·방향을 미리 봅니다. 관절은 신선한 관측값이 있으면 사용하고, 없으면 모델 기본 자세로 표시합니다. XY 작업 평면을 사용하며 바닥 높이를 IMU 높이로 바꾸지 않습니다. IMU=본체 원점은 근사입니다.</p>
     <div class="saved-live-actions"><button id="mapSeedSearch" type="button" disabled>이 주변에서 자동 정합</button><button id="mapSeedRetry" type="button" hidden>같은 요청 재확인</button><button id="mapSeedWiden" type="button">범위 넓히기</button><button id="mapSeedStop" type="button" disabled>정합 취소</button></div>
     <small>정지한 현재 위치의 초기값으로 계산합니다. 단일 초기값 지역 보정이며 다른 장소의 모호함은 검증되지 않습니다.</small>
+    <label><input id="mapSeedResidualLimit" type="checkbox" checked>전체 점군 오차 한도 사용 (5cm)</label>
+    <small id="mapSeedResidualNote">전체 점군 오차가 5cm를 넘으면 후보 적용을 차단합니다.</small>
     <details id="mapSeedBounds"><summary>탐색 범위 조정</summary>${[['xy_m','위치 반경 (m)',.1,3,.1],['yaw_deg','방향 ± (°)',1,90,1],['z_m','높이 ± (m)',.01,1,.01],['tilt_deg','기울기 ± (°)',1,30,1]].map(([k,label,min,max,step])=>`<label>${label}<input data-seed-bound="${k}" type="number" min="${min}" max="${max}" step="${step}" value="${draft.bounds[k]}"></label>`).join('')}</details>
     <p id="mapSeedResult" role="status">정합 후보 없음</p><button id="mapSeedApply" type="button" disabled>제안 위치로 적용</button>`;
   host.prepend(panel);
   const el=id=>panel.querySelector('#mapSeed'+id);
+  try{draft.enforceResidualLimit=localStorage.getItem('robot-scope.seedResidualLimit')!=='off';}catch{/* Storage can be unavailable. */}
+  el('ResidualLimit').checked=draft.enforceResidualLimit;
+  const residualNote=()=>{el('ResidualNote').textContent=draft.enforceResidualLimit?'전체 점군 오차가 5cm를 넘으면 후보 적용을 차단합니다.':'전체 점군 오차 한도 해제 · 오차는 계속 표시합니다. 수렴·범위·겹침·형태 검사는 유지합니다.';};
+  residualNote();
   let candidate=null, loading=false, loadedJob=null, message='', token=0, placing=false, phase='position', drag=null,
     view=null, backup=null, sourceKey='', visible=true, disposed=false, boundsValid=true, applied=false;
   const controller=new GlobalObservationController({inputKind:'fastlio_imu', getProvenanceMode:()=>getInputs().mode,
@@ -120,6 +131,7 @@ export function initializeMapSeed({host,scene,getState,getInputs,readPose,writeP
       ? `${candidate.admissible?(applied?'제안 위치를 관측 기준점으로 적용했습니다':'정합 후보 · 미적용'):'적용 불가 · '+candidate.reason} | 초기값 대비 ${candidate.delta.xy_m.toFixed(3)}m / ${candidate.delta.yaw_deg.toFixed(1)}° · Z ${candidate.delta.z_m.toFixed(3)}m | RMSE ${candidate.rmse_m==null?'미제공':candidate.rmse_m.toFixed(3)+'m'} · overlap ${(candidate.overlap*100).toFixed(1)}% · ${(candidate.runtime_ms/1000).toFixed(2)}초 · 다른 장소 모호함 미검증${candidate.admissible?'':' · 초기값을 다시 지정하거나 범위를 넓혀 주세요. 지도 전체 탐색도 직접 선택할 수 있습니다.'}`
       : message && !placing?message:state.error || (state.busy?'지정한 주변 정합 중 · 현재 관측 유지':result?.reason || state.job?.reason || '정합 후보 없음');
     if(candidate?.region_weighting){const w=candidate.region_weighting;el('Result').textContent+=` | 대응점: 코스 ${w.course_matches} / 주변 ${w.surrounding_matches} · 비중 100% / ${w.surrounding_weight*100}% · 코스 가중 기여 ${(w.course_weight_share*100).toFixed(1)}%`;}
+    if(candidate?.residual_policy?.enforced===false)el('Result').textContent+=' | 전체 오차 한도 해제 · 오차 기준 통과를 의미하지 않음';
     preview();
     if(state.record && loadedJob!==state.record.job_id && !loading) void loadCandidate(false);
   }
@@ -189,6 +201,12 @@ export function initializeMapSeed({host,scene,getState,getInputs,readPose,writeP
   el('Search').onclick=el('Retry').onclick=async()=>{endPlacement();message='';await controller.start();draw();};
   el('Stop').onclick=()=>{token++;candidate=null;message='정합 취소 · 초기값과 현재 관측 유지';void controller.cancel();};
   el('Apply').onclick=()=>void loadCandidate(true);
+  el('ResidualLimit').onchange=()=>{
+    draft.enforceResidualLimit=el('ResidualLimit').checked;draft.revision++;invalidate();
+    try{localStorage.setItem('robot-scope.seedResidualLimit',draft.enforceResidualLimit?'on':'off');}catch{/* Keep the explicit in-memory choice. */}
+    residualNote();
+    message='오차 정책 변경 · 새로 정합하세요.';draw();
+  };
   function changeBounds() {
     boundsValid=false; draft.revision++; invalidate();
     const next={};for(const input of panel.querySelectorAll('[data-seed-bound]')) {

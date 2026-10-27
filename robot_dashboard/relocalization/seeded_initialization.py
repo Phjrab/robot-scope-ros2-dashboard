@@ -1,7 +1,7 @@
 """Bounded local initialization through the existing isolated SE3 worker.
 
 Search centre is an IMU prior, not a crop of LiDAR returns at robot radius.
-No ROS output, global fallback, clamping or acceptance-threshold override.
+No ROS output, global fallback or clamping. Residual cap is explicit per request.
 """
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ import time
 
 import numpy as np
 
-from .experimental_se3 import MAX_CORRESPONDENCE_M, _rpy, from_translation_rpy, validate_transform
+from .experimental_se3 import MAX_CORRESPONDENCE_M, MAX_RMSE_M, _rpy, from_translation_rpy, validate_transform
 from .global_observation_jobs import GlobalObservationValidationError
 from .observation_alignment import ObservationAlignmentError
 from .observation_worker import RegistrationWorker
@@ -26,7 +26,9 @@ def validate_seed(value):
     required = {
         'revision', 'pose', 'pose_reference', 'units', 'map_frame', 'height_source', 'bounds', 'source_contract'
     }
-    if not isinstance(value, dict) or set(value) not in (required, required | {'course_region'}):
+    if not isinstance(value, dict) or not required <= set(value) or set(value)-required-{'course_region', 'enforce_residual_limit'}:
+        invalid()
+    if type(value.get('enforce_residual_limit', True)) is not bool:
         invalid()
     if 'course_region' in value:
         from ..course_regions import course_values
@@ -94,6 +96,11 @@ def run_seeded_arrays(*, scan_bytes, map_bytes, context, cancel_event, timeout_s
         if any(course[k] != context[k] for k in ('map_id', 'map_revision', 'map_frame')):
             raise ObservationAlignmentError('COURSE_MAP_CHANGED')
     options = dict(cancel_event=cancel_event, **({'course_region': course} if course else {}))
+    enforce_residual_limit = context['seed'].get('enforce_residual_limit', True)
+    if type(enforce_residual_limit) is not bool:
+        raise ObservationAlignmentError('INVALID_RESIDUAL_POLICY')
+    if not enforce_residual_limit:
+        options['enforce_residual_limit'] = False
     try:
         result, transform = worker.solve(
             (context['map_id'], context['map_revision'], context['seed']['revision']), target,
@@ -115,6 +122,7 @@ def run_seeded_arrays(*, scan_bytes, map_bytes, context, cancel_event, timeout_s
     delta = prior_delta(initial, transform)
     within = all(delta[k] <= bounds[k] + 1e-8 for k in BOUNDS)
     accepted = result['status'] == 'CANDIDATE' and within
+    rmse = result['metrics'].get('rmse_m')
     return dict(schema='robot-scope.seeded-local-result.v1', search_mode='seeded_local',
                 status='CANDIDATE' if accepted else 'REJECTED',
                 reason=('OUTSIDE_SEED_BOUNDS' if not within else result['reason']), admissible=accepted,
@@ -122,6 +130,8 @@ def run_seeded_arrays(*, scan_bytes, map_bytes, context, cancel_event, timeout_s
                 initial_map_from_scan=initial.tolist(), delta=delta, bounds=bounds,
                 numerical=result, ambiguity_unresolved=True, hypotheses_tested=1,
                 region_weighting=result.get('region_weighting'),
+                residual_policy=dict(enforced=enforce_residual_limit, max_rmse_m=MAX_RMSE_M if enforce_residual_limit else None,
+                    original_max_rmse_m=MAX_RMSE_M, original_passed=rmse is not None and rmse <= MAX_RMSE_M),
                 refinement_pass_iterations=iterations, total_refinement_iterations=sum(iterations),
                 search_method='single-seed-coarse-to-fine',
                 evaluation_scope='FULL_CAPTURE_AGAINST_PRIOR_REACHABLE_SCAN_FOOTPRINT',

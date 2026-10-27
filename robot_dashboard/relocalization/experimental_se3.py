@@ -219,6 +219,7 @@ def register_se3(
     reference_limit: int = MAX_POINTS,
     nearest: Callable[[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]] | None = None,
     reference_weights=None,
+    enforce_residual_limit: bool = True,
 ) -> dict[str, Any]:
     """One bounded local hypothesis, not global relocalization or pose application."""
     target = reference.validated(reference=True, max_points=reference_limit)
@@ -265,7 +266,7 @@ def register_se3(
         reason = "DEGENERATE_GEOMETRY"
     elif overlap < MIN_OVERLAP:
         reason = "LOW_OVERLAP"
-    elif rmse is None or rmse > MAX_RMSE_M:
+    elif rmse is None or (enforce_residual_limit and rmse > MAX_RMSE_M):
         reason = "HIGH_RESIDUAL"
     elif not converged and reason == "ITERATION_LIMIT":
         reason = "NOT_CONVERGED"

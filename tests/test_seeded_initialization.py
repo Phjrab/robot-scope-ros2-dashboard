@@ -146,6 +146,7 @@ class SeededInitializationTests(unittest.TestCase):
         owner,agent,seed,global_runner,odom=self.fixture()
         seed['course_region']=dict(map_id=MAP_ID,map_revision=REVISION,map_frame='map',units='m',confirmed=True,
             polygon=[[2,-5],[4,-5],[4,-1],[2,-1]],outside_weight=.25)
+        seed['enforce_residual_limit']=False
         delta=from_translation_rpy([.08,-.03,.02],[.01,-.01,.02]);odom_capture=odom@delta
         def capture(*args,**kwargs):
             set_pose(agent.pose,odom_capture)
@@ -164,6 +165,7 @@ class SeededInitializationTests(unittest.TestCase):
         self.assertGreater(result['region_weighting']['course_matches'],0)
         self.assertGreater(result['region_weighting']['surrounding_matches'],0)
         self.assertEqual(result['region_weighting']['surrounding_weight'],.25)
+        self.assertFalse(result['residual_policy']['enforced'])
         np.testing.assert_allclose(job['captured_context']['T_map_imu_seed_capture'],self.initial@delta,atol=1e-10)
         self.assertIsNone(global_runner.context,'seeded jobs must not invoke an unavailable global backend')
         current=odom_capture@from_translation_rpy([.05,0,0],[0,0,.01]);set_pose(agent.pose,current)
@@ -184,6 +186,7 @@ class SeededInitializationTests(unittest.TestCase):
     def test_seed_validation_rejects_units_nonfinite_unknown_fields_and_bounds(self):
         _,_,seed,_,_=self.fixture()
         for key,value in [('units','pixels'),('pose_reference','BODY_VERIFIED'),('revision',True),('extra',1),
+                          ('enforce_residual_limit',0),('enforce_residual_limit','false'),
                           ('bounds',{**self.bounds,'xy_m':100}),('pose',{**seed['pose'],'x':float('nan')})]:
             with self.subTest(key=key),self.assertRaises(GlobalObservationValidationError):
                 validate_seed({**seed,key:value})

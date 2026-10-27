@@ -38,3 +38,14 @@ test('candidate fences revision, map, source, bounds, transform, stamps and nume
   assert.equal(validSeedCandidate({...v,admissible:false,reason:'OUTSIDE_SEED_BOUNDS',delta:{...v.delta,xy_m:1}},d,inputs,v.job_id),true,
     'a rejected candidate can be compared, never applied');
 });
+test('residual limit is explicit per seed and an unlimited candidate cannot pass the default policy',()=>{
+  const d=draft(),v=candidate(d);v.rmse_m=.07;
+  v.residual_policy={enforced:false,max_rmse_m:null,original_max_rmse_m:.05,original_passed:false};
+  assert.equal(validSeedCandidate(v,d,inputs,v.job_id),false);
+  d.enforceResidualLimit=false;assert.equal(d.request(inputs).enforce_residual_limit,false);
+  assert.equal(validSeedCandidate(v,d,inputs,v.job_id),true);
+  assert.equal(validSeedCandidate({...v,residual_policy:null},d,inputs,v.job_id),false);
+  assert.equal(validSeedCandidate({...v,overlap:.4},d,inputs,v.job_id),false);
+  assert.equal(validSeedCandidate({...v,delta:{...v.delta,xy_m:1}},d,inputs,v.job_id),false);
+  assert.equal(validSeedCandidate({...v,numerical:{...v.numerical,metrics:{...v.numerical.metrics,converged:false}}},d,inputs,v.job_id),false);
+});

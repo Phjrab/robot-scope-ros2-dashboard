@@ -689,7 +689,7 @@ test('agent connection loss after an IMU proposal keeps its reason and clears st
   expect(errors).toEqual([]);
 });
 
-function seededBackend(backend,{outside=false,running=false}={}) {
+function seededBackend(backend,{outside=false,running=false,rmse=.02}={}) {
   const flags={historical_only:true,current_result:null,body_pose:null,tracking_verified:false,body_pose_verified:false,
     body_extrinsic_verified:false,operational_application:'NOT_RUN',absolute_accuracy_m:null};
   const root='/api/v1/observations/global-jobs',jobId='8'.repeat(24),path=`${root}/${jobId}/anchor-proposal`;
@@ -705,6 +705,7 @@ function seededBackend(backend,{outside=false,running=false}={}) {
         state:running?'running':'succeeded',worker_active:running,captured_context:captured,result:running?null:{...flags,
           schema:'robot-scope.raw-global-observation-result.v1',job_id:jobId,generation:1,captured_context:captured,observation:{}}};
       const pose={...body.seed.pose,x:body.seed.pose.x+(outside?2:.08)}, angle=pose.yaw*Math.PI/180;
+      const enforced=body.seed.enforce_residual_limit!==false,residualPassed=rmse<=.05;
       // These UI fixtures have zero raw odometry XY/yaw and IMU height .3m.
       // Numeric seed use is separately tested through the actual Python worker.
       state.value={schema:'robot-scope.anchor-proposal.v1',job_id:jobId,search_mode:'seeded_local',seed_revision:body.seed.revision,
@@ -713,7 +714,8 @@ function seededBackend(backend,{outside=false,running=false}={}) {
         approximate_only:true,requires_reanchor:true,operational_application:'NOT_RUN',absolute_accuracy_m:null,body_extrinsic_verified:false,
         capture_stamp_ns:'1792309179130175352',proposal_stamp_ns:'1792309179130175353',pose_age_s:.1,
         delta:{xy_m:outside?2:.08,yaw_deg:0,z_m:0,tilt_deg:0},bounds:body.seed.bounds,
-        admissible:!outside,reason:outside?'OUTSIDE_SEED_BOUNDS':'CANDIDATE',rmse_m:.02,overlap:.9,runtime_ms:350,ambiguity_unresolved:true,
+        admissible:!outside&&(!enforced||residualPassed),reason:outside?'OUTSIDE_SEED_BOUNDS':enforced&&!residualPassed?'HIGH_RESIDUAL':'CANDIDATE',rmse_m:rmse,overlap:.9,runtime_ms:350,ambiguity_unresolved:true,
+        residual_policy:{enforced,max_rmse_m:enforced?.05:null,original_max_rmse_m:.05,original_passed:residualPassed},
         numerical:{status:'CANDIDATE',metrics:{converged:true,geometry_min_max_eigen_ratio:.2,matched_geometry_min_max_eigen_ratio:.2}}};
       return json(state.job,202);
     }
@@ -890,4 +892,19 @@ test('late saved course and late registration cannot overwrite a new boundary dr
   await page.locator('#mapCourseSuggest').click();proposalRelease();await page.waitForTimeout(100);
   await expect(page.locator('#mapSeedApply')).toBeDisabled();await expect(page.locator('#savedLiveCenter')).toBeEnabled();
   expect(await page.evaluate(()=>window.observationScene.initializationPreview.candidate)).toBeNull();expect(errors).toEqual([]);
+});
+
+test('explicit residual-limit release keeps visible error, reaches server and re-enabling invalidates candidate',async({page})=>{
+  const {backend,errors,writes}=await fixture(page,{imu:true});const local=seededBackend(backend,{rmse:.07});
+  await seedStart(page);await page.locator('#mapSeedSearch').click();await expect(page.locator('#mapSeedResult')).toContainText('HIGH_RESIDUAL');
+  await expect(page.locator('#mapSeedApply')).toBeDisabled();await page.locator('#mapSeedResidualLimit').uncheck();
+  await page.locator('#mapSeedSearch').click();await expect(page.locator('#mapSeedApply')).toBeEnabled();
+  expect(local.state.requests[1].seed.enforce_residual_limit).toBe(false);
+  expect(local.state.requests[1].seed.revision).toBeGreaterThan(local.state.requests[0].seed.revision);
+  await expect(page.locator('#mapSeedResult')).toContainText('RMSE 0.070m');await expect(page.locator('#mapSeedResult')).toContainText('전체 오차 한도 해제');
+  await page.locator('#mapSeedResidualLimit').check();await expect(page.locator('#mapSeedApply')).toBeDisabled();
+  await expect(page.locator('#savedLiveCenter')).toBeEnabled();expect(writes).toEqual([local.root,local.root]);expect(errors).toEqual([]);
+  await page.locator('#mapSeedResidualLimit').uncheck();await page.reload();
+  await expect(page.locator('#mapSeedResidualLimit')).not.toBeChecked();
+  await expect(page.locator('#mapSeedResidualNote')).toContainText('한도 해제');
 });

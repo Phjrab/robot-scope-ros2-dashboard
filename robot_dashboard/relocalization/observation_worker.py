@@ -116,7 +116,7 @@ class RegistrationWorker:
             self.process = None
         self.phase = self.key = None
 
-    def solve(self, key, reference, target_frame, points, frame, stamp_ns, seed, deadline, *, cancel_event=None, course_region=None):
+    def solve(self, key, reference, target_frame, points, frame, stamp_ns, seed, deadline, *, cancel_event=None, course_region=None, enforce_residual_limit=True):
         from .observation_alignment import ObservationAlignmentError
         try:
             if self.process is None:
@@ -144,7 +144,7 @@ class RegistrationWorker:
             self.sequence += 1
             token = self.sequence
             self.phase = 'solving'
-            self.channel.send(('solve', key, token, points, frame, stamp_ns, seed, deadline, course_region), deadline)
+            self.channel.send(('solve', key, token, points, frame, stamp_ns, seed, deadline, course_region, enforce_residual_limit), deadline)
             response = self.channel.receive(deadline)
             if response[:3] != ('result', key, token):
                 raise ValueError('WORKER_PROTOCOL')
@@ -178,12 +178,13 @@ def serve(fd):
                 grid = ReferenceIndex(reference)
                 channel.send(('prepared', key))
             elif message[0] == 'solve':
-                _, requested_key, token, points, frame, stamp_ns, seed, deadline, course_region = message
+                _, requested_key, token, points, frame, stamp_ns, seed, deadline, course_region, enforce_residual_limit = message
                 error, result = None, None
                 try:
                     if requested_key != key or time.monotonic() > deadline:
                         raise ValueError('COMPUTE_BUDGET_EXCEEDED')
                     result = solve_prepared(reference, grid, target_frame, points, frame, stamp_ns, seed, deadline,
+                                            **({'enforce_residual_limit': False} if not enforce_residual_limit else {}),
                                             **({'course_region': course_region} if course_region else {}))
                 except ValueError as exc:
                     error = str(exc)
