@@ -259,7 +259,7 @@ export class LiveMapObservation {
     } catch (error) { this.cloud = null; this.invalidate(error.message, true); }
     finally { this.rememberTelemetry('cloud', value); }
   }
-  pair() {
+  pair({ independentPose = false } = {}) {
     const cloud = this.cloud?.value;
     if (!cloud) throw new Error('WAITING_CLOUD');
     const imu = fastlioImu(this.pose?.value);
@@ -267,7 +267,7 @@ export class LiveMapObservation {
     // for them and a fresh independent pose for T_M_O * T_O_F(now), not a
     // scan-time pose that may have been skipped by browser stream sampling.
     // The backend still requires exact FAST-LIO stamps for every correction.
-    if (this.continuousEstimate && imu && cloud.topic === '/cloud_registered'
+    if ((this.continuousEstimate || independentPose) && imu && cloud.topic === '/cloud_registered'
         && cloud.pipeline_stage === 'registered' && cloud.frame_id === this.pose.value.frame_id
         && cloud.observation.observer_id === this.pose.value.observation.observer_id) {
       return { paired: this.pose, pointsToOdom: identity(), kind: 'REGISTERED_CLOUD_FIXED_FRAME_UNVERIFIED',
@@ -295,7 +295,7 @@ export class LiveMapObservation {
       pair_method: imu ? 'FASTLIO_OUTPUT_STAMP_EXACT' : 'HOST_RECEIPT_NEAREST',
       source_delta_ns: String(BigInt(paired.value.observation.source_stamp_ns) - BigInt(cloud.observation.source_stamp_ns)) };
   }
-  ready() {
+  ready({ independentPose = false } = {}) {
     if (!this.enabled) throw new Error('OFF');
     if (!this.map) throw new Error('SELECT_SAVED_3D_MAP');
     if (!this.pose || !this.cloud) throw new Error(this.reason === 'OFF' ? 'WAITING_INPUTS' : this.reason);
@@ -303,14 +303,20 @@ export class LiveMapObservation {
     if (this.provenanceMode === 'subscription_observation' && [this.pose, this.cloud].some(input =>
       subscriptionGraphAge(input.value) + this.now() - input.arrived > 3000)) throw new Error('SUBSCRIPTION_GRAPH_STALE');
     if (this.sourceRefreshAfter.pose !== null || this.sourceRefreshAfter.cloud !== null) throw new Error(this.reason);
-    const pair = this.pair(), paired = pair.paired;
+    const pair = this.pair({ independentPose }), paired = pair.paired;
     if (!finite(paired.value.age_s) || paired.value.age_s < 0
         || paired.value.age_s * 1000 + this.now() - paired.arrived > 1000) throw new Error('STALE');
     return pair;
   }
-  setAnchor(target, confirmed) {
+  canInitialize() {
+    try { this.ready({ independentPose: true }); return true; } catch { return false; }
+  }
+  setAnchor(target, confirmed, { continuousEstimate = false } = {}) {
     if (confirmed !== true) throw new Error('OPERATOR_ESTIMATE_CONFIRMATION_REQUIRED');
-    const pair = this.ready(), targetMatrix = rpyMatrix(target);
+    const pair = this.ready({ independentPose: continuousEstimate }), targetMatrix = rpyMatrix(target);
+    // A confirmed seeded candidate is an observation transform. Reuse the
+    // existing same-session display recovery; solver pairing remains exact.
+    if (continuousEstimate) { this.continuousEstimate = true; this.resumeSameSession = true; }
     this.suspendedAnchor = null;
     this.generation++;
     this.anchor = { generation: this.generation, map: { ...this.map }, poseKey: this.pose.key, cloudKey: this.cloud.key,
@@ -369,7 +375,7 @@ export class LiveMapObservation {
     }
     this.resumeFreshConnection(pair);
     base.anchor = this.anchor;
-    if (!this.anchor) return { ...base, canAnchor: true, status: this.reason === 'SOURCE_IDENTITY_UNAVAILABLE' ? 'NO_ANCHOR' : this.reason, pairing: pair.kind };
+    if (!this.anchor) return { ...base, canAnchor: true, status: this.reason === 'SOURCE_IDENTITY_UNAVAILABLE' ? 'NO_ANCHOR' : ['STALE', 'POSE_STALE', 'SUBSCRIPTION_GRAPH_STALE'].includes(this.reason) ? 'ANCHOR_RECONNECT_REQUIRED' : this.reason, pairing: pair.kind };
     if (this.anchor.poseKey !== this.pose.key || this.anchor.cloudKey !== this.cloud.key
         || this.anchor.kind !== pair.kind || JSON.stringify(this.anchor.extrinsic) !== JSON.stringify(pair.extrinsic)) {
       this.invalidate('SOURCE_CONTRACT_CHANGED'); return { ...base, anchor: null, status: this.reason };

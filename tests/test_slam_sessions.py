@@ -344,6 +344,17 @@ class SlamSessionTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(self.camera.owner)
         self.assertIsNone(self.engine.owner)
 
+    async def test_failed_mapping_start_clears_unsaved_only_after_owned_cleanup(self):
+        self.engine.start_error = RuntimeError("synthetic start failed")
+        await self.start()
+        session = self.manager.snapshot()["active_session"]
+        self.assertFalse(session["unsaved"])
+        self.assertFalse(self.manager.blocks_context_change())
+        self.engine.start_error = None
+        await self.start(request_id="retry-start-0002")
+        self.assertEqual(self.manager.snapshot()["active_session"]["state"], "MAPPING")
+        self.assertTrue(self.manager.snapshot()["active_session"]["unsaved"])
+
     async def test_lost_camera_reserve_ack_reconciles_owner_without_native_start(self):
         acquire = self.camera.acquire
         def lost_ack(session):

@@ -7,6 +7,7 @@ import { ANCHOR_FIELDS, initializeAnchorPresets, validAnchorPose } from './ancho
 import { initializeAnchorProposal, anchorSourceContract, sameAnchorSource } from './anchor_proposal.js';
 
 export function observationAvailabilityText(state) {
+  if (state.status === 'ANCHOR_RECONNECT_REQUIRED') return '점군·pose 수신은 회복됐습니다. 현재 관측 위치를 표시하려면 기준점을 다시 연결하세요.';
   if (state.status === 'AGENT_CONNECTION_LOST') return '대시보드 연결이 끊겨 현재 LiDAR·pose 수신 상태를 확인할 수 없습니다. 연결 복구 후 새 입력을 확인하세요.';
   if (state.status === 'ROBOT_TELEMETRY_UNAVAILABLE') return '서버가 로봇 관측 불가 상태를 보고했습니다. 로봇 연결과 센서 수신 상태를 확인하세요.';
   if (state.status !== 'SOURCE_IDENTITY_UNAVAILABLE') return '';
@@ -130,13 +131,14 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     fillPose: (pose, fence) => { fillAnchorPose(pose, 'FASTLIO_IMU'); proposalFence = fence; },
   });
   seedFeature = initializeMapSeed({host:panel.querySelector('.saved-live-overview'),scene,
-    getState:()=>model.snapshot(),getInputs:proposalInputs,readPose:readAnchorPose,
+    getState:()=>({...model.snapshot(),canAnchor:model.canInitialize()}),getInputs:proposalInputs,readPose:readAnchorPose,
     writePose:pose=>{for(const k of ANCHOR_FIELDS) el(`_${k}`).value=Number.isFinite(pose[k])?String(Number(pose[k].toFixed(6))):'';},
     edited:()=>{proposalFence=null;el('Confirm').checked=false;proposal.invalidateDraft();},
     apply:value=>{
-      model.ready();
+      model.ready({independentPose:true});
       if(BigInt(model.pose.value.observation.source_stamp_ns)<BigInt(value.capture_stamp_ns)) throw new Error('새 pose 수신을 기다려 주세요.');
-      model.setAnchor(matrixPose(multiply(value.T_map_odom,model.pose.matrix)),true);
+      model.setAnchor(matrixPose(multiply(value.T_map_odom,model.pose.matrix)),true,{continuousEstimate:true});
+      el('Continuous').checked=true;
       requestController?.abort();error='';render();
     },
   });

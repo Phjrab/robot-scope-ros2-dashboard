@@ -1,0 +1,32 @@
+{
+  "schema_version": "traffic-input-config.v0.1",
+  "model": {
+    "sha256": "3bae0ae05522fe92cbda850b4d604e9babaa34ebbd130fd69cd9c7e61a9e44ec",
+    "provenance": "User-designated teammate repository https://github.com/hjj021717-netizen/traffic-light-detector commit fe523233aeca933942b81df5d305777db2bb6c5d best.pt; explicit sandboxed offline load",
+    "family": "ultralytics",
+    "package_version": "8.4.15",
+    "trusted_pickle": true
+  },
+  "class_map": {
+    "0": "traffic_light_green",
+    "1": "traffic_light_red"
+  },
+  "min_confidence": 0.25,
+  "association": {
+    "signal_id": "diagnostic_signal",
+    "crossing_id": "unverified_crossing",
+    "binding_id": "teammate-offline-only",
+    "native_image_size": [
+      1280,
+      720
+    ],
+    "expected_roi_native": [
+      0,
+      0,
+      1280,
+      720
+    ],
+    "verified": false
+  },
+  "color_policy": "teammate-color-consensus-v1"
+}

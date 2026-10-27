@@ -13,7 +13,7 @@ PROFILES = {
 }
 
 
-def settings(name, *, confidence_floor, model_sha256):
+def settings(name, *, confidence_floor, model_sha256, color_policy=None):
     if name not in PROFILES:
         raise ValueError("INFERENCE_PROFILE_UNKNOWN")
     result = {"version": "c4-search.v1", "profile": name, **PROFILES[name],
@@ -21,6 +21,9 @@ def settings(name, *, confidence_floor, model_sha256):
               "device": "cpu", "rect": True, "prediction_nms_iou": .7, "max_det": 300,
               "native_fusion_iou": .5, "internal_edge_margin_px": 1,
               "upper_tiles_normalized_xyxy": [[0, 0, .5, .6], [.25, 0, .75, .6], [.5, 0, 1, .6]]}
+    if color_policy is not None:
+        from .consensus import policy_settings
+        result["color_consensus"] = policy_settings(color_policy)
     canonical = json.dumps(result, sort_keys=True, separators=(",", ":"), allow_nan=False)
     return result, hashlib.sha256(canonical.encode()).hexdigest()
 

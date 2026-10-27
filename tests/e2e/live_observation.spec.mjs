@@ -41,7 +41,7 @@ async function fixture(page, {identityUnavailable=false,subscriptionEvidence=fal
     const seq=++cloudSequence; state.lastCloud=obs(seq,state.epoch,state.identityUnavailable,evidence('cloud'));
     // FAST-LIO supplies a matching pose for each registered scan. Independent
     // timers alone could omit that exact stamp and fail setup on a busy runner.
-    if(imu) state.emitPose?.(state.lastCloud.source_stamp_ns);
+    if(imu && !state.independentPose) state.emitPose?.(state.lastCloud.source_stamp_ns);
     return binary(seq,state.lastCloud,imu?'camera_init':'odom');
   };
   const backend=await installDashboardBackend(page,{pointcloudFrame:()=>state.cloudSocketStreaming?nextCloud():null});
@@ -89,7 +89,7 @@ async function fixture(page, {identityUnavailable=false,subscriptionEvidence=fal
       const seq=++poseSequence;
       socket.send(JSON.stringify({seq,topic:'/Odometry',frame_id:imu?'camera_init':'odom',child_frame_id:imu?'body':'base_link',
         state:'ok',age_s:0,position:{x:state.jump?5:state.x,y:0,z:state.z},orientation:{x:0,y:0,z:Math.sin(state.yaw/2),w:Math.cos(state.yaw/2)},
-        observation:{...obs(seq,'f',state.identityUnavailable,evidence('pose')),...(imu&&sourceStamp?{source_stamp_ns:sourceStamp}:{})}}));
+        observation:{...obs(seq,'f',state.identityUnavailable,evidence('pose')),...(imu&&sourceStamp?{source_stamp_ns:state.independentPose?String(BigInt(sourceStamp)+1000000n):sourceStamp}:{})}}));
     } };
     state.emitPose=send;
     send(); const timer=setInterval(()=>send(),150); socket.onClose(()=>{
@@ -907,4 +907,24 @@ test('explicit residual-limit release keeps visible error, reaches server and re
   await page.locator('#mapSeedResidualLimit').uncheck();await page.reload();
   await expect(page.locator('#mapSeedResidualLimit')).not.toBeChecked();
   await expect(page.locator('#mapSeedResidualNote')).toContainText('한도 해제');
+});
+
+
+test('sampled FAST-LIO seed readiness survives unmatched browser stamps and same-session reconnect',async({page})=>{
+  const {backend,state,errors,writes}=await fixture(page,{imu:true,sessionReady:true});
+  const local=seededBackend(backend);
+  await seedStart(page); state.independentPose=true;
+  await page.waitForTimeout(600);
+  for(let i=0;i<8;i++) { await expect(page.locator('#mapSeedSearch')).toBeEnabled(); await page.waitForTimeout(125); }
+  await page.locator('#mapSeedSearch').click(); await expect(page.locator('#mapSeedApply')).toBeEnabled();
+  await page.locator('#mapSeedApply').click(); await expect(page.locator('#mapSeedResult')).toContainText('관측 기준점으로 적용');
+  await expect(page.locator('#savedLiveContinuous')).toBeChecked();
+  await expect(page.locator('#savedLiveCenter')).toBeEnabled();
+  state.streaming=false; await expect(page.locator('#savedLiveState')).toHaveText('STALE');
+  await expect(page.locator('#savedLiveCenter')).toBeDisabled();
+  state.streaming=true;
+  await expect(page.locator('#savedLiveState')).toHaveText('RECOVERED_APPROXIMATE_ODOMETRY_ESTIMATE');
+  await expect(page.locator('#savedLiveCenter')).toBeEnabled();
+  state.epoch='e'; await expect(page.locator('#savedLiveCenter')).toBeDisabled();
+  expect(writes).toEqual([local.root]); expect(errors).toEqual([]);
 });

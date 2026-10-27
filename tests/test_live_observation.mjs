@@ -803,3 +803,31 @@ test('relative height follows vertical odometry and survives map correction with
   model.ingestPose(pose(3, {observation:observation(3,'e')}));
   assert.equal(model.snapshot().relative_height_m, undefined);
 });
+
+test('seed readiness does not flicker when sampled FAST-LIO stamps differ, but freshness still fences it', () => {
+  let now=0; const model=new LiveMapObservation(()=>now);
+  model.enable(true); model.setMap(map,{revision:map.revision,frame_id:'camera_init',points:[1,2,3]});
+  model.ingestPose(pose(2,{topic:'/Odometry',frame_id:'camera_init',child_frame_id:'body'}));
+  model.ingestCloud(cloud(1,{frame_id:'camera_init'}));
+  assert.throws(()=>model.ready(),/WAITING_PAIRED_POSE/);
+  assert.equal(model.canInitialize(),true);
+  assert.equal(model.anchor,null);
+  model.setAnchor(guess,true,{continuousEstimate:true});
+  assert.ok(model.snapshot().pose);
+  now=1001; assert.equal(model.canInitialize(),false); assert.equal(model.snapshot().pose,null);
+  model.ingestPose(pose(3,{topic:'/Odometry',frame_id:'camera_init',child_frame_id:'body'}));
+  assert.equal(model.snapshot().pose,null);
+  model.ingestCloud(cloud(4,{frame_id:'camera_init'}));
+  assert.ok(model.snapshot().pose);
+  assert.equal(model.snapshot().status,'RECOVERED_APPROXIMATE_ODOMETRY_ESTIMATE');
+  model.setMap({...map,revision:'e'.repeat(64)},{revision:'e'.repeat(64),frame_id:'camera_init',points:[1,2,3]});
+  assert.equal(model.snapshot().pose,null);
+});
+
+test('fresh input after a lost default anchor asks for reconnection instead of retaining STALE', () => {
+  const {model,setNow}=setup(); setNow(1001); assert.equal(model.snapshot().status,'STALE');
+  model.ingestPose(pose(2));model.ingestCloud(cloud(2));
+  assert.equal(model.snapshot().status,'ANCHOR_RECONNECT_REQUIRED');
+  assert.equal(model.snapshot().pose,null);
+  assert.match(observationAvailabilityText(model.snapshot()),/수신.*회복.*기준점/);
+});

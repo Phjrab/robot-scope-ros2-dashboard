@@ -287,7 +287,9 @@ class SlamSessionManager:
                 if runtime_start_attempted:
                     await asyncio.to_thread(adapter.stop, deepcopy(session))
                 await self._release_camera(session)
-                session.update(state="IDLE", cleanup_required=False)
+                # A failed start has no accepted mapping draft. Clear it only
+                # after exact-owner runtime and camera cleanup both succeed.
+                session.update(state="IDLE", cleanup_required=False, unsaved=False)
             except Exception:
                 session.update(state="ERROR", reason="CLEANUP_REQUIRED", cleanup_required=True)
 
