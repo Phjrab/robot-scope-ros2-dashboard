@@ -380,6 +380,7 @@ class NavigationJobManager:
         }
         self._parameters = dict(SAFE_TUNED_PARAMETERS)
         self._parameter_error: Optional[str] = None
+        self.operational_snapshotter = None
         self._load_existing_parameters()
 
     @classmethod
@@ -678,6 +679,8 @@ class NavigationJobManager:
                     "navigation map snapshot identity does not match the request"
                 )
             self._validate_map_snapshot_paths(map_snapshot, job_dir)
+            if self.operational_snapshotter is not None:
+                self.operational_snapshotter(map_id, map_revision, job_dir, map_snapshot)
             params_file = job_dir / "nav2_params.yaml"
             with self._lock:
                 if parameters_revision != _parameter_revision(self._parameters):

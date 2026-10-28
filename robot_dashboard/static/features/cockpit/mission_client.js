@@ -23,6 +23,11 @@ function projectMission(value) {
     remaining_count: Math.max(0, Number(value.remaining_count) || 0), elapsed_seconds: Math.max(0, Number(value.elapsed_seconds) || 0),
     context_revision: text(value.context_revision, 64), audit_warning: text(value.audit_warning, 96) || null,
     phase: text(value.phase, 48), confirmation_token: text(value.confirmation_token, 32) || null,
+    operator_test_required: value.operator_test_required === true,
+    operator_test: value.operator_test?.source === 'OPERATOR_TEST' ? Object.freeze({
+      ready: value.operator_test.ready === true, stop_generation: Number(value.operator_test.stop_generation) || 0,
+      completion_profile: text(value.operator_test.completion_profile, 32), reason: text(value.operator_test.reason, 128),
+    }) : null,
     hold_remaining: Math.max(0, Number(value.hold_remaining) || 0), pause_reason: text(value.pause_reason, 48) || null,
     ownership_active: value.ownership_active === true || ACTIVE_STATES.has(state) && value.ownership_active !== false,
     waypoints: Object.freeze(waypoints), current_waypoint: waypoints[Math.max(0, Number(value.current_index) || 0)] || null, logs: Object.freeze(logs),
@@ -91,6 +96,15 @@ export function createMissionClient(options = {}) {
     subscribe, refresh, snapshot: () => state, select,
     create: (payload) => mutate('/api/v1/missions', payload), start: (id) => action('start', id), pause: (id) => action('pause', id),
     resume: (id) => action('resume', id), skip: (id) => action('skip', id), retry: (id) => action('retry', id), abort: (id) => action('abort', id),
+    operatorTestEnable: (id = selectedId) => action('operator-test-enable', id),
+    operatorTestGreen: (id = selectedId) => {
+      const mission = state.missions.find(item => item.id === id);
+      if (mission?.state !== 'paused' || mission.phase !== 'after_arrival_confirmation' || !mission.operator_test?.ready || !mission.confirmation_token) return Promise.resolve(null);
+      return mutate(`/api/v1/missions/${encodeURIComponent(id)}/operator-test-green`, {
+        request_id: globalThis.crypto.randomUUID(), confirmation_token: mission.confirmation_token,
+        stop_generation: mission.operator_test.stop_generation,
+      });
+    },
     abortActive: () => state.activeMissionId ? action('abort', state.activeMissionId) : Promise.resolve({ mission: null }),
     diagnostics: () => Object.freeze({ destroyed, subscribers: subscribers.size, generation, busy, polling: Boolean(timer) }),
     destroy() { destroyed = true; generation += 1; subscribers.clear(); if (timer) clearIntervalValue?.(timer); timer = 0; },

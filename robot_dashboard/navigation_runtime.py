@@ -42,6 +42,7 @@ from robot_dashboard.localization_diagnostics import (
     MAX_COUNTER,
     SCHEMA as LOCALIZATION_DIAGNOSTICS_SCHEMA,
 )
+from robot_dashboard.relocalization.operational import load_bundle, pose_matrix, write_pose, write_transform
 
 
 POINT_FIELD_DTYPES: Mapping[int, str] = {
@@ -977,6 +978,12 @@ def _build_ros_runtime_node_class() -> type[Any]:
             self._odom_z = 0.0
             self._odom_quaternion = (0.0, 0.0, 0.0, 1.0)
             self._map_to_odom: PlanarTransform | None = None
+            self._operational = load_bundle(getattr(options, 'runtime_params_file', None))
+            self._operational_pairs: OrderedDict[int, tuple[Any, float]] = OrderedDict()
+            self._registered_pending = None
+            self._registered_source = None
+            self._operational_body = None
+            self._transform_authority = None
             self._pose_covariance = [0.0] * 36
             self._last_scan_counts = (0, 0)
             self._last_scan_bins = 0
@@ -1029,6 +1036,14 @@ def _build_ros_runtime_node_class() -> type[Any]:
                 self._publisher_counts[FASTLIO_CONTROLLER_ODOM_TOPIC] = 0
             self._tf_broadcaster = TransformBroadcaster(self)
             self._static_tf_broadcaster = StaticTransformBroadcaster(self)
+            if self._operational is not None:
+                from robot_dashboard.relocalization.transform_authority import TransformAuthorityMonitor
+                from tf2_msgs.msg import TFMessage
+                self._transform_authority = TransformAuthorityMonitor(
+                    self._operational.bundle['calibration'].get('tf_publishers'),
+                    own_name=self.get_name(), own_namespace=self.get_namespace())
+                self.create_subscription(TFMessage, '/tf', self._on_operational_tf, 100)
+                self.create_subscription(TFMessage, '/tf_static', self._on_operational_static_tf, health_qos)
 
             self.create_subscription(
                 PointCloud2,
@@ -1048,6 +1063,9 @@ def _build_ros_runtime_node_class() -> type[Any]:
                 self._on_initial_pose,
                 10,
             )
+            if self._operational is not None:
+                self.create_subscription(PointCloud2, '/cloud_registered', self._on_registered, qos_profile_sensor_data)
+                self.create_timer(.05, self._poll_operational)
             self.create_timer(0.1, self._on_health_timer)
             self._publish_static_lidar_transform(TransformStamped)
             self.get_logger().info(
@@ -1181,6 +1199,74 @@ def _build_ros_runtime_node_class() -> type[Any]:
             # map alignment alive. The next valid sample then skipped the
             # outage check and silently revived that alignment.
             self._map_to_odom = None
+            if self._operational is not None:
+                self._operational.invalidate(error)
+                self._operational_pairs.clear()
+                self._registered_pending = None
+
+        def _on_registered(self, message):
+            if (normalize_frame_id(message.header.frame_id) != 'camera_init'
+                    or _message_stamp_rejection_reason(self, message, .5)):
+                self._operational.invalidate('REGISTERED_CLOUD_FRAME_OR_TIME_CHANGED')
+                return
+            infos = self.get_publishers_info_by_topic('/cloud_registered')
+            key = tuple(bytes(info.endpoint_gid).hex() for info in infos)
+            if len(key) != 1 or not key[0]:
+                self._operational.invalidate('REGISTERED_SOURCE_NOT_UNIQUE')
+                return
+            if self._registered_source is not None and key != self._registered_source:
+                self._operational.invalidate('REGISTERED_SOURCE_CHANGED')
+            self._registered_source = key
+            stamp = int(message.header.stamp.sec) * 1_000_000_000 + int(message.header.stamp.nanosec)
+            self._registered_pending = (stamp, message, time.monotonic())
+            self._poll_operational()
+
+        def _on_operational_tf(self, message):
+            if not self._transform_authority.observe_transforms(message):
+                self._operational.invalidate(self._transform_authority.reason)
+
+        def _on_operational_static_tf(self, message):
+            if not self._transform_authority.observe_transforms(message, topic='/tf_static'):
+                self._operational.invalidate(self._transform_authority.reason)
+
+        def _refresh_operational_authority(self):
+            if self._transform_authority is None:
+                return
+            try:
+                ready = self._transform_authority.observe_graph(
+                    self.get_publishers_info_by_topic('/tf'), self.get_publishers_info_by_topic('/tf_static'))
+            except Exception:
+                ready = False
+            if not ready and self._transform_authority.publishing:
+                self._operational.invalidate(self._transform_authority.reason)
+
+        def _operational_status(self):
+            state = self._operational.status()
+            state['tf_authority'] = self._transform_authority.snapshot()
+            if not state['tf_authority']['ready']:
+                state.update(ready=False, state=state['tf_authority']['reason'])
+            return state
+
+        def _poll_operational(self):
+            engine = self._operational
+            engine.poll()
+            if self._registered_pending is None:
+                return
+            stamp, message, received = self._registered_pending
+            if time.monotonic() - received > .5:
+                self._registered_pending = None
+                return
+            pair = self._operational_pairs.get(stamp)
+            if pair is None:
+                return
+            self._registered_pending = None
+            try:
+                points = xyz_from_pointcloud2_layout(data=message.data, fields=message.fields,
+                    point_step=message.point_step, row_step=message.row_step,
+                    width=message.width, height=message.height, is_bigendian=message.is_bigendian)
+                engine.submit(points, stamp, pair[0], min(received, pair[1]))
+            except (ValueError, TypeError) as exc:
+                engine.invalidate(str(exc)[:120])
 
         def _process_odometry(self, message: Any) -> str:
             if self._publisher_counts["/Odometry"] != 1:
@@ -1225,6 +1311,16 @@ def _build_ros_runtime_node_class() -> type[Any]:
                 return "invalid_pose"
 
             now = time.monotonic()
+            if self._operational is not None:
+                try:
+                    odom_imu = pose_matrix(message)
+                    self._operational_body = self._operational.observe_odometry(source_stamp_ns, odom_imu, now)
+                    self._operational_pairs[source_stamp_ns] = (odom_imu, now)
+                    while len(self._operational_pairs) > 32:
+                        self._operational_pairs.popitem(last=False)
+                except ValueError as exc:
+                    self._reject_odometry(str(exc))
+                    return 'invalid_operational_pose'
             previous = self._odom_to_base
             previous_at = self._last_odom_monotonic
             if previous is not None and previous_at > 0.0:
@@ -1233,6 +1329,8 @@ def _build_ros_runtime_node_class() -> type[Any]:
                     # A localization outage requires a new operator-approved
                     # initial pose; never silently reuse the old map alignment.
                     self._map_to_odom = None
+                    if self._operational is not None:
+                        self._operational.invalidate('ODOMETRY_OUTAGE')
                 else:
                     discontinuity = odometry_discontinuity_reason(
                         previous,
@@ -1250,6 +1348,8 @@ def _build_ros_runtime_node_class() -> type[Any]:
                         self._last_odom_error = discontinuity
                         self._odom_to_base = None
                         self._map_to_odom = None
+                        if self._operational is not None:
+                            self._operational.invalidate(discontinuity)
                         return {
                             "odometry translation jumped": "translation_jump",
                             "odometry heading jumped": "heading_jump",
@@ -1270,6 +1370,13 @@ def _build_ros_runtime_node_class() -> type[Any]:
                     canonical = copy.deepcopy(message)
                     canonical.header.frame_id = output.parent_frame
                     canonical.child_frame_id = output.child_frame
+                    if self._operational is not None:
+                        write_pose(canonical.pose.pose, self._operational_body)
+                        velocity = self._operational.body_velocity
+                        if velocity is None:
+                            raise NavigationRuntimeError('waiting for body velocity sample')
+                        canonical.twist.twist.linear.x, canonical.twist.twist.linear.y, canonical.twist.twist.linear.z = velocity[0]
+                        canonical.twist.twist.angular.x, canonical.twist.twist.angular.y, canonical.twist.twist.angular.z = velocity[1]
                     self._controller_odom_publisher.publish(canonical)
                     self._controller_odom_error = ""
                 except (AttributeError, NavigationRuntimeError, TypeError, ValueError) as exc:
@@ -1294,6 +1401,9 @@ def _build_ros_runtime_node_class() -> type[Any]:
             return "accepted"
 
         def _on_initial_pose(self, message: Any) -> None:
+            if _message_stamp_rejection_reason(self, message, .5):
+                self.get_logger().warning('rejected stale /initialpose')
+                return
             if self._publisher_counts["/initialpose"] != 1:
                 self.get_logger().warning(
                     "rejected /initialpose because its publisher is not unique"
@@ -1307,6 +1417,14 @@ def _build_ros_runtime_node_class() -> type[Any]:
                 self.get_logger().warning("rejected /initialpose without fresh odometry")
                 return
             pose = message.pose.pose
+            if self._operational is not None:
+                try:
+                    if not self._transform_authority.ready:
+                        raise ValueError(self._transform_authority.reason)
+                    self._operational.reseed(pose_matrix(message))
+                except ValueError as exc:
+                    self.get_logger().warning(str(exc))
+                return
             try:
                 x_value, y_value, _ = bounded_pose_position(
                     pose.position.x,
@@ -1350,6 +1468,9 @@ def _build_ros_runtime_node_class() -> type[Any]:
 
         def _broadcast_dynamic_transforms(self) -> None:
             if not self._odom_fresh() or self._odom_to_base is None:
+                return
+            if self._operational is not None:
+                self._broadcast_operational_transforms()
                 return
             now = self.get_clock().now().to_msg()
             odom_tf = TransformStamped()
@@ -1398,6 +1519,37 @@ def _build_ros_runtime_node_class() -> type[Any]:
             pose_message.pose.pose.orientation.w = qw
             pose_message.pose.covariance = self._pose_covariance
             self._pose_publisher.publish(pose_message)
+
+        def _broadcast_operational_transforms(self):
+            engine = self._operational
+            if self._operational_body is None or not self._transform_authority.ready:
+                return
+            if not self._transform_authority.publishing:
+                self._transform_authority.begin_publication()
+            # Source time is preserved. No fresh timestamp on an old pose.
+            from builtin_interfaces.msg import Time
+            stamp = Time(sec=self._last_odom_source_stamp_ns // 1_000_000_000,
+                         nanosec=self._last_odom_source_stamp_ns % 1_000_000_000)
+            odom_tf = TransformStamped()
+            odom_tf.header.stamp = stamp
+            odom_tf.header.frame_id, odom_tf.child_frame_id = 'odom', 'base_link'
+            write_transform(odom_tf, self._operational_body)
+            self._tf_broadcaster.sendTransform(odom_tf)
+            self._last_odom_tf_monotonic = time.monotonic()
+            correction = engine.nav_odom()
+            if correction is None:
+                return
+            map_tf = TransformStamped()
+            map_tf.header.stamp = stamp
+            map_tf.header.frame_id, map_tf.child_frame_id = 'map', 'odom'
+            write_transform(map_tf, correction)
+            self._tf_broadcaster.sendTransform(map_tf)
+            self._last_map_tf_monotonic = time.monotonic()
+            pose = PoseWithCovarianceStamped()
+            pose.header.stamp, pose.header.frame_id = stamp, 'map'
+            write_pose(pose.pose.pose, correction @ self._operational_body)
+            pose.pose.covariance = self._pose_covariance
+            self._pose_publisher.publish(pose)
 
         def _on_health_timer(self) -> None:
             started_at = time.monotonic()
@@ -1481,6 +1633,7 @@ def _build_ros_runtime_node_class() -> type[Any]:
             return True
 
         def _process_health_timer(self) -> None:
+            self._refresh_operational_authority()
             publisher_count_started_at = time.monotonic()
             try:
                 self._publisher_counts = {
@@ -1496,6 +1649,9 @@ def _build_ros_runtime_node_class() -> type[Any]:
             cloud_fresh = self._cloud_fresh()
             odom_fresh = self._odom_fresh()
             localized = self._map_to_odom is not None and odom_fresh
+            if self._operational is not None:
+                self._operational.poll()
+                localized = self._operational_status()['ready'] and odom_fresh
             sensor_sources_unique = (
                 self._publisher_counts["/velodyne_points"] == 1
                 and self._publisher_counts["/Odometry"] == 1
@@ -1553,6 +1709,7 @@ def _build_ros_runtime_node_class() -> type[Any]:
                 }
             payload = {
                 "schema": "robot-scope.navigation-runtime-health.v1",
+                "operational_3d": self._operational_status() if self._operational else None,
                 "runtime_instance_generation": self._runtime_instance_generation,
                 "health_sequence": self._health_sequence,
                 "ready": bool(
@@ -1824,6 +1981,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     finally:
         executor.remove_node(node)
         executor.shutdown()
+        if node._operational is not None:
+            node._operational.close()
         node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()

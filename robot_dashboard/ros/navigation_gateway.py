@@ -1705,7 +1705,12 @@ class NavigationRosGateway:
                     "error": f"rejected navigation runtime health: {exc}"[:240],
                 }
             return
+        from ..relocalization.operational import sanitize_status
+        operational = sanitize_status(payload.get('operational_3d'))
+        if payload.get('operational_3d') is not None and (operational is None or not operational['ready']):
+            payload['ready'] = payload['localized'] = False
         sanitized = {
+            "operational_3d": operational,
             "ready": payload["ready"],
             "cloud_fresh": payload["cloud_fresh"],
             "odom_fresh": payload["odom_fresh"],
@@ -2536,6 +2541,7 @@ class NavigationRosGateway:
         x: object,
         y: object,
         yaw: object,
+        dispatch_guard: Any = None,
     ) -> Dict[str, Any]:
         x_value, y_value, yaw_value = self.pose_values(x, y, yaw)
         with self._control_port.operation_lock:
@@ -2561,6 +2567,8 @@ class NavigationRosGateway:
                     raise ControlDisabled(
                         "NavigateToPose action server is unavailable"
                     )
+                if dispatch_guard is not None:
+                    dispatch_guard()
                 goal_id = secrets.token_hex(16)
                 self._navigation_goal_generation += 1
                 generation = self._navigation_goal_generation
@@ -2587,6 +2595,8 @@ class NavigationRosGateway:
             goal_message.pose.header = stamped.header
             goal_message.pose.pose = stamped.pose.pose
             try:
+                if dispatch_guard is not None:
+                    dispatch_guard()
                 future = client.send_goal_async(
                     goal_message,
                     feedback_callback=(
@@ -2611,6 +2621,9 @@ class NavigationRosGateway:
                         self._navigation["goal"] = goal
                         self._navigation["seq"] += 1
                 self._navigation_issue_stop("NavigateToPose request failed")
+                from ..navigation_dispatch import OperatorDispatchRejected
+                if isinstance(exc, OperatorDispatchRejected):
+                    raise
                 raise ControlDisabled(
                     "NavigateToPose request could not be sent"
                 ) from exc

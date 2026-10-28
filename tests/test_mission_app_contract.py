@@ -41,6 +41,8 @@ class MissionRouterContractTests(unittest.TestCase):
                 ("post", "/api/v1/missions"),
                 ("get", "/api/v1/missions/{mission_id}"),
                 *{("post", f"/api/v1/missions/{{mission_id}}/{action}") for action in ("start", "pause", "resume", "skip", "retry", "abort")},
+                ('post', '/api/v1/missions/{mission_id}/operator-test-enable'),
+                ('post', '/api/v1/missions/{mission_id}/operator-test-green'),
             },
         )
         source = ROUTER.read_text(encoding="utf-8")

@@ -25,6 +25,7 @@ from .application.mapping_coordinator import (
     MappingCoordinatorUnavailable,
 )
 from .application.mission_coordinator import MissionCoordinator, MissionError
+from .api.routers.operational_navigation import router as operational_navigation_router
 from .application.navigation_coordinator import NavigationCoordinator
 from .application.route_planner_coordinator import RoutePlannerCoordinator
 from .application.runtime import ApplicationRuntime, close_observation_resources, close_relocalization, configure_competition, configure_realsense_profile, configure_stationary_relocalization
@@ -398,7 +399,7 @@ def require_service_lifecycle_idle() -> None:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
-for api_router in (system_router, telemetry_router, cameras_router, competition_router, discovery_router, navigation_presets_router):
+for api_router in (system_router, telemetry_router, cameras_router, competition_router, discovery_router, navigation_presets_router, operational_navigation_router):
     app.include_router(api_router)
 app.include_router(create_dataset_router(require_service_lifecycle_idle))
 app.include_router(missions_router)
@@ -1540,6 +1541,7 @@ def main() -> None:
         catalog,
         Path(args.navigation_runtime_dir).expanduser().resolve() / "missions",
     )
+    RUNTIME.configure_operational_navigation(args.navigation_runtime_dir, catalog, navigation_manager)
     RUNTIME.route_planner = RoutePlannerCoordinator(
         catalog, RUNTIME.mission, Path(args.navigation_runtime_dir).expanduser().resolve() / "route-planner",
         navigation_view=RUNTIME.navigation.view, mapping_activity=RUNTIME.mapping.activity,

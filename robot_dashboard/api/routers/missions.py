@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any, Dict
+from pydantic import BaseModel, ConfigDict, Field
 
 from fastapi import APIRouter, HTTPException, Request
 
@@ -25,6 +26,36 @@ from ..models import MissionActionRequest, MissionCreateRequest
 
 
 router = APIRouter()
+
+
+class OperatorGreenRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    request_id: str = Field(pattern=r'^[A-Za-z0-9_-]{16,80}$')
+    confirmation_token: str = Field(pattern=r'^[a-f0-9]{32}$')
+    stop_generation: int = Field(strict=True, ge=1)
+
+
+@router.post('/api/v1/missions/{mission_id}/operator-test-enable')
+async def enable_operator_test(mission_id: str, body: MissionActionRequest, request: Request):
+    del body
+    require_same_origin(request)
+    runtime = runtime_from_request(request)
+    require_competition_unlocked(runtime, 'operator test mode')
+    try:
+        return await _coordinator(runtime).enable_operator_test(mission_id)
+    except MissionError as exc:
+        raise _error(exc) from exc
+
+
+@router.post('/api/v1/missions/{mission_id}/operator-test-green')
+async def operator_test_green(mission_id: str, body: OperatorGreenRequest, request: Request):
+    require_same_origin(request)
+    runtime = runtime_from_request(request)
+    require_competition_unlocked(runtime, 'operator test departure')
+    try:
+        return await _coordinator(runtime).operator_test_green(mission_id, **body.model_dump())
+    except MissionError as exc:
+        raise _error(exc) from exc
 
 
 def _coordinator(runtime: ApplicationRuntime) -> MissionCoordinator:

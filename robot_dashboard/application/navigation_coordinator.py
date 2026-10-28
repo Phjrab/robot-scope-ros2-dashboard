@@ -1150,6 +1150,7 @@ class NavigationCoordinator:
         y: object,
         yaw: object,
         confirmed: bool,
+        dispatch_guard: Any = None,
     ) -> dict[str, Any]:
         if self.internal_localization_session().get("active"):
             raise NavigationConflict(
@@ -1166,6 +1167,7 @@ class NavigationCoordinator:
                 x=x,
                 y=y,
                 yaw=yaw,
+                dispatch_guard=dispatch_guard,
             )
         return {
             "accepted": True,
@@ -1180,6 +1182,7 @@ class NavigationCoordinator:
         annotation_revision: str,
         annotation_id: str,
         confirmed: bool,
+        dispatch_guard: Any = None,
     ) -> dict[str, Any]:
         """Resolve a revision-pinned point then use the normal goal safety path."""
 
@@ -1205,6 +1208,7 @@ class NavigationCoordinator:
                 x=annotation.x,
                 y=annotation.y,
                 yaw=annotation.yaw,
+                dispatch_guard=dispatch_guard,
             )
         return {
             "accepted": True,
@@ -1224,6 +1228,7 @@ class NavigationCoordinator:
         x: object,
         y: object,
         yaw: object,
+        dispatch_guard: Any = None,
     ) -> None:
         self._require_lifecycle_idle()
         mapping_busy, _ = self._mapping.activity()
@@ -1246,10 +1251,11 @@ class NavigationCoordinator:
             yaw=yaw,
         )
         await asyncio.to_thread(
-            self._agent.navigation_send_goal,
+            self._agent.navigation_send_guarded_goal if dispatch_guard is not None else self._agent.navigation_send_goal,
             map_id=map_id,
             map_revision=map_revision,
             **pose,
+            **({'dispatch_guard': dispatch_guard} if dispatch_guard is not None else {}),
         )
 
     async def cancel_goal(self, *, goal_id: str) -> dict[str, Any]:

@@ -1270,6 +1270,10 @@ class RosAgent(ObservationSubscriptionMixin, RawObservationAccessMixin):
             yaw=yaw,
         )
 
+    def navigation_send_guarded_goal(self, *, dispatch_guard, **goal):
+        """Internal mission permission check at the existing final consumer."""
+        return self._navigation_gateway.send_goal(dispatch_guard=dispatch_guard, **goal)
+
     def navigation_cancel_goal(self, *, goal_id: str) -> Dict[str, Any]:
         return self._navigation_gateway.cancel_goal(goal_id=goal_id)
 

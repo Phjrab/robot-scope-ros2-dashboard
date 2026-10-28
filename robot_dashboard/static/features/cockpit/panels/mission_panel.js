@@ -20,6 +20,7 @@ function createMissionPanelView(options = {}) {
   const actions = make(documentValue, 'div', 'cockpit-mission-actions');
   const buttons = Object.fromEntries([
     ['start', 'START'], ['pause', 'PAUSE'], ['resume', 'RESUME'], ['skip', 'SKIP'], ['retry', 'RETRY'], ['abort', 'ABORT'], ['takeover', 'MANUAL TAKEOVER'],
+    ['operatorTestEnable', '정지점 녹색 버튼 시험 설정'], ['operatorTestGreen', '시험용 녹색 · 현재 정지점 출발 허가'],
   ].map(([key, label]) => { const button = make(documentValue, 'button', '', label); button.type = 'button'; button.dataset.missionAction = key; actions.append(button); return [key, button]; }));
   const metrics = make(documentValue, 'div', 'cockpit-mission-metrics');
   const route = make(documentValue, 'ol', 'cockpit-mission-route');
@@ -72,6 +73,11 @@ function createMissionPanelView(options = {}) {
     if (mission?.phase === 'after_arrival_confirmation') { buttons.resume.disabled = true; buttons.resume.title = '경로·미션 화면에서 현재 도착 확인을 승인하세요.'; }
     buttons.retry.disabled = state.busy || mission?.state !== 'failed' || ['aborted', 'interrupted'].includes(mission?.outcome); buttons.abort.disabled = state.busy || !active;
     buttons.takeover.disabled = state.busy || !(active || context().navigationActive);
+    buttons.operatorTestEnable.disabled = state.busy || mission?.state !== 'ready' || Boolean(mission?.operator_test);
+    buttons.operatorTestGreen.disabled = state.busy || mission?.state !== 'paused' || mission?.phase !== 'after_arrival_confirmation' || mission?.operator_test?.ready !== true;
+    buttons.operatorTestGreen.hidden = !mission?.operator_test_required;
+    buttons.operatorTestGreen.title = mission?.operator_test?.reason || 'OPERATOR_TEST 출발 허가 · 실제 신호 인식과 별도';
+    if (mission?.operator_test_required) for (const action of ['resume', 'skip', 'retry']) buttons[action].disabled = true;
     if (['aborted', 'interrupted'].includes(mission?.outcome)) buttons.skip.disabled = true;
     if (mission?.context_revision) for (const action of ['start', 'resume', 'retry', 'skip']) { buttons[action].disabled = true; buttons[action].title = '경로·미션 화면에서 방문과 현재 조건을 확인한 뒤 실행하세요.'; }
     const arrivalPending = mission?.waypoints?.some((waypoint) => waypoint.arrival_action === 'sit_then_rise');

@@ -3,6 +3,7 @@ import { anchorSourceContract, sameAnchorSource } from './anchor_proposal.js';
 import { ANCHOR_FIELDS, validAnchorPose } from './anchor_presets.js';
 import { isRigidTransform } from '../experiments/recorded_report.js';
 import { initializeCourseRegion } from './course_region.js';
+import { initializeOperationalNavigation } from './operational_navigation.js';
 
 const radians = p => p && ({...p, roll:p.roll*Math.PI/180, pitch:p.pitch*Math.PI/180, yaw:p.yaw*Math.PI/180});
 export const DEFAULT_SEED_BOUNDS = Object.freeze({xy_m:.75, yaw_deg:25, z_m:.3, tilt_deg:10});
@@ -86,6 +87,8 @@ export function initializeMapSeed({host,scene,getState,getInputs,readPose,writeP
   const course=initializeCourseRegion({host:panel,scene,beforeEdit:()=>endPlacement(),changed:(value,pending)=>{
     draft.course=value;coursePending=pending;draft.revision++;invalidate();draw();
   }});
+  const operational=initializeOperationalNavigation({host:panel,getSeed:()=>candidate?.admissible && applied
+    ? {map:draft.map,pose:radians(candidate.pose),course:draft.course}:null});
   function invalidate() { token++; candidate=null; applied=false; loadedJob=null; controller.invalidate('SEED_CHANGED'); }
   function update(pose, options={}, notify=true) {
     draft.edit(pose,options); message=''; invalidate(); writePose(draft.pose); if(notify) edited(); draw();
@@ -135,6 +138,7 @@ export function initializeMapSeed({host,scene,getState,getInputs,readPose,writeP
     if(candidate?.region_weighting){const w=candidate.region_weighting;el('Result').textContent+=` | 대응점: 코스 ${w.course_matches} / 주변 ${w.surrounding_matches} · 비중 100% / ${w.surrounding_weight*100}% · 코스 가중 기여 ${(w.course_weight_share*100).toFixed(1)}%`;}
     if(candidate?.residual_policy?.enforced===false)el('Result').textContent+=' | 전체 오차 한도 해제 · 오차 기준 통과를 의미하지 않음';
     preview();
+    operational.render();
     if(state.record && loadedJob!==state.record.job_id && !loading) void loadCandidate(false);
   }
   async function loadCandidate(applying) {
@@ -232,7 +236,7 @@ export function initializeMapSeed({host,scene,getState,getInputs,readPose,writeP
       if(!visible)endPlacement();draw();
     },
     invalidateSource:()=>{invalidate();endPlacement();},
-    destroy:()=>{disposed=true;endPlacement();course.destroy();clearInterval(timer);controller.destroy();scene.setInitializationPreview(null);
+    destroy:()=>{disposed=true;endPlacement();course.destroy();operational.destroy();clearInterval(timer);controller.destroy();scene.setInitializationPreview(null);
       document.removeEventListener('keydown',key);
       for(const [name,fn] of [['pointerdown',down],['pointermove',move],['pointerup',up],['pointercancel',cancelPointer],['dblclick',double]]) scene.canvas.removeEventListener(name,fn,true);
       panel.remove();},

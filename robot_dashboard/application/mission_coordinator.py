@@ -15,6 +15,7 @@ import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Protocol
+from ..navigation_dispatch import OperatorDispatchRejected
 
 
 MISSION_SCHEMA_VERSION = 1
@@ -237,6 +238,8 @@ class MissionCoordinator:
         self._managed_admission: object | None = None
         # Process-local capabilities: never serialize or restore native authority.
         self._native_owners: dict[str, Any] = {}
+        self._operator_tests: dict[str, Any] = {}
+        self._operational_health = None
         self._dispatch_preflight: Any = None
         self._stop_requests: set[str] = set()
         self._audit_warning = ""
@@ -371,7 +374,7 @@ class MissionCoordinator:
                 raise MissionUnavailable("mission log is invalid")
             logs: list[dict[str, Any]] = []
             for entry in raw_logs:
-                if not isinstance(entry, dict) or set(entry) != {"seq", "timestamp", "event", "waypoint_index"}:
+                if not isinstance(entry, dict) or set(entry) not in ({"seq", "timestamp", "event", "waypoint_index"}, {"seq", "timestamp", "event", "waypoint_index", "operator_test_event"}):
                     raise MissionUnavailable("mission log entry is invalid")
                 sequence = entry.get("seq")
                 waypoint_index = entry.get("waypoint_index")
@@ -383,10 +386,21 @@ class MissionCoordinator:
                 timestamp = entry.get("timestamp")
                 if not isinstance(event, str) or not re.fullmatch(r"[a-z][a-z0-9_]{1,47}", event) or not isinstance(timestamp, str) or len(timestamp) > 32:
                     raise MissionUnavailable("mission log value is invalid")
-                logs.append({"seq": sequence, "timestamp": timestamp, "event": event, "waypoint_index": waypoint_index})
+                normalized_log = {"seq": sequence, "timestamp": timestamp, "event": event, "waypoint_index": waypoint_index}
+                if 'operator_test_event' in entry:
+                    receipt = entry['operator_test_event']
+                    if (not isinstance(receipt, dict) or receipt.get('source') != 'OPERATOR_TEST'
+                            or receipt.get('kind') != 'GREEN_RELEASE_REQUEST'
+                            or receipt.get('completion_profile') != 'NAV_STOP_POINT_TEST'
+                            or len(json.dumps(receipt, allow_nan=False)) > 4096):
+                        raise MissionUnavailable('operator test receipt is invalid')
+                    normalized_log['operator_test_event'] = dict(receipt)
+                logs.append(normalized_log)
             log_seq = raw.get("log_seq", 0)
             if type(raw.get("native_required", False)) is not bool:
                 raise MissionUnavailable("native owner marker is invalid")
+            if type(raw.get('operator_test_required', False)) is not bool:
+                raise MissionUnavailable('operator test marker is invalid')
             if isinstance(log_seq, bool) or not isinstance(log_seq, int) or not 0 <= log_seq <= 1_000_000:
                 raise MissionUnavailable("mission log cursor is invalid")
             missions.append(
@@ -409,6 +423,7 @@ class MissionCoordinator:
                     "hold_remaining_seconds": _bounded_number(raw.get("hold_remaining_seconds", 0.0), "hold remaining"),
                     "context_revision": raw.get("context_revision", ""),
                     "native_required": raw.get("native_required", False),
+                    "operator_test_required": raw.get('operator_test_required', False),
                     "confirmation_token": raw.get("confirmation_token"),
                     "waypoints": waypoints,
                     "hold_until_epoch": _bounded_number(raw.get("hold_until_epoch", 0.0), "hold deadline"),
@@ -499,9 +514,11 @@ class MissionCoordinator:
             "hold_remaining": round(self._hold_remaining(mission), 3),
             "arrival_policy": {"requested": "per_visit", "supported": ["NAV2_DEFAULT"], "effective": "NAV2_DEFAULT", "evidence": "Nav2 action SUCCEEDED; physical stop not independently observed"},
             "physical_stop_observed": None,
+            "operator_test": self._operator_tests[mission['id']].snapshot() if mission['id'] in self._operator_tests else None,
             "audit_warning": self._audit_warning or None,
             "context_revision": mission.get("context_revision", ""),
             "native_required": mission.get("native_required", False),
+            "operator_test_required": mission.get('operator_test_required', False),
             "logs": [dict(entry) for entry in mission["logs"][-MAX_LOG_ENTRIES:]],
             "ownership_active": mission["id"] == self._active_id and mission["state"] in ACTIVE_STATES,
             "terminal": terminal,
@@ -618,6 +635,9 @@ class MissionCoordinator:
             if native is not None and (native.get('external_stop')
                     or not native['guard'](starting=mission['current_index'] == 0)):
                 raise MissionConflict('NATIVE_DISPATCH_PROOF_EXPIRED')
+            test = self._operator_tests.get(mission['id'])
+            if test is not None:
+                test.require_dispatch(mission['current_index'])
             dispatch_pose = waypoint.get("mission_local_pose")
             if waypoint.get("heading_yaw") is not None:
                 annotation = next(point for point in annotations["points"] if point.get("id") == waypoint["annotation_id"])
@@ -643,23 +663,52 @@ class MissionCoordinator:
         self._record(mission, "waypoint_dispatching", mission["current_index"])
         self._save()
         try:
+            guard_options = {}
+            if mission['id'] in self._operator_tests:
+                gate = self._operator_tests[mission['id']]
+                def final_dispatch_guard():
+                    try:
+                        if mission['id'] in self._stop_requests:
+                            raise ValueError('OPERATOR_TEST_STOP_REQUESTED')
+                        gate.require_dispatch(mission['current_index'])
+                    except ValueError as exc:
+                        raise OperatorDispatchRejected(str(exc)) from exc
+                guard_options['dispatch_guard'] = final_dispatch_guard
             if dispatch_pose is not None:
                 response = await self._navigation.send_goal(
                     map_id=mission["map_id"], map_revision=mission["map_revision"],
                     **dispatch_pose, confirmed=True,
+                    **guard_options,
                 )
             else:
                 response = await self._navigation.send_annotation_goal(
                     map_id=mission["map_id"], map_revision=mission["map_revision"], annotation_revision=mission["annotation_revision"],
                     annotation_id=waypoint["annotation_id"], confirmed=True,
+                    **guard_options,
                 )
             goal = ((response.get("navigation") or {}).get("goal") or {}) if isinstance(response, Mapping) else {}
             goal_id = goal.get("goal_id")
             if goal.get("state") not in GOAL_ACTIVE_STATES or not isinstance(goal_id, str) or not GOAL_ID_RE.fullmatch(goal_id):
                 raise MissionConflict("navigation did not publish one owned goal")
             waypoint["goal_id"] = goal_id
+            if mission['id'] in self._operator_tests:
+                test = self._operator_tests[mission['id']]
+                test.dispatched()
+                if test.last_event is not None:
+                    self._record(mission, 'operator_test_goal_dispatched', mission['current_index'])
+                    mission['logs'][-1]['operator_test_event'] = dict(test.last_event)
             self._record(mission, "waypoint_started", mission["current_index"])
             self._save()
+        except OperatorDispatchRejected as exc:
+            # This explicit final-consumer receipt proves no action was sent.
+            # Retain owner for queued STOP without inventing an uncertain goal.
+            waypoint.update(status='pending', goal_id=None)
+            mission.update(state='paused', phase='dispatch_rejected', confirmation_token=None,
+                           pause_reason='dispatch_rejected', error='operator_test_dispatch_rejected')
+            self._operator_tests[mission['id']].pending = None
+            self._record(mission, 'operator_test_dispatch_rejected', mission['current_index'])
+            self._save_for_stop()
+            raise MissionConflict(str(exc)) from exc
         except asyncio.CancelledError:
             # A disconnected/cancelled caller does not prove submission failed.
             # Keep the ownership fence until this exact goal can be reconciled.
@@ -707,6 +756,8 @@ class MissionCoordinator:
             mission = self._mission(mission_id)
             self._require_managed_admission(mission, admission)
             self._require_native_owner(mission_id, native_owner)
+            if mission.get('operator_test_required') and mission_id not in self._operator_tests:
+                raise MissionConflict('REAUTHORIZE_OPERATOR_TEST_AFTER_RESTART')
             if mission["state"] in {"starting", "running"} and self._active_id == mission_id:
                 return {"mission": self._public(mission)}
             if mission["state"] != "ready":
@@ -814,6 +865,8 @@ class MissionCoordinator:
     def _arrived(self, mission: dict[str, Any], *, safety: bool = False) -> None:
         waypoint = mission["waypoints"][mission["current_index"]]
         waypoint["goal_id"] = None
+        if mission['id'] in self._operator_tests:
+            self._operator_tests[mission['id']].arrived()
         mission.update(phase="holding", hold_remaining_seconds=float(waypoint["hold_seconds"]))
         self._hold_deadlines[mission["id"]] = self._monotonic() + float(waypoint["hold_seconds"])
         self._record(mission, "waypoint_arrived", mission["current_index"])
@@ -824,6 +877,13 @@ class MissionCoordinator:
 
     async def _finish_arrival(self, mission: dict[str, Any], *, confirmed: bool = False) -> None:
         waypoint = mission["waypoints"][mission["current_index"]]
+        test = self._operator_tests.get(mission['id'])
+        if test is not None and not confirmed:
+            try:
+                if not test.stopped():
+                    return
+            except ValueError as exc:
+                raise MissionConflict(str(exc)) from exc
         self._hold_deadlines.pop(mission["id"], None)
         mission["hold_remaining_seconds"] = 0.0
         if mission["id"] in self._native_owners:
@@ -956,8 +1016,69 @@ class MissionCoordinator:
             self._save_for_stop()
             return self._stop_result(mission)
 
+    async def enable_operator_test(self, mission_id: str) -> dict[str, Any]:
+        from .operator_test import OperatorTestGate
+        async with self._operation_lock:
+            mission = self._mission(mission_id)
+            if mission['state'] != 'ready' or mission.get('native_required') or self._operational_health is None:
+                raise MissionConflict('OPERATOR_TEST_REQUIRES_READY_NON_NATIVE_MISSION')
+            if mission_id in self._operator_tests:
+                return {'mission': self._public(mission)}
+            try:
+                gate = OperatorTestGate(self._operational_health, self._monotonic)
+            except ValueError as exc:
+                raise MissionConflict(str(exc)) from exc
+            for waypoint in mission['waypoints']:
+                waypoint['after_arrival_confirmation'] = True
+                waypoint['hold_seconds'] = max(2., waypoint['hold_seconds'])
+            self._operator_tests[mission_id] = gate
+            mission['operator_test_required'] = True
+            self._record(mission, 'operator_test_enabled_nav_stop_point_test')
+            self._save()
+            return {'mission': self._public(mission)}
+
+    async def operator_test_green(self, mission_id, *, request_id, confirmation_token, stop_generation):
+        if not isinstance(request_id, str) or not re.fullmatch(r'[A-Za-z0-9_-]{16,80}', request_id):
+            raise MissionValidationError('INVALID_OPERATOR_TEST_REQUEST_ID')
+        async with self._operation_lock:
+            mission = self._mission(mission_id)
+            gate = self._operator_tests.get(mission_id)
+            if gate is None:
+                raise MissionConflict('OPERATOR_TEST_NOT_ENABLED')
+            previous = gate.releases.get(request_id)
+            if previous is not None:
+                if previous['confirmation_token'] != confirmation_token or previous['stop_generation'] != stop_generation:
+                    raise MissionConflict('OPERATOR_TEST_REQUEST_ID_REUSED')
+                return {'mission': self._public(mission), 'event': previous, 'duplicate': True}
+            if (mission['state'] != 'paused' or mission['phase'] != 'after_arrival_confirmation'
+                    or self._active_id != mission_id or mission_id in self._stop_requests
+                    or mission['confirmation_token'] != confirmation_token or not confirmation_token
+                    or type(stop_generation) is not int or stop_generation != gate.stop_generation):
+                raise MissionConflict('CURRENT_WAIT_TEST_GREEN_REQUIRED')
+            await self._validated_annotations(mission)
+            self._navigation_ready(mission)
+            if self._context_guard is not None:
+                self._context_guard(mission)
+            try:
+                event = gate.release(request_id=request_id, run_id=mission_id,
+                    step_id=mission['waypoints'][mission['current_index']]['visit_id'], token=confirmation_token)
+            except ValueError as exc:
+                raise MissionConflict(str(exc)) from exc
+            # Persist intent before the existing release/next-goal path. After
+            # restart missions are interrupted; an old permission never resumes.
+            self._record(mission, 'operator_test_green_release_request', mission['current_index'])
+            mission['logs'][-1]['operator_test_event'] = dict(event)
+            self._save()
+            mission['state'] = 'running'
+            await self._finish_arrival(mission, confirmed=True)
+            if mission['state'] == 'running':
+                self._start_monitor_locked(mission)
+            return {'mission': self._public(mission), 'event': gate.last_event, 'duplicate': False}
+
     async def resume(self, mission_id: str, *, confirmation_token: str | None = None, admission: object | None = None) -> dict[str, Any]:
         async with self._operation_lock:
+            if mission_id in self._operator_tests or self._mission(mission_id).get('operator_test_required'):
+                raise MissionConflict('USE_CURRENT_OPERATOR_TEST_GREEN_BUTTON')
             mission = self._mission(mission_id)
             self._require_managed_admission(mission, admission)
             self._require_native_owner(mission_id, None)
@@ -986,6 +1107,8 @@ class MissionCoordinator:
             return {"mission": self._public(mission)}
 
     async def skip(self, mission_id: str, *, admission: object | None = None) -> dict[str, Any]:
+        if mission_id in self._operator_tests or self._mission(mission_id).get('operator_test_required'):
+            raise MissionConflict('OPERATOR_TEST_SKIP_DISABLED')
         async with self._operation_lock:
             mission = self._mission(mission_id)
             self._require_managed_admission(mission, admission)
@@ -1017,6 +1140,8 @@ class MissionCoordinator:
             return {"mission": self._public(mission)}
 
     async def retry(self, mission_id: str, *, admission: object | None = None) -> dict[str, Any]:
+        if mission_id in self._operator_tests or self._mission(mission_id).get('operator_test_required'):
+            raise MissionConflict('RECREATE_OPERATOR_TEST_AFTER_FAILURE')
         async with self._operation_lock:
             mission = self._mission(mission_id)
             self._require_managed_admission(mission, admission)
@@ -1088,6 +1213,13 @@ class MissionCoordinator:
                     if observer is not None:
                         observer(self._public(mission))
                     nav_health = self._navigation.view()
+                    gate = self._operator_tests.get(mission_id)
+                    if gate is not None:
+                        try:
+                            gate.require_source()
+                        except ValueError:
+                            await self._fail_closed_locked(mission, outcome='readiness_lost', error='operator_test_source_lost')
+                            return
                     if ((nav_health.get("pipeline") or {}).get("state") != "running" or (nav_health.get("localization") or {}).get("state") != "localized" or (nav_health.get("map") or {}).get("revision") != mission["map_revision"]):
                         mission.update(state="canceling", error="navigation_readiness_lost")
                         self._save()

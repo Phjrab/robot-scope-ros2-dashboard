@@ -63,6 +63,7 @@ class ApplicationRuntime:
     fastlio_observation: Any | None = None
     observation_presets: Any | None = None
     course_regions: Any | None = None
+    operational_navigation: Any | None = None
 
     pipeline_coordination_lock: asyncio.Lock = field(default_factory=asyncio.Lock)
     json_cache: Dict[str, tuple[int, bytes]] = field(default_factory=dict)
@@ -77,6 +78,13 @@ class ApplicationRuntime:
         from ..course_regions import CourseRegionStore
         self.observation_presets = ObservationPresetStore(directory / 'observation-anchors', catalog)
         self.course_regions = CourseRegionStore(directory / 'observation-courses', catalog)
+
+    def configure_operational_navigation(self, directory, catalog, jobs):
+        import time
+        from .operational_navigation import OperationalNavigation
+        self.operational_navigation = OperationalNavigation(catalog, directory, jobs)
+        jobs.operational_snapshotter = self.operational_navigation.snapshot_for_job
+        self.mission._operational_health = lambda: self.agent._navigation_runtime_health_snapshot(time.monotonic())
 
     def require_agent(self) -> RosAgent:
         if self.agent is None:
