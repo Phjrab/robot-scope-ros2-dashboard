@@ -1,5 +1,6 @@
 import json
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
@@ -27,6 +28,11 @@ class ResourceMonitorTests(unittest.TestCase):
         self.root = Path(self.directory.name)
         self.clock = Clock()
         self.monitor = ResourceMonitor(root=self.root, clock=self.clock, wall_clock=lambda: 1000 + self.clock.value)
+
+    def tearDown(self):
+        worker = self.monitor._process_worker
+        if worker is not None:
+            worker.join(1)
 
     def test_missing_resources_are_null_and_json_is_finite(self):
         value = self.monitor.snapshot()
@@ -61,6 +67,20 @@ class ResourceMonitorTests(unittest.TestCase):
         self.assertIsNone(utilization((200, 100), (100, 50)))
         self.assertIsNone(delta(100, 10, 1))
         self.assertIsNone(delta(100, 110, None))
+
+    def test_slow_collection_cache_starts_when_result_is_ready(self):
+        original = self.monitor._sensors
+        def slow_sensors(agent):
+            self.clock.value += 2
+            return original(agent)
+        with patch.object(self.monitor, '_sensors', side_effect=slow_sensors):
+            first = self.monitor.snapshot()
+        self.assertEqual(first['collection_duration_s'], 2)
+        self.assertEqual(first['timestamp_ms'], 1002000)
+        self.clock.value = 2.5
+        self.assertIs(self.monitor.snapshot(), first)
+        self.clock.value = 3
+        self.assertEqual(self.monitor.snapshot()['sample_interval_s'], 3)
 
     def test_memory_available_gpu_power_temperature_and_oom(self):
         write(self.root, 'proc/meminfo', 'MemTotal: 1000 kB\nMemAvailable: 400 kB\nSwapTotal: 100 kB\nSwapFree: 90 kB\n')
@@ -115,15 +135,73 @@ class ResourceMonitorTests(unittest.TestCase):
             fields[11], fields[19], fields[21] = str(ticks), str(start), '4'
             write(self.root, 'proc/123/stat', '123 (lio (worker)) ' + ' '.join(fields))
         process(100)
-        self.assertIsNone(self.monitor.snapshot()['processes']['items'][0]['cpu_percent'])
+        self.assertIsNone(self.monitor._process_snapshot(None)['items'][0]['cpu_percent'])
         self.clock.value = 1
         process(100 + self.monitor._tick_hz * 2)
-        value = self.monitor.snapshot()['processes']['items'][0]
+        value = self.monitor._process_snapshot(1)['items'][0]
         self.assertEqual(value['cpu_percent'], 200)
         self.assertEqual(value['name'], 'lio (worker)')
         self.clock.value = 2
         process(1000, 200)
-        self.assertIsNone(self.monitor.snapshot()['processes']['items'][0]['cpu_percent'])
+        self.assertIsNone(self.monitor._process_snapshot(1)['items'][0]['cpu_percent'])
+
+    def test_slow_process_scan_never_holds_host_metrics_or_starts_duplicate_workers(self):
+        entered, release = threading.Event(), threading.Event()
+        calls = []
+        def slow_processes(elapsed):
+            calls.append(elapsed)
+            entered.set()
+            release.wait(2)
+            return {'items': [{'pid': 123, 'name': 'worker', 'cpu_percent': 42, 'rss_bytes': 4096}],
+                    'observed': 1, 'truncated': False, 'scope': 'test'}
+        with patch.object(self.monitor, '_process_snapshot', side_effect=slow_processes):
+            try:
+                first = self.monitor.snapshot()
+                self.assertTrue(entered.wait(1))
+                worker = self.monitor._process_worker
+                self.assertTrue(worker.is_alive())
+                self.assertEqual(first['processes']['state'], 'waiting')
+                self.clock.value = 1
+                second = self.monitor.snapshot()
+                self.assertEqual(second['seq'], 2)
+                self.assertIs(self.monitor._process_worker, worker)
+                self.assertEqual(calls, [None])
+            finally:
+                release.set()
+                worker = self.monitor._process_worker
+                if worker is not None:
+                    worker.join(1)
+            self.clock.value = 1.5
+            status = self.monitor._process_status()
+            self.assertEqual(status['state'], 'ok')
+            self.assertEqual(status['items'][0]['cpu_percent'], 42)
+            self.assertEqual(status['sample_duration_s'], 1)
+            self.clock.value = 7
+            release.clear()
+            try:
+                stale = self.monitor._process_status()
+                self.assertEqual(stale['state'], 'stale')
+                self.assertEqual(stale['items'], [])
+                self.assertEqual(stale['age_s'], 6)
+                self.assertTrue(entered.wait(1))
+            finally:
+                release.set()
+                worker = self.monitor._process_worker
+                if worker is not None:
+                    worker.join(1)
+            self.assertEqual(calls, [None, 7])
+
+    def test_process_scan_failure_keeps_host_metrics_and_reports_unavailable(self):
+        with patch.object(self.monitor, '_process_snapshot', side_effect=OSError('private proc error')):
+            sample = self.monitor.snapshot()
+            worker = self.monitor._process_worker
+            if worker is not None:
+                worker.join(1)
+            status = self.monitor._process_status()
+        self.assertEqual(sample['schema'], 'robot-scope.resources.v1')
+        self.assertEqual(status['state'], 'error')
+        self.assertEqual(status['items'], [])
+        self.assertNotIn('private proc error', json.dumps(status))
 
     def test_sensor_catalog_reads_only_status_and_failures_are_independent(self):
         class Agent:

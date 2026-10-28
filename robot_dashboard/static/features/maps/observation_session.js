@@ -13,8 +13,8 @@ export function observationSessionView(state = {}, elapsedSeconds = 0) {
 export function initializeObservationSession({ panel, getContext, onSessionChange, onStart, onStop }) {
   const host = document.createElement('div'); host.className = 'saved-observation-session';
   host.innerHTML = `<div class="saved-live-heading"><strong>1. 관측기 실행</strong><span id="savedSessionState" role="status">관측기 확인 중</span></div>
-    <p>관측기는 최대 30분 실행됩니다. 입력 준비 후 아래에서 지도 기준점을 연결하세요.</p>
-    <div class="saved-live-actions"><button id="savedSessionStart" type="button" disabled>관측 시작 (30분)</button><button id="savedSessionStop" type="button" disabled>관측 종료</button><button id="savedSessionAnchor" type="button" disabled>2. 기준점 설정</button></div>
+    <p>관측기는 최대 30분 실행됩니다. 입력 준비 후 아래 지도 위치·방향을 지정하세요.</p>
+    <div class="saved-live-actions"><button id="savedSessionStart" type="button" disabled>관측 시작 (30분)</button><button id="savedSessionStop" type="button" disabled>관측 종료</button></div>
     <small id="savedSessionDetail"></small><small id="savedSessionError" role="alert"></small>`;
   panel.querySelector('.saved-live-heading').after(host);
   const el = name => host.querySelector(`#savedSession${name}`);
@@ -26,7 +26,6 @@ export function initializeObservationSession({ panel, getContext, onSessionChang
     el('State').textContent = view.label; el('Detail').textContent = view.detail; el('Error').textContent = error || readError;
     el('Start').disabled = writing || !view.canStart || !getContext().meta;
     el('Stop').disabled = writing || !view.canStop;
-    el('Anchor').disabled = writing || !view.ready || !getContext().meta;
   }
   async function request(action = null) {
     if (disposed || (pending && (!action || pendingAction !== null))) return;
@@ -65,10 +64,6 @@ export function initializeObservationSession({ panel, getContext, onSessionChang
   }
   el('Start').addEventListener('click', () => { void request('start'); });
   el('Stop').addEventListener('click', () => { void request('stop'); });
-  el('Anchor').addEventListener('click', () => {
-    const details = panel.querySelector('#savedLiveAnchorDetails'); details.open = true;
-    details.querySelector('input').focus();
-  });
   const timer = setInterval(() => { render(); if (getContext().visible && !document.hidden) void request(); }, 1000);
   void request();
   return { render, destroy() { disposed = true; clearInterval(timer); controller?.abort(); host.remove(); } };

@@ -8,13 +8,18 @@ import { createPointcloudTransport } from '../robot_dashboard/static/features/se
 
 const load = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
 
-test('Cockpit route is additive and keeps every existing workspace route', () => {
+test('Cockpit keeps active workspace routes and omits retired manual controls', () => {
   const indexSource = load('../robot_dashboard/static/index.html');
   const appSource = load('../robot_dashboard/static/app.js');
-  for (const route of ['overview', 'cockpit', 'mapping', 'maps', 'sensors', 'topics', 'controls', 'navigation', 'settings']) {
+  for (const route of ['overview', 'cockpit', 'mapping', 'maps', 'sensors', 'topics', 'navigation', 'settings']) {
     assert.match(indexSource, new RegExp(`data-nav=["']${route}["']`));
     assert.match(indexSource, new RegExp(`data-page=["']${route}["']`));
   }
+  assert.doesNotMatch(indexSource, /data-(?:nav|page)=["']controls["']|href=["']#controls["']/);
+  assert.doesNotMatch(indexSource, /href=["']\/static\/experiments\.html["']/);
+  assert.match(indexSource, /<template id="manualControlCompatibility">/);
+  assert.doesNotMatch(appSource, /controlUi\.(?:arm|disarm|actions|inputSource|speed|gamepad)\.addEventListener/);
+  assert.doesNotMatch(appSource, /setInterval\(controlTick|bindControlPointerButtons\(\);|addEventListener\('key(?:down|up)', handleControl/);
   assert.match(appSource, /const PAGE_META = MISSION_PAGE_META/);
   assert.match(load('../robot_dashboard/static/features/cockpit/mission_shell.js'), /cockpit: \['관측'/);
   assert.match(indexSource, /\/static\/features\/cockpit\/cockpit\.css/);

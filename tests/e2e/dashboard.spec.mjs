@@ -1199,7 +1199,7 @@ test('control status and software STOP belong only to Settings while Cockpit lay
 
   await camera.locator('[data-panel-action="focus"]').click();
   await expect(camera).toHaveAttribute('data-mode', 'focus');
-  for (const route of ['overview', 'cockpit', 'mapping', 'maps', 'sensors', 'resources', 'topics', 'controls', 'navigation', 'missions', 'route-planner']) {
+  for (const route of ['overview', 'cockpit', 'mapping', 'maps', 'sensors', 'resources', 'topics', 'navigation', 'missions', 'route-planner']) {
     await page.evaluate((value) => { location.hash = value; }, route);
     await expect(page.locator('html')).toHaveAttribute('data-active-page', route);
     await expect(hud).toBeHidden();
@@ -1569,7 +1569,7 @@ test('finalized dataset export downloads once and model registry remains read on
 });
 
 test('software E-stop remains latched until explicit local confirmation clears it', async ({ page }) => {
-  const backend = await openDashboard(page, {}, 'controls');
+  const backend = await openDashboard(page, {}, 'settings');
   await page.locator('#softwareEstopButton').click();
   await expect.poll(() => backend.mutations('/api/v1/control/stop').length).toBe(1);
   await expect(page.locator('#estopClearButton')).toBeDisabled();
@@ -1611,4 +1611,64 @@ test('cross-origin browser WebSocket handshakes are rejected before acceptance',
   expect(outcome).toBe('rejected');
   const response = await request.get(`http://127.0.0.1:${process.env.UI_PROBE_PORT || 4174}/ws-rejections`);
   expect((await response.json()).rejected).toBeGreaterThanOrEqual(1);
+});
+
+
+test('retired manual and experiment routes return to observation without acquiring control', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  const backend = await openDashboard(page, {}, 'controls');
+  await expect(page.locator('html')).toHaveAttribute('data-active-page', 'cockpit');
+  await expect(page.locator('[data-page="controls"], [data-nav="controls"], a[href="#controls"]')).toHaveCount(0);
+  await expect(page.locator('#controlArmButton')).toHaveCount(0);
+  await page.keyboard.press('Shift+W');
+  await page.evaluate(() => document.querySelector('#manualControlCompatibility').content.querySelector('#controlArmButton').click());
+  expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
+  await page.goto('/static/experiments.html');
+  await expect(page).toHaveURL(/\/#cockpit$/);
+  await expect(page.locator('#cockpitWorkspace')).toBeVisible();
+  await expect(page.locator('#candidateFile, #recordedFile')).toHaveCount(0);
+  expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
+  expect(backend.mutations('/api/v1/control/stop')).toHaveLength(0);
+  expect(errors).toEqual([]);
+});
+
+
+test('Nav2 distinguishes sensor connectivity from a stopped control bridge and keeps Settings service controls reachable', async ({ page }) => {
+  const backend = await openDashboard(page, {}, 'navigation');
+  backend.state.navigation.robot_online = false;
+  backend.state.navigation.readiness.cmd_bridge = false;
+  backend.state.navigation.safety = { can_start: false, can_stop: true, blockers: ['robot_offline'] };
+  backend.state.navigation.pipeline = { state: 'running', job_id: 'a'.repeat(32), error: '' };
+  backend.state.navigation.goal = { state: 'active', goal_id: 'b'.repeat(32) };
+  backend.state.control.enabled = false;
+  backend.state.control.available = false;
+  backend.state.control.bridge = { state: 'stopped', available: false, connected: false };
+  const bridge = { service: 'robot-scope-control-bridge.service', enabled: true, configured: true,
+    systemd: { available: true, active_state: 'inactive', sub_state: 'dead', load_state: 'loaded', running: false, transitioning: false },
+    blockers: { start: [], stop: ['control_bridge_service_not_active'] }, can_start: true, can_stop: false,
+    operation: null, privilege: { runner_available: true } };
+  backend.on('/api/v1/control/bridge-service', ({ json }) => json(bridge));
+  await expect(page.locator('#navigationSafetyTitle')).toHaveText('CONTROL BRIDGE NOT READY');
+  await expect(page.locator('#navigationRobotState')).toHaveText('TELEMETRY ONLY');
+  await expect(page.locator('#navigationSafetyMessage')).toContainText('제어 기능이 꺼져');
+  await expect(page.locator('#navigationStartButton')).toBeDisabled();
+  await expect(page.locator('#navigationStopButton')).toBeEnabled();
+  await expect(page.locator('#navigationCancelGoal')).toBeEnabled();
+  await page.locator('#navigationControlLink').click();
+  await expect(page.locator('[data-page="settings"] #controlBridgeServiceStart')).toBeVisible();
+  await expect(page.locator('#controlBridgeServiceStart')).toBeDisabled();
+  await page.locator('#controlBridgeServiceConfirm').check();
+  await expect(page.locator('#controlBridgeServiceStart')).toBeEnabled();
+  await expect(page.locator('#controlBridgeServiceStop')).toBeVisible();
+  expect(await page.evaluate(() => Boolean(document.querySelector('#manualControlCompatibility').content.querySelector('#controlBridgeServiceStart')))).toBe(false);
+  expect(backend.mutations('/api/v1/control/bridge-service/start')).toHaveLength(0);
+  expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
+  expect(backend.mutations('/api/v1/navigation/start')).toHaveLength(0);
+  backend.state.online = false;
+  backend.state.navigation.pipeline = { state: 'idle', job_id: null, error: '' };
+  backend.state.navigation.goal = { state: 'idle', goal_id: null };
+  await page.goto('/#navigation');
+  await expect(page.locator('#navigationSafetyTitle')).toHaveText('ROBOT OFFLINE');
+  await expect(page.locator('#navigationRobotState')).toHaveText('OFFLINE');
 });

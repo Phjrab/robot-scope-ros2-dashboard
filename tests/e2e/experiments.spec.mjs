@@ -1,3 +1,4 @@
+import { openExperimentFixture } from './experiment_view_fixture.mjs';
 import { expect, test } from '@playwright/test';
 
 const identity = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]];
@@ -37,7 +38,7 @@ function upload(page, id, value) {
 test('offline experiment viewer shows synthetic provenance and no control actions', async ({ page }) => {
   const failures = [];
   page.on('pageerror', (error) => failures.push(error.message));
-  await page.goto('/static/experiments.html');
+  await openExperimentFixture(page);
   await upload(page, '#candidateFile', report());
   await expect(page.locator('#experimentContent')).toBeVisible();
   await expect(page.locator('#dataKind')).toContainText('SYNTHETIC');
@@ -51,7 +52,7 @@ test('offline experiment viewer shows synthetic provenance and no control action
 });
 
 test('viewer rejects a mismatched map digest and stale result', async ({ page }) => {
-  await page.goto('/static/experiments.html');
+  await openExperimentFixture(page);
   await upload(page, '#candidateFile', report());
   const other = report();
   other.cases[0].target_sha256 = 'd'.repeat(64);

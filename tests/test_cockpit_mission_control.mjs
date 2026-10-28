@@ -21,11 +21,12 @@ test('Mission presets are bounded unique existing panels and only UI preferences
 test('narrow builtin layouts compact panels without control state or active camera demand', () => {
   assert.ok(missionPresetDocument('capture', 'go2', registry, { width: 390 }).panels.every((panel) => panel.mode === 'compact'));
 });
-test('default and corrupt hash enter safe observation while old routes and dedicated mode remain', () => {
+test('default, corrupt and retired routes enter observation while active routes remain', () => {
   const mode = { dedicated: false, pageFromHash: () => 'maps' };
   assert.equal(missionPageFromHash(mode, ''), 'cockpit');
   assert.equal(missionPageFromHash(mode, '#untrusted'), 'cockpit');
   assert.equal(missionPageFromHash(mode, '#maps'), 'maps');
+  for (const route of ['#controls', '#experiments', '#/controls']) assert.equal(missionPageFromHash(mode, route), 'cockpit');
   assert.equal(missionPageFromHash({ dedicated: true, pageFromHash: () => 'cockpit' }, '#controls'), 'cockpit');
 });
 test('inspector separates stale, missing readiness and absent measurements', () => {

@@ -6,7 +6,6 @@ export const MISSION_PAGE_META = Object.freeze({
   sensors: ['카메라·수집', '카메라·서버 캡처 세션·shadow perception 상태를 확인합니다.'],
   resources: ['Jetson 자원', 'CPU·GPU·메모리·네트워크와 센서 수신 상태를 확인합니다.'],
   topics: ['ROS 토픽', '발견된 ROS 2 토픽, 타입, 수신률과 지연을 조회합니다.'],
-  controls: ['수동 제어', 'ARM 버튼으로 제어 권한을 얻은 뒤 키보드·게임패드 주행과 허용된 Go2 동작을 실행합니다.'],
   navigation: ['주행', '저장된 2D 지도에서 초기 위치와 목표를 지정하고 Go2 자율주행을 관리합니다.'],
   missions: ['경로·미션', '미션 편집·검사·실행·기록과 단계별 backend 연결 상태를 확인합니다.'],
   'route-planner': ['경로 계획', '주문을 구성하고 서버가 계산한 추천 경로와 수동 안내를 독립 화면에서 확인합니다.'],
@@ -23,7 +22,7 @@ export function syncMissionShell(page, documentValue = document) {
   const advanced = documentValue.querySelector('.advanced-tools');
   const narrow = globalThis.matchMedia?.('(max-width: 800px)').matches;
   if (advanced && narrow) advanced.open = false;
-  else if (advanced && ['overview', 'topics', 'controls', 'missions', 'route-planner', 'settings'].includes(page)) advanced.open = true;
+  else if (advanced && ['overview', 'topics', 'missions', 'route-planner', 'settings'].includes(page)) advanced.open = true;
 }
 
 export function filterSavedMapEntries(entries, query) {

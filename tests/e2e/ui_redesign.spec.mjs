@@ -116,7 +116,7 @@ test('Mission Control keeps stale camera/cloud distinct and disconnected STOP av
   await expect(page.locator('[data-inspector-field="camera"]')).toHaveText('오래된 데이터');
   await expect(page.locator('[data-inspector-field="camera"]')).toHaveAttribute('data-state', 'stale');
   backend.state.online = false;
-  for (const route of ['cockpit', 'mapping', 'maps', 'navigation', 'sensors', 'controls', 'route-planner', 'settings']) {
+  for (const route of ['cockpit', 'mapping', 'maps', 'navigation', 'sensors', 'route-planner', 'settings']) {
     await page.goto(`/?offline=${route}#${route}`);
     await expect(page.locator('#connectionLabel')).toContainText('연결 끊김');
     if (route === 'settings') await page.locator('[data-cockpit-software-stop]').click({ trial: true });
@@ -141,7 +141,7 @@ test('Mission Control mock STOP distinguishes pending, server acknowledgement an
   expect(backend.mutations('/api/v1/control/stop')).toHaveLength(2); expect(dialogs).toBe(0);
 });
 
-test('Mission Control ownership blocks presets, denied ARM stays disarmed, map search preserves revision', async ({ page }) => {
+test('Mission Control ownership blocks presets, retired manual route stays disarmed, map search preserves revision', async ({ page }) => {
   test.skip(phase === 'before');
   const { backend } = await isolated(page);
   backend.state.control.lease = { active: true, source: 'other-client', bound: false };
@@ -151,9 +151,9 @@ test('Mission Control ownership blocks presets, denied ARM stays disarmed, map s
   backend.state.control.lease = { active: false, bound: false, source: null };
   backend.on('/api/v1/control/arm', ({ json }) => json({ detail: 'fixture ownership denied' }, 403));
   await page.goto('/#controls');
-  await expect(page.locator('#controlArmButton')).toBeEnabled();
-  await page.locator('#controlArmButton').click();
-  await expect(page.locator('#controlArmButton')).toBeEnabled();
+  await expect(page.locator('html')).toHaveAttribute('data-active-page', 'cockpit');
+  await expect(page.locator('#controlArmButton')).toHaveCount(0);
+  expect(backend.mutations('/api/v1/control/arm')).toHaveLength(0);
   await expect(page.locator('.cockpit-safety-summary')).toContainText('ARM DISARMED');
   await page.goto('/#maps');
   await expect(page.locator('.saved-map-item')).toHaveCount(1);

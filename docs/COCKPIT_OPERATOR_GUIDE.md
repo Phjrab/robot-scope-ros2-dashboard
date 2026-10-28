@@ -1,6 +1,8 @@
 # Cockpit 운영자 가이드
 
-> 2026-10-15 UI update: the user explicitly selected the global control-status HUD and its SOFTWARE STOP in Settings only. Cockpit layout edit/apply controls remain in the inspector. The existing Controls-page software STOP and backend stop/watchdog behavior remain unchanged. Earlier always-visible HUD/STOP descriptions and acceptance results below are historical; they do not describe the current UI. Current UI tests and deployed static hashes are recorded in integration-acceptance/STAGE40_VALIDATION.json.
+> 2026-10-28 UI update: 수동제어 화면과 실험결과 메뉴가 제거되었습니다. 소프트웨어 STOP·CLEAR는 Settings에 있으며 Nav2·미션의 작업 중단 기능은 유지됩니다. 아래 Controls에서 ARM하는 절차는 이전 UI 기록이며 현재 대시보드에는 적용되지 않습니다.
+
+> 2026-10-15 historical UI update: the user explicitly selected the global control-status HUD and its SOFTWARE STOP in Settings only. Cockpit layout edit/apply controls remain in the inspector. The existing Controls-page software STOP and backend stop/watchdog behavior remain unchanged. Earlier always-visible HUD/STOP descriptions and acceptance results below are historical; they do not describe the current UI. Current UI tests and deployed static hashes are recorded in integration-acceptance/STAGE40_VALIDATION.json.
 
 이 문서는 대회 운영자가 Robot Scope의 Cockpit 안에서 센서 확인, 수동 조종,
 Navigation 전환과 Mission 정리를 수행하는 절차를 설명한다. Cockpit은 safety owner가

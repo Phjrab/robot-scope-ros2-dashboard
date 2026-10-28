@@ -35,7 +35,7 @@ export class CourseDraft {
 }
 
 export function initializeCourseRegion({host,scene,changed,beforeEdit}) {
-  const draft=new CourseDraft(),panel=document.createElement('details');panel.id='mapCourse';panel.open=true;
+  const draft=new CourseDraft(),panel=document.createElement('details');panel.id='mapCourse';
   panel.innerHTML=`<summary>코스 영역 · 지도에 저장</summary>
     <p>경계 안의 점을 우선해 초기 정합합니다. 경계는 모든 높이에 적용되며 벽을 자동 분류하지 않습니다. 기존 전체 점군 품질 검사는 유지합니다.</p>
     <div class="saved-live-actions"><button type="button" id="mapCourseSuggest">중앙 영역 자동 제안</button><button type="button" id="mapCourseDraw">코스 경계 직접 표시</button><button type="button" id="mapCourseUndo">마지막 점 취소</button><button type="button" id="mapCourseFinish">경계 표시 완료</button><button type="button" id="mapCourseCancel">편집 취소 / Esc</button></div>

@@ -1,3 +1,4 @@
+import { openExperimentFixture } from './experiment_view_fixture.mjs';
 import { expect, test } from '@playwright/test';
 import { recordedFixture } from '../recorded_se3_fixture.mjs';
 const upload = (page, data) => page.locator('#recordedFile').setInputFiles({ name: 'fixture.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(data)) });
@@ -6,7 +7,7 @@ test('recorded overlay shows rejection, six degrees, original timestamps and met
   page.on('pageerror', e => failures.push(e.message));
   page.on('request', r => { if (r.url().includes('/api/')) requests.push(r.url()); });
   page.on('websocket', ws => sockets.push(ws.url()));
-  await page.goto('/static/experiments.html');
+  await openExperimentFixture(page);
   await upload(page, recordedFixture());
   await expect(page.locator('#recordedContent')).toBeVisible();
   await expect(page.locator('#recordedKind')).toContainText('SYNTHETIC_FIXTURE');
@@ -26,7 +27,7 @@ test('recorded overlay shows rejection, six degrees, original timestamps and met
   expect(failures).toEqual([]); expect(requests).toEqual([]); expect(sockets).toEqual([]);
 });
 test('stale capture, absent result and invalid replacement do not display prior result', async ({ page }) => {
-  await page.goto('/static/experiments.html');
+  await openExperimentFixture(page);
   const r = recordedFixture(); r.captured_at = '2020-01-01T00:00:00Z';
   await upload(page, r);
   await expect(page.locator('#recordedKind')).toContainText('STALE_RECORDING');
@@ -42,7 +43,7 @@ test('stale capture, absent result and invalid replacement do not display prior 
 test('unverified body transform is diagnostic and asset failure has an explicit fallback', async ({ page }) => {
   let requests = 0;
   await page.route('**/go2-official-lite.json', route => { requests += 1; return route.abort(); });
-  await page.goto('/static/experiments.html');
+  await openExperimentFixture(page);
   const r = recordedFixture(); r.body_relation = { verified: false, source_frame: r.source.frame_id,
     source_session: r.source.session_id, body_frame: 'base_link', provenance: 'fixture only',
     T_source_body: [[1, 0, 0, .25], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]] };

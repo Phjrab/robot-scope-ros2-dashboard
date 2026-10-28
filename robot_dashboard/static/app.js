@@ -316,53 +316,57 @@ const ui = {
   toast: $('#toast'),
 };
 
+// The retired teleop view has no route or live DOM. Shared safety/status code
+// still reads its detached fields until the control client is extracted.
+const manualControlCompatibility = $('#manualControlCompatibility').content;
+const controlElement = selector => document.querySelector(selector) || manualControlCompatibility.querySelector(selector);
 const controlUi = {
-  profileNotice: $('#controlProfileNotice'),
-  profileNoticeText: $('#controlProfileNoticeText'),
-  availability: $('#controlAvailability'),
-  availabilityNote: $('#controlAvailabilityNote'),
-  leaseState: $('#controlLeaseState'),
-  leaseNote: $('#controlLeaseNote'),
-  bridgeState: $('#controlBridgeState'),
-  bridgeNote: $('#controlBridgeNote'),
-  bridgeServiceState: $('#controlBridgeServiceState'),
-  bridgeServiceName: $('#controlBridgeServiceName'),
-  bridgeServiceActive: $('#controlBridgeServiceActive'),
-  bridgeServiceSub: $('#controlBridgeServiceSub'),
-  bridgeServiceOperation: $('#controlBridgeServiceOperation'),
-  bridgeServiceConfirm: $('#controlBridgeServiceConfirm'),
-  bridgeServiceStart: $('#controlBridgeServiceStart'),
-  bridgeServiceStop: $('#controlBridgeServiceStop'),
-  bridgeServiceMessage: $('#controlBridgeServiceMessage'),
-  estopStatusCard: $('#estopStatusCard'),
-  estopState: $('#controlEstopState'),
-  estopNote: $('#controlEstopNote'),
-  statePill: $('#controlStatePill'),
-  inputSource: $('#controlInputSource'),
-  gamepadWrap: $('#gamepadDeviceWrap'),
-  gamepad: $('#gamepadDevice'),
-  deviceIndicator: $('#controlDeviceIndicator'),
-  deviceStatus: $('#controlDeviceStatus'),
-  arm: $('#controlArmButton'),
-  disarm: $('#controlDisarmButton'),
-  speed: $('#controlSpeedScale'),
-  speedOutput: $('#controlSpeedOutput'),
-  keyboardGuide: $('#keyboardControlGuide'),
-  gamepadGuide: $('#gamepadControlGuide'),
-  touchController: $('#touchController'),
-  commandX: $('#controlCommandX'),
-  commandY: $('#controlCommandY'),
-  commandZ: $('#controlCommandZ'),
-  commandXBar: $('#controlCommandXBar'),
-  commandYBar: $('#controlCommandYBar'),
-  commandZBar: $('#controlCommandZBar'),
-  deadmanState: $('#controlDeadmanState'),
-  deadmanMonitor: $('.deadman-monitor'),
-  commandSource: $('#controlCommandSource'),
-  estop: $('#softwareEstopButton'),
-  clearConfirm: $('#estopClearConfirm'),
-  clear: $('#estopClearButton'),
-  actions: $('#controlActions'),
+  profileNotice: controlElement('#controlProfileNotice'),
+  profileNoticeText: controlElement('#controlProfileNoticeText'),
+  availability: controlElement('#controlAvailability'),
+  availabilityNote: controlElement('#controlAvailabilityNote'),
+  leaseState: controlElement('#controlLeaseState'),
+  leaseNote: controlElement('#controlLeaseNote'),
+  bridgeState: controlElement('#controlBridgeState'),
+  bridgeNote: controlElement('#controlBridgeNote'),
+  bridgeServiceState: controlElement('#controlBridgeServiceState'),
+  bridgeServiceName: controlElement('#controlBridgeServiceName'),
+  bridgeServiceActive: controlElement('#controlBridgeServiceActive'),
+  bridgeServiceSub: controlElement('#controlBridgeServiceSub'),
+  bridgeServiceOperation: controlElement('#controlBridgeServiceOperation'),
+  bridgeServiceConfirm: controlElement('#controlBridgeServiceConfirm'),
+  bridgeServiceStart: controlElement('#controlBridgeServiceStart'),
+  bridgeServiceStop: controlElement('#controlBridgeServiceStop'),
+  bridgeServiceMessage: controlElement('#controlBridgeServiceMessage'),
+  estopStatusCard: controlElement('#estopStatusCard'),
+  estopState: controlElement('#controlEstopState'),
+  estopNote: controlElement('#controlEstopNote'),
+  statePill: controlElement('#controlStatePill'),
+  inputSource: controlElement('#controlInputSource'),
+  gamepadWrap: controlElement('#gamepadDeviceWrap'),
+  gamepad: controlElement('#gamepadDevice'),
+  deviceIndicator: controlElement('#controlDeviceIndicator'),
+  deviceStatus: controlElement('#controlDeviceStatus'),
+  arm: controlElement('#controlArmButton'),
+  disarm: controlElement('#controlDisarmButton'),
+  speed: controlElement('#controlSpeedScale'),
+  speedOutput: controlElement('#controlSpeedOutput'),
+  keyboardGuide: controlElement('#keyboardControlGuide'),
+  gamepadGuide: controlElement('#gamepadControlGuide'),
+  touchController: controlElement('#touchController'),
+  commandX: controlElement('#controlCommandX'),
+  commandY: controlElement('#controlCommandY'),
+  commandZ: controlElement('#controlCommandZ'),
+  commandXBar: controlElement('#controlCommandXBar'),
+  commandYBar: controlElement('#controlCommandYBar'),
+  commandZBar: controlElement('#controlCommandZBar'),
+  deadmanState: controlElement('#controlDeadmanState'),
+  deadmanMonitor: controlElement('.deadman-monitor'),
+  commandSource: controlElement('#controlCommandSource'),
+  estop: controlElement('#softwareEstopButton'),
+  clearConfirm: controlElement('#estopClearConfirm'),
+  clear: controlElement('#estopClearButton'),
+  actions: controlElement('#controlActions'),
 };
 
 let latestState = null, latestStateAt = 0;
@@ -983,8 +987,6 @@ function activatePage(page, updateHash = false) {
   ui.pageTitle.textContent = title;
   ui.pageDescription.textContent = description; document.dispatchEvent(new CustomEvent('robot-scope:page-change', { detail: { activePage } }));
   if (cockpitWindowMode.shouldReplaceHash(updateHash) && location.hash !== `#${activePage}`) history.replaceState(null, '', `#${activePage}`);
-  if (previousPage === 'controls' && activePage !== 'controls') leaveControlPage('controls_page_left');
-  if (activePage === 'controls' && previousPage !== 'controls') enterControlPage();
   navigationLogFeature?.onPageChange(previousPage, activePage);
   if (activePage === 'sensors') datasetFeature?.activate();
   else datasetFeature?.deactivate();
@@ -3901,6 +3903,13 @@ function renderNavigationStatus() {
   const goalActive = navigationEngine.goalActive(snapshot);
   const localizationState = String(snapshot.localization?.state || 'unknown').toLowerCase();
   const robotOnline = snapshot.robot_online === true;
+  // Explain a separate control-path blocker without overriding Nav2 readiness.
+  const now = Date.now();
+  const telemetryOnline = latestState?.health?.robot_online === true && latestStateAt > 0 && now - latestStateAt <= 3000;
+  const controlFresh = controlSnapshotAt > 0 && now - controlSnapshotAt <= 3000;
+  const bridgeSetupRequired = !robotOnline && telemetryOnline && controlFresh
+    && (controlSnapshot?.enabled === false || controlSnapshot?.configured === false
+      || controlSnapshot?.bridge?.available === false || !normalizedBridgeState().ready);
   updateNavigationModelPanel();
   const available = navigationApiAvailable === true && snapshot.available === true;
   const manualConflict = navigationManualControlConflict();
@@ -3913,11 +3922,18 @@ function renderNavigationStatus() {
   ui.navigationSafetyBanner.className = 'navigation-safety-banner';
   ui.navigationSafetyMessage.dataset.state = String(firstBlocker || '');
   ui.navigationSafetyMessage.title = blockers.map(String).join(' · ');
-  ui.navigationControlLink.hidden = !manualConflict;
+  ui.navigationControlLink.hidden = !manualConflict && !bridgeSetupRequired;
+  ui.navigationControlLink.textContent = bridgeSetupRequired ? '제어 브리지 설정 열기' : '정지·안전 설정 열기';
   if (!navigationApiAvailable) {
     ui.navigationSafetyBanner.classList.add('is-offline');
     ui.navigationSafetyTitle.textContent = 'NAVIGATION API OFFLINE';
     ui.navigationSafetyMessage.textContent = '상태 API에 연결할 수 없습니다. 기존 STOP/CANCEL은 마지막 상태 기준으로 계속 시도할 수 있습니다.';
+  } else if (bridgeSetupRequired) {
+    ui.navigationSafetyBanner.classList.add('is-warning');
+    ui.navigationSafetyTitle.textContent = 'CONTROL BRIDGE NOT READY';
+    ui.navigationSafetyMessage.textContent = controlSnapshot.enabled === false
+      ? '로봇 센서 상태는 수신 중이지만 제어 기능이 꺼져 있습니다. 설정에서 제어 브리지 상태와 시작 가능 여부를 확인하세요. 새 주행 명령은 잠겨 있습니다.'
+      : '로봇 센서 상태는 수신 중이지만 제어 브리지가 준비되지 않았습니다. 설정에서 제어 브리지를 확인하세요. 새 주행 명령은 잠겨 있습니다.';
   } else if (!available) {
     ui.navigationSafetyBanner.classList.add('is-error');
     ui.navigationSafetyTitle.textContent = 'NAVIGATION UNAVAILABLE';
@@ -3929,7 +3945,7 @@ function renderNavigationStatus() {
   } else if (manualConflict) {
     ui.navigationSafetyBanner.classList.add('is-warning');
     ui.navigationSafetyTitle.textContent = 'MANUAL CONTROL ACTIVE';
-    ui.navigationSafetyMessage.textContent = '수동 제어와 Nav2는 동시에 명령할 수 없습니다. Controls에서 DISARM한 뒤 진행하세요.';
+    ui.navigationSafetyMessage.textContent = '수동 제어와 Nav2는 동시에 명령할 수 없습니다. 제어 중인 클라이언트에서 권한을 해제한 뒤 진행하세요.';
   } else if (!robotOnline) {
     ui.navigationSafetyBanner.classList.add('is-offline');
     ui.navigationSafetyTitle.textContent = 'ROBOT OFFLINE';
@@ -3967,9 +3983,9 @@ function renderNavigationStatus() {
   navigationStatusCard(
     ui.navigationRobotState,
     ui.navigationRobotNote,
-    robotOnline ? 'ok' : 'error',
-    robotOnline ? 'ONLINE' : 'OFFLINE',
-    robotOnline ? '로봇 상태 수신 중' : '새 주행 명령 잠김',
+    robotOnline ? 'ok' : bridgeSetupRequired ? 'waiting' : 'error',
+    robotOnline ? 'ONLINE' : bridgeSetupRequired ? 'TELEMETRY ONLY' : 'OFFLINE',
+    robotOnline ? '로봇 상태 수신 중' : bridgeSetupRequired ? '센서 수신 중 · 제어 브리지 미준비' : '새 주행 명령 잠김',
   );
   navigationStatusCard(
     ui.navigationLocalizationState,
@@ -4121,7 +4137,7 @@ async function startNavigation() {
     return;
   }
   if (navigationManualControlConflict()) {
-    showToast('Controls에서 수동 제어를 DISARM한 뒤 Nav2를 시작하세요.', true);
+    showToast('제어 중인 클라이언트에서 수동 제어 권한을 해제한 뒤 Nav2를 시작하세요.', true);
     return;
   }
   if (!navigationSelectedMapMeta || !navigationMapSnapshot || !navigationParameterSnapshot) {
@@ -6151,7 +6167,7 @@ async function failSafeDisarm(reason, { notify = false } = {}) {
     if (notify) showToast(`제어 해제 확인 실패: ${error.message}`, true);
   } finally {
     controlDisarmBusy = false;
-    if (activePage === 'controls') await refreshControlSnapshot();
+    if (activePage === 'settings') await refreshControlSnapshot();
   }
 }
 
@@ -6161,6 +6177,8 @@ function invalidatePendingArm() {
 }
 
 async function armControl() {
+  // Retired UI must never acquire a lease through stale event handlers.
+  if (!Object.hasOwn(PAGE_META, 'controls') || activePage !== 'controls') return;
   if (controlLeaseId || controlDisarmBusy || controlArmBusy) return;
   if (navigationActivityBlocksManualControl()) {
     showToast('Nav2 pipeline 또는 목표가 활성 상태입니다. Navigation에서 STOP한 뒤 ARM하세요.', true);
@@ -6307,7 +6325,7 @@ async function triggerEmergencyStop(reason = 'dashboard_button') {
     showToast(`대시보드 정지 전송 실패: ${error.message}`, true);
   } finally {
     controlEmergencyBusy = false;
-    if (activePage === 'controls') await refreshControlSnapshot();
+    if (activePage === 'settings') await refreshControlSnapshot();
   }
 }
 
@@ -6321,13 +6339,13 @@ async function clearEmergencyStop() {
     });
     controlUi.clearConfirm.checked = false;
     applyControlSnapshot(extractControlSnapshot(response));
-    showToast('대시보드 SOFTWARE STOP 래치를 해제했습니다. 제어하려면 다시 ARM하세요.');
+    showToast('대시보드 SOFTWARE STOP 래치를 해제했습니다.');
   } catch (error) {
     showToast(`대시보드 정지 해제 실패: ${error.message}`, true);
   } finally {
     controlEmergencyBusy = false;
     syncEstopClearButton();
-    if (activePage === 'controls') await refreshControlSnapshot();
+    if (activePage === 'settings') await refreshControlSnapshot();
   }
 }
 
@@ -6737,30 +6755,9 @@ ui.categoryFilter.addEventListener('change', renderTopics);
 ui.cameraCaptureButton.addEventListener('click', captureCameraFrame);
 ui.cameraRecordButton.addEventListener('click', startCameraRecording);
 ui.cameraStopRecordButton.addEventListener('click', () => stopCameraRecording());
-controlUi.arm.addEventListener('click', armControl);
-controlUi.disarm.addEventListener('click', () => failSafeDisarm('manual_disarm', { notify: true }));
-controlUi.inputSource.addEventListener('change', () => {
-  invalidatePendingArm();
-  if (controlLeaseId) failSafeDisarm('input_source_changed', { notify: true });
-  resetControlInputs();
-  renderControlInputMode();
-});
-controlUi.gamepad.addEventListener('change', () => {
-  invalidatePendingArm();
-  if (controlLeaseId) failSafeDisarm('gamepad_selection_changed', { notify: true });
-  selectedGamepadIndex = controlUi.gamepad.value;
-  resetControlInputs();
-  renderControlInputMode();
-});
-controlUi.speed.addEventListener('input', () => {
-  controlUi.speedOutput.textContent = `${controlUi.speed.value}%`;
-});
 controlUi.estop.addEventListener('click', () => triggerEmergencyStop('dashboard_button'));
 controlUi.clearConfirm.addEventListener('change', syncEstopClearButton);
 controlUi.clear.addEventListener('click', clearEmergencyStop);
-controlUi.actions.addEventListener('click', handleControlActionClick);
-document.addEventListener('keydown', handleControlKeyDown);
-document.addEventListener('keyup', handleControlKeyUp);
 window.addEventListener('gamepadconnected', refreshControlGamepads);
 window.addEventListener('gamepaddisconnected', refreshControlGamepads);
 window.addEventListener('blur', () => {
@@ -6825,7 +6822,6 @@ datasetFeature.start();
 window.RobotScopeDatasetCapture = datasetFeature;
 window.RobotScopeDiagnosticsExport = createDiagnosticsExportFeature({ showToast }).start();
 initializeMountCalibrationFeature();
-bindControlPointerButtons();
 refreshControlGamepads();
 renderControlStatus();
 renderControlCommand();
@@ -6883,7 +6879,6 @@ setInterval(refreshMappingControl, 1000);
 setInterval(refreshNavigation, 1000);
 setInterval(markJointsStale, 250);
 setInterval(syncCameraFrameFreshness, 500);
-setInterval(controlTick, 50);
 setInterval(refreshControlSnapshot, 1000);
 setInterval(refreshControlGamepads, 1000);
 globalThis.RobotScopeTypography?.subscribe(() => drawNavigationMap());

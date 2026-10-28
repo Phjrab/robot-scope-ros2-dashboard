@@ -28,7 +28,7 @@ function binary(seq, observation, frameId='odom') {
   frame.writeUInt32LE(points.length/3,8); frame.writeUInt32LE(points.length*4,12); metadata.copy(frame,16);
   points.forEach((v,i)=>frame.writeFloatLE(v,offset+i*4)); return frame;
 }
-async function fixture(page, {identityUnavailable=false,subscriptionEvidence=false,provisional=false,imu=false,httpFallback=false,joints=false,sessionReady=false}={}) {
+async function fixture(page, {identityUnavailable=false,subscriptionEvidence=false,provisional=false,imu=false,httpFallback=false,joints=false,sessionReady=false,prepareManual=true}={}) {
   const state={ streaming:true, rejected:false, epoch:'c', lastCloud:null, jump:false, identityUnavailable,
     session:'1'.repeat(32),fingerprint:'2'.repeat(64),graphAge:.1,nonconverged:false,policyMismatch:false,
     x:0, z:.3, yaw:0, cloudSocketStreaming:true, httpClouds:0, jointsStreaming:true, sitting:false }, writes=[], errors=[];
@@ -99,16 +99,21 @@ async function fixture(page, {identityUnavailable=false,subscriptionEvidence=fal
   await page.goto('/#maps');
   await page.locator('.saved-map-item').filter({hasText:meta.name}).click();
   await page.evaluate(()=>{
-    const original=window.RobotScene3D.prototype.setPointCloudOverlay;
-    window.RobotScene3D.prototype.setPointCloudOverlay=function(...args) {
+    const original=window.RobotScene3D.prototype.setStatus;
+    window.RobotScene3D.prototype.setStatus=function(...args) {
       if(this.canvas.id==='savedSceneCanvas') window.observationScene=this;
       return original.apply(this,args);
     };
   });
+  await expect(page.locator('#savedLiveEnabled')).toBeChecked();
+  if (!prepareManual) return {state,writes,errors,backend};
+  await page.locator('#savedLiveEnabled').uncheck();
   await page.locator('#savedLiveEnabled').check();
   await page.locator('#savedLiveAnchorDetails > summary').click();
   await page.locator('#savedLiveCoordinates > summary').click();
   await page.locator('#savedLiveAdvancedDetails > summary').click();
+  await page.locator('#savedLiveContinuous').uncheck();
+  await page.locator('#savedLiveSourceUnverified').uncheck();
   if(sessionReady) await expect(page.locator('#savedSessionState')).toHaveText('입력 준비 완료');
   await page.locator('#savedLiveConfirm').check();
   if(identityUnavailable) await expect(page.locator('#savedLiveState')).toHaveText('SOURCE_IDENTITY_UNAVAILABLE');
@@ -282,6 +287,7 @@ test('provisional 7cm observation preserves original rejection and clears noncon
 test('source-unverified provisional observation still rejects altered residual-policy metadata',async({page})=>{
   const {state,writes,errors}=await fixture(page,{identityUnavailable:true,subscriptionEvidence:true,provisional:true});
   await page.locator('#savedLiveSourceUnverified').check();
+  await expect(page.locator('#savedLiveProvenanceNote')).toBeVisible();
   await page.locator('#savedLiveConfirm').check();
   await expect(page.locator('#savedLiveAnchor')).toBeEnabled(); await page.locator('#savedLiveAnchor').click();
   await page.locator('#savedLiveRegistration').check();
@@ -472,12 +478,12 @@ test('Maps observation service start waits for input and requires a fresh anchor
   await page.locator('#savedSessionStart').click();
   await expect(page.locator('#savedSessionState')).toHaveText('새 입력 수신 대기');
   await expect(page.locator('#savedSessionStart')).toBeDisabled();
-  await expect(page.locator('#savedSessionAnchor')).toBeDisabled();
+  await expect(page.locator('#savedSessionAnchor')).toHaveCount(0);
   await expect(page.locator('#savedLiveConfirm')).not.toBeChecked();
   await expect(page.locator('#savedLiveCenter')).toBeDisabled();
   session={...session,state:'READY'};
-  await expect(page.locator('#savedSessionAnchor')).toBeEnabled();
-  await page.locator('#savedSessionAnchor').click();
+  await expect(page.locator('#savedSessionState')).toHaveText('입력 준비 완료');
+  await expect(page.locator('#mapSeedPlace')).toBeEnabled();
   await expect(page.locator('#savedLive_x')).toBeVisible();
   await page.locator('#savedLiveObservation').screenshot({path:testInfo.outputPath('synthetic-observation-session-ready.png')});
   await page.locator('#savedLiveConfirm').check();await page.locator('#savedLiveAnchor').click();
@@ -525,8 +531,8 @@ test('slow status reads do not swallow start or anchor clicks or overwrite a new
   await expect(page.locator('#savedSessionStart')).toBeDisabled();
   reading=false;hold=true;
   await expect.poll(()=>reading).toBe(true);
-  await expect(page.locator('#savedSessionAnchor')).toBeEnabled();
-  await page.locator('#savedSessionAnchor').click();
+  await expect(page.locator('#savedSessionState')).toHaveText('입력 준비 완료');
+  await expect(page.locator('#mapSeedPlace')).toBeEnabled();
   await expect(page.locator('#savedLive_x')).toBeVisible();
   hold=false;release();
   expect(starts).toBe(1);expect(errors).toEqual([]);
@@ -809,6 +815,7 @@ test('out-of-range candidate remains visible without changing draft or active an
   await expect(page.locator('#mapSeedApply')).toBeDisabled();await expect(page.locator('#savedLive_x')).toHaveValue('-0.6');
   expect(await page.evaluate(()=>window.observationScene.initializationPreview.candidate.x)).toBeCloseTo(1.4,6);
   await expect(page.locator('#savedLiveCenter')).toBeEnabled();
+  await page.locator('#mapSeedOptions > summary').click();
   await page.locator('#mapSeedWiden').click();await expect(page.locator('#mapSeedSummary')).toContainText('반경 1.5m / ±50°');
   expect(local.state.requests).toHaveLength(1);await expect(page.locator('#mapSeedSearch')).toBeEnabled();
   await page.locator('#mapSeedBounds > summary').click();await page.locator('[data-seed-bound="xy_m"]').fill('99');
@@ -854,6 +861,7 @@ test('course boundary manual drawing, save, reload and real seed payload preserv
     return json({map,presets,incompatible_count:0});
   });
   await seedStart(page);const original=await page.evaluate(()=>window.observationScene.sensorObservationOverlay.pose.origin);
+  await page.locator('#mapCourse > summary').click();
   await page.locator('#mapCourseDraw').click();await page.waitForTimeout(400);
   for(const [x,y] of [[-1,-1],[1,-1],[1,1],[-1,1]])await seedTap(page,x,y);
   await page.locator('#mapCourseFinish').click();await expect(page.locator('#mapSeedSearch')).toBeDisabled();
@@ -882,6 +890,7 @@ test('late saved course and late registration cannot overwrite a new boundary dr
   backend.on(root,async({json})=>{entered=true;await gate;return json({map:{map_id:id,map_revision:revision,map_frame:'map'},
     presets:[{id:'user-'+'e'.repeat(32),label:'old',values:{map_id:id,map_revision:revision,map_frame:'map',
       polygon:[[-2,-2],[2,-2],[2,2],[-2,2]],outside_weight:.25,confirmed:true,units:'m'}}],incompatible_count:0});});
+  await page.locator('#mapCourse > summary').click();
   await page.locator('#mapCourseReload').click();await expect.poll(()=>entered).toBe(true);
   await page.locator('#mapCourseSuggest').click();release();await page.waitForTimeout(100);
   expect(await page.evaluate(()=>window.observationScene.courseRegionPreview.confirmed)).toBe(false);
@@ -896,14 +905,21 @@ test('late saved course and late registration cannot overwrite a new boundary dr
 
 test('explicit residual-limit release keeps visible error, reaches server and re-enabling invalidates candidate',async({page})=>{
   const {backend,errors,writes}=await fixture(page,{imu:true});const local=seededBackend(backend,{rmse:.07});
+  // Exercise residual policy with the current continuous-observation default.
+  // The legacy fixture intentionally opts out; strict stale teardown is tested separately.
+  await page.locator('#savedLiveContinuous').check();
+  await page.locator('#savedLiveConfirm').check();await page.locator('#savedLiveAnchor').click();
+  await expect(page.locator('#savedLiveState')).toContainText('SAME_START_ODOMETRY_ESTIMATE');
   await seedStart(page);await page.locator('#mapSeedSearch').click();await expect(page.locator('#mapSeedResult')).toContainText('HIGH_RESIDUAL');
-  await expect(page.locator('#mapSeedApply')).toBeDisabled();await page.locator('#mapSeedResidualLimit').uncheck();
+  await expect(page.locator('#mapSeedApply')).toBeDisabled();await page.locator('#mapSeedOptions').evaluate(el=>{el.open=true;});
+  await page.locator('#mapSeedResidualLimit').uncheck();
   await page.locator('#mapSeedSearch').click();await expect(page.locator('#mapSeedApply')).toBeEnabled();
   expect(local.state.requests[1].seed.enforce_residual_limit).toBe(false);
   expect(local.state.requests[1].seed.revision).toBeGreaterThan(local.state.requests[0].seed.revision);
   await expect(page.locator('#mapSeedResult')).toContainText('RMSE 0.070m');await expect(page.locator('#mapSeedResult')).toContainText('전체 오차 한도 해제');
   await page.locator('#mapSeedResidualLimit').check();await expect(page.locator('#mapSeedApply')).toBeDisabled();
   await expect(page.locator('#savedLiveCenter')).toBeEnabled();expect(writes).toEqual([local.root,local.root]);expect(errors).toEqual([]);
+  await page.locator('#mapSeedOptions').evaluate(el=>{el.open=true;});
   await page.locator('#mapSeedResidualLimit').uncheck();await page.reload();
   await expect(page.locator('#mapSeedResidualLimit')).not.toBeChecked();
   await expect(page.locator('#mapSeedResidualNote')).toContainText('한도 해제');
@@ -927,4 +943,30 @@ test('sampled FAST-LIO seed readiness survives unmatched browser stamps and same
   await expect(page.locator('#savedLiveCenter')).toBeEnabled();
   state.epoch='e'; await expect(page.locator('#savedLiveCenter')).toBeDisabled();
   expect(writes).toEqual([local.root]); expect(errors).toEqual([]);
+});
+
+
+for (const graphOnly of [false, true]) test(`position alignment preparation is enabled by default with ${graphOnly?'graph-only':'native'} input`, async({page}, testInfo) => {
+  const {backend,writes,errors} = await fixture(page, {imu:true, identityUnavailable:graphOnly, subscriptionEvidence:graphOnly, prepareManual:false});
+  seededBackend(backend);
+  await expect(page.locator('#savedLiveContinuous')).toBeChecked();
+  await expect(page.locator('#savedLiveSourceUnverified')).toBeChecked();
+  await expect(page.locator('#savedLiveConfirm')).not.toBeChecked();
+  await expect(page.locator('#savedLiveRegistration')).not.toBeChecked();
+  await expect(page.locator('#savedLiveCenter')).toBeDisabled();
+  await expect(page.locator('#mapSeedAgain')).toHaveCount(0);
+  await expect(page.locator('#savedSessionAnchor')).toHaveCount(0);
+  await expect(page.locator('#mapSeedCancel')).toBeHidden();
+  await expect(page.locator('#mapSeedStop')).toBeHidden();
+  await page.locator('#mapSeedPlace').click();
+  await page.waitForTimeout(400);
+  const box=await page.locator('#savedSceneCanvas').boundingBox();
+  await page.mouse.move(box.x+box.width*.5,box.y+box.height*.5);
+  await page.mouse.down();await page.mouse.move(box.x+box.width*.6,box.y+box.height*.5,{steps:5});await page.mouse.up();
+  await expect(page.locator('#mapSeedSearch')).toBeEnabled();
+  expect(writes).toEqual([]); // Visiting, receiving and drafting never starts a service/solver or applies a pose.
+  if (graphOnly) await expect(page.locator('#savedLiveProvenanceNote')).toBeVisible();
+  else await expect(page.locator('#savedLiveProvenanceNote')).toBeHidden();
+  await page.locator('#savedLiveObservation').screenshot({path:testInfo.outputPath(`synthetic-alignment-defaults-${graphOnly?'graph':'native'}.png`)});
+  expect(errors).toEqual([]);
 });

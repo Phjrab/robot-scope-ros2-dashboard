@@ -36,7 +36,7 @@
     <section class="chart-layout">
       <article class="panel trend-panel"><div class="panel-heading"><div><p class="eyebrow">RESOURCE HISTORY</p><h2>부하의 흐름</h2></div><label>표시 구간 <select id="historyWindow"><option value="120">최근 2분</option><option value="300">최근 5분</option><option value="900">최근 15분</option></select></label></div>
         <div class="legend"><span><i class="cpu-color"></i>CPU 전체 코어</span><span><i class="core-color"></i>가장 바쁜 코어</span><span><i class="gpu-color"></i>GPU</span><span><i class="ram-color"></i>메모리</span></div>
-        <canvas id="resourceChart" aria-label="시간에 따른 CPU, 가장 바쁜 코어, GPU, 메모리 사용률 그래프"></canvas><p class="chart-caption">그래프는 1초 간격의 현재 사용률 · 상단 CPU·GPU 큰 숫자는 최근 10초 평균 · 수신 중단 구간은 끊어 표시</p>
+        <canvas id="resourceChart" aria-label="시간에 따른 CPU, 가장 바쁜 코어, GPU, 메모리 사용률 그래프"></canvas><p class="chart-caption">그래프는 각 측정 시점의 현재 사용률 · 상단 CPU·GPU 큰 숫자는 최근 10초 평균 · 수신 중단 구간은 끊어 표시</p>
       </article>
       <article class="panel cores-panel"><div class="panel-heading"><div><p class="eyebrow">CPU BREAKDOWN</p><h2>코어별 사용률</h2></div><span class="pill">100% = 코어 1개</span></div><div id="coreList" class="core-list"><p class="empty">측정 대기 중</p></div><p class="chart-caption">전체 평균이 낮아도 한 코어에 작업이 몰릴 수 있습니다.</p></article>
     </section>

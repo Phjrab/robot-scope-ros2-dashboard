@@ -1,6 +1,6 @@
 import { initializeMapSeed } from './map_seed.js';
 import { matrixPose, multiply } from '../experiments/recorded_report.js';
-import { LiveMapObservation, rpyMatrix } from './live_observation_contract.js';
+import { LiveMapObservation, ObservationSourcePreference, rpyMatrix } from './live_observation_contract.js';
 import { ObservedJoints, GO2_JOINT_NAMES } from './observed_joints.js';
 import { initializeObservationSession } from './observation_session.js';
 import { ANCHOR_FIELDS, initializeAnchorPresets, validAnchorPose } from './anchor_presets.js';
@@ -14,7 +14,7 @@ export function observationAvailabilityText(state) {
   if (state.provenance_mode === 'subscription_observation') return '출처 미검증 관측 후보에 필요한 subscription·ROS graph 증거가 없거나 오래되었습니다. 최신 수신과 단일 publisher graph 정보가 필요합니다.';
   const missingPublisher = Object.values(state.telemetry || {}).some(value => value && !value.publisher_gid_present);
   return missingPublisher
-    ? '이 ROS runtime에서 메시지별 publisher 정보가 제공되지 않습니다. 원본 점군·native odometry 관측은 가능하지만 출처 연속성을 확인할 수 없어 기본 저장 지도 정합 계산은 사용할 수 없습니다. 별도 허용과 최신 subscription·ROS graph 증거가 있으면 출처 미검증 관측 후보만 계산할 수 있습니다.'
+    ? '이 ROS runtime에서 메시지별 publisher 정보가 제공되지 않습니다. 원본 점군·native odometry 관측은 가능하지만 출처 연속성을 확인할 수 없어 기본 저장 지도 정합 계산은 사용할 수 없습니다. 최신 단일 publisher subscription·ROS graph 증거와 출처 허용 옵션이 함께 있어야 출처 미검증 관측 후보를 계산할 수 있습니다.'
     : '원본 관측의 출처 연속성을 확인할 수 없어 저장 지도 정합 계산은 사용할 수 없습니다. publisher 유일성·시각·출처 정보를 확인해야 합니다.';
 }
 
@@ -51,10 +51,10 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
   if (!host || !layout || !scene) return null;
   const style = document.createElement('link'); style.rel = 'stylesheet'; style.href = '/static/features/maps/live_observation.css'; document.head.append(style);
   const panel = document.createElement('section'); panel.className = 'panel saved-live-observation'; panel.id = 'savedLiveObservation';
-  panel.innerHTML = `<div class="saved-live-heading"><strong>저장 지도 · 실험 관측</strong><label class="saved-live-toggle"><input id="savedLiveEnabled" type="checkbox"> 현재 점군·pose 읽기</label></div>
+  panel.innerHTML = `<div class="saved-live-heading"><strong>저장 지도 · 위치 정합</strong><label class="saved-live-toggle"><input id="savedLiveEnabled" type="checkbox" checked> 현재 점군·pose 읽기</label></div>
     <div class="saved-live-overview">
       <div class="saved-live-status"><strong id="savedLiveState" role="status">OFF</strong><span class="saved-live-qualification">미검증 추정 · 운영 위치 적용 없음</span></div>
-      <p>자동 추정 또는 저장된 초기값을 확인한 뒤 기준점 연결·지도 정합을 진행하세요.</p>
+      <p>지도에서 위치·방향을 지정하고 주변 정합 결과를 적용하세요.</p>
       <span id="savedLiveMetrics"></span>
       <span id="savedLiveHeight"></span>
       <p id="savedLiveAvailability" hidden></p>
@@ -62,21 +62,21 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     </div>
     <div class="saved-live-actions saved-live-result-actions"><button id="savedLiveCenter" type="button">후보 중심</button><button id="savedLiveExport" type="button">관측 JSON</button></div>
     <details class="saved-live-details" id="savedLiveAnchorDetails">
-      <summary><span>기준점 설정</span><small>지도 위치·방향</small></summary>
+      <summary><span>다른 초기값 입력 방법</span><small>저장값 · 전체 탐색 · 수동 좌표</small></summary>
       <div class="saved-live-details-body">
         <p>지도 초기 위치는 확인·수정할 수 있는 근사값입니다. 본체 교정·시계·scan deskew는 미검증입니다.</p>
-        <details id="savedLiveCoordinates"><summary>고급 좌표 수정</summary><div class="saved-live-anchor">${['x','y','z','roll','pitch','yaw'].map(k => `<label>${k.toUpperCase()} (${['x','y','z'].includes(k) ? 'm' : '°'})<input id="savedLive_${k}" type="number" step="0.01" value="0" aria-label="지도 후보 ${k}"></label>`).join('')}</div></details>
+        <details id="savedLiveCoordinates"><summary>수동 좌표 · 근사 연결</summary><div class="saved-live-anchor">${['x','y','z','roll','pitch','yaw'].map(k => `<label>${k.toUpperCase()} (${['x','y','z'].includes(k) ? 'm' : '°'})<input id="savedLive_${k}" type="number" step="0.01" value="0" aria-label="지도 후보 ${k}"></label>`).join('')}</div></details>
         <label><input id="savedLiveConfirm" type="checkbox"> 정지 상태에서 입력한 위치·방향을 근사 기준점으로 사용합니다. 원점 0은 자동으로 검증되지 않습니다.</label>
-        <div class="saved-live-actions"><button id="savedLiveAnchor" type="button">현재 pose를 기준점에 연결</button><button id="savedLiveClear" type="button">기준점 해제</button></div>
+        <div class="saved-live-actions"><button id="savedLiveAnchor" type="button">정합 없이 근사 위치 연결</button><button id="savedLiveClear" type="button">기준점 해제</button></div>
       </div>
     </details>
     <details class="saved-live-details" id="savedLiveAdvancedDetails">
       <summary><span>고급 관측 옵션</span><small>정합·연속 관측·출처 허용</small></summary>
       <div class="saved-live-details-body saved-live-options">
         <label><input id="savedLiveRegistration" type="checkbox"><span>지도 정합 반복 계산<small>scan-to-map · 최대 1 Hz · 운영 적용 없음</small></span></label>
-        <label><input id="savedLiveContinuous" type="checkbox"><span>근사 연속 관측<small>정합 실패 시 odometry 유지 · 같은 세션의 새 입력이 모두 수신되면 근사 연결 재개</small></span></label>
+        <label><input id="savedLiveContinuous" type="checkbox" checked><span>근사 연속 관측<small>정합 실패 시 odometry 유지 · 같은 세션의 새 입력이 모두 수신되면 근사 연결 재개</small></span></label>
         <label><input id="savedLiveRobotModel" type="checkbox" checked><span>Go2 URDF 관절 모델<small>IMU 원점과 몸체 원점이 같다고 가정한 근사 표시 · 실제 관절 입력 사용</small></span></label>
-        <label><input id="savedLiveSourceUnverified" type="checkbox"><span>출처 미검증 관측 후보 허용<small>로컬 subscription·ROS graph 기준 · 주행 적용 없음</small></span></label>
+        <label><input id="savedLiveSourceUnverified" type="checkbox" checked><span>출처 미검증 관측 후보 허용<small>메시지 출처 확인 우선 · 정보가 없으면 단일 publisher graph 사용 · 주행 적용 없음</small></span></label>
       </div>
     </details>
     <details class="saved-live-details" id="savedLiveJointsDetails">
@@ -93,7 +93,9 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
   // Keep the shared LiDAR/VSLAM preview and inspector row at its fixed size.
   layout.after(panel);
   const el = id => panel.querySelector(`#savedLive${id}`), model = new LiveMapObservation();
-  const joints = new ObservedJoints();
+  const joints = new ObservedJoints(), sourcePreference = new ObservationSourcePreference();
+  model.enable(true);
+  model.setContinuousEstimate(true, { resumeSameSession: true });
   let geometryKey = '', inFlight = false, nextRequest = -Infinity, error = '', wasVisible = false, dynamicCleared = false, requestController = null, disposed = false, suspended = false;
   let presetReference = null, presetMapKey = '', proposalFence = null, seedFeature = null;
   const proposalInputs = () => ({ cloud: model.cloud?.value, pose: model.pose?.value, mode: model.provenanceMode });
@@ -143,7 +145,7 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     },
   });
   const resetSession = reason => {
-    model.resetInputs(reason); model.registrationEnabled = false; el('Confirm').checked = false; el('Registration').checked = false;
+    sourcePreference.reset(); model.resetInputs(reason); model.registrationEnabled = false; el('Confirm').checked = false; el('Registration').checked = false;
     requestController?.abort(); error = ''; clearDynamic(true); render();
   };
   const session = initializeObservationSession({ panel, getContext,
@@ -255,7 +257,7 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     }
   }
   el('Enabled').addEventListener('change', () => {
-    model.enable(el('Enabled').checked); model.registrationEnabled = false; el('Registration').checked = false;
+    sourcePreference.reset(); model.enable(el('Enabled').checked); model.registrationEnabled = false; el('Registration').checked = false;
     error = ''; clearDynamic(); demandChanged(); render();
   });
   el('Confirm').addEventListener('change', () => render());
@@ -265,7 +267,9 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     requestController?.abort(); error = ''; clearDynamic(); render();
   });
   el('SourceUnverified').addEventListener('change', () => {
-    model.setProvenanceMode(el('SourceUnverified').checked ? 'subscription_observation' : 'native_publisher');
+    sourcePreference.reset();
+    model.setProvenanceMode('native_publisher');
+    model.resetInputs('PROVENANCE_PERMISSION_CHANGED');
     el('Confirm').checked = false; el('Registration').checked = false; requestController?.abort();
     error = ''; clearDynamic(); render();
   });
@@ -295,21 +299,32 @@ export function initializeLiveMapObservation({ scene, getContext, demandChanged 
     const url = URL.createObjectURL(new Blob([JSON.stringify(record, null, 2)], { type: 'application/json' }));
     const a = document.createElement('a'); a.href = url; a.download = 'robot-scope-map-observation.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
+  function ingest(kind, value) {
+    if (suspended || !model.enabled) return;
+    const mode = sourcePreference.select(kind, value, model.provenanceMode, el('SourceUnverified').checked);
+    if (mode === null) return;
+    if (mode !== model.provenanceMode) {
+      model.setProvenanceMode(mode); // Clears both inputs; never replay the cached counterpart.
+      el('Confirm').checked = false; el('Registration').checked = false;
+      requestController?.abort(); seedFeature?.invalidateSource();
+    }
+    if (kind === 'pose') model.ingestPose(value); else model.ingestCloud(value);
+  }
   const timer = setInterval(() => { if (model.enabled) { render(); void estimate(); } }, 100);
   const visibility = new MutationObserver(() => { render(); demandChanged(); });
   visibility.observe(layout, { attributes: true, attributeFilter: ['hidden'] });
   return { wanted, render, suspend: value => {
     const next = Boolean(value); if (next === suspended) return;
-    suspended = next; model.resetInputs(next ? 'SENSOR_TRACKING_ACTIVE' : 'SENSOR_TRACKING_ENDED');
+    suspended = next; sourcePreference.reset(); model.resetInputs(next ? 'SENSOR_TRACKING_ACTIVE' : 'SENSOR_TRACKING_ENDED');
     requestController?.abort(); if (next) clearDynamic(true);
     demandChanged(); render();
-  }, ingestPose: value => { if (!suspended) model.ingestPose(value); }, ingestCloud: value => { if (!suspended) model.ingestCloud(value); },
+  }, ingestPose: value => ingest('pose', value), ingestCloud: value => ingest('cloud', value),
     ingestJoints: value => joints.ingest(value),
     reset: reason => {
       joints.clear();
       // Clear the proposal fence before resetting inputs, so the next render
       // preserves the reset cause instead of mistaking missing inputs for a new source.
       if (proposalFence) clearProposalInputs();
-      seedFeature?.invalidateSource(); model.resetInputs(reason); clearDynamic(true);
+      sourcePreference.reset(); seedFeature?.invalidateSource(); model.resetInputs(reason); clearDynamic(true);
     }, destroy: () => { disposed = true; seedFeature?.destroy(); proposal.destroy(); presets.destroy(); session.destroy(); visibility.disconnect(); model.enable(false); requestController?.abort(); clearInterval(timer); clearDynamic(); panel.remove(); style.remove(); } };
 }

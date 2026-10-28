@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { LiveMapObservation, inverseRigid, rpyMatrix } from '../robot_dashboard/static/features/maps/live_observation_contract.js';
+import { LiveMapObservation, ObservationSourcePreference, inverseRigid, rpyMatrix } from '../robot_dashboard/static/features/maps/live_observation_contract.js';
 import { observationAvailabilityText, observationRegistrationText, observationTelemetryText } from '../robot_dashboard/static/features/maps/live_observation.js';
 import { identity, multiply, transformPoints } from '../robot_dashboard/static/features/experiments/recorded_report.js';
 
@@ -830,4 +830,54 @@ test('fresh input after a lost default anchor asks for reconnection instead of r
   assert.equal(model.snapshot().status,'ANCHOR_RECONNECT_REQUIRED');
   assert.equal(model.snapshot().pose,null);
   assert.match(observationAvailabilityText(model.snapshot()),/수신.*회복.*기준점/);
+});
+
+
+test('default source permission prefers native inputs and only falls back for absent message identity', () => {
+  const preference = new ObservationSourcePreference();
+  assert.equal(preference.select('pose', pose(), 'native_publisher', true), 'native_publisher');
+  assert.equal(preference.select('cloud', cloud(), 'native_publisher', true), 'native_publisher');
+  assert.equal(preference.select('pose', subscription(pose(2), 'pose'), 'native_publisher', true), 'subscription_observation');
+  assert.equal(preference.select('cloud', subscription(cloud(2), 'cloud'), 'subscription_observation', true), 'subscription_observation');
+  assert.equal(preference.select('pose', pose(3), 'subscription_observation', true), 'subscription_observation');
+  assert.equal(preference.select('cloud', cloud(3), 'subscription_observation', true), 'native_publisher');
+  for (const change of [
+    o => { o.publisher_count = 2; },
+    o => { o.invalidated = true; },
+    o => { o.publisher_gid = 'a'.repeat(32); },
+    o => { o.subscription_evidence.graph.endpoint_count = 2; },
+    o => { o.subscription_evidence.graph.observed_monotonic_s -= 4; },
+  ]) {
+    preference.reset();
+    const value = subscription(pose(4), 'pose'); change(value.observation);
+    assert.equal(preference.select('pose', value, 'subscription_observation', true), 'native_publisher');
+  }
+  assert.equal(preference.select('pose', subscription(pose(5), 'pose'), 'subscription_observation', false), 'native_publisher');
+});
+
+
+test('late opposite-mode frames cannot erase the current source sequence fence', () => {
+  const preference = new ObservationSourcePreference();
+  assert.equal(preference.select('pose', pose(10), 'native_publisher', true), 'native_publisher');
+  assert.equal(preference.select('pose', subscription(pose(9), 'pose'), 'native_publisher', true), null);
+  const next = subscription(pose(11), 'pose');
+  assert.equal(preference.select('pose', next, 'native_publisher', true), 'subscription_observation');
+  assert.equal(preference.select('pose', pose(10), 'subscription_observation', true), null);
+  const oldEpoch = subscription(pose(1), 'pose'); oldEpoch.observation.publisher_epoch = 'e'.repeat(32);
+  assert.equal(preference.select('pose', oldEpoch, 'subscription_observation', true), null);
+});
+
+
+test('source preference forwards same-receipt invalidation and stale metadata without switching mode', () => {
+  for (const mode of ['native_publisher','subscription_observation']) {
+    for (const degrade of [p=>{p.observation.invalidated=true;},p=>{p.observation.publisher_count=2;},p=>{p.state='stale';},p=>{p.age_s=2;}]) {
+      const preference=new ObservationSourcePreference(), model=new LiveMapObservation(()=>0);
+      model.enable(true); model.setProvenanceMode(mode);
+      const value=mode==='native_publisher'?pose(10):subscription(pose(10),'pose');
+      preference.select('pose',value,mode,true); model.ingestPose(value);
+      const next=structuredClone(value);degrade(next);
+      assert.equal(preference.select('pose',next,mode,true),mode);
+      model.ingestPose(next);assert.equal(model.pose,null);
+    }
+  }
 });

@@ -86,7 +86,7 @@ function subscriptionKey(s, kind) {
     && ['VOLATILE', 'TRANSIENT_LOCAL'].includes(value.durability) && ['KEEP_LAST', 'KEEP_ALL'].includes(value.history)
     && Number.isSafeInteger(value.depth) && value.depth >= 0;
   const graphAge = subscriptionGraphAge(s);
-  if (!o?.observer_id || !o.publisher_epoch || !exactStamp(o.source_stamp_ns)
+  if (!o?.observer_id || o.publisher_count !== 1 || !o.publisher_epoch || !exactStamp(o.source_stamp_ns)
       || !finite(o.received_monotonic_s) || o.receipt_clock !== 'OBSERVER_HOST_MONOTONIC'
       || !Number.isSafeInteger(s.seq) || s.seq <= 0 || !s.topic || !s.frame_id || o.invalidated || o.reset_reason === 'SOURCE_STAMP_STALLED'
       || e?.schema !== 'robot-scope.subscription-observation.v1' || !/^[0-9a-f]{32}$/.test(e.session_id || '')
@@ -110,6 +110,41 @@ function sourceKey(s, mode = 'native_publisher', kind) {
       || !Number.isSafeInteger(s.seq) || s.seq <= 0
       || !s.topic || !s.frame_id || o.invalidated) throw new Error('SOURCE_IDENTITY_UNAVAILABLE');
   return JSON.stringify([o.observer_id, o.publisher_epoch, o.publisher_gid, s.topic, s.frame_id, s.child_frame_id || '']);
+}
+// UI permission chooses the strongest available source contract. Geometry still
+// passes the original native/subscription validators and lifecycle fences.
+export class ObservationSourcePreference {
+  constructor() { this.reset(); }
+  reset() { this.native = { pose: false, cloud: false }; this.receipts = {}; }
+  select(kind, value, current, allowFallback) {
+    const o = value?.observation, previous = this.receipts[kind];
+    // Decide modes only from a new receipt. Otherwise a delayed opposite-mode
+    // snapshot could resetInputs(), erasing the model's own sequence fence.
+    const sameStream = previous && o && previous.observer === o.observer_id && previous.topic === value?.topic;
+    if (sameStream && (o.received_monotonic_s < previous.received
+        || (previous.epoch === o.publisher_epoch && value.seq < previous.seq))) return null;
+    if (sameStream && previous.epoch === o.publisher_epoch && value.seq === previous.seq) {
+      // Same-receipt degradation (disconnect/stale/invalidated) still reaches
+      // the model's rejection path, without changing the selected mode.
+      try { sourceKey(value, current, kind); } catch { return current; }
+      if (kind === 'pose' && (value.state !== 'ok' || !finite(value.age_s) || value.age_s < 0 || value.age_s > 1)) return current;
+      return null;
+    }
+    if (o?.observer_id && value?.topic && finite(o.received_monotonic_s) && Number.isSafeInteger(value.seq))
+      this.receipts[kind] = { observer:o.observer_id, topic:value.topic, epoch:o.publisher_epoch,
+        received:o.received_monotonic_s, seq:value.seq };
+    let native = false;
+    try { sourceKey(value, 'native_publisher', kind); native = true; } catch { /* Not a verified native input. */ }
+    this.native[kind] = native;
+    if (!allowFallback || (this.native.pose && this.native.cloud)) return 'native_publisher';
+    // Missing per-message GID is the only fallback trigger. Conflicting native
+    // identities, multiple publishers and invalidations must not be bypassed.
+    if (!native && o?.publisher_gid) return 'native_publisher';
+    if (!native && !o?.publisher_gid && o?.publisher_count === 1 && !o?.invalidated) {
+      try { subscriptionKey(value, kind); return 'subscription_observation'; } catch { /* Missing or unsafe graph evidence cannot grant permission. */ }
+    }
+    return native ? current : 'native_publisher';
+  }
 }
 function jump(a, b) {
   const d = multiply(inverseRigid(a), b);

@@ -59,11 +59,14 @@ test('different target revision, query, seed or manifest cannot be compared', ()
   }
 });
 
-test('experiment page is local-file-only and separate from control and cockpit', () => {
-  const html = readFileSync(new URL('../robot_dashboard/static/experiments.html', import.meta.url), 'utf8');
+test('retired experiment route redirects while its synthetic view harness remains local-file-only', () => {
+  const redirect = readFileSync(new URL('../robot_dashboard/static/experiments.html', import.meta.url), 'utf8');
+  assert.match(redirect, /http-equiv="refresh" content="0; url=\/#cockpit"/);
+  assert.doesNotMatch(redirect, /<script|type="file"/);
+  const html = readFileSync(new URL('./e2e/fixtures/experiments.html', import.meta.url), 'utf8');
   const view = readFileSync(new URL('../robot_dashboard/static/features/experiments/view.js', import.meta.url), 'utf8');
   const index = readFileSync(new URL('../robot_dashboard/static/index.html', import.meta.url), 'utf8');
-  assert.match(index, /href="\/static\/experiments\.html"/);
+  assert.doesNotMatch(index, /href="\/static\/experiments\.html"/);
   assert.match(html, /OFFLINE EXPERIMENTS · READ ONLY/);
   assert.match(html, /ACTUAL_NAV2_NOT_RUN/);
   assert.match(view, /await file\.text\(\)/);

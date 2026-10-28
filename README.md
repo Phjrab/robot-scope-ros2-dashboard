@@ -5,7 +5,7 @@
 **최근 작업 정리:** [2026-10-13 대시보드 작업 요약](docs/WORK_SUMMARY_2026-10-13.md)에
 프로젝트 구성, Jetson 자원 모니터, CPU·GPU 평균 표시, 실행 명령과 검증 결과를 정리했습니다.
 
-Robot Scope는 ROS 2 로봇의 센서, 지도, 수동 제어와 경로 계획을 한 브라우저에
+Robot Scope는 ROS 2 로봇의 센서, 지도, 자율주행과 경로 계획을 한 브라우저에
 모아 운영자가 상태를 확인하고 실패를 진단하도록 돕습니다. 사용 환경은
 Ubuntu ROS host의 웹 서비스와 Jetson Orin Nano + Go2 + XT16 구성입니다.
 Jetson은 전체 Go2 경로를 검증한 장비이지 웹 대시보드의 필수 조건은 아닙니다.
@@ -69,7 +69,7 @@ IMU 입력은 없어 VIO가 차단됐고, SLAM 지도 저장은 성공했지만 
 |---|---|---|
 | Cockpit·센서 | 카메라, 3D LiDAR, Safety HUD와 레이아웃 저장; 단계별 관측 | [Cockpit acceptance](docs/COCKPIT_ACCEPTANCE.md), [카메라·layout 기록](docs/COCKPIT_CAMERA_PERSISTENCE_20260913.md) |
 | 매핑·저장 지도 | Hesai/FAST-LIO, PCD 및 선택적 PGM/YAML, 저장·편집 경로 | 외부 driver/workspace 필요; [설치](docs/INSTALL.md) |
-| Go2 수동 제어 | ARM·deadman·명령 allowlist·별도 bridge watchdog | 설정값은 실측 정지 성능이 아님; [운영](docs/COCKPIT_OPERATOR_GUIDE.md) |
+| 제어 안전 상태 | Settings의 SOFTWARE STOP·명시 확인 후 CLEAR, 별도 bridge watchdog | 수동제어 화면은 제거; backend 제어 API·안전 계약 유지; [운영](docs/OPERATOR_GUIDE.md) |
 | Nav2·Mission | 지도/초기 위치/readiness를 확인하는 연동 | 실제 goal 도달 미입증; [정지 관찰](docs/NAV2_STATIONARY_20260911_FOLLOWUP.md), [취소](docs/NAV2_COMMAND_TIMEOUT_20260912.md) |
 | Route Planner·도식 | 저장 지도 경로 및 `SCHEMATIC_MANUAL` DEMO/FIELD 수동 기록 | 도식 마커는 ROS pose가 아님; [도식 기록](docs/COMPETITION_SCHEMATIC_ACCEPTANCE.md) |
 | 공간 경로 편집 | 지도 위 E1 경로 작성·검사 | Mission export와 CORRIDOR/STRICT 제약 주행은 미완료; [E1](docs/TRACK_E1_SPATIAL_EDITOR.md) |

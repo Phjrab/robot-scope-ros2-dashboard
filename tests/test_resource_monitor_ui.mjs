@@ -31,21 +31,23 @@ function harness() {
     addEventListener(name, listener) { this.listeners[name] = listener; },
   };
   document.getElementById('loadThreshold').value = '80'; document.getElementById('historyWindow').value = '120';
-  const h = { document, nodes, fail: false, calls: 0, cpu: 20, gpu: 30 };
+  const h = { document, nodes, fail: false, calls: 0, cpu: 20, gpu: 30, now: 0, latency: 0, timers: [], processes: {} };
   const fetch = async () => {
     h.calls++;
+    h.now += h.latency;
     if (h.fail) throw Error('offline');
     return { ok: true, json: async () => ({
       schema: 'robot-scope.resources.v1', seq: h.calls, timestamp_ms: 60000 + h.calls * 1200, sample_interval_s: 1.2,
       host: { model: 'Jetson fixture', hostname: 'fixture' },
       cpu: { percent: h.cpu, max_core_percent: 95, cores: [{ name: 'cpu0', online: true, percent: 95, frequency_mhz: 1200 }] },
       gpu: { percent: h.gpu, frequency_mhz: 612, source: 'sysfs fixture' }, memory: { percent: 40 },
+      processes: h.processes,
       sensors: { cameras: [{ id: 'camera', label: 'Camera', state: 'ok', live: true, age_s: .1, receive_fps: 15, width: 1280, height: 720 }], topics: [] },
     }) };
   };
   class Observer { observe() {} }
-  const factory = new Function('document', 'window', 'Node', 'ResizeObserver', 'MutationObserver', 'fetch', 'AbortController', 'setTimeout', 'clearTimeout', ...Object.keys(model), `${view.replace('return {\n  setActive', 'return { poll, history, events,\n  setActive')}\nreturn createResourceMonitor(document);`);
-  h.api = factory(document, { addEventListener() {} }, Element, Observer, Observer, fetch, class { constructor() { this.signal = {}; } abort() {} }, () => 1, () => {}, ...Object.values(model));
+  const factory = new Function('document', 'window', 'Node', 'ResizeObserver', 'MutationObserver', 'fetch', 'AbortController', 'setTimeout', 'clearTimeout', 'performance', ...Object.keys(model), `${view.replace('return {\n  setActive', 'return { poll, history, events,\n  setActive')}\nreturn createResourceMonitor(document);`);
+  h.api = factory(document, { addEventListener() {} }, Element, Observer, Observer, fetch, class { constructor() { this.signal = {}; } abort() {} }, (callback, delay) => h.timers.push({ callback, delay }), () => {}, { now: () => h.now }, ...Object.values(model));
   return h;
 }
 
@@ -133,5 +135,33 @@ test('leaving resources stops requests and clears live values while preserving h
   h.api.setActive(true); await flush();
   assert.equal(h.calls, calls + 1);
   assert.equal(h.api.history.length, 2);
+  assert.equal(h.nodes.get('connectionState').dataset.state, 'live');
+});
+
+test('request duration is included in the polling cadence and the observed interval is labelled', async () => {
+  const h = harness(); await flush();
+  h.latency = 600;
+  await h.api.poll();
+  assert.equal(h.timers.at(-1).delay, 400);
+  assert.equal(h.nodes.get('connectionState').textContent, '● LIVE · 1.2초 간격');
+  h.latency = 1600;
+  await h.api.poll();
+  assert.equal(h.timers.at(-1).delay, 100);
+});
+
+test('pending or stale process scans never hide host metrics or imply current process usage', async () => {
+  const h = harness(); await flush();
+  h.processes = { state: 'waiting', items: [], refreshing: true };
+  await h.api.poll();
+  assert.match(h.nodes.get('processRows').textContent, /프로세스 측정 중/);
+  assert.equal(h.nodes.get('cpuValue').textContent, '20.0%');
+  h.processes = { state: 'ok', items: [{ name: 'worker', pid: 123, cpu_percent: 42, rss_bytes: 4096 }], age_s: 1.5, observed: 1 };
+  await h.api.poll();
+  assert.match(h.nodes.get('processRows').textContent, /worker12342.0%/);
+  assert.match(h.nodes.get('processScope').textContent, /1.5초 전 완료/);
+  h.processes = { ...h.processes, state: 'stale', age_s: 8, refreshing: true };
+  await h.api.poll();
+  assert.match(h.nodes.get('processRows').textContent, /프로세스 측정 지연/);
+  assert.doesNotMatch(h.nodes.get('processRows').textContent, /42.0/);
   assert.equal(h.nodes.get('connectionState').dataset.state, 'live');
 });

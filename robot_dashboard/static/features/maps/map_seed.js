@@ -57,16 +57,18 @@ export function validSeedCandidate(value, draft, inputs, jobId) {
 
 export function initializeMapSeed({host,scene,getState,getInputs,readPose,writePose,apply,edited}) {
   const draft=new MapSeedDraft(), panel=document.createElement('div'); panel.className='map-seed'; panel.id='mapSeed';
-  panel.innerHTML=`<strong>지도에서 초기 위치·방향 지정</strong>
+  panel.innerHTML=`<strong>2. 지도 위치·방향 정합</strong>
     <p>초기값(주황) → 주변 정합 후보(파랑) → 명시적으로 적용. 현재 관측 위치는 적용 전까지 유지합니다.</p>
-    <div class="saved-live-actions"><button id="mapSeedPlace" type="button">지도에서 초기 위치 지정</button><button id="mapSeedAgain" type="button" disabled>다시 지정</button><button id="mapSeedCancel" type="button" disabled>취소 / Esc</button><button id="mapSeedKeepYaw" type="button" disabled>기존 방향 유지</button></div>
+    <div class="saved-live-actions"><button id="mapSeedPlace" type="button">지도에서 초기 위치 지정</button><button id="mapSeedCancel" type="button" hidden>취소 / Esc</button><button id="mapSeedKeepYaw" type="button" hidden>기존 방향 유지</button></div>
     <p id="mapSeedSummary" role="status"></p>
     <p>Go2 URDF 모델로 위치·방향을 미리 봅니다. 관절은 신선한 관측값이 있으면 사용하고, 없으면 모델 기본 자세로 표시합니다. XY 작업 평면을 사용하며 바닥 높이를 IMU 높이로 바꾸지 않습니다. IMU=본체 원점은 근사입니다.</p>
-    <div class="saved-live-actions"><button id="mapSeedSearch" type="button" disabled>이 주변에서 자동 정합</button><button id="mapSeedRetry" type="button" hidden>같은 요청 재확인</button><button id="mapSeedWiden" type="button">범위 넓히기</button><button id="mapSeedStop" type="button" disabled>정합 취소</button></div>
+    <div class="saved-live-actions"><button id="mapSeedSearch" type="button" disabled>이 주변에서 자동 정합</button><button id="mapSeedRetry" type="button" hidden>같은 요청 재확인</button><button id="mapSeedStop" type="button" hidden>정합 취소</button></div>
     <small>정지한 현재 위치의 초기값으로 계산합니다. 단일 초기값 지역 보정이며 다른 장소의 모호함은 검증되지 않습니다.</small>
+    <details id="mapSeedOptions"><summary>정합 범위·오차 옵션</summary>
+    <button id="mapSeedWiden" type="button">범위 넓히기</button>
     <label><input id="mapSeedResidualLimit" type="checkbox" checked>전체 점군 오차 한도 사용 (5cm)</label>
     <small id="mapSeedResidualNote">전체 점군 오차가 5cm를 넘으면 후보 적용을 차단합니다.</small>
-    <details id="mapSeedBounds"><summary>탐색 범위 조정</summary>${[['xy_m','위치 반경 (m)',.1,3,.1],['yaw_deg','방향 ± (°)',1,90,1],['z_m','높이 ± (m)',.01,1,.01],['tilt_deg','기울기 ± (°)',1,30,1]].map(([k,label,min,max,step])=>`<label>${label}<input data-seed-bound="${k}" type="number" min="${min}" max="${max}" step="${step}" value="${draft.bounds[k]}"></label>`).join('')}</details>
+    <details id="mapSeedBounds"><summary>탐색 범위 조정</summary>${[['xy_m','위치 반경 (m)',.1,3,.1],['yaw_deg','방향 ± (°)',1,90,1],['z_m','높이 ± (m)',.01,1,.01],['tilt_deg','기울기 ± (°)',1,30,1]].map(([k,label,min,max,step])=>`<label>${label}<input data-seed-bound="${k}" type="number" min="${min}" max="${max}" step="${step}" value="${draft.bounds[k]}"></label>`).join('')}</details></details>
     <p id="mapSeedResult" role="status">정합 후보 없음</p><button id="mapSeedApply" type="button" disabled>제안 위치로 적용</button>`;
   host.prepend(panel);
   const el=id=>panel.querySelector('#mapSeed'+id);
@@ -119,11 +121,11 @@ export function initializeMapSeed({host,scene,getState,getInputs,readPose,writeP
     if(disposed) return;
     const state=controller.snapshot(), live=getState();
     if(candidate && state.record?.job_id!==candidate.job_id) {candidate=null;applied=false;}
-    el('Place').disabled=!draft.map; el('Again').disabled=!placing; el('Cancel').disabled=!placing;
-    el('KeepYaw').disabled=!placing || !draft.pose || !(backup?.direction);
+    el('Place').disabled=!draft.map; el('Place').textContent=draft.pose?'지도 위치·방향 다시 지정':'지도에서 초기 위치 지정'; el('Cancel').hidden=!placing;
+    el('KeepYaw').hidden=!placing || !draft.pose || !(backup?.direction);
     el('Search').disabled=coursePending || !draft.valid || !boundsValid || !live.canAnchor || !anchorSourceContract(getInputs()) || !state.canStart || loading;
     el('Retry').hidden=!state.canRetry; el('Retry').disabled=coursePending || !draft.valid || !boundsValid || !live.canAnchor || loading;
-    el('Stop').disabled=!state.canCancel; el('Apply').disabled=!candidate?.admissible || !live.canAnchor || loading || state.busy;
+    el('Stop').hidden=!state.canCancel; el('Stop').disabled=!state.canCancel; el('Apply').disabled=!candidate?.admissible || !live.canAnchor || loading || state.busy;
     const p=draft.pose;
     el('Summary').textContent=p?`사용자 초기값: X ${p.x.toFixed(2)} · Y ${p.y.toFixed(2)} · Z ${p.z.toFixed(2)} m · 방향 ${p.yaw.toFixed(1)}°${draft.direction?'':' · 방향 지정 대기'} · ${draft.heightSource==='approximate'?'높이·자세 근사':'기존 높이·자세 보존'} · 반경 ${draft.bounds.xy_m}m / ±${draft.bounds.yaw_deg}°${placing?' · '+message:''}`:'지도에서 위치와 방향을 지정하세요. 센서 없이도 초안을 만들 수 있습니다.';
     const result=state.record?.result?.observation;
@@ -196,7 +198,7 @@ export function initializeMapSeed({host,scene,getState,getInputs,readPose,writeP
   const double=e=>{if(placing){e.preventDefault();e.stopImmediatePropagation();}};
   for(const [name,fn] of [['pointerdown',down],['pointermove',move],['pointerup',up],['pointercancel',cancelPointer],['dblclick',double]]) scene.canvas.addEventListener(name,fn,true);
   document.addEventListener('keydown',key);
-  el('Place').onclick=place;el('Again').onclick=place;el('Cancel').onclick=()=>endPlacement(true);
+  el('Place').onclick=place;el('Cancel').onclick=()=>endPlacement(true);
   el('KeepYaw').onclick=()=>{if(draft.pose && backup?.direction){update({...draft.pose,yaw:backup.pose.yaw});phase='position';}};
   el('Search').onclick=el('Retry').onclick=async()=>{endPlacement();message='';await controller.start();draw();};
   el('Stop').onclick=()=>{token++;candidate=null;message='정합 취소 · 초기값과 현재 관측 유지';void controller.cancel();};

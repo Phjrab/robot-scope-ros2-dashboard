@@ -60,10 +60,8 @@
           <nav aria-label="시스템과 추가 도구">
             <a class="nav-item" href="#overview" data-nav="overview" title="상태 요약" aria-label="상태 요약"><i aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></i><span><b>상태 요약</b></span></a>
             <a class="nav-item" href="#topics" data-nav="topics" title="ROS 토픽" aria-label="ROS 토픽"><i aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="5" cy="12" r="2"/><circle cx="18" cy="5" r="2"/><circle cx="18" cy="19" r="2"/><path d="m7 11 9-5m-9 7 9 5"/></svg></i><span><b>ROS 토픽</b></span></a>
-            <a class="nav-item" href="#controls" data-nav="controls" title="수동 제어" aria-label="수동 제어"><i aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M8 6h8c3 0 4 2 5 8s-2 6-5 1H8c-3 5-6 5-5-1s2-8 5-8Z"/><path d="M8 9v5m-2.5-2.5h5M16 10h.01M18 13h.01"/></svg></i><span><b>수동 제어</b></span></a>
             <a class="nav-item" href="#missions" data-nav="missions" title="경로·미션" aria-label="경로·미션"><i aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 3v18m0-17h13l-3 4 3 4H5"/></svg></i><span><b>경로·미션</b></span></a>
             <a class="nav-item" href="#route-planner" data-nav="route-planner" title="경로 계획" aria-label="경로 계획"><i aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false"><circle cx="5" cy="5" r="2"/><circle cx="19" cy="19" r="2"/><path d="M7 5h8a4 4 0 0 1 0 8H9a4 4 0 0 0 0 8h5"/></svg></i><span><b>경로 계획</b></span></a>
-            <a class="nav-item" href="/static/experiments.html" title="실험 결과" aria-label="실험 결과"><i aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M9 3h6m-5 0v6l-6 10a1.5 1.5 0 0 0 1 2h14a1.5 1.5 0 0 0 1-2L14 9V3M7 15h10"/></svg></i><span><b>실험 결과</b></span></a>
             <a class="nav-item" href="#settings" data-nav="settings" title="설정" aria-label="설정"><i aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="9" cy="18" r="2"/></svg></i><span><b>설정</b></span></a>
           </nav>
         </details>
@@ -102,11 +100,9 @@
           <a href="#maps" class="route-card"><span>ARCHIVE</span><strong>저장 지도</strong><small>배터리와 센서가 꺼져도 저장된 지도를 탐색합니다.</small><b>열기 →</b></a>
           <a href="#sensors" class="route-card"><span>INPUTS</span><strong>카메라·수집</strong><small>카메라, IMU, 배터리와 로봇 상태를 확인합니다.</small><b>열기 →</b></a>
           <a href="#topics" class="route-card"><span>ROS 2</span><strong>ROS 토픽</strong><small>발견된 토픽, 타입, 수신률과 지연을 조회합니다.</small><b>열기 →</b></a>
-          <a href="#controls" class="route-card control-route-card"><span>ARM REQUIRED</span><strong>수동 제어</strong><small>키보드·게임패드 주행과 서버가 허용한 Go2 모션을 실행합니다.</small><b>열기 →</b></a>
           <a href="#navigation" class="route-card navigation-route-card"><span>NAV2</span><strong>주행</strong><small>정적 지도에서 초기 위치와 목표를 지정하고 Nav2 상태를 추적합니다.</small><b>열기 →</b></a>
           <a href="#route-planner" class="route-card route-planner-route-card"><span>ADVISORY ONLY</span><strong>경로 계획</strong><small>주문을 구성하고 서버가 계산한 추천 경로와 수동 안내를 독립 화면에서 확인합니다.</small><b>열기 →</b></a>
           <a href="#resources" data-nav="resources" class="route-card"><span>JETSON · LIVE COMPUTE</span><strong>Jetson 자원</strong><small>CPU·GPU·메모리·네트워크 부하와 센서 설정 변경 전후를 비교합니다.</small><b>열기 →</b></a>
-          <a href="/static/experiments.html" class="route-card"><span>OFFLINE · READ ONLY</span><strong>실험 결과</strong><small>합성 위치추정 결과를 동일 입력의 기준선과 비교합니다. 로봇 제어와 분리되어 있습니다.</small><b>열기 →</b></a>
         </section>
       </section>
 
@@ -552,7 +548,8 @@
         </section>
       </section>
 
-      <section class="page-view" data-page="controls" hidden>
+      <!-- Detached compatibility nodes keep shared STOP/status handling independent of the retired teleop view. -->
+      <template id="manualControlCompatibility">
         <div class="control-profile-notice" id="controlProfileNotice" hidden><strong>GO2 전용 제어</strong><span id="controlProfileNoticeText">현재 선택한 로봇 유형은 상태 확인과 3D 모델 표시만 지원합니다.</span></div>
         <section class="control-status-grid" aria-label="로봇 제어 상태">
           <article class="control-status-card"><span>CONTROL</span><strong id="controlAvailability">CHECKING</strong><small id="controlAvailabilityNote">서버 설정을 확인하고 있습니다.</small></article>
@@ -622,17 +619,7 @@
             </div>
           </article>
 
-          <aside class="control-safety-column">
-            <article class="panel estop-panel">
-              <div class="panel-header compact"><div><div class="eyebrow danger-text">SOFTWARE SAFETY COMMAND</div><h2>소프트웨어 정지</h2></div></div>
-              <div class="estop-body">
-                <button id="softwareEstopButton" class="software-estop" type="button"><span>DASHBOARD</span><strong>SOFTWARE<br>STOP</strong><small>물리 E-stop 아님 · ARM 불필요</small></button>
-                <p>대시보드 소프트웨어 정지는 통신 가능한 제어 경로에만 래치됩니다. 물리 비상정지 장치를 대신하지 않습니다. 로봇 주변의 안전을 확인한 뒤 체크하고 해제하세요.</p>
-                <label class="estop-confirm"><input id="estopClearConfirm" type="checkbox"><span>로봇 주변이 안전하고 움직임이 멈춘 것을 확인했습니다.</span></label>
-                <button id="estopClearButton" class="estop-clear-button" type="button" disabled>SOFTWARE STOP CLEAR</button>
-              </div>
-            </article>
-          </aside>
+
         </section>
 
         <article class="panel control-actions-panel">
@@ -643,7 +630,7 @@
           <div class="control-action-notice">서버 설정에 등록된 동작만 표시됩니다. 동작 전 로봇 주변 공간과 바닥 상태를 확인하세요.</div>
           <div class="control-action-grid" id="controlActions"><div class="control-action-empty">허용된 모션 목록을 불러오고 있습니다.</div></div>
         </article>
-      </section>
+      </template>
 
       <section class="page-view" data-page="missions" hidden>
         <article class="panel mission-dashboard-panel">
@@ -671,7 +658,7 @@
         <div class="navigation-safety-banner is-offline" id="navigationSafetyBanner" role="status" aria-live="polite">
           <span class="navigation-safety-icon">◇</span>
           <div><strong id="navigationSafetyTitle">NAVIGATION OFFLINE</strong><p id="navigationSafetyMessage">Nav2 백엔드와 로봇 상태를 확인하고 있습니다.</p></div>
-          <a href="#controls" id="navigationControlLink">Controls 열기</a>
+          <a href="#settings" id="navigationControlLink">정지·안전 설정 열기</a>
         </div>
 
         <section class="navigation-status-grid" aria-label="Nav2 상태">
@@ -826,6 +813,16 @@
 
       <section class="page-view" data-page="settings" hidden>
         <section class="settings-grid">
+            <article class="panel estop-panel">
+              <div class="panel-header compact"><div><div class="eyebrow danger-text">SOFTWARE SAFETY COMMAND</div><h2>소프트웨어 정지</h2></div></div>
+              <div class="estop-body">
+                <button id="softwareEstopButton" class="software-estop" type="button"><span>DASHBOARD</span><strong>SOFTWARE<br>STOP</strong><small>물리 E-stop 아님 · ARM 불필요</small></button>
+                <p>대시보드 소프트웨어 정지는 통신 가능한 제어 경로에만 래치됩니다. 물리 비상정지 장치를 대신하지 않습니다. 로봇 주변의 안전을 확인한 뒤 체크하고 해제하세요.</p>
+                <label class="estop-confirm"><input id="estopClearConfirm" type="checkbox"><span>로봇 주변이 안전하고 움직임이 멈춘 것을 확인했습니다.</span></label>
+                <button id="estopClearButton" class="estop-clear-button" type="button" disabled>SOFTWARE STOP CLEAR</button>
+              </div>
+            </article>
+
           <article class="panel settings-panel">
             <div class="panel-header"><div><div class="eyebrow">CONNECTION</div><h2>연결할 로봇</h2></div><span class="muted">NETWORK DISCOVERY</span></div>
             <div class="settings-card-body">

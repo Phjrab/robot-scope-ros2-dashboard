@@ -101,8 +101,11 @@ function render(sample) {
   for (const row of sample.sensors?.topics || []) sensorRows.push([`${row.selected ? '● ' : ''}${row.name}`, stateLabel(row.state, topicFresh(row)), row.category, topicFresh(row) ? `${format(row.hz)} Hz` : '—', valid(row.age_s) ? `${format(row.age_s, 2)} s` : '—']);
   table('sensorRows', sensorRows, sample.sensors?.topics_available || sample.sensors?.cameras_available ? '관측 중인 센서가 없습니다.' : 'ROS 관측 미연결 · 단독 모니터에서는 보드 자원만 표시합니다.', 5);
   table('networkRows', (sample.network?.interfaces || []).map((row) => [row.name, `${row.physical ? '물리' : '가상'} · ${row.state || '미확인'}`, `${format(mbps(row.rx_bytes_s))} Mbps`, `${format(mbps(row.tx_bytes_s))} Mbps`, `${format(row.speed_mbps, 0)} Mbps / ${format(row.link_percent)}%`, `${format(row.rx_dropped)} / ${format(row.tx_dropped)} · ${format(row.rx_errors)} / ${format(row.tx_errors)}`]), '네트워크 인터페이스 측정 불가', 6);
-  table('processRows', (sample.processes?.items || []).map((row) => [row.name, row.pid, `${format(row.cpu_percent)}%`, gib(row.rss_bytes)]), '프로세스 측정 불가', 4);
-  text('processScope', `${sample.processes?.scope || ''} · ${sample.processes?.observed || 0}개 관측${sample.processes?.truncated ? ' · 512개까지 수집' : ''}`);
+  const processes = sample.processes || {};
+  const processAvailable = !processes.state || processes.state === 'ok';
+  const processMessage = processes.state === 'waiting' ? '프로세스 측정 중 · 보드 자원은 계속 갱신합니다.' : processes.state === 'stale' ? '프로세스 측정 지연 · 새 결과를 기다립니다.' : '프로세스 측정 불가';
+  table('processRows', (processAvailable ? processes.items || [] : []).map((row) => [row.name, row.pid, `${format(row.cpu_percent)}%`, gib(row.rss_bytes)]), processMessage, 4);
+  text('processScope', `${processes.scope || ''} · ${processes.observed || 0}개 관측${processes.truncated ? ' · 512개까지 수집' : ''}${valid(processes.age_s) ? ` · ${format(processes.age_s)}초 전 완료` : ''}${processes.refreshing ? ' · 갱신 중' : ''}`);
   const detailRow = (label, value) => { const div = document.createElement('div'); div.className = 'thermal-row'; const span = document.createElement('span'); span.textContent = label; const b = document.createElement('b'); b.textContent = value; div.append(span, b); return div; };
   $('thermalList').replaceChildren(...(sample.thermal || []).map((row) => detailRow(row.name, `${format(row.celsius)}°C`)));
   $('powerList').replaceChildren(...(sample.power?.rails || []).map((row) => detailRow(row.name, `${format(row.watts, 2)} W`)));
@@ -137,6 +140,7 @@ function clearLive(message, state = 'error') {
   text('cpuCoreDetail', '코어 측정 없음');
   text('cpuDetail', '실시간 측정 없음'); text('gpuDetail', '실시간 측정 없음'); text('ramDetail', '실시간 측정 없음'); text('temperatureDetail', '실시간 측정 없음');
   table('sensorRows', [], message, 5); table('networkRows', [], message, 6); table('processRows', [], message, 4);
+  text('processScope', '실시간 프로세스 측정 없음');
   $('coreList').replaceChildren(); $('thermalList').replaceChildren(); $('powerList').replaceChildren();
   const li = document.createElement('li'); li.textContent = '현재 측정값을 확인할 수 없습니다.'; $('adviceList').replaceChildren(li);
   updateComparison();
@@ -144,6 +148,7 @@ function clearLive(message, state = 'error') {
 
 async function poll() {
   if (!active || paused || document.hidden || pending) return;
+  const started = performance.now();
   const controller = new AbortController(); pending = controller;
   const timeout = setTimeout(() => controller.abort(), 4500);
   try {
@@ -161,12 +166,12 @@ async function poll() {
       while (history.length > 901 || (history.length && history[0].timestamp_ms < sample.timestamp_ms - 900000)) history.shift();
     }
     latest = sample;
-    text('connectionState', '● LIVE · 1초'); $('connectionState').dataset.state = 'live'; render(sample);
+    text('connectionState', `● LIVE · ${valid(sample.sample_interval_s) ? `${format(sample.sample_interval_s)}초 간격` : '첫 측정'}`); $('connectionState').dataset.state = 'live'; render(sample);
   } catch (error) {
     if (active && !paused && !document.hidden) clearLive(`연결 끊김${error.message.startsWith('HTTP') ? ` · ${error.message}` : ''}`);
   } finally {
     clearTimeout(timeout); pending = null;
-    if (active && !paused && !document.hidden) timer = setTimeout(poll, 1000);
+    if (active && !paused && !document.hidden) timer = setTimeout(poll, Math.max(100, 1000 - (performance.now() - started)));
   }
 }
 

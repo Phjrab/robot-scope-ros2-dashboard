@@ -1,3 +1,4 @@
+import { openExperimentFixture } from './experiment_view_fixture.mjs';
 import { test, expect } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { installMissionFixture } from './ui_redesign_fixture.mjs';
@@ -92,7 +93,7 @@ test('both themes keep readable text and STOP usable across routes and mobile wi
     for (const ratio of Object.values(contrast)) expect(ratio).toBeGreaterThanOrEqual(4.5);
     const rendered = [];
     measurements.push({ theme, contrast, rendered });
-    for (const route of ['cockpit', 'maps', 'navigation', 'sensors', 'settings', 'controls', 'missions', 'route-planner', 'topics', 'mapping', 'resources']) {
+    for (const route of ['cockpit', 'maps', 'navigation', 'sensors', 'settings', 'missions', 'route-planner', 'topics', 'mapping', 'resources']) {
       await page.goto(`/?theme-capture=${theme}#${route}`);
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
       if (route === 'settings') await page.locator('[data-cockpit-software-stop]').click({ trial: true });
@@ -106,7 +107,7 @@ test('both themes keep readable text and STOP usable across routes and mobile wi
       if (route === 'sensors') targets.push('.camera-view-toolbar label', '.camera-feed-identity strong', '#cameraPrimaryState', '.dataset-capture-summary span', '.dataset-capture-summary strong', '.dataset-output-path code');
       if (route === 'settings') targets.push('.robot-discovery-empty', '.connection-target-state strong', '#cloudSourceTopicLabel', '.settings-detail strong');
       if (route === 'navigation') targets.push('.navigation-status-card strong', '.navigation-readiness span', '.navigation-readiness strong', '.navigation-primary');
-      if (theme === 'light' && route === 'controls') targets.push('#softwareEstopButton strong', '#softwareEstopButton small');
+      if (theme === 'light' && route === 'settings') targets.push('#softwareEstopButton strong', '#softwareEstopButton small');
       if (route === 'route-planner') targets.push('.route-planner-header strong', '.route-planner-order h3', '.schematic-controls summary');
       if (route === 'resources') targets.push('#resourceMonitor .intro-copy', '#resourceMonitor .host-box small', '#resourceMonitor .panel-heading h2', '#pauseButton', '#loadNote');
       const colors = await renderedContrast(page, targets);
@@ -138,7 +139,7 @@ test('invalid or unavailable storage falls back safely and offline experiments s
   await page.reload();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.locator('#themeToggle').click();
-  await page.goto('/static/experiments.html');
+  await openExperimentFixture(page);
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await page.locator('#recordedFile').setInputFiles({ name: 'synthetic.json', mimeType: 'application/json',
     buffer: Buffer.from(JSON.stringify(recordedFixture())) });

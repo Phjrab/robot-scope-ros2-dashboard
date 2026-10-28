@@ -61,7 +61,7 @@
 - 버튼으로 여는 단일 제어 세션과 별도 ROS 2 명령 워치독
 - 키보드, 화면 패드 또는 표준 Gamepad를 선택하는 Go2 주행 제어
 - 서버 allowlist에 등록된 Go2 자세·제스처·보행 모드 실행
-- Overview, Live Mapping, Saved Maps, Sensors, ROS Graph, Controls, Settings 메뉴
+- 관측, 지도 만들기, 저장 지도, 주행, 카메라·수집, ROS 토픽, 설정 메뉴
 - 공용 Camera/LiDAR owner, Safety HUD, Map, Navigation과 Mission을 조합하고 별도 전체 작업창·선택적 native fullscreen을 제공하는 Cockpit
 - exact map/annotation revision에 고정된 server-owned 다중 waypoint Mission
 - 사이드바 **Missions**에서 Navigation에 등록한 지점의 방문 순서를 구성하고 미션 생성·시작·일시정지·재개·중단을 관리합니다. Cockpit Mission과 같은 서버 미션을 사용하며, 화면 이동이나 새로고침은 주행 중단 명령이 아닙니다. 실제 시작 전 동일 지도·초기 위치·Nav2 readiness가 필요합니다.
@@ -350,52 +350,23 @@ USB-Ethernet NIC 또는 검증된 스위치를 사용하세요. `eno1`은 Go2·H
 `192.168.123.0/24`와 카메라 multicast에 쓰이므로 Mac 접속용 LAN이 그 포트를 대체하면
 안 됩니다. Wi-Fi 절전 해제는 호스트 전원 정책 변경이므로 현장 승인 후 별도로 적용합니다.
 
-### Robot Controls
+### 제어 상태와 소프트웨어 정지
 
-Controls는 Go2 프로필에서만 사용할 수 있으며, 서버 시작 설정, 독립 제어
-브리지, 최신 `/lowstate`, `/api/sport/request` 구독자가 모두 확인되어야 ARM할 수
-있습니다. 한 번에 브라우저 하나만 제어 권한을 가집니다.
+수동제어 화면과 실험결과 메뉴는 제거되었습니다. 이전 `#controls` 및
+`/static/experiments.html` 주소는 관측 화면으로 이동합니다. 브라우저는 ARM 버튼,
+키보드·화면 패드 또는 주기적 수동 주행 프레임을 제공하지 않습니다. 위치 정합에서
+사용하는 계산 모듈과 오프라인 결과 검증 코드는 유지합니다.
 
-1. 로봇 주변을 비우고 평평한 바닥인지 확인합니다. 물리 리모컨을 손에 듭니다.
-2. Controls에서 Keyboard 또는 Gamepad를 선택하고 ARM 버튼을 누릅니다.
-3. 데드맨을 누르는 동안에만 주행 입력을 보냅니다.
-4. 데드맨 해제, 창 전환, 페이지 이탈, 장치 연결 해제 또는 통신 중단 시 제로 명령과
-   StopMove를 보내고 자동 DISARM합니다. 다시 움직이려면 재ARM해야 합니다.
+Settings의 **소프트웨어 정지** 패널에서 SOFTWARE STOP을 요청할 수 있습니다.
+STOP 래치는 로봇 주변이 안전하고 움직임이 멈춘 것을 직접 확인한 뒤 체크하고
+SOFTWARE STOP CLEAR를 눌러 해제합니다. CLEAR는 주행을 시작하지 않습니다.
+Nav2와 미션의 STOP·CANCEL·PAUSE·ABORT는 각 작업 화면에 유지됩니다.
 
-키보드에서는 Shift를 유지한 채 W/A/S/D/Q/E만 놓으면 즉시 정지하되 ARM은 유지됩니다.
-마지막 Shift 키를 놓을 때만 안전 해제되어 다시 ARM해야 합니다.
+backend 제어 API, lease 소유권, 제로 명령, watchdog 계약은 그대로입니다.
+다른 클라이언트가 수동 제어 권한을 가진 동안에는 Nav2 시작이 차단되며,
+권한을 가진 클라이언트에서 먼저 제어를 해제해야 합니다.
 
-| 입력 | 이동 | 회전 | 데드맨 | 대시보드 정지 |
-|---|---|---|---|---|
-| 키보드 | W/S 전후, A/D 좌우 | Q/E | Shift | 화면의 빨간 버튼 |
-| 표준 Gamepad | 왼쪽 스틱 | 오른쪽 스틱 X | LB | B |
-| 화면 패드 | 방향 버튼 | 회전 버튼 | HOLD | 화면의 빨간 버튼 |
-
-일반/legacy bridge fallback의 전후 상한은 0.30 m/s입니다. 명시적 Go2 프로필
-`config/go2.json`은 `max_linear_x=1.0`, `max_linear_y=0.2`,
-`default_speed_scale=0.35`, `navigation_speed_scale=1.0`을 설정합니다.
-설정 상한은 실측 자율주행 속도나 정지 성능이 아닙니다. 화면 속도 슬라이더는
-해당 프로필의 상한 안에서 비율을 조절합니다. 수동 브라우저 입력은 200 ms가 지나면
-만료되며, 별도 ROS 2 브리지의 다음 50 ms 주기에 StopMove를 보내도록 설계했습니다.
-WebSocket에 송신 backlog가 생기거나 200 ms 넘게 지연된 프레임이 도착해도 세션을
-폐기하여 예전 데드맨 명령을 재생하지 않습니다. ARM 직후 아직 명령을 낼 수 없는
-미바인딩 lease에는 WebSocket 연결용 4초 제한을 적용하고, 바인딩이 끝난 시점부터 기존
-2초 heartbeat 제한을 새로 계산합니다.
-
-Nav2 입력 freshness `navigation_command_timeout_s=0.30`과 C4 odometry
-callback arrival gap 판정 `0.25 s`는 다른 기준입니다. robot-side bridge의
-수신 watchdog `0.20 s`도 별도입니다. 현재 Nav2 `0.30 s` 계약은
-[합성 timing replay](NAV2_OFFLINE_TIMING_REPLAY_20260912.md)로 확인했습니다.
-
-Go2 모션과 모드는 데드맨을 놓은 정지 상태에서만 실행할 수 있으며 모든 항목은 버튼을
-두 번 눌러 확인합니다. 한 번이라도 주행에 사용한 ARM 세션에서는 안전 해제 후 다시
-ARM해야 모션을 실행할 수 있습니다. 대시보드가 모션 명령을 접수하는 즉시 그 ARM 세션도
-폐기되므로 다음 조작에는 다시 ARM해야 합니다. 화면의 접수 알림은 로봇의 동작 완료
-응답이 아닙니다. 동작 종류에 따라 3~8초의 보수적인 안전 창 동안 재ARM과 주기적
-idle StopMove를 막지만, SOFTWARE STOP·LowState 손실·브리지 종료는 즉시 StopMove를
-보냅니다.
-
-DASHBOARD SOFTWARE STOP은 네트워크와 소프트웨어가 살아 있을 때 이 대시보드의 lease를
+DASHBOARD SOFTWARE STOP은 네트워크와 소프트웨어가 살아 있을 때 제어 lease를
 폐기하고 StopMove를 보내는 기능입니다. 다른 ROS publisher를 차단하거나 로봇 전체를
 전기적으로 비활성화하지 않으며 물리 비상정지 장치를 대체하지 않습니다.
 
@@ -531,6 +502,18 @@ FAST-LIO 전용 고정 런처만 실행합니다.
 - 관리 허용 폴더의 지도 이름 변경
 - PCD 단일 파일 또는 YAML + PGM 묶음 삭제
 - 읽기 전용 경로와 번들 데모 데이터 보호
+
+3D 위치 정합은 `관측 시작` → `지도에서 초기 위치 지정` → `이 주변에서 자동 정합`
+→ `제안 위치로 적용` 순서입니다. 현재 점군·pose 읽기와 근사 연속 관측은 기본으로
+켜집니다. 메시지별 publisher 정보를 우선 사용하며, 그 정보가 없는 runtime에서는
+신선한 단일 publisher subscription·ROS graph 증거가 있을 때만 출처 미검증 후보를
+계산합니다. 고급 관측 옵션에서 이 허용을 끌 수 있습니다.
+
+초기값 지정 버튼 하나로 재지정도 할 수 있습니다. 취소·기존 방향 유지·계산 중지는
+해당 작업 중에만 표시합니다. 범위·오차 정책과 코스 영역은 접힌 옵션에 있으며,
+저장된 오차 정책·코스 설정은 그대로 유지합니다. 저장값·지도 전체 탐색·수동 좌표는
+`다른 초기값 입력 방법`에서 사용합니다. 수동 근사 연결과 정합 후보 적용은 별개이며,
+페이지를 여는 것만으로 관측기·정합 계산·위치 적용·주행을 시작하지 않습니다.
 
 관리 가능한 PCD를 선택하면 Saved Maps에서 바로 새 2D 지도를 만들 수 있습니다.
 기본 시작값은 수업 자료와 같은 `z_min=-0.2 m`, `z_max=0.8 m`,
@@ -826,7 +809,7 @@ curl -fsS http://127.0.0.1:8088/api/v1/cameras
 
 Sensors의 **Dataset Capture**는 브라우저의 1회 `화면 캡처`와 별개입니다. Go2,
 RealSense 또는 두 카메라를 선택해 `START SERVER CAPTURE`를 누르면 대시보드 서버가
-고정된 `runtime/datasets` 아래에 JPEG와 JSON metadata를 저장합니다. Controls나
+고정된 `runtime/datasets` 아래에 JPEG와 JSON metadata를 저장합니다. 수동 제어 API나
 Navigation으로 이동하거나 브라우저를 닫아도 서버 수집은 계속되며, 끝날 때 반드시
 `STOP & FINALIZE`로 manifest를 마무리합니다. 수집 중에는 실수로 세션을 절단하지 않도록
 대시보드 서비스 restart/stop이 차단됩니다.
@@ -943,7 +926,7 @@ sudoers 파일을 제거한 뒤 SSH에서 서비스를 재시작합니다.
 
 ### 대시보드에서 제어 브리지 시작·중지
 
-Controls 화면에서 `robot-scope-control-bridge.service`만 시작·중지하는 기능은 대시보드
+Settings 화면에서 `robot-scope-control-bridge.service`만 시작·중지하는 기능은 대시보드
 자체 lifecycle과 독립된 opt-in입니다. unit 이름, 임의 argv, shell, 환경 변수, force 또는
 restart를 HTTP 요청으로 전달할 수 없습니다. 먼저 위의 제어 브리지 unit을 설치한 뒤,
 다음 두 명령만 허용하는 별도 sudoers 예제를 검사·설치합니다.
@@ -971,7 +954,7 @@ mode-0600 `runtime/config/control.env`에 별도 enable을 추가하고, 최초 
 ROBOT_SCOPE_CONTROL_BRIDGE_LIFECYCLE_ENABLED=1
 ~~~
 
-이후 Controls 화면의 Bridge Service 카드에서 시작 또는 중지를 확인할 수 있습니다.
+이후 Settings 화면의 Bridge Service 카드에서 시작 또는 중지를 확인할 수 있습니다.
 GET 상태 조회는 읽기 전용이며, start/stop은 same-origin과 `confirmed=true`를 요구합니다.
 시작은 대시보드 제어 전송이 설정되고 현재 Go2가 시작 시 고정된 IP·프로필과 일치할 때만
 허용됩니다. 시작·중지 모두 수동 lease, one-shot 동작 안전 구간, navigation/goal 또는

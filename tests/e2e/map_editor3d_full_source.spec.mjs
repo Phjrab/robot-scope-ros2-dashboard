@@ -69,6 +69,8 @@ async function fixture(page) {
     await expect(page.locator('.saved-map-item').filter({ hasText: original.name })).toBeVisible();
     await page.locator('.saved-map-item').filter({ hasText: original.name }).click();
     await expect(page.locator('#savedMapTitle')).toContainText(original.name);
+    // Selection metadata appears before the asynchronous PCD preview is ready.
+    await expect(page.locator('#savedMappingState')).toContainText('SAVED 3D MAP');
     await page.locator('#mapEditorMode').selectOption('3d');
     await page.locator('#map3Load').click();
     await expect(page.locator('#map3Stats')).toContainText('150 loaded points / 12,000 source points (sampled)');

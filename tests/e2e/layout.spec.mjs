@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { installDashboardBackend } from './dashboard_backend.mjs';
 
-const pages = ['overview', 'mapping', 'maps', 'sensors', 'topics', 'controls', 'navigation', 'missions', 'route-planner', 'settings', 'cockpit'];
+const pages = ['overview', 'mapping', 'maps', 'sensors', 'topics', 'navigation', 'missions', 'route-planner', 'settings', 'cockpit'];
 
 // Check clipping as well as document width: overflow:hidden can mask lost controls.
 async function clippedControls(page) {

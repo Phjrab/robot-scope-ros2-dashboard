@@ -61,10 +61,17 @@ class ResourceMonitor:
         self._clock, self._wall_clock = clock, wall_clock
         self._lock = threading.Lock()
         self._last_at: float | None = None
+        self._cached_at: float | None = None
         self._cached: dict[str, Any] | None = None
         self._cpu: dict[str, tuple[int, int]] = {}
         self._network: dict[str, dict[str, float | None]] = {}
         self._processes: dict[int, tuple[int, int]] = {}
+        self._process_lock = threading.Lock()
+        self._process_worker: threading.Thread | None = None
+        self._process_cached: dict[str, Any] | None = None
+        self._process_started_at: float | None = None
+        self._process_completed_at: float | None = None
+        self._process_failed = False
         self._oom: int | None = None
         self._sequence = 0
         self._tick_hz = os.sysconf("SC_CLK_TCK")
@@ -187,6 +194,52 @@ class ResourceMonitor:
         return {"items": result[:12], "observed": len(result), "truncated": len(paths) > 512,
                 "scope": "서버에서 보이는 PID 범위 · CPU 100% = 코어 1개 · RSS는 공유 메모리 포함"}
 
+    def _sample_processes(self) -> None:
+        started = self._clock()
+        elapsed = started - self._process_started_at if self._process_started_at is not None else None
+        try:
+            sample = self._process_snapshot(elapsed)
+            completed = self._clock()
+            sample.update(timestamp_ms=round(self._wall_clock() * 1000),
+                          sample_interval_s=elapsed, sample_duration_s=completed - started)
+            with self._process_lock:
+                self._process_cached = sample
+                self._process_started_at = started
+                self._process_completed_at = completed
+                self._process_failed = False
+        except Exception:
+            # A disappearing process or unavailable /proc must not block host metrics.
+            with self._process_lock:
+                self._process_failed = True
+                self._process_completed_at = self._clock()
+        finally:
+            with self._process_lock:
+                self._process_worker = None
+
+    def _process_status(self) -> dict[str, Any]:
+        """Refresh the bounded PID scan on demand without delaying host readings.
+
+        Hundreds of small /proc reads can take seconds while ROS Python threads
+        compete for the GIL. One worker owns that scan and its own CPU interval;
+        extra requests reuse its result instead of starting concurrent scans.
+        """
+        with self._process_lock:
+            now = self._clock()
+            if self._process_worker is None and (self._process_completed_at is None
+                    or now - self._process_completed_at >= self.interval_s):
+                self._process_worker = threading.Thread(target=self._sample_processes,
+                                                       name="resource-processes", daemon=True)
+                self._process_worker.start()
+            cached = self._process_cached
+            age = max(0.0, now - self._process_completed_at) if cached and self._process_completed_at is not None else None
+            state = "error" if self._process_failed else "waiting" if cached is None else "stale" if age > 5 else "ok"
+            result = dict(cached) if cached else {"items": [], "observed": 0, "truncated": False,
+                                                "scope": "프로세스 사용량을 따로 수집합니다."}
+            if state != "ok":
+                result["items"] = []
+            return {**result, "state": state, "age_s": round(age, 3) if age is not None else None,
+                    "refreshing": self._process_worker is not None}
+
     def _pressure(self) -> dict[str, Any]:
         values = {}
         for kind in ("cpu", "memory", "io"):
@@ -236,7 +289,7 @@ class ResourceMonitor:
     def snapshot(self, agent: Any = None) -> dict[str, Any]:
         with self._lock:
             now = self._clock()
-            if self._last_at is not None and self._cached is not None and 0 <= now - self._last_at < self.interval_s:
+            if self._cached_at is not None and self._cached is not None and 0 <= now - self._cached_at < self.interval_s:
                 return self._cached
             elapsed = now - self._last_at if self._last_at is not None and now > self._last_at else None
             cpu = self._read_cpu()
@@ -281,7 +334,10 @@ class ResourceMonitor:
                 "network": {"interfaces": interfaces, "rx_bytes_s": total_rate("rx_bytes_s"), "tx_bytes_s": total_rate("tx_bytes_s"),
                             "source": "sysfs · 물리 인터페이스 합계 · 가상 인터페이스 별도"},
                 "pressure": self._pressure(), "oom_kill_count": oom, "oom_kill_delta": oom_delta,
-                "processes": self._process_snapshot(elapsed), "sensors": self._sensors(agent),
+                "processes": self._process_status(), "sensors": self._sensors(agent),
             }
             self._last_at = now
+            self._cached_at = self._clock()
+            self._cached["timestamp_ms"] = round(self._wall_clock() * 1000)
+            self._cached["collection_duration_s"] = round(self._cached_at - now, 3)
             return self._cached
