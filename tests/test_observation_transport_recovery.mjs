@@ -144,6 +144,23 @@ test('a websocket watchdog reconnect cannot discard an independent HTTP fallback
   t.destroy();
 });
 
+test('a source stream change fences a pending HTTP reply from the previous source', async () => {
+  const f = fixture(), values = []; let complete;
+  const t = createPointcloudTransport({ ...f,
+    fetchFn: () => new Promise(resolve => {
+      complete = () => resolve({ status: 200, ok: true, arrayBuffer: async () => new Uint8Array([2, 1]).buffer });
+    }), decodeFrame: b => ({ seq: new Uint8Array(b)[0], stream_id: `source-${new Uint8Array(b)[1]}`, points: [1, 2, 3] }),
+  });
+  t.subscribe('test', v => values.push(v)); t.replaceDemand(['maps']);
+  f.sockets[0].onmessage({ data: new Uint8Array([1, 1]).buffer }); f.tick(500);
+  const pending = t.poll(); f.tick(200);
+  f.sockets[1].onmessage({ data: new Uint8Array([1, 2]).buffer }); f.tick(100);
+  complete(); assert.equal(await pending, false);
+  assert.deepEqual(values.map(v => v.stream_id), ['source-1', 'source-2']);
+  assert.equal(t.diagnostics().streamId, 'source-2');
+  t.destroy();
+});
+
 test('pointcloud ingestion continues when animation frames are suspended; late RAF does not duplicate delivery', () => {
   const f = fixture(), values = [], t = cloudTransport(f);
   t.subscribe('test', v => values.push(v)); t.replaceDemand(['maps']);

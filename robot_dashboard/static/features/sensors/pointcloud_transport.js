@@ -92,6 +92,8 @@ export function createPointcloudTransport(options = {}) {
     const streamChanged = Boolean(incomingStreamId && streamId && incomingStreamId !== streamId);
     const legacyRollback = !incomingStreamId && lastSequence >= 0 && sequence < lastSequence;
     if (streamChanged || legacyRollback) lastSequence = -1;
+    // Socket recovery preserves HTTP reads, but a newly observed source does not.
+    if ((incomingStreamId && incomingStreamId !== streamId) || legacyRollback) requestGeneration += 1;
     if (incomingStreamId) streamId = incomingStreamId;
     if (sequence <= lastSequence) return false;
     const dropped = lastSequence > 0 ? Math.max(0, sequence - lastSequence - 1) : 0;
