@@ -1,7 +1,15 @@
-# 충전 후 이어갈 최소 현장 절차
+# 운영 3D 위치추정 현장 인계
 
-2026-10-28 KST. 현재 로봇 없이 구현·검사했으며 장비 배포와 실제 이동은 NOT_RUN.
+2026-10-28 KST. `3fc6fb582b3b` Jetson 배포와 실제 정지 상태의 저장 PCD 정합,
+TF·body odom·Nav2 READY 연결을 확인했다. 사용자 코스 외부 제외 처리의 후속
+코드는 관련 64개, Python 전수 3,087개(실패 0, skip 3), JavaScript 689개,
+운영 3D 브라우저 7개를 통과했다. 후속 배포 대기이며 실제 이동은 NOT_RUN.
 기존 2D Nav2/보행의 사용자 검증은 다시 개발하거나 전체 재인증하지 않는다.
+
+현재 Nav2는 기존 STOP으로 정리해 idle이다. 사용자가 현장 준비를 확인했고,
+주행 경로는 Nav2 화면에서 직접 웨이포인트를 지정한 뒤 요청하기로 했다.
+그 경로를 인수하기 전에는 이동 goal을 발행하지 않는다. 아래 초기 인수 절차는
+이미 확보한 백업·readback을 재사용하며 전체 재검증하지 않는다.
 
 ## 장비 연결 후
 
@@ -37,11 +45,14 @@ readback과 정지 baseline 근거로 작성하고, 사용자에게 임의 값�
   `{node_name, node_namespace}` 배열. 새 navigation runtime 자신은 제외한다.
 - `policy`: `max_rmse_m`, `max_correction_age_s`, `max_translation_step_m`,
   `max_rotation_step_rad`, `compute_budget_s`, `max_propagation_m`, `evidence`.
-  각 값은 단위가 이름에 명시돼 있고 parser에 유한한 상한이 있다. 현재 현장 측정값은 없다.
+  각 값은 단위가 이름에 명시돼 있고 parser에 유한한 상한이 있다. 현재 정지 baseline은
+  약 10Hz LIO, RMSE 0.0421m, Jetson 최초 포함 정합 p95 약 114ms다.
 
 이 파일이 없으면 source 선택은 `DEVICE_BODY_MAP_ALIGNMENT_READBACK_REQUIRED`다.
 이는 3D 활성화에 필요한 한 가지 실제 좌표 계약이며 YOLO·앞발·C3·VSLAM을
-추가 선행조건으로 삼지 않는다. 현재 장비가 없으므로 계약을 검증 완료로 위조하지 않았다.
+추가 선행조건으로 삼지 않는다. 현재 calibration은 기존 장착 convention과
+회전하지 않은 시험 지도에 고정돼 있다. 과거 회전 2D 편집본의 identity 계보는
+틀린 것으로 확인됐으므로 재사용하지 않는다. 현재 지도 pin은 PROGRESS.md 참조.
 
 ## 화면에서 할 일
 
@@ -85,7 +96,7 @@ geometry·body sectors·pitch·연산시간을 남긴다. 필요하면 같은 �
 
 최종 현장 기록에는 코드/배포 SHA·PID/cwd, 선택 지도 묶음, 실제 위치 source와
 TF/odom consumer, 실제 PCD 저장, goal/stop/dwell/OPERATOR_TEST/departure,
-경사로 baseline·복구 결과를 각각 기록한다. 현재 값은 NOT_RUN/BLOCKED다.
+경사로 baseline·복구 결과를 각각 기록한다. 현재 실제 이동·재출발·경사로는 NOT_RUN이다.
 
 ## 유선 Jetson의 본체 odometry 연결
 

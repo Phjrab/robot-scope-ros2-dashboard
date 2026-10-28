@@ -939,6 +939,26 @@ class SavedMapCatalogTests(unittest.TestCase):
                 source_pcd_revision=source["revision"],
             )
 
+    def test_rotated_copy_does_not_claim_identity_family_projection(self):
+        source = self._clustered_pcd("rotation_family_source.pcd")
+        converted = self.managed_catalog.convert_pcd_to_2d(
+            source["id"], "rotation_family_2d", z_min=-0.2, z_max=0.8,
+            resolution=0.05, noise_radius=0.1, min_neighbors=10,
+        )
+        rotated = self.managed_catalog.save_edited_copy(
+            converted["map"]["id"], "rotation_family_copy",
+            converted["map"]["revision"], [], rotation_degrees=30.0,
+        )
+        self.assertEqual(self.managed_catalog.map_family(rotated["id"])["status"], "unlinked")
+        self.assertFalse((self.root / "rotation_family_copy.map-family.json").exists())
+        followup = self.managed_catalog.save_edited_copy(
+            rotated["id"], "rotation_family_followup", rotated["revision"],
+            [{"start": 0, "length": 1, "value": 0}],
+        )
+        self.assertEqual(self.managed_catalog.map_family(followup["id"])["status"], "unlinked")
+        original = self.managed_catalog.map_family(converted["map"]["id"])
+        self.assertEqual(original["status"], "linked")
+
     def test_unlinked_history_and_similar_names_are_never_inferred(self):
         floor = next(
             item

@@ -16,9 +16,10 @@ import time
 import numpy as np
 
 from ..pcd_editing.pcd import _read_header, DEFAULT_MAX_POINTS, DEFAULT_MAX_BYTES
+from ..pcd_editing.geometry import _compile_region, _selection_mask, validate_regions
 from .experimental_se3 import (
     from_translation_quaternion, inverse, matrix_to_quaternion_xyzw,
-    rotation_error_rad, validate_transform,
+    rotation_error_rad, transform_points, validate_transform,
 )
 from .observation_alignment import ReferenceIndex, solve_prepared
 
@@ -135,6 +136,15 @@ class OperationalLocalizer:
         self.clock = clock
         self.reference, self.full_count = read_reference(reference_path, bundle['localization_3d']['sha256'])
         self.index = ReferenceIndex(self.reference)
+        self.exclusions = []
+        for entry in bundle['localization_3d'].get('edit_history', []):
+            if entry['purpose'] != 'localization':
+                continue
+            annotation = entry['annotation']
+            if annotation['source']['frame_id'] != bundle['localization_3d']['frame']:
+                raise ValueError('LOCALIZATION_EXCLUSION_FRAME_MISMATCH')
+            self.exclusions.extend(_compile_region(region) for region in
+                validate_regions(annotation['regions']) if region['kind'] == 'localization')
         self.imu_base = validate_transform(bundle['calibration']['T_imu_base'])
         self.nav_map = validate_transform(bundle['calibration']['T_nav_map_from_localization_map'])
         self.seed = validate_transform(bundle['seed_T_map_imu'])
@@ -236,13 +246,29 @@ class OperationalLocalizer:
         token = self.generation
         deadline = now + self.bundle['policy']['compute_budget_s']
         def solve():
+            selected = query
+            if self.exclusions:
+                # The stored reference has already had these map-frame points
+                # removed. Apply the same immutable edit to this estimator's
+                # query, using the last accepted correction / explicit seed.
+                # Raw clouds and the independent Nav2 scan path are untouched.
+                mapped = transform_points(initial, query)
+                excluded = np.zeros(len(query), dtype=bool)
+                for region in self.exclusions:
+                    excluded |= _selection_mask(*mapped.T, region)
+                selected = query[~excluded]
+                if len(selected) < 60:
+                    raise ValueError('INSUFFICIENT_LOCALIZATION_POINTS_AFTER_EXCLUSION')
             result, transform = solve_prepared(self.reference, self.index,
-                self.bundle['localization_3d']['frame'], query, 'camera_init', stamp,
+                self.bundle['localization_3d']['frame'], selected, 'camera_init', stamp,
                 initial, deadline, course_region=self.bundle.get('course_region'), enforce_residual_limit=False)
+            result['metrics']['registered_input_points'] = len(query)
+            result['metrics']['localization_selected_points'] = len(selected)
+            result['metrics']['localization_excluded_points'] = len(query) - len(selected)
             # Physical sectors use body heading at this exact source stamp.
             body = odom_at_stamp @ self.imu_base
             heading = math.atan2(body[1, 0], body[0, 0])
-            delta = query - body[:3, 3]
+            delta = selected - body[:3, 3]
             x = delta[:, 0] * math.cos(heading) + delta[:, 1] * math.sin(heading)
             y = -delta[:, 0] * math.sin(heading) + delta[:, 1] * math.cos(heading)
             result['metrics']['body_sectors'] = {'front': int((x > np.abs(y)).sum()),

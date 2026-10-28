@@ -19,7 +19,7 @@ import numpy as np
 from robot_dashboard import navigation_runtime as runtime
 from robot_dashboard.relocalization.experimental_se3 import from_translation_rpy
 from test_localization_startup_diagnostics import (
-    FakeNode, PoseMessage, header, obj, odometry, ros_modules,
+    FakeNode, PoseMessage, cloud, header, obj, odometry, ros_modules,
 )
 from test_operational_3d_localization import fixture_bundle, write_pcd
 
@@ -217,6 +217,17 @@ class OperationalRuntimeBindingTests(unittest.TestCase):
         self.assertIsNone(self.engine.correction)
         self.assertIsNone(self.engine.seed)
         self.assertEqual(self.engine.reason, 'REGISTERED_SOURCE_CHANGED')
+
+    def test_localization_exclusions_preserve_full_obstacle_scan(self):
+        from robot_dashboard.pcd_editing.geometry import _compile_region
+        self.node._on_cloud(cloud(self.node.now_ns))
+        before = self.node._scan_publisher.messages[-1].ranges
+        self.engine.exclusions = [_compile_region({'kind': 'localization', 'selection': 'inside',
+            'polygon': [[-10, -10], [10, -10], [10, 10], [-10, 10]], 'z_min': -2., 'z_max': 4.})]
+        self.tick()
+        self.node._on_cloud(cloud(self.node.now_ns))
+        np.testing.assert_array_equal(self.node._scan_publisher.messages[-1].ranges, before)
+        self.assertEqual(self.node._last_scan_counts, (4, 4))
 
     def test_wired_body_odom_consumer_receives_same_body_pose_and_body_velocity(self):
         bundle_path = self.params.parent / 'operational-3d.json'

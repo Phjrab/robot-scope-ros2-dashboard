@@ -1,30 +1,57 @@
 # 3D reference → 운영 Nav2 진행 기록
 
-2026-10-28 KST. 조사 기준 원격 main은 `7ed86cc96dbe500f17e63391cb5e515717a97b0a`.
-이번 구현의 최종 source SHA/CI는 Git commit과 최종 인계 응답을 따른다.
+2026-10-28 KST. Jetson에 `3fc6fb582b3b`를 배포하고 실제 정지 상태의 운영
+source/consumer 연결을 확인했다. 이후 사용자 코스 제외 편집을 반영하는 후속
+변경의 전수 검사를 마쳤다. 최종 source/배포 SHA/CI는 최종 인계 응답을 따른다.
 
 사용자가 직접 검증한 기존 2D Nav2 주행과 계단·경사로 보행은 USER_VERIFIED로
 인수했다. 검증 controller, 속도, Nav2 command topic과 signed bridge 경로를
-유지했다. 장비는 충전 중이며 사용자 답변으로 Jetson 전원 또는 네트워크가
-없는 상태가 확인됐다. 따라서 아래 소프트웨어 검사는 현재 장비 성공 증거가 아니다.
+유지했다. 사용자가 전원·같은 공간·현장 준비를 확인했다. 실제 주행 경로는
+사용자가 Nav2 페이지에서 지정한 웨이포인트를 인수한 뒤 실행한다.
 
 | 구간 | 현재 결과 | 증거/제약 |
 | --- | --- | --- |
-| 전체 PCD 편집·저장 | SOFTWARE_PASS | 기존 immutable full-source editor/store 재사용. 실제 codec/catalogue로 preview 밖 원본·속성·해시·계보를 검사 |
-| 3D/2D 지도 묶음 | SOFTWARE_PASS | source ID/revision/hash, parent/edit history, 2D 원점·해상도, 명시적 SE(3) 정렬, 실제 Nav2 snapshot 파일 대조 |
-| 지속 정합 → TF → Nav2 | SOFTWARE_PASS | 실제 저장 PCD reader/ICP 및 ROS-shaped production callbacks. 실제 Jetson source/consumer readback은 BLOCKED |
+| 전체 PCD 편집·저장 | FIELD_PASS | 전체 원본 22,529점 보존. 첫 사본 22,517점, 사용자 코스 외부 제외 사본 13,546점 저장·재조회 |
+| 3D/2D 지도 묶음 | FIELD_PASS (제한 시험) | 회전하지 않은 원본 2D와 동일 좌표. 실제 관측으로 확인한 514개 셀만 새 시험 사본에서 free로 변경. 기존 occupied 3,625셀 보존 |
+| 지속 정합 → TF → Nav2 | FIELD_PASS (정지) | 실제 사본 기준 보정 500회 이상, 같은 stamp의 map→odom→base_link, controller/BT의 canonical body odom 구독, Nav2 READY 확인 |
 | 시험용 녹색 stop/go | SOFTWARE_PASS | 실제 MissionCoordinator의 도착·대기·다음 goal 경로. OPERATOR_TEST와 NAV_STOP_POINT_TEST로 기록 |
-| 현장 목표 도달·실제 정지·재출발 | NOT_RUN | 충전 중. 임의 속도 publisher·ARM·실이동 없음 |
+| 현장 목표 도달·실제 정지·재출발 | NOT_RUN | 브리지·기존 Nav2 기동/정지는 확인. 이동 goal은 아직 발행하지 않았으며 사용자의 경로 지정 대기 |
 | 경사로 전체 방향 baseline | NOT_RUN | 단계별 pitch/섹터/정합 지표 준비. 현재 경사로 기록 없음 |
 | 후방·측면 가중치 채택 | NOT_RUN | 전체 방향 baseline 유지. 센서 X를 로봇 뒤로 해석하지 않음 |
-| Jetson 배포·정지 검증 | BLOCKED | 현재 접속 불가. 실제 PID/cwd/SHA/map catalogue는 아직 확인 못함 |
+| Jetson 배포·정지 검증 | FIELD_PASS | 별도 release 2,156파일 hash 검증. 사용자 checkout·CSS·기존 지도 81파일·튜닝 보존 |
+
+## 사용자 코스 제외와 좌표 문제
+
+사용자가 원본 PCD 위에 8각형 외부, Z -1…3m를 localization 제외로 지정했다.
+새 사본은 `e1dd40cc6911404dbdfc073b`, revision
+`c7d7ce7e04b2fb80519854cc71465f61af9fff210ac72e299105502497401ad5`,
+SHA-256 `6ec38aa876ffcfe505ee81204d94fa84e1c3cb438ae706a6a6b7fc0048970b5a`다.
+같은 실제 source stamp의 점군으로 비교한 결과, 참조 지도만 제외하면 잔차가
+0.248m로 운영 기준을 초과했다. 저장된 localization 제외 주석을 현재 보정/seed로
+변환한 관측점에도 적용하면 178점 중 85점을 사용하고 overlap 1.0,
+RMSE 0.0350m였다. 기존 전체 방향 baseline은 0.0421m였다. 이는 해당 정지 입력의
+정합 잔차이며 독립 위치 정확도나 경사로 성능 증명이 아니다.
+
+후속 구현은 PCD 저장 때와 같은 polygon/Z 판정을 위치추정 query에만 적용한다.
+visibility/keepout 주석을 localization 제외로 취급하지 않는다. 남는 점이 60개
+미만이면 새 보정을 거절하고 기존 보정 age 한도로 주행 readiness를 내린다.
+raw cloud와 Nav2 `/scan`은 전체 센서 경로를 유지한다.
+
+기존 `map_20261027_125427_edited`는 픽셀이 회전했는데 v1 계보가 identity를
+주장하는 문제가 발견돼 선택을 해제했다. v1은 회전 변환을 표현하지 못하므로
+새 회전 편집본에는 identity 계보를 생성하지 않는다. 과거 회전본의 계보를
+자동 검증 완료로 간주해서는 안 된다. 현재 시험 지도는 회전하지 않은 원본에서
+생성한 `97790325789687abea274ed6`, revision
+`e852388ae426b0bcc8c3e69b1673926488fb0f5a37f014d4c05a3213d238e98c`다.
 
 ## 최종 로봇 없는 검사
 
-- Python 전수: 3,081개 실행, 실패 0, 환경 skip 3. skip은 선택적 rosbags 1개와
-  macOS에 없는 Linux `/proc`/fd 검사 2개다. 새 운영 관련 Python 83개는 모두 실행했다.
+- 최신 Python 전수: 3,087개 실행, 실패 0, 환경 skip 3. skip은 선택적 rosbags 1개와
+  macOS에 없는 Linux `/proc`/fd 검사 2개다. 코스 제외 관련 검사 64개와 지도 저장
+  검사 56개도 통과했다.
 - JavaScript 단위: 689 PASS. 브라우저: 220 PASS. 별도 기존 미션 real-API
   fixture: 10 PASS. 이 fixture의 신호·로봇 입력은 소프트웨어 시험 데이터다.
+  코스 제외 후 JavaScript 689개와 운영 3D 브라우저 7개를 다시 확인했다.
 - Ruff, 기존 mypy 4파일, frontend 112개 모듈 syntax, tracked-source credential
   scan, `git diff --check` PASS.
 - production gateway의 final guard는 거절 전송 0회, 정상 허가 전송 1회를

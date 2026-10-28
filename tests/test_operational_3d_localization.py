@@ -97,6 +97,9 @@ class Operational3DLocalizationTests(unittest.TestCase):
     def make_engine(self, **kwargs):
         bundle = fixture_bundle(self.sha256, **kwargs)
         engine = OperationalLocalizer(bundle, self.path, clock=self.clock)
+        # Cold reference-index imports are setup time, before the fixture's
+        # source receipt and real worker deadline are sampled.
+        self.clock.value = time.monotonic()
         self.addCleanup(engine.close)
         return engine
 
@@ -146,6 +149,45 @@ class Operational3DLocalizationTests(unittest.TestCase):
         self.assertEqual(status['state'], 'MAP_CORRECTION_STALE')
         self.assertIsNone(engine.nav_odom())
         self.assertEqual(status['correction_sequence'], 1)
+
+    def test_saved_exclusions_filter_only_localization_queries_in_reference_map_frame(self):
+        correction = from_translation_rpy([.2, -.4, .1], [.03, -.02, .4])
+        bundle = fixture_bundle(self.sha256, correction=correction,
+            nav_map=from_translation_rpy([20, -10, 3], [0, 0, 1.]))
+        region = {'kind': 'localization', 'selection': 'outside',
+            'polygon': [[-4, -3], [5, -3], [5, 4], [-4, 4]], 'z_min': -2., 'z_max': 4.}
+        bundle['localization_3d']['edit_history'] = [{'purpose': 'localization', 'annotation': {
+            'source': {'frame_id': 'survey_map'}, 'regions': [region,
+                {**region, 'kind': 'visibility', 'selection': 'inside'},
+                {**region, 'kind': 'keepout', 'selection': 'inside'}]}}]
+        outside = np.random.default_rng(45).uniform([8, -1, 0], [10, 2, 2], (96, 3))
+        query = transform_points(inverse(correction), np.vstack([self.points, outside]))
+        before = query.copy()
+        engine = OperationalLocalizer(bundle, self.path, clock=self.clock)
+        self.addCleanup(engine.close)
+        self.track(engine, query, np.eye(4))
+        np.testing.assert_array_equal(query, before)
+        np.testing.assert_allclose(engine.correction, correction, atol=2e-6)
+        self.assertEqual(engine.metrics['registered_input_points'], 480)
+        self.assertEqual(engine.metrics['localization_selected_points'], 384)
+        self.assertEqual(engine.metrics['localization_excluded_points'], 96)
+
+    def test_exclusion_without_enough_points_expires_previous_correction(self):
+        engine = self.make_engine()
+        self.track(engine, self.points, np.eye(4))
+        from robot_dashboard.pcd_editing.geometry import _compile_region
+        engine.exclusions = [_compile_region({'kind': 'localization', 'selection': 'inside',
+            'polygon': [[-4, -3], [5, -3], [5, 4], [-4, 4]], 'z_min': -2., 'z_max': 4.})]
+        for _ in range(6):
+            self.observe(engine, np.eye(4))
+        self.assertTrue(engine.submit(self.points, self.stamp, np.eye(4), self.clock()))
+        with self.assertRaisesRegex(ValueError, 'INSUFFICIENT_LOCALIZATION_POINTS_AFTER_EXCLUSION'):
+            engine.future.result(timeout=5.)
+        engine.poll()
+        for _ in range(5):
+            self.observe(engine, np.eye(4))
+        self.assertFalse(engine.status()['ready'])
+        self.assertIsNone(engine.nav_odom())
 
     def test_propagation_distance_is_bounded_even_with_fresh_correction(self):
         engine = self.make_engine()

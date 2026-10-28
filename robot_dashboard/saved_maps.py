@@ -2214,7 +2214,10 @@ class SavedMapCatalog:
             )
             lineage: Optional[Dict[str, Any]] = None
             staged_lineage: Optional[Path] = None
-            if source_lineage is not None:
+            # Rotating pixels changes their world coordinates. The v1 family
+            # contract supports identity projection only; never invent an
+            # identity relation for a rotated map (or its later copies).
+            if source_lineage is not None and not rotation_degrees:
                 target_yaml, _ = self._occupancy_targets(record.root, safe_name)
                 lineage = build_family_document(
                     family_id=source_lineage["family_id"],
