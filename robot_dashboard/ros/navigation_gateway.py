@@ -30,6 +30,7 @@ from ..localization_health import (
 )
 from ..localization_diagnostics import sanitize_localization_diagnostics
 from ..navigation_policy import POLICY_SCHEMA
+from .initial_pose_receipt import operational_initial_pose_context, wait_initial_pose_receipt
 
 
 LOGGER = logging.getLogger(__name__)
@@ -2269,6 +2270,8 @@ class NavigationRosGateway:
                 publisher = self._navigation_initial_pose_publisher
             if publisher is None:
                 raise ControlDisabled("initial-pose publisher is unavailable")
+            context = operational_initial_pose_context(
+                self._navigation_runtime_health_snapshot(time.monotonic()))
             message = self._new_stamped_pose(x_value, y_value, yaw_value)
             message.pose.covariance = [0.0] * 36
             message.pose.covariance[0] = 0.25
@@ -2281,6 +2284,12 @@ class NavigationRosGateway:
                     "pose": {"x": x_value, "y": y_value, "yaw": yaw_value},
                 }
                 self._navigation["seq"] += 1
+        if context is not None:
+            # Never hold the control lock while waiting: SOFTWARE STOP remains
+            # available and source invalidation cannot become an accepted seed.
+            stamp = message.header.stamp
+            wait_initial_pose_receipt(self._navigation_runtime_health_snapshot, context,
+                int(stamp.sec) * 1_000_000_000 + int(stamp.nanosec))
         return self.runtime_snapshot()
 
     @staticmethod

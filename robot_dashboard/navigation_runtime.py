@@ -1402,19 +1402,31 @@ def _build_ros_runtime_node_class() -> type[Any]:
             return "accepted"
 
         def _on_initial_pose(self, message: Any) -> None:
+            def receipt(accepted, reason):
+                if self._operational is not None:
+                    stamp = message.header.stamp
+                    self._operational.initial_pose_receipt = {
+                        'stamp_ns': str(int(stamp.sec) * 1_000_000_000 + int(stamp.nanosec)),
+                        'accepted': accepted, 'reason': reason,
+                        'localization_generation': self._operational.generation,
+                    }
             if _message_stamp_rejection_reason(self, message, .5):
+                receipt(False, 'INITIAL_POSE_STALE')
                 self.get_logger().warning('rejected stale /initialpose')
                 return
             if self._publisher_counts["/initialpose"] != 1:
+                receipt(False, 'INITIAL_POSE_PUBLISHER_NOT_UNIQUE')
                 self.get_logger().warning(
                     "rejected /initialpose because its publisher is not unique"
                 )
                 return
             frame_id = normalize_frame_id(getattr(message.header, "frame_id", ""))
             if frame_id != "map":
+                receipt(False, 'INITIAL_POSE_FRAME_INVALID')
                 self.get_logger().warning("rejected /initialpose outside the map frame")
                 return
             if not self._odom_fresh():
+                receipt(False, 'INITIAL_POSE_ODOMETRY_STALE')
                 self.get_logger().warning("rejected /initialpose without fresh odometry")
                 return
             pose = message.pose.pose
@@ -1423,7 +1435,9 @@ def _build_ros_runtime_node_class() -> type[Any]:
                     if not self._transform_authority.ready:
                         raise ValueError(self._transform_authority.reason)
                     self._operational.reseed(pose_matrix(message))
+                    receipt(True, 'WAITING_MAP_CORRECTION')
                 except ValueError as exc:
+                    receipt(False, str(exc)[:120])
                     self.get_logger().warning(str(exc))
                 return
             try:

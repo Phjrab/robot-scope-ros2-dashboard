@@ -143,14 +143,23 @@ class OperationalRuntimeBindingTests(unittest.TestCase):
         self.node._on_odometry(odometry(self.node.now_ns))
         self.confirm_initial()
         self.assertIsNone(self.engine.seed)
+        rejected = self.engine.status()['initial_pose_receipt']
+        self.assertFalse(rejected['accepted'])
+        self.assertEqual(rejected['reason'], 'TF_PREFLIGHT_SETTLING')
         for _ in range(11):
             self.tick()
         self.confirm_initial()
         self.assertIsNone(self.engine.seed)
+        self.assertEqual(self.engine.status()['initial_pose_receipt']['reason'],
+                         'RESEED_REQUIRES_OBSERVED_STOP')
         for _ in range(12):
             self.tick()
         self.confirm_initial()
         self.assertIsNotNone(self.engine.seed)
+        accepted = self.engine.status()['initial_pose_receipt']
+        self.assertTrue(accepted['accepted'])
+        self.assertEqual(accepted['stamp_ns'], str(self.node.now_ns))
+        self.assertEqual(accepted['localization_generation'], self.engine.generation)
 
     def test_registered_cloud_waits_for_exact_source_stamp_not_nearest_receipt(self):
         self.observe_stop()

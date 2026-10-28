@@ -163,6 +163,7 @@ class OperationalLocalizer:
         self.yaw_rate = None
         self.body_velocity = None
         self.metrics = {}
+        self.initial_pose_receipt = None
         self.reason = 'WAITING_EXACT_STAMP_PAIR'
         self.future = None
         self.pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix='stored-map-fit')
@@ -178,19 +179,21 @@ class OperationalLocalizer:
     def reseed(self, nav_base):
         if self.current_odom is None or self.stopped_seconds() < 2.:
             raise ValueError('RESEED_REQUIRES_OBSERVED_STOP')
-        self.invalidate('WAITING_MAP_CORRECTION')
-        # Standard Nav2 initialpose is planar. Keep the explicitly selected
-        # six-dimensional seed when its body XY/yaw matches that confirmation;
-        # do not silently flatten the IMU height/tilt or apply its lever twice.
+        # A fresh, explicit Nav2 click updates body XY/heading. Keep the staged
+        # body height and tilt; then recover the IMU seed through both calibrated
+        # transforms. This also handles non-identity map/body calibrations.
         staged = validate_transform(self.bundle['seed_T_map_imu'])
         staged_body = self.nav_map @ staged @ self.imu_base
         requested = validate_transform(nav_base)
         staged_yaw = math.atan2(staged_body[1, 0], staged_body[0, 0])
         requested_yaw = math.atan2(requested[1, 0], requested[0, 0])
-        yaw_error = abs(math.atan2(math.sin(staged_yaw - requested_yaw), math.cos(staged_yaw - requested_yaw)))
-        if np.linalg.norm(staged_body[:2, 3] - requested[:2, 3]) > .05 or yaw_error > .05:
-            raise ValueError('INITIAL_POSE_MUST_CONFIRM_SELECTED_3D_SEED')
-        self.seed = staged
+        delta = requested_yaw - staged_yaw
+        c, s = math.cos(delta), math.sin(delta)
+        staged_body[:3, :3] = np.array([[c, -s, 0.], [s, c, 0.], [0., 0., 1.]]) @ staged_body[:3, :3]
+        staged_body[:2, 3] = requested[:2, 3]
+        seed = inverse(self.nav_map) @ staged_body @ inverse(self.imu_base)
+        self.invalidate('WAITING_MAP_CORRECTION')
+        self.seed = validate_transform(seed)
 
     def observe_odometry(self, stamp, odom_imu, receipt=None):
         now = self.clock() if receipt is None else receipt
@@ -327,6 +330,7 @@ class OperationalLocalizer:
                 'correction_age_s': age, 'propagated_distance_m': distance,
                 'linear_speed_mps': self.speed, 'angular_speed_rps': self.yaw_rate,
                 'stopped_seconds': self.stopped_seconds(), 'metrics': self.metrics,
+                'initial_pose_receipt': self.initial_pose_receipt,
                 'weighting': 'ALL_DIRECTION_BASELINE', 'reference_full_count': self.full_count}
 
     def nav_odom(self):
@@ -353,6 +357,15 @@ def sanitize_status(value):
             if number is None and key != 'stopped_seconds':
                 continue
             if type(number) not in (int, float) or not math.isfinite(number) or number < 0:
+                return None
+        receipt = value.get('initial_pose_receipt')
+        if receipt is not None:
+            if (not isinstance(receipt, dict) or type(receipt.get('accepted')) is not bool
+                    or not isinstance(receipt.get('stamp_ns'), str)
+                    or not receipt['stamp_ns'].isdigit() or not 1 <= len(receipt['stamp_ns']) <= 20
+                    or not isinstance(receipt.get('reason'), str) or not 1 <= len(receipt['reason']) <= 120
+                    or type(receipt.get('localization_generation')) is not int
+                    or receipt['localization_generation'] < 0):
                 return None
         return json.loads(json.dumps(value, allow_nan=False))
     except (KeyError, TypeError, ValueError):

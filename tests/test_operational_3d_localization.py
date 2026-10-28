@@ -251,6 +251,26 @@ class Operational3DLocalizationTests(unittest.TestCase):
         self.assertEqual(engine.stopped_seconds(), 0.)
         self.assertIsNone(engine.seed)
 
+    def test_new_planar_click_preserves_body_height_tilt_and_calibration(self):
+        nav_map = from_translation_rpy([2., -1., .4], [.1, -.2, .3])
+        imu_base = from_translation_rpy([.3, -.15, -.2], [.02, -.04, .12])
+        staged = from_translation_rpy([.5, .2, .6], [.08, -.15, .4])
+        engine = self.make_engine(correction=staged, nav_map=nav_map, imu_base=imu_base)
+        engine.observe_odometry(self.stamp, np.eye(4), self.clock())
+        for _ in range(23): self.observe(engine, np.eye(4))
+        before = nav_map @ staged @ imu_base
+        yaw = math.atan2(before[1, 0], before[0, 0]) + .6
+        requested = from_translation_rpy([before[0, 3]+.8, before[1, 3]-.4, 0.], [0., 0., yaw])
+        immutable = copy.deepcopy(engine.bundle)
+        engine.reseed(requested)
+        after = nav_map @ engine.seed @ imu_base
+        np.testing.assert_allclose(after[:2, 3], requested[:2, 3], atol=1e-12)
+        self.assertAlmostEqual(after[2, 3], before[2, 3])
+        self.assertAlmostEqual(math.atan2(after[1, 0], after[0, 0]), yaw)
+        np.testing.assert_allclose(after[2, :3], before[2, :3], atol=1e-12)
+        self.assertEqual(engine.bundle, immutable)
+        self.assertIsNone(engine.correction, 'a click is not a successful map fit')
+
     def test_rotating_imu_lever_arm_changes_body_velocity_in_body_frame(self):
         imu_base = from_translation_rpy([.4, .1, -.2], [0, 0, .2])
         engine = self.make_engine(imu_base=imu_base)

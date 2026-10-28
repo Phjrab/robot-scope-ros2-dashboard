@@ -60,7 +60,7 @@ raw cloud와 Nav2 `/scan`은 전체 센서 경로를 유지한다.
 
 ## 최종 로봇 없는 검사
 
-- 최신 Python 전수: 3,089개 실행, 실패 0, 환경 skip 3. skip은 선택적 rosbags 1개와
+- 최신 Python 전수: 3,098개 실행, 실패 0, 환경 skip 3. skip은 선택적 rosbags 1개와
   macOS에 없는 Linux `/proc`/fd 검사 2개다. 코스 제외 관련 검사 64개와 지도 저장
   검사 56개도 통과했다.
 - JavaScript 단위: 689 PASS. 브라우저: 220 PASS. 별도 기존 미션 real-API
@@ -103,9 +103,11 @@ controller odom을 쓰는 기존 profile에서는 같은 본체 pose와 본체 �
 기존 canonical odom topic으로 발행한다. 다른 검증 profile의 controller topic은
 보존하며 실제 장비에서 그 frame/속도 계약을 확인해야 한다.
 
-초기 seed는 자동 실행하지 않는다. 기존 initialpose 경로로 선택한 본체 XY/yaw를
-확인하고, 신선한 odometry에서 2초 정지가 관측돼야 3D 정합을 시작한다. 그때도
-선택한 IMU 높이·roll/pitch와 실제 본체 lever arm은 유지한다. 지도·body 교정이
+초기 seed는 프로세스 시작만으로 자동 실행하지 않는다. 기존 initialpose 경로의
+새 본체 XY/yaw를 반영하되, 선택한 본체 높이·기울기와 map/IMU/body 교정을 보존한다.
+신선한 odometry에서 2초 정지가 관측돼야 3D 정합을 시작한다. HTTP는 ROS 발행만을
+성공으로 처리하지 않고 같은 stamp·runtime·bundle·localization generation의 실제
+적용 영수증을 확인한다. 정합 완료 전에는 목표를 허용하지 않는다. 지도·body 교정이
 없는 경우 identity를 추측하지 않고 해당 활성화만 차단한다.
 
 보정의 age/전파 거리, 수렴·겹침·geometry·전체 비가중 RMSE와 보정 jump를 검사한다.
@@ -144,3 +146,26 @@ source 변경을 다시 확인한다. 전송 전 거절과 제출 결과 불명�
 동일 경사로 기록의 baseline 비교 전에는 후방 가중치 성능 향상을 주장하지 않는다.
 
 실행 순서와 복구는 [HANDOFF.md](HANDOFF.md)를 따른다.
+
+## 초기 위치 UI 거절 및 운영자 자유공간 사본
+
+20:32의 초기 위치 HTTP 200은 실제 ROS callback의
+`RESEED_REQUIRES_OBSERVED_STOP` 거절을 전달하지 못했다. 3D seed와 새 클릭 사이의
+5cm 제한도 일반 Nav2 초기 위치 수정과 충돌했다. 후속 코드는 실제 적용 영수증과
+정지 preflight를 추가하고, 새 클릭의 평면 좌표를 보존한 3D seed로 변환한다.
+정합 잔차·jump·시각·TF authority 검사는 유지한다.
+
+사용자의 명시적 요청으로 `map_20261027_125427_operator_free_20261028` 사본을
+저장했다. ID `9a382e3eb990fb02fe1a3569`, revision
+`d5733a293effbd9567cdb9165472e15c2be8ab0adef7cf05f99ec39f19578552`.
+기존 장애물 3,625셀을 byte 단위로 보존하고 unknown 49,411셀만 free로 변경했다.
+총 free 49,925셀. 이는 **운영자 지정 통행 정책**이며 센서로 확인된 빈 공간이 아니다.
+255×210, 0.05m, origin/yaw와 PCD는 보존한다. raw scan·실시간 costmap과
+차체 여유 검사를 해제하지 않는다. 이전 trial 지도·교정 파일도 백업해 보존했다.
+
+Unitree 리모컨 시험 감시기는 실제 ly=0.159 입력을 감지했다. 감지 후 STOP 응답
+0.256초, Nav2 종료 응답 0.798초, bridge stop 요청 응답 1.368초였다. 이는 정지
+상태의 단발 시험이며 상시 기능/즉시 하드웨어 양도 보증이 아니다. 후속 START가
+HTTP 423인 이유는 남은 SOFTWARE STOP 잠금이었다. 중립 1,500개/3초 관측 후
+해제·Nav2 재시작을 확인했다. 이전 목표 주석은 사용자가 삭제해 현재 비어 있으며
+임의로 복원하지 않는다. GOAL 활성화 후 사용자가 직접 목표·이동을 확인할 예정이다.
