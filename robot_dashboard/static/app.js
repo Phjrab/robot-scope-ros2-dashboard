@@ -1,6 +1,7 @@
 import { createSavedMapScene, cloudPointCount, cloudPointSummary, sameSavedCloudRevision } from './features/maps/saved_scene.js';
 import { overviewLidarReception } from './features/sensors/lidar_reception.js';
 import { api, latestApi } from './core/api.js';
+import { createSnapshotPolling } from './core/snapshot_polling.js';
 import { $, setStatePill } from './core/dom.js';
 import { formatHz, safeNumber } from './core/format.js';
 import { captureStickyLogScroll, scheduleStickyLogScroll } from './core/log_scroll.js';
@@ -365,7 +366,7 @@ const controlUi = {
 };
 
 let latestState = null, latestStateAt = 0;
-let stateRequestGeneration = 0;
+const stateRefresh = createSnapshotPolling(refreshStateSnapshot);
 let overviewTelemetryAvailability = null;
 let latestTopics = [];
 let sourceFingerprint = '';
@@ -1060,9 +1061,7 @@ function renderOverviewUnavailable(reason, options) {
   if (clearLive && transition) resetLiveRobotSessionView(options?.observationReason || 'ROBOT_TELEMETRY_UNAVAILABLE');
 }
 
-function invalidateStateRequests() {
-  stateRequestGeneration += 1;
-}
+function invalidateStateRequests() { stateRefresh.invalidate(); }
 
 function updateHealth(health) {
   const online = Boolean(health.robot_online);
@@ -2656,11 +2655,12 @@ async function selectSource(kind, value) {
   } catch (error) { showToast(`소스 변경 실패: ${error.message}`, true); }
 }
 
-async function refreshState() {
-  const generation = ++stateRequestGeneration;
+function refreshState() { return stateRefresh.refresh(); }
+
+async function refreshStateSnapshot({ isCurrent, signal }) {
   try {
-    const state = await api('/api/v1/state');
-    if (generation !== stateRequestGeneration) return null;
+    const state = await api('/api/v1/state', { signal });
+    if (!isCurrent()) return null;
     latestState = state; latestStateAt = Date.now();
     updateOverview(state);
     if (activePage === 'cockpit') syncCockpitScene();
@@ -2668,7 +2668,7 @@ async function refreshState() {
     if (activePage === 'maps') redrawSavedMap();
     return state;
   } catch (error) {
-    if (generation !== stateRequestGeneration) return null;
+    if (!isCurrent()) return null;
     latestState = null; latestStateAt = 0;
     ui.connectionChip.className = 'connection-chip error';
     ui.connectionLabel.textContent = '에이전트 연결 끊김';

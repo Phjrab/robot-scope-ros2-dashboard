@@ -104,11 +104,44 @@ test('pointcloud HTTP fallback is single flight, bounded, and rejects responses 
   const values = []; t.subscribe('test', v => values.push(v)); t.replaceDemand(['maps']);
   const timedOut = t.poll();
   assert.equal(await t.poll(), false); assert.equal(requests, 1);
-  f.tick(1000); assert.equal(await timedOut, false);
+  f.tick(3000); assert.equal(await timedOut, false);
   assert.equal(t.diagnostics().requestInFlight, false);
   const late = t.poll(); t.replaceDemand([]); complete();
   assert.equal(await late, false); assert.deepEqual(values, []);
   assert.equal(f.timers.size, 0); t.destroy();
+});
+
+test('slow HTTP fallback survives a polling interval without changing source clocks', async () => {
+  const f = fixture(), values = []; let complete;
+  const observation = { source_stamp_ns: '456', received_monotonic_s: 20 };
+  const t = createPointcloudTransport({ ...f,
+    fetchFn: (_url, { signal }) => new Promise((resolve, reject) => {
+      complete = () => resolve({ status: 200, ok: true, arrayBuffer: async () => new Uint8Array([1]).buffer });
+      signal.addEventListener('abort', () => reject(new Error('timeout')), { once: true });
+    }), decodeFrame: () => ({ seq: 1, points: [1, 2, 3], observation }),
+  });
+  t.subscribe('test', v => values.push(v)); t.replaceDemand(['maps']);
+  const pending = t.poll(); f.tick(1400);
+  assert.equal(await t.poll(), false, 'a delayed fallback remains single flight');
+  complete(); assert.equal(await pending, true);
+  assert.deepEqual(values[0].observation, observation);
+  t.destroy();
+});
+
+test('a websocket watchdog reconnect cannot discard an independent HTTP fallback', async () => {
+  const f = fixture(), values = []; let complete;
+  const t = createPointcloudTransport({ ...f,
+    fetchFn: () => new Promise(resolve => {
+      complete = () => resolve({ status: 200, ok: true, arrayBuffer: async () => new Uint8Array([2]).buffer });
+    }), decodeFrame: b => ({ seq: new Uint8Array(b)[0], points: [1, 2, 3] }),
+  });
+  t.subscribe('test', v => values.push(v)); t.replaceDemand(['maps']);
+  f.sockets[0].onmessage({ data: new Uint8Array([1]).buffer }); f.tick(500);
+  const pending = t.poll(); f.tick(200);
+  assert.equal(f.sockets.length, 2, 'the quiet socket was replaced');
+  complete(); assert.equal(await pending, true);
+  assert.deepEqual(values.map(v => v.seq), [1, 2]);
+  t.destroy();
 });
 
 test('pointcloud ingestion continues when animation frames are suspended; late RAF does not duplicate delivery', () => {

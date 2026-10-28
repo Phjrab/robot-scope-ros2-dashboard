@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { overviewLidarReception } from '../robot_dashboard/static/features/sensors/lidar_reception.js';
+import { createSnapshotPolling } from '../robot_dashboard/static/core/snapshot_polling.js';
 import { runInNewContext } from 'node:vm';
 import { controlBridgeConnectionState, overviewUnavailableReason, renderHeaderConnections } from '../robot_dashboard/static/features/control/session_contract.js';
 
@@ -100,9 +101,11 @@ function functionSource(name) {
 }
 
 function loadFunctions(names, globals = {}) {
+  if (names.includes('refreshState')) names = [...names, 'refreshStateSnapshot'];
   const sandbox = { ...globals };
   const exports = names.map((name) => `this.${name} = ${name};`).join('\n');
   runInNewContext(`${names.map(functionSource).join('\n')}\n${exports}`, sandbox);
+  if (names.includes('refreshState')) sandbox.stateRefresh = createSnapshotPolling(sandbox.refreshStateSnapshot);
   return sandbox;
 }
 
@@ -431,14 +434,13 @@ test('lidar source identity cannot repopulate its subtitle while telemetry is un
   assert.doesNotMatch(ui.lidarSub.textContent, /XT16|\/cloud_registered/);
 });
 
-test('state polling has a generation fence and ignores an older response', async () => {
+test('state polling shares pending reads and fences responses after a target change', async () => {
   const first = deferred();
   const second = deferred();
   const requests = [first, second];
   const rendered = [];
   const ui = uiFixture();
-  const sandbox = loadFunctions(['refreshState'], {
-    stateRequestGeneration: 0,
+  const sandbox = loadFunctions(['refreshState', 'invalidateStateRequests'], {
     api() { return requests.shift().promise; },
     latestState: null,
     updateOverview(value) { rendered.push(value.id); },
@@ -452,6 +454,9 @@ test('state polling has a generation fence and ignores an older response', async
   });
 
   const older = sandbox.refreshState();
+  assert.equal(sandbox.refreshState(), older);
+  assert.equal(requests.length, 1);
+  sandbox.invalidateStateRequests();
   const newer = sandbox.refreshState();
   second.resolve({ id: 'newer' });
   await newer;
@@ -465,7 +470,6 @@ test('state request failure resets Overview and connect/disconnect invalidate ol
   const reasons = [];
   const ui = uiFixture();
   const sandbox = loadFunctions(['invalidateStateRequests', 'refreshState'], {
-    stateRequestGeneration: 4,
     api: async () => { throw new Error('offline'); },
     latestState: { id: 'cached-online', health: { agent_ready: true, robot_target_connected: true, robot_online: true } },
     updateOverview() { assert.fail('failed state request must not render cached telemetry'); },
@@ -478,7 +482,6 @@ test('state request failure resets Overview and connect/disconnect invalidate ol
     scene3d: { setStatus() {} },
   });
   sandbox.invalidateStateRequests();
-  assert.equal(sandbox.stateRequestGeneration, 5);
   await sandbox.refreshState();
   assert.equal(reasons.length, 1);
 
@@ -491,7 +494,7 @@ test('agent link loss clears stale Maps output without claiming the robot target
   const reasons = [], clears = [];
   const sandbox = loadFunctions(
     ['refreshState', 'renderOverviewUnavailable', 'resetLiveRobotSessionView'], {
-      stateRequestGeneration: 0, overviewTelemetryAvailability: true,
+      overviewTelemetryAvailability: true,
       api: async () => { throw new Error('network disconnected'); },
       latestState: { health: { robot_online: true } }, latestStateAt: 100,
       ui: uiFixture(), activePage: 'maps', cameraStatusMeta: {},

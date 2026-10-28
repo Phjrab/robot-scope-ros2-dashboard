@@ -145,8 +145,8 @@ export function createPointcloudTransport(options = {}) {
     pendingFrameTimer = setTimer?.(flush, 100) || 0;
   }
 
-  function disconnect(reason = 'pointcloud demand inactive') {
-    requestGeneration += 1;
+  function disconnect(reason = 'pointcloud demand inactive', invalidateHttp = true) {
+    if (invalidateHttp) requestGeneration += 1;
     connectionGeneration += 1;
     socketWatch?.stop(); socketWatch = null;
     frameGeneration++;
@@ -173,7 +173,7 @@ export function createPointcloudTransport(options = {}) {
     connectionCount += 1;
     const watch = createSocketWatchdog(() => {
       if (socket !== nextSocket || generation !== connectionGeneration || !wanted()) return;
-      disconnect('pointcloud receive timeout');
+      disconnect('pointcloud receive timeout', false);
       connect();
     }, { setTimeout: setTimer, clearTimeout: clearTimer });
     socketWatch = watch;
@@ -251,7 +251,9 @@ export function createPointcloudTransport(options = {}) {
     requestInFlight = true;
     const generation = requestGeneration;
     const controller = new (environment.AbortController || globalThis.AbortController)();
-    const timeout = setTimer(() => controller.abort(), 1000);
+    // Allow a congested HTTP fallback to finish across polling intervals.
+    // Source timestamps and sequence checks still determine observation validity.
+    const timeout = setTimer(() => controller.abort(), 3000);
     try {
       const cloud = await fetchLatest(controller.signal);
       if (generation !== requestGeneration || !wanted()) return false;
