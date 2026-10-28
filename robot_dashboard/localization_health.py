@@ -115,11 +115,12 @@ class OdometryRateReadinessPolicy:
         navigation_profile: str,
         *,
         legacy_min_hz: float,
+        fastlio_body: bool = False,
     ) -> "OdometryRateReadinessPolicy":
-        if navigation_profile == COMPETITION_FASTLIO_PROFILE:
+        if fastlio_body or navigation_profile == COMPETITION_FASTLIO_PROFILE:
             return cls(
                 profile=navigation_profile,
-                source="server_fixed_competition_fastlio",
+                source=("server_fixed_fastlio_body" if fastlio_body else "server_fixed_competition_fastlio"),
                 enabled=True,
                 nominal_hz=10.0,
                 ready_enter_hz=9.5,

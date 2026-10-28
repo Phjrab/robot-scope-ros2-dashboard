@@ -240,6 +240,42 @@ class TrackC2ProfileTests(unittest.TestCase):
                 navigation_profile="http-selected-topic",
             )
 
+    def test_wired_onboard_can_use_body_odom_without_switching_transport(self):
+        from robot_dashboard.navigation_runtime import load_runtime_filter_settings
+        import tempfile
+
+        gateway = NavigationRosGateway(
+            object(), node_getter=lambda: None, tick=lambda *_: None,
+            graph_getter=lambda: {}, navigation_profile="go2-onboard",
+            profile={"navigation_odometry_source": "fastlio_body"},
+        )
+        self.assertEqual(gateway._navigation_profile, "go2-onboard")
+        self.assertEqual(gateway._controller_odom_mode, "fastlio_body")
+        self.assertEqual(gateway._controller_odom_topic, FASTLIO_CONTROLLER_ODOM_TOPIC)
+        self.assertTrue(gateway._rate_policy.enabled)
+        self.assertEqual(gateway._rate_policy.nominal_hz, 10.)
+        document = yaml.safe_load((ROOT / "config/nav2_params_go2_humble.yaml").read_text())
+        generated = NavigationJobManager._patch_yaml(
+            document, SAFE_TUNED_PARAMETERS,
+            controller_odom_topic=gateway._controller_odom_topic,
+            controller_odom_mode=gateway._controller_odom_mode,
+        )
+        self.assertEqual(NavigationJobManager._extract_parameters(
+            generated, controller_odom_topic=gateway._controller_odom_topic,
+            controller_odom_mode=gateway._controller_odom_mode), SAFE_TUNED_PARAMETERS)
+        for node in ("controller_server", "bt_navigator"):
+            self.assertEqual(generated[node]["ros__parameters"]["odom_topic"], FASTLIO_CONTROLLER_ODOM_TOPIC)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "nav2_params.yaml"
+            path.write_text(yaml.safe_dump(generated))
+            settings = load_runtime_filter_settings(path)
+            self.assertEqual(settings.controller_odom_mode, "fastlio_body")
+            self.assertEqual(settings.controller_odom_topic, gateway._controller_odom_topic)
+        with self.assertRaisesRegex(ValueError, "unsupported controller odometry source"):
+            NavigationRosGateway(object(), node_getter=lambda: None,
+                tick=lambda *_: None, graph_getter=lambda: {},
+                profile={"navigation_odometry_source": "/arbitrary/topic"})
+
     def test_profile_parameter_patch_is_deterministic_and_default_unchanged(self):
         document = yaml.safe_load(
             (ROOT / "config" / "nav2_params_go2_humble.yaml").read_text()

@@ -75,6 +75,27 @@ class NavigationJobManagerTests(unittest.TestCase):
         options.update(overrides)
         return NavigationJobManager(**options)
 
+    def test_onboard_fastlio_source_preserves_existing_tuning_and_transport(self):
+        self.manager.close()
+        self.manager = self.make_manager(navigation_profile="go2-onboard",
+                                         controller_odometry_source="fastlio_body")
+        before = self.manager.parameters_snapshot()
+        state = self.manager.start(map_id=MAP_ID, map_revision=MAP_REVISION,
+                                   parameters_revision=before["revision"])
+        self.assertEqual(state["pipeline"]["state"], "running")
+        self.assertEqual(self.manager.navigation_profile, "go2-onboard")
+        self.assertEqual(self.manager.controller_odom_mode, "fastlio_body")
+        document = yaml.safe_load((self.manager._job_dir / "nav2_params.yaml").read_text())
+        self.assertEqual(document["controller_server"]["ros__parameters"]["odom_topic"],
+                         "/robot_scope/nav/controller_odom_fastlio")
+        self.assertEqual(self.manager.parameters_snapshot()["values"], before["values"])
+        self.manager.stop()
+        self.manager.close()
+        # Switching back must retain user tuning saved under either source.
+        self.manager = self.make_manager(navigation_profile="go2-onboard")
+        self.assertEqual(self.manager.parameters_snapshot()["values"], before["values"])
+        self.assertIsNone(self.manager._parameter_error)
+
     @staticmethod
     def snapshot_map(map_id, revision, destination):
         yaml_path = destination / "map.yaml"

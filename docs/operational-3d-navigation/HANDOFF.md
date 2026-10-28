@@ -86,3 +86,17 @@ geometry·body sectors·pitch·연산시간을 남긴다. 필요하면 같은 �
 최종 현장 기록에는 코드/배포 SHA·PID/cwd, 선택 지도 묶음, 실제 위치 source와
 TF/odom consumer, 실제 PCD 저장, goal/stop/dwell/OPERATOR_TEST/departure,
 경사로 baseline·복구 결과를 각각 기록한다. 현재 값은 NOT_RUN/BLOCKED다.
+
+## 유선 Jetson의 본체 odometry 연결
+
+실제 장비는 `go2-onboard` + `enP8p1s0`이며 wireless launcher의 `eno1` 설정을
+적용하지 않는다. 서버가 읽는 robot profile의 `navigation_odometry_source`를
+`fastlio_body`로 선택하면 mapping transport/profile은 그대로 유지하고 기존
+sidecar가 발행하는 `/robot_scope/nav/controller_odom_fastlio`를 controller,
+BT navigator 및 설정된 smoother에 고정한다. 이 설정은 HTTP 튜닝 필드가 아니다.
+3D bundle 사용 시 TF와 이 odometry가 같은 `T_odom_imu × T_imu_base`, 원본 stamp,
+연속 본체 pose로부터 계산한 body-frame 속도를 사용한다. 기존 RPP/RotationShim,
+속도와 goal/STOP 경로는 유지한다. 10Hz LIO의 기존 9.5/9.0Hz readiness dwell도
+동일하게 재사용한다. 설정을 생략하면 기존 profile 기본값을 사용하며, 소스 전환
+전후에 저장된 튜닝값을 보존한다. 원래 vendor odom 연결로 완전히 복구하려면
+idle에서 해당 profile 필드를 제거하고 기존 서비스 재시작 절차를 사용한다.

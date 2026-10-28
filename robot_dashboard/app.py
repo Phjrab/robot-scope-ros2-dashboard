@@ -1123,7 +1123,6 @@ async def navigation_clear_costmaps(
     except ControlError as exc:
         raise navigation_agent_error(exc) from exc
 
-
 @app.get("/api/v1/mapping/control")
 async def mapping_control(since_log_seq: int = 0) -> Dict[str, Any]:
     return await asyncio.to_thread(
@@ -1529,6 +1528,7 @@ def main() -> None:
         runtime_dir=Path(args.navigation_runtime_dir),
         map_snapshotter=catalog.snapshot_navigation_map,
         navigation_profile=args.mapping_profile,
+        controller_odometry_source=RUNTIME.agent.profile.get("navigation_odometry_source", "profile_default"),
     )
     RUNTIME.navigation = NavigationCoordinator(
         RUNTIME.agent, navigation_manager, RUNTIME.mapping, catalog,

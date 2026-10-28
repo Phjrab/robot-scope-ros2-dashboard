@@ -64,6 +64,7 @@ NAVIGATION_CONTROLLER_ODOM_TOPICS = MappingProxyType(
     {
         "strict_onboard": NAVIGATION_CONTROLLER_ODOM_TOPIC,
         "competition_fastlio": NAVIGATION_FASTLIO_CONTROLLER_ODOM_TOPIC,
+        "fastlio_body": NAVIGATION_FASTLIO_CONTROLLER_ODOM_TOPIC,
     }
 )
 NAVIGATION_ACTION = "/navigate_to_pose"
@@ -186,10 +187,16 @@ class NavigationRosGateway:
             self._controller_odom_mode = "strict_onboard"
         else:
             raise ValueError("unsupported navigation profile")
+        source = self._profile.get("navigation_odometry_source", "profile_default")
+        if source == "fastlio_body":
+            self._controller_odom_mode = "fastlio_body"
+        elif source != "profile_default":
+            raise ValueError("unsupported controller odometry source")
         self._navigation_profile = navigation_profile or "go2-xt16-wired"
         self._rate_policy = OdometryRateReadinessPolicy.for_navigation_profile(
             self._navigation_profile,
             legacy_min_hz=self._health_thresholds.odometry_min_hz,
+            fastlio_body=self._controller_odom_mode == "fastlio_body",
         )
         self._readiness_session_generation = 0
         self._health_stabilizer = LocalizationReadinessStabilizer(self._rate_policy)
@@ -1121,7 +1128,7 @@ class NavigationRosGateway:
                     )
                     if parent != "camera_init" or child != "body":
                         raise ValueError("unexpected FAST-LIO odometry frames")
-                elif self._controller_odom_mode == "competition_fastlio":
+                elif self._controller_odom_mode in {"competition_fastlio", "fastlio_body"}:
                     parent = str(getattr(message.header, "frame_id", "")).lstrip(
                         "/"
                     )
@@ -1191,7 +1198,7 @@ class NavigationRosGateway:
 
         if topic == NAVIGATION_FAST_LIO_ODOM_TOPIC or (
             topic == self._controller_odom_topic
-            and self._controller_odom_mode == "competition_fastlio"
+            and self._controller_odom_mode in {"competition_fastlio", "fastlio_body"}
         ):
             node = self._node_getter()
             if node is None:
@@ -1314,7 +1321,7 @@ class NavigationRosGateway:
             if payload.get("odometry_topic") != "/Odometry":
                 raise ValueError("health odometry topic is invalid")
             controller_state: Dict[str, Any] = {}
-            if self._controller_odom_mode == "competition_fastlio":
+            if self._controller_odom_mode in {"competition_fastlio", "fastlio_body"}:
                 if payload.get("controller_odometry_topic") != self._controller_odom_topic:
                     raise ValueError("health controller odometry topic is invalid")
                 if payload.get("controller_odometry_mode") != self._controller_odom_mode:
@@ -3500,7 +3507,7 @@ class NavigationRosGateway:
                     "topic": self._controller_odom_topic,
                     "state": (
                         runtime_health.get("controller_odometry")
-                        if self._controller_odom_mode == "competition_fastlio"
+                        if self._controller_odom_mode in {"competition_fastlio", "fastlio_body"}
                         else {
                             "ready": controller_odom_ready,
                             "state": "ready" if controller_odom_ready else "blocked",

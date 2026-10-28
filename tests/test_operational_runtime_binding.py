@@ -218,12 +218,12 @@ class OperationalRuntimeBindingTests(unittest.TestCase):
         self.assertIsNone(self.engine.seed)
         self.assertEqual(self.engine.reason, 'REGISTERED_SOURCE_CHANGED')
 
-    def test_existing_competition_odom_consumer_receives_same_body_pose_and_body_velocity(self):
+    def test_wired_body_odom_consumer_receives_same_body_pose_and_body_velocity(self):
         bundle_path = self.params.parent / 'operational-3d.json'
         bundle = json.loads(bundle_path.read_text())
         bundle['calibration']['T_imu_base'] = from_translation_rpy([.3, .1, -.2], [0, 0, .2]).tolist()
         bundle_path.write_text(json.dumps(bundle))
-        options = obj(**{**vars(self.node._options), 'controller_odom_mode': 'competition_fastlio',
+        options = obj(**{**vars(self.node._options), 'controller_odom_mode': 'fastlio_body',
                          'controller_odom_topic': runtime.FASTLIO_CONTROLLER_ODOM_TOPIC})
         self.node = runtime._build_ros_runtime_node_class()(options)
         self.engine = self.node._operational

@@ -306,6 +306,7 @@ class NavigationJobManager:
         max_parameter_bytes: int = 1024 * 1024,
         log_capacity: int = 300,
         navigation_profile: str = "",
+        controller_odometry_source: str = "profile_default",
     ) -> None:
         self.project_dir = project_dir.expanduser().resolve(strict=True)
         if not self.project_dir.is_dir():
@@ -333,6 +334,12 @@ class NavigationJobManager:
             self.controller_odom_topic = STRICT_CONTROLLER_ODOM_TOPIC
         else:
             raise ValueError("unsupported navigation profile")
+        # Trusted startup configuration is independent of wired/wireless transport.
+        if controller_odometry_source == "fastlio_body":
+            self.controller_odom_mode = "fastlio_body"
+            self.controller_odom_topic = FASTLIO_CONTROLLER_ODOM_TOPIC
+        elif controller_odometry_source != "profile_default":
+            raise ValueError("unsupported controller odometry source")
         self.start_command = self._prepare_command(start_command)
         self.map_snapshotter = map_snapshotter
         if not callable(map_snapshotter):
@@ -842,10 +849,16 @@ class NavigationJobManager:
                 if "controller_odom_topic" not in runtime and "controller_odom_mode" not in runtime:
                     runtime["controller_odom_topic"] = STRICT_CONTROLLER_ODOM_TOPIC
                     runtime["controller_odom_mode"] = "strict_onboard"
+                prior_mode = runtime.get("controller_odom_mode")
+                prior_topic = {
+                    "strict_onboard": STRICT_CONTROLLER_ODOM_TOPIC,
+                    "competition_fastlio": FASTLIO_CONTROLLER_ODOM_TOPIC,
+                    "fastlio_body": FASTLIO_CONTROLLER_ODOM_TOPIC,
+                }.get(prior_mode)
+                if prior_topic is None:
+                    raise NavigationParameterError("invalid prior controller odometry binding")
                 self._parameters = self._extract_parameters(
-                    legacy,
-                    controller_odom_topic=STRICT_CONTROLLER_ODOM_TOPIC,
-                    controller_odom_mode="strict_onboard",
+                    legacy, controller_odom_topic=prior_topic, controller_odom_mode=prior_mode,
                 )
         except Exception:
             self._parameter_error = "generated navigation parameters are invalid"
@@ -985,6 +998,7 @@ class NavigationJobManager:
         expected_topic = {
             "strict_onboard": STRICT_CONTROLLER_ODOM_TOPIC,
             "competition_fastlio": FASTLIO_CONTROLLER_ODOM_TOPIC,
+            "fastlio_body": FASTLIO_CONTROLLER_ODOM_TOPIC,
         }.get(controller_odom_mode)
         if expected_topic != controller_odom_topic:
             raise NavigationParameterError("controller odometry profile is invalid")
@@ -1168,6 +1182,7 @@ class NavigationJobManager:
         expected_topic = {
             "strict_onboard": STRICT_CONTROLLER_ODOM_TOPIC,
             "competition_fastlio": FASTLIO_CONTROLLER_ODOM_TOPIC,
+            "fastlio_body": FASTLIO_CONTROLLER_ODOM_TOPIC,
         }.get(controller_odom_mode)
         if expected_topic != controller_odom_topic:
             raise NavigationParameterError("controller odometry profile is invalid")

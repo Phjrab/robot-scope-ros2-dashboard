@@ -680,6 +680,7 @@ def load_runtime_filter_settings(path: str | Path) -> RuntimeFilterSettings:
     expected_controller_topic = {
         "strict_onboard": STRICT_CONTROLLER_ODOM_TOPIC,
         "competition_fastlio": FASTLIO_CONTROLLER_ODOM_TOPIC,
+        "fastlio_body": FASTLIO_CONTROLLER_ODOM_TOPIC,
     }.get(controller_mode)
     if expected_controller_topic != controller_topic:
         raise NavigationRuntimeError("controller odometry profile is invalid")
@@ -1020,7 +1021,7 @@ def _build_ros_runtime_node_class() -> type[Any]:
             self._health_publisher = self.create_publisher(
                 String, "/robot_scope/nav/runtime_health", health_qos
             )
-            if options.controller_odom_mode == "competition_fastlio":
+            if options.controller_odom_mode in {"competition_fastlio", "fastlio_body"}:
                 controller_qos = QoSProfile(
                     history=HistoryPolicy.KEEP_LAST,
                     depth=5,
