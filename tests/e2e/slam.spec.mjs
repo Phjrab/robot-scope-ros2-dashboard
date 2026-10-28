@@ -195,6 +195,11 @@ test('SLAM unavailable camera reason stays visible and loading never starts an e
 
 test('SLAM real action path renders bounded observation/global stream and requires explicit stop choice', async ({ page }) => {
   const fixture = await install(page);
+  // This success path needs a live fixture stream throughout the UI actions.
+  // One frame expires after 1.5 s on slower runners; stale-source tests below
+  // deliberately omit this heartbeat and retain the real freshness gate.
+  const heartbeat = setInterval(fixture.send, 100);
+  page.once('close', () => clearInterval(heartbeat));
   await open(page);
   await startStereo(page);
   fixture.send();

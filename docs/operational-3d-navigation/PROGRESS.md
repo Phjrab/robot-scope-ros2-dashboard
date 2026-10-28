@@ -30,6 +30,16 @@
 - production gateway의 final guard는 거절 전송 0회, 정상 허가 전송 1회를
   검사했다. 실제 DDS·Nav2 action server·bridge ACK·본체 이동은 검사하지 못했다.
 
+첫 구현 commit `f5cff3f15a90`의 [원격 CI](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40653640990)는
+Ubuntu 24.04/Python 3.12 전체와 별도 offline integration이 PASS였다. Ubuntu
+22.04/Python 3.10은 Python·정적 검사 PASS, 브라우저 219 PASS/1 FAIL이었다.
+실패 screenshot은 기존 SLAM 정상 조작 fixture가 프레임을 한 번 보낸 뒤 1.5초
+freshness 한도를 넘어 따라가기 checkbox가 비활성화된 것을 보여준다. 정확한 게시
+소스에서 같은 항목 5회 반복은 PASS였다. 정상 조작 fixture에만 100ms heartbeat를
+추가했으며 실제 SLAM 기능·freshness 기준·stale-source 회귀 검사는 유지했다.
+보완 후 SLAM·운영 3D 브라우저 33개와 JavaScript 689개 재검사는 PASS였다.
+이 후속 변경의 최종 SHA/CI는 최종 인계 응답과 private source-candidate 기록을 따른다.
+
 ## 운영 연결
 
 `NavigationJobManager`가 기존 2D map snapshot과 함께 선택한 전체 PCD와
