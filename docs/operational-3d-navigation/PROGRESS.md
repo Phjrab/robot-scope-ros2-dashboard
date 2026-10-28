@@ -1,8 +1,9 @@
 # 3D reference → 운영 Nav2 진행 기록
 
-2026-10-28 KST. Jetson에 `3fc6fb582b3b`를 배포하고 실제 정지 상태의 운영
-source/consumer 연결을 확인했다. 이후 사용자 코스 제외 편집을 반영하는 후속
-변경의 전수 검사를 마쳤다. 최종 source/배포 SHA/CI는 최종 인계 응답을 따른다.
+2026-10-28 KST. Jetson `3dd8e8119028`에서 사용자 코스 제외 PCD 13,546점으로
+실제 정지 상태의 운영 source/consumer 연결을 확인했다. 원격 CI도 PASS다.
+첫 미션의 사전 공간 검사 거절과 STOP 정리 오류를 수정하고 회귀 검사를 통과했다.
+최종 source/배포 SHA/CI는 최종 인계 응답을 따른다.
 
 사용자가 직접 검증한 기존 2D Nav2 주행과 계단·경사로 보행은 USER_VERIFIED로
 인수했다. 검증 controller, 속도, Nav2 command topic과 signed bridge 경로를
@@ -15,12 +16,25 @@ source/consumer 연결을 확인했다. 이후 사용자 코스 제외 편집을
 | 3D/2D 지도 묶음 | FIELD_PASS (제한 시험) | 회전하지 않은 원본 2D와 동일 좌표. 실제 관측으로 확인한 514개 셀만 새 시험 사본에서 free로 변경. 기존 occupied 3,625셀 보존 |
 | 지속 정합 → TF → Nav2 | FIELD_PASS (정지) | 실제 사본 기준 보정 500회 이상, 같은 stamp의 map→odom→base_link, controller/BT의 canonical body odom 구독, Nav2 READY 확인 |
 | 시험용 녹색 stop/go | SOFTWARE_PASS | 실제 MissionCoordinator의 도착·대기·다음 goal 경로. OPERATOR_TEST와 NAV_STOP_POINT_TEST로 기록 |
-| 현장 목표 도달·실제 정지·재출발 | NOT_RUN | 브리지·기존 Nav2 기동/정지는 확인. 이동 goal은 아직 발행하지 않았으며 사용자의 경로 지정 대기 |
+| 현장 목표 도달·실제 정지·재출발 | PRE_DISPATCH_REJECTED | 첫 고고씽1이 차체 반경 검사에서 거절됨. Nav2 goal ID 없음, 브리지 이동 0회. 사용자가 수정한 두 점은 같은 검사 통과 |
 | 경사로 전체 방향 baseline | NOT_RUN | 단계별 pitch/섹터/정합 지표 준비. 현재 경사로 기록 없음 |
 | 후방·측면 가중치 채택 | NOT_RUN | 전체 방향 baseline 유지. 센서 X를 로봇 뒤로 해석하지 않음 |
 | Jetson 배포·정지 검증 | FIELD_PASS | 별도 release 2,156파일 hash 검증. 사용자 checkout·CSS·기존 지도 81파일·튜닝 보존 |
 
 ## 사용자 코스 제외와 좌표 문제
+
+코스 제외 사본의 실제 운영 잔차는 약 0.033~0.037m, overlap 1.0이다.
+80개 exact-stamp pair와 161개 지도 pose를 관측한 8초 동안 XYZ 범위는
+약 5.5/9.7/10.0mm였다. `/scan`은 양쪽 costmap이 소비하고 전방 최근접
+반환은 본체 축 기준 약 1.37m였다. 이는 정지 관측이며 주행 정확도 증명이 아니다.
+
+첫 미션은 ROS action 호출 전 `known_free`의 robot-radius 0.22m 검사에서
+거절됐지만 일반 예외로 취급돼 미션이 uncertain에 남았다. 기존 SOFTWARE STOP,
+lease 해제와 nonzero Move 0회를 확인하고 미션 기록을 백업했다. 고정 Dashboard
+서비스의 정상 종료로 Nav2와 소유 FAST-LIO를 정리한 뒤 idle로 복구했다.
+후속 코드는 guarded mission의 사전 NavigationJobError를 명시적 미전송 영수증으로
+전달한다. 제출 이후 예외는 계속 uncertain이다. 전역 STOP은 미션 정리가 실패해도
+기존 Nav2 정리를 실행하고, 미션 fence를 임의로 해제하지 않은 채 오류를 보고한다.
 
 사용자가 원본 PCD 위에 8각형 외부, Z -1…3m를 localization 제외로 지정했다.
 새 사본은 `e1dd40cc6911404dbdfc073b`, revision
@@ -46,7 +60,7 @@ raw cloud와 Nav2 `/scan`은 전체 센서 경로를 유지한다.
 
 ## 최종 로봇 없는 검사
 
-- 최신 Python 전수: 3,087개 실행, 실패 0, 환경 skip 3. skip은 선택적 rosbags 1개와
+- 최신 Python 전수: 3,089개 실행, 실패 0, 환경 skip 3. skip은 선택적 rosbags 1개와
   macOS에 없는 Linux `/proc`/fd 검사 2개다. 코스 제외 관련 검사 64개와 지도 저장
   검사 56개도 통과했다.
 - JavaScript 단위: 689 PASS. 브라우저: 220 PASS. 별도 기존 미션 real-API

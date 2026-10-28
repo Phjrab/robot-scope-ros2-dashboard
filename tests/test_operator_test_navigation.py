@@ -10,9 +10,12 @@ import copy
 from pathlib import Path
 import tempfile
 import unittest
+from types import SimpleNamespace
 
 from robot_dashboard.application.mission_coordinator import MissionConflict, MissionCoordinator
 from robot_dashboard.application.operator_test import OperatorTestGate
+from robot_dashboard.application.navigation_coordinator import NavigationCoordinator
+from robot_dashboard.navigation_jobs import NavigationPoseError
 
 
 MAP_ID = 'a' * 24
@@ -195,6 +198,35 @@ class OperatorTestMissionTests(unittest.IsolatedAsyncioTestCase):
 
     def mission(self):
         return self.owner.snapshot(self.id)['mission']
+
+    async def test_real_navigation_clearance_rejection_is_abortable_without_action_submission(self):
+        calls = []
+
+        def reject_pose(**kwargs):
+            raise NavigationPoseError('pose must be inside known-free map space with robot-radius clearance')
+
+        def action(**kwargs):
+            calls.append(kwargs)
+            raise AssertionError('unsafe pose reached the ROS action consumer')
+
+        coordinator = NavigationCoordinator(
+            SimpleNamespace(navigation_runtime_snapshot=lambda: {'safety': {'can_send_goal': True}},
+                navigation_send_guarded_goal=action),
+            SimpleNamespace(validate_active_pose=reject_pose),
+            SimpleNamespace(activity=lambda: (False, []), pipeline_state=lambda: 'running'),
+            SimpleNamespace(resolve_annotation_goal=lambda *args: SimpleNamespace(x=-.5, y=.29, yaw=0.)),
+            coordination_lock=asyncio.Lock(), require_lifecycle_idle=lambda: None)
+        self.navigation.send_annotation_goal = coordinator.send_annotation_goal
+        await self.owner.enable_operator_test(self.id)
+        with self.assertRaisesRegex(MissionConflict, 'robot-radius clearance'):
+            await self.owner.start(self.id)
+        self.assertEqual(self.mission()['phase'], 'dispatch_rejected')
+        self.assertIsNone(self.mission()['current_waypoint']['goal_id'])
+        self.assertEqual(calls, [])
+        await self.owner.abort(self.id)
+        self.assertEqual(self.mission()['outcome'], 'aborted')
+        self.assertFalse(self.mission()['ownership_active'])
+        self.assertEqual(self.navigation.canceled, [])
 
     async def enabled_start(self):
         await self.owner.enable_operator_test(self.id)

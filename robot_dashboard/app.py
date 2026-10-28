@@ -27,6 +27,7 @@ from .application.mapping_coordinator import (
 from .application.mission_coordinator import MissionCoordinator, MissionError
 from .api.routers.operational_navigation import router as operational_navigation_router
 from .application.navigation_coordinator import NavigationCoordinator
+from .application.navigation_stop import stop_navigation_with_mission
 from .application.route_planner_coordinator import RoutePlannerCoordinator
 from .application.runtime import ApplicationRuntime, close_observation_resources, close_relocalization, configure_competition, configure_realsense_profile, configure_stationary_relocalization
 from .application.observation_runtime import close_observations, configure_observations, start_observations
@@ -1022,9 +1023,7 @@ async def navigation_stop(
     del body
     require_same_origin(request)
     try:
-        if RUNTIME.mission is not None and RUNTIME.mission.blocks_navigation_goal():
-            await RUNTIME.mission.abort_active(reason="navigation_stop")
-        return await navigation_coordinator().stop()
+        return await stop_navigation_with_mission(RUNTIME.mission, navigation_coordinator())
     except MissionError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except NavigationJobError as exc:

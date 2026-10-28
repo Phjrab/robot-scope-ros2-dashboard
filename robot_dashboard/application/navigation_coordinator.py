@@ -19,6 +19,7 @@ from collections.abc import Callable, Mapping
 from typing import Any, Protocol
 
 from ..mapping_jobs import MappingJobError
+from ..navigation_dispatch import OperatorDispatchRejected
 from ..navigation_jobs import (
     NavigationBusy,
     NavigationConflict,
@@ -1230,26 +1231,34 @@ class NavigationCoordinator:
         yaw: object,
         dispatch_guard: Any = None,
     ) -> None:
-        self._require_lifecycle_idle()
-        mapping_busy, _ = self._mapping.activity()
-        if mapping_busy:
-            raise NavigationBusy("mapping is active")
-        if self._mapping.pipeline_state() != "running":
-            raise NavigationBusy(
-                "shared Hesai + FAST-LIO localization pipeline is not running"
+        try:
+            self._require_lifecycle_idle()
+            mapping_busy, _ = self._mapping.activity()
+            if mapping_busy:
+                raise NavigationBusy("mapping is active")
+            if self._mapping.pipeline_state() != "running":
+                raise NavigationBusy(
+                    "shared Hesai + FAST-LIO localization pipeline is not running"
+                )
+            await asyncio.to_thread(
+                self.require_runtime_capability,
+                "can_send_goal",
             )
-        await asyncio.to_thread(
-            self.require_runtime_capability,
-            "can_send_goal",
-        )
-        pose = await asyncio.to_thread(
-            self._jobs.validate_active_pose,
-            map_id=map_id,
-            map_revision=map_revision,
-            x=x,
-            y=y,
-            yaw=yaw,
-        )
+            pose = await asyncio.to_thread(
+                self._jobs.validate_active_pose,
+                map_id=map_id,
+                map_revision=map_revision,
+                x=x,
+                y=y,
+                yaw=yaw,
+            )
+        except NavigationJobError as exc:
+            # These checks precede the agent/action call. A guarded mission
+            # can safely abort this proven non-submission without inventing
+            # an unknown goal owner. Errors after the call remain uncertain.
+            if dispatch_guard is not None:
+                raise OperatorDispatchRejected(str(exc)) from exc
+            raise
         await asyncio.to_thread(
             self._agent.navigation_send_guarded_goal if dispatch_guard is not None else self._agent.navigation_send_goal,
             map_id=map_id,

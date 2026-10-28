@@ -1,6 +1,13 @@
 import ast
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
+
+from fastapi import HTTPException
+from robot_dashboard.application.mission_coordinator import MissionConflict, MissionError
+from robot_dashboard.application.navigation_stop import stop_navigation_with_mission
+from robot_dashboard.navigation_jobs import NavigationJobError
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -56,8 +63,33 @@ class MissionRouterContractTests(unittest.TestCase):
         stop = source.index("async def navigation_stop")
         stop_end = source.index("async def navigation_initial_pose")
         stop_source = source[stop:stop_end]
-        self.assertLess(stop_source.index("abort_active"), stop_source.index("navigation_coordinator().stop"))
+        self.assertIn("stop_navigation_with_mission(RUNTIME.mission, navigation_coordinator())", stop_source)
         self.assertIn("await runtime.mission.close()", source)
+
+
+class MissionGlobalStopTests(unittest.IsolatedAsyncioTestCase):
+    async def test_uncertain_mission_cannot_prevent_global_navigation_stop(self):
+        # Execute the production endpoint without importing ROS/application boot.
+        function = next(node for node in ast.parse(APP.read_text()).body
+                        if isinstance(node, ast.AsyncFunctionDef) and node.name == 'navigation_stop')
+        function.decorator_list = []
+        function.returns = None
+        for argument in function.args.args:
+            argument.annotation = None
+        module = ast.fix_missing_locations(ast.Module(body=[function], type_ignores=[]))
+        mission = SimpleNamespace(blocks_navigation_goal=lambda: True,
+            abort_active=AsyncMock(side_effect=MissionConflict('mission goal ownership is uncertain')))
+        navigation = SimpleNamespace(stop=AsyncMock(return_value={'navigation': {'pipeline': {'state': 'idle'}}}))
+        scope = {'RUNTIME': SimpleNamespace(mission=mission), 'require_same_origin': lambda request: None,
+                 'navigation_coordinator': lambda: navigation, 'MissionError': MissionError,
+                 'NavigationJobError': NavigationJobError, 'HTTPException': HTTPException,
+                 'stop_navigation_with_mission': stop_navigation_with_mission}
+        exec(compile(module, str(APP), 'exec'), scope)
+        with self.assertRaises(HTTPException) as raised:
+            await scope['navigation_stop'](object(), object())
+        navigation.stop.assert_awaited_once()
+        self.assertEqual(raised.exception.status_code, 409)
+        self.assertIn('Nav2 stop requested; mission cleanup unresolved', raised.exception.detail)
 
 
 if __name__ == "__main__":

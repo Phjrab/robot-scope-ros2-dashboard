@@ -274,7 +274,7 @@ class NavigationAppContractTests(unittest.TestCase):
 
     def test_stop_cancels_background_start_outside_the_coordination_lock(self):
         route = ast.unparse(self.app_functions["navigation_stop"])
-        self.assertIn("navigation_coordinator().stop", route)
+        self.assertIn("stop_navigation_with_mission(RUNTIME.mission, navigation_coordinator())", route)
         source = ast.unparse(self.navigation_methods["stop"])
         self.assertIn("self.request_start_cancel", source)
         self.assertIn("task.cancel()", source)

@@ -2,4 +2,4 @@
 
 
 class OperatorDispatchRejected(ValueError):
-    """The final consumer rejected a permission before action submission."""
+    """A guarded goal was proven rejected before action submission."""
