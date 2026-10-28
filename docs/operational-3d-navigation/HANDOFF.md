@@ -1,21 +1,34 @@
 # 운영 3D 위치추정 현장 인계
 
-2026-10-28 KST. 실제 정지 3D 정합·TF·body odom·Nav2 연결은 확인됐다.
-미션 사전 거절/STOP 수정은 d1b3dd332a14로 배포했다. 후속 초기 위치 수정은
-ROS 발행만으로 성공을 반환하던 문제와 새 평면 seed의 5cm 제한을 해결한다.
-Python 3,098개/JavaScript 689개 PASS. 최종 배포 SHA는 릴리스 receipt를 따른다.
+2026-10-28 KST. 실제 3D 정합·TF·body odom·Nav2 연결을 통한 단일 목표 이동과
+도착 후 정지를 확인했다. 사용자가 실제 이동과 지도 표시 위치 일치를 확인했다.
+코드/배포 SHA는 `e680aa34bbaccff22d4206e391fdb9e879f6d048`, release는
+`/home/unitree/robot-scope-releases/robot-scope-e680aa34bbac`다.
+Python 3,098개/JavaScript 689개와 해당 배포 SHA 원격 CI PASS.
+초기 위치 HTTP는 실제 runtime 적용 영수증을 확인하며 새 평면 seed를 지원한다.
+
+**정밀 Goal Pose 일치는 미해결**이다. 도착 후 약 31cm/27도 차이를 별도
+[GOAL_FINAL_POSE_MISMATCH_20261028.md](GOAL_FINAL_POSE_MISMATCH_20261028.md)에
+goal ID·실측 source pose·지도 pin·복구 절차와 함께 기록했다. 사용자가 기록 후
+작업 종료를 요청했으므로 추가 주행·튜닝은 진행하지 않았다.
 
 사용자는 장애물 외 전 영역을 이동 가능으로 만들고 현재 이동한 위치에서 자동
 정합할 것을 요청했다. 새 운영자 자유공간 지도는 9a382e3eb990fb02fe1a3569이며
 자세한 pin·셀 보존 결과는 PROGRESS.md에 있다. raw scan·반경 검사는 유지한다.
-사용자가 이전 고고씽 목표 주석을 삭제했으므로 복원하지 않는다. GOAL POSE가
-활성화되면 사용자에게 알리고, 직접 입력한 목표의 실제 이동 확인을 받은 뒤
-현장 결과를 기록한다. Nav2 이동/stop-go/경사로는 아직 완료로 기록하지 않는다.
+사용자가 이전 고고씽 목표 주석을 삭제했으므로 복원하지 않는다. GOAL POSE 활성화
+후 사용자가 직접 입력한 단일 목표의 실제 이동은 확인했다. 현장 녹색 버튼
+stop-and-go와 경사로 위치추정은 NOT_RUN이며 전체 완료로 기록하지 않는다.
 
 Unitree LowState의 실제 스틱 입력으로 단발 감시기의 STOP·Nav2 종료·bridge 종료를
 확인했다. 감시기는 양도 후 종료되며 상시 기능이나 즉시 하드웨어 양도 보장이 아니다.
 그 STOP 잠금으로 생긴 HTTP 423은 중립 3초 확인 뒤 정상 해제했다. 실제 주행 전
 현재 감독·정지 수단을 유지하고 감시기를 명시적으로 다시 시작한다.
+
+종료 시 Nav2 idle, lease/active mission/motion 없음, command zero를 확인했다.
+두 번째 10분 시험 guard는 TRIAL_DEADLINE으로 STOP·Nav2/bridge 종료를 요청하고
+종료했으며 recorder도 종료됐다. SOFTWARE STOP은 잠긴 채 유지한다. 다음 시작은
+현재 현장·중립 확인 후 기존 잠금 해제와 bridge 시작을 거쳐 새 위치 정합을 한다.
+Dashboard 서비스는 실행 중이다. `final-session-closeout.json`에 readback을 보존했다.
 
 ## 장비 연결 후
 
@@ -102,7 +115,8 @@ geometry·body sectors·pitch·연산시간을 남긴다. 필요하면 같은 �
 
 최종 현장 기록에는 코드/배포 SHA·PID/cwd, 선택 지도 묶음, 실제 위치 source와
 TF/odom consumer, 실제 PCD 저장, goal/stop/dwell/OPERATOR_TEST/departure,
-경사로 baseline·복구 결과를 각각 기록한다. 현재 실제 이동·재출발·경사로는 NOT_RUN이다.
+경사로 baseline·복구 결과를 각각 기록한다. 현재 단일 목표 실제 이동은 확인됐고,
+정밀 도착은 OPEN, 현장 녹색 버튼 재출발·경사로는 NOT_RUN이다.
 
 ## 유선 Jetson의 본체 odometry 연결
 

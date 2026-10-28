@@ -1,9 +1,12 @@
 # 3D reference → 운영 Nav2 진행 기록
 
-2026-10-28 KST. Jetson `3dd8e8119028`에서 사용자 코스 제외 PCD 13,546점으로
-실제 정지 상태의 운영 source/consumer 연결을 확인했다. 원격 CI도 PASS다.
-첫 미션의 사전 공간 검사 거절과 STOP 정리 오류를 수정하고 회귀 검사를 통과했다.
-최종 source/배포 SHA/CI는 최종 인계 응답을 따른다.
+2026-10-28 KST. Jetson `e680aa34bbaccff22d4206e391fdb9e879f6d048`에서
+사용자 코스 제외 PCD 13,546점으로 실제 Nav2 이동을 확인했다. 사용자가 실제
+이동과 지도 표시 위치 일치를 확인했다. 정밀 Goal Pose 일치는 별도 미해결이다.
+도착 후 평면 약 31cm/방향 약 27도 차이를
+[후속 해결 기록](GOAL_FINAL_POSE_MISMATCH_20261028.md)에 남겼다.
+배포 SHA의 [원격 CI](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40682657164)는 PASS다.
+사용자의 기록 후 종료 요청으로 추가 주행 없이 이번 작업을 마무리했다.
 
 사용자가 직접 검증한 기존 2D Nav2 주행과 계단·경사로 보행은 USER_VERIFIED로
 인수했다. 검증 controller, 속도, Nav2 command topic과 signed bridge 경로를
@@ -13,13 +16,15 @@
 | 구간 | 현재 결과 | 증거/제약 |
 | --- | --- | --- |
 | 전체 PCD 편집·저장 | FIELD_PASS | 전체 원본 22,529점 보존. 첫 사본 22,517점, 사용자 코스 외부 제외 사본 13,546점 저장·재조회 |
-| 3D/2D 지도 묶음 | FIELD_PASS (제한 시험) | 회전하지 않은 원본 2D와 동일 좌표. 실제 관측으로 확인한 514개 셀만 새 시험 사본에서 free로 변경. 기존 occupied 3,625셀 보존 |
-| 지속 정합 → TF → Nav2 | FIELD_PASS (정지) | 실제 사본 기준 보정 500회 이상, 같은 stamp의 map→odom→base_link, controller/BT의 canonical body odom 구독, Nav2 READY 확인 |
+| 3D/2D 지도 묶음 | FIELD_PASS (운영자 지정 공간) | 현재 operator_free 사본. 동일 좌표·장애물 3,625셀 보존, unknown 49,411셀을 사용자 요청으로 free 지정. 센서 관측 공간과 구분 |
+| 지속 정합 → TF → Nav2 | FIELD_PASS (실제 이동) | 실제 PCD 보정·운영 TF·canonical body odom을 사용해 사용자 목표로 이동. 사용자 현장 확인 |
 | 시험용 녹색 stop/go | SOFTWARE_PASS | 실제 MissionCoordinator의 도착·대기·다음 goal 경로. OPERATOR_TEST와 NAV_STOP_POINT_TEST로 기록 |
-| 현장 목표 도달·실제 정지·재출발 | PRE_DISPATCH_REJECTED | 첫 고고씽1이 차체 반경 검사에서 거절됨. Nav2 goal ID 없음, 브리지 이동 0회. 사용자가 수정한 두 점은 같은 검사 통과 |
+| 단일 목표 이동·도착 후 정지 | FIELD_PASS (기존 허용오차) | Nav2 SUCCEEDED, 실제 이동 사용자 확인. 도착 후 command zero·StopMove·측정 정지 확인. 정밀 도착은 아래 미해결 |
+| 최종 Goal Pose 정밀 일치 | OPEN | 도착 후 평면 0.308926m, 방향 -27.06도 차이. 기존 위치 허용오차 0.35m. 원인 확정·수정 전 |
+| 현장 녹색 버튼 재출발 | NOT_RUN | 기존 초기 미션 사전 거절은 수정했으나 실제 도착·버튼·다음 goal 전체 시험은 미실시 |
 | 경사로 전체 방향 baseline | NOT_RUN | 단계별 pitch/섹터/정합 지표 준비. 현재 경사로 기록 없음 |
 | 후방·측면 가중치 채택 | NOT_RUN | 전체 방향 baseline 유지. 센서 X를 로봇 뒤로 해석하지 않음 |
-| Jetson 배포·정지 검증 | FIELD_PASS | 별도 release 2,156파일 hash 검증. 사용자 checkout·CSS·기존 지도 81파일·튜닝 보존 |
+| Jetson 배포·정지 검증 | FIELD_PASS | 최신 release 2,159 source hash/61 map geometry 파일 보존 확인. 사용자 checkout·CSS·튜닝 보존. 종료 시 Nav2 idle·lease 해제·SOFTWARE STOP 잠금 |
 
 ## 사용자 코스 제외와 좌표 문제
 
@@ -54,7 +59,7 @@ raw cloud와 Nav2 `/scan`은 전체 센서 경로를 유지한다.
 기존 `map_20261027_125427_edited`는 픽셀이 회전했는데 v1 계보가 identity를
 주장하는 문제가 발견돼 선택을 해제했다. v1은 회전 변환을 표현하지 못하므로
 새 회전 편집본에는 identity 계보를 생성하지 않는다. 과거 회전본의 계보를
-자동 검증 완료로 간주해서는 안 된다. 현재 시험 지도는 회전하지 않은 원본에서
+자동 검증 완료로 간주해서는 안 된다. 이전 observed_trial 지도는 회전하지 않은 원본에서
 생성한 `97790325789687abea274ed6`, revision
 `e852388ae426b0bcc8c3e69b1673926488fb0f5a37f014d4c05a3213d238e98c`다.
 
@@ -168,4 +173,11 @@ Unitree 리모컨 시험 감시기는 실제 ly=0.159 입력을 감지했다. �
 상태의 단발 시험이며 상시 기능/즉시 하드웨어 양도 보증이 아니다. 후속 START가
 HTTP 423인 이유는 남은 SOFTWARE STOP 잠금이었다. 중립 1,500개/3초 관측 후
 해제·Nav2 재시작을 확인했다. 이전 목표 주석은 사용자가 삭제해 현재 비어 있으며
-임의로 복원하지 않는다. GOAL 활성화 후 사용자가 직접 목표·이동을 확인할 예정이다.
+임의로 복원하지 않는다. 이후 GOAL 활성화, 사용자 직접 목표 입력·실제 이동 확인까지
+완료했다. 자동 현재 위치 정합은 5개 독립 초기값의 수렴 일치로 확인했고, 기존
+initialpose 경로의 실제 적용 ACK 후 MAP_TRACKING/READY가 됐다. 출발 전 잔차는
+약 0.045m, 도착 후 약 0.052m였다. 이것을 독립 위치 정확도로 해석하지 않는다.
+
+단일 목표 이동과 도착 후 정지는 확인됐지만 정밀 위치·방향 일치는 OPEN이며,
+현장 stop-and-go와 경사로는 NOT_RUN이다. 종료 상태와 다음 원인 분석의 정확한
+goal·좌표·지도 pin·증거 경로는 [별도 기록](GOAL_FINAL_POSE_MISMATCH_20261028.md)을 따른다.
