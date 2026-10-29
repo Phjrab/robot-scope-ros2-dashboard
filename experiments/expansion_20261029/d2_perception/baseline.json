@@ -1,0 +1,61 @@
+{
+  "device": "DEVICE_NOT_RUN",
+  "evidence_kind": "SYNTHETIC",
+  "frame_budget_drop_rate": 0.0,
+  "max_points": 2246,
+  "max_rss_kib": 26096,
+  "platform": "Linux-6.18.55-x86_64-with-glibc2.41",
+  "python": "3.12.14",
+  "real_calibration_evaluation": "INPUT_REQUIRED",
+  "real_replay": "INPUT_REQUIRED",
+  "runs": 15,
+  "scenarios": [
+    {
+      "cones": 0,
+      "drops": {
+        "ground": 984,
+        "invalid_or_range": 0,
+        "object_budget": 0,
+        "self": 3
+      },
+      "evidence_kind": "SYNTHETIC",
+      "low_cone": false,
+      "object_count": 1,
+      "point_count": 1862,
+      "wall": true
+    },
+    {
+      "cones": 1,
+      "drops": {
+        "ground": 984,
+        "invalid_or_range": 0,
+        "object_budget": 0,
+        "self": 3
+      },
+      "evidence_kind": "SYNTHETIC",
+      "low_cone": false,
+      "object_count": 2,
+      "point_count": 2054,
+      "wall": true
+    },
+    {
+      "cones": 2,
+      "drops": {
+        "ground": 984,
+        "invalid_or_range": 0,
+        "object_budget": 0,
+        "self": 3
+      },
+      "evidence_kind": "SYNTHETIC",
+      "low_cone": true,
+      "object_count": 3,
+      "point_count": 2246,
+      "wall": true
+    }
+  ],
+  "semantic_evaluation": "SEMANTIC_MODEL_INPUT_REQUIRED",
+  "timing_ms": {
+    "p50": 7.589533000100346,
+    "p95": 11.315886999727804
+  }
+}

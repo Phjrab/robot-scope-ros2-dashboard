@@ -1,0 +1,146 @@
+[
+  {
+    "id": "unittest.loader._FailedTest.competition_integration.test_replay_latest",
+    "reason": "Optional cv2 unavailable"
+  },
+  {
+    "id": "competition_native.test_inference_binding.InferenceBindingTests.test_detection_only_keeps_bbox_but_cannot_create_mission_facts",
+    "reason": "Optional cv2 unavailable"
+  },
+  {
+    "id": "competition_native.test_inference_binding.InferenceBindingTests.test_epoch_change_requires_owner_rebinding_and_cannot_reuse_green",
+    "reason": "Optional cv2 unavailable"
+  },
+  {
+    "id": "competition_native.test_inference_binding.InferenceBindingTests.test_legacy_mode_missing_or_fixture_clock_is_not_native_authority",
+    "reason": "Optional cv2 unavailable"
+  },
+  {
+    "id": "competition_native.test_inference_binding.InferenceBindingTests.test_missing_invalid_or_different_observed_digest_cannot_pin_itself",
+    "reason": "Optional cv2 unavailable"
+  },
+  {
+    "id": "competition_native.test_inference_binding.InferenceBindingTests.test_old_green_polling_and_expiry_do_not_renew_receipt",
+    "reason": "Optional cv2 unavailable"
+  },
+  {
+    "id": "competition_native.test_inference_binding.InferenceBindingTests.test_owner_pin_is_required_validated_and_immutable",
+    "reason": "Optional cv2 unavailable"
+  },
+  {
+    "id": "competition_native.test_inference_binding.InferenceBindingTests.test_same_jpeg_new_source_frame_advances_but_same_stamp_does_not",
+    "reason": "Optional cv2 unavailable"
+  },
+  {
+    "id": "competition_native.test_inference_binding.InferenceBindingTests.test_same_model_tile_change_rejects_mission_and_keeps_diagnostics",
+    "reason": "Optional cv2 unavailable"
+  },
+  {
+    "id": "competition_native.test_inference_binding.InferenceBindingTests.test_same_settings_pass_preserving_original_age_and_independent_facts",
+    "reason": "Optional cv2 unavailable"
+  },
+  {
+    "id": "competition_native.test_round3_cross_contract.C4CrossTests.test_identical_jpeg_new_verified_identity_and_repeated_stamp",
+    "reason": "Optional cv2 unavailable"
+  },
+  {
+    "id": "test_depth_capture_integration.DepthBrokerTests.test_depth_and_stereo_share_broker_reservation_and_capture_retry",
+    "reason": "VM denies AF_UNIX/socket operation; do not retry"
+  },
+  {
+    "id": "test_slam_broker.SlamBrokerTests.test_busy_operation_rejects_save_stop_release_and_cancel_remains_available",
+    "reason": "VM denies AF_UNIX/socket operation; do not retry"
+  },
+  {
+    "id": "test_slam_broker.SlamBrokerTests.test_camera_probe_failure_keeps_specific_resource_reason_over_private_broker",
+    "reason": "VM denies AF_UNIX/socket operation; do not retry"
+  },
+  {
+    "id": "test_slam_broker.SlamBrokerTests.test_capability_and_preflight_never_acquire_camera_or_start_engine",
+    "reason": "VM denies AF_UNIX/socket operation; do not retry"
+  },
+  {
+    "id": "test_slam_broker.SlamBrokerTests.test_cleanup_child_failure_keeps_physical_camera_reserved",
+    "reason": "VM denies AF_UNIX/socket operation; do not retry"
+  },
+  {
+    "id": "test_slam_broker.SlamBrokerTests.test_foreign_or_unavailable_peer_uid_is_denied_before_dispatch",
+    "reason": "VM denies AF_UNIX/socket operation; do not retry"
+  },
+  {
+    "id": "test_slam_broker.SlamBrokerTests.test_localize_epoch_rotation_rejects_old_epoch_status",
+    "reason": "VM denies AF_UNIX/socket operation; do not retry"
+  },
+  {
+    "id": "test_slam_broker.SlamBrokerTests.test_lost_release_ack_can_retry_without_releasing_another_owner",
+    "reason": "VM denies AF_UNIX/socket operation; do not retry"
+  },
+  {
+    "id": "test_slam_broker.SlamBrokerTests.test_lost_reserve_ack_is_reconciled_against_real_broker_owner",
+    "reason": "VM denies AF_UNIX/socket operation; do not retry"
+  },
+  {
+    "id": "test_slam_broker.SlamBrokerTests.test_native_errors_are_sanitized_and_invalid_hints_never_reach_engine",
+    "reason": "VM denies AF_UNIX/socket operation; do not retry"
+  },
+  {
+    "id": "test_slam_broker.SlamBrokerTests.test_native_path_symlink_unsafe_directory_and_root_are_rejected",
+    "reason": "VM denies AF_UNIX/socket operation; do not retry"
+  },
+  {
+    "id": "test_slam_broker.SlamBrokerTests.test_native_paths_are_private_server_staging_and_scratch_only",
+    "reason": "VM denies AF_UNIX/socket operation; do not retry"
+  },
+  {
+    "id": "test_slam_broker.SlamBrokerTests.test_operation_allowlist_and_operation_specific_extra_fields",
+    "reason": "VM denies AF_UNIX/socket operation; do not retry"
+  },
+  {
+    "id": "test_slam_broker.SlamBrokerTests.test_private_socket_permissions_parent_and_existing_socket_are_enforced",
+    "reason": "VM denies AF_UNIX/socket operation; do not retry"
+  },
+  {
+    "id": "test_slam_broker.SlamBrokerTests.test_protocol_rejects_oversize_malformed_and_nonfinite_requests",
+    "reason": "VM denies AF_UNIX/socket operation; do not retry"
+  },
+  {
+    "id": "test_slam_broker.SlamBrokerTests.test_proxy_cancellation_reaches_running_broker_operation",
+    "reason": "VM denies AF_UNIX/socket operation; do not retry"
+  },
+  {
+    "id": "test_slam_broker.SlamBrokerTests.test_proxy_rejects_malformed_response_envelope_without_leaking_parser_exceptions",
+    "reason": "VM denies AF_UNIX/socket operation; do not retry"
+  },
+  {
+    "id": "test_slam_broker.SlamBrokerTests.test_reservation_is_idempotent_and_survives_proxy_client_disconnect",
+    "reason": "VM denies AF_UNIX/socket operation; do not retry"
+  },
+  {
+    "id": "test_slam_broker.SlamBrokerTests.test_resource_conflict_keeps_bounded_details_and_status",
+    "reason": "VM denies AF_UNIX/socket operation; do not retry"
+  },
+  {
+    "id": "test_slam_broker.SlamBrokerTests.test_response_limit_and_exact_nanosecond_stamp_are_preserved",
+    "reason": "VM denies AF_UNIX/socket operation; do not retry"
+  },
+  {
+    "id": "test_slam_broker.SlamBrokerTests.test_session_validation_and_old_generation_cannot_steal_ownership",
+    "reason": "VM denies AF_UNIX/socket operation; do not retry"
+  },
+  {
+    "id": "test_slam_broker.SlamBrokerTests.test_start_failure_does_not_implicitly_release_camera_under_a_child",
+    "reason": "VM denies AF_UNIX/socket operation; do not retry"
+  },
+  {
+    "id": "test_slam_broker.SlamBrokerTests.test_start_stop_and_release_confirm_child_cleanup_before_unlocking",
+    "reason": "VM denies AF_UNIX/socket operation; do not retry"
+  },
+  {
+    "id": "test_slam_broker.SlamBrokerTests.test_uncertain_cleanup_confirmed_foreign_owner_is_left_untouched",
+    "reason": "VM denies AF_UNIX/socket operation; do not retry"
+  },
+  {
+    "id": "test_slam_broker.SlamBrokerTests.test_unreachable_cleanup_retains_uncertain_reservation",
+    "reason": "VM denies AF_UNIX/socket operation; do not retry"
+  }
+]
