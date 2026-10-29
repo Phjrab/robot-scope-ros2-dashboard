@@ -52,7 +52,10 @@ only after all native tests pass. No `/opt/ros` files are overwritten.
 Only an approved host deployment may set the trusted service environment variable
 `ROBOT_SCOPE_NAV2_HEADING_OVERLAY` to the candidate `install` directory. The
 navigation launcher validates source, library, installed base and package hashes
-before sourcing that directory's `local_setup.bash`. HTTP users cannot select
+before sourcing `share/nav2_rotation_shim_controller/local_setup.bash` inside it.
+Standalone CMake installs provide this package-level file, not colcon's root
+`local_setup.bash`. The builder probes ament discovery and the loaded library
+without starting a ROS node. HTTP users cannot select
 an arbitrary plugin or overlay path. Existing controller and navigation parameter
 values remain unchanged. Validate the actual controller process's loaded library
 and generated/live parameters in the new session before a supervised goal.

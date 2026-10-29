@@ -11,6 +11,20 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def verify_loaded_library(prefix):
+    """Probe plugin discovery/loading only; creates no ROS node or command."""
+    import ctypes
+    from ament_index_python.packages import get_package_prefix
+    if Path(get_package_prefix('nav2_rotation_shim_controller')).resolve() != prefix.resolve():
+        raise ValueError('ament selected a different Shim package')
+    library = ctypes.CDLL('libnav2_rotation_shim_controller.so')
+    loaded = {line[line.index('/'):].strip() for line in Path('/proc/self/maps').read_text().splitlines()
+              if 'libnav2_rotation_shim_controller.so' in line}
+    if loaded != {str((prefix / 'lib/libnav2_rotation_shim_controller.so').resolve())}:
+        raise ValueError('runtime loader selected a different Shim library')
+    return library
+
+
 def validate(prefix, *, project=None, base_library=None):
     project = project or Path(__file__).resolve().parents[1]
     base_library = base_library or Path('/opt/ros/humble/lib/libnav2_rotation_shim_controller.so')
@@ -35,17 +49,22 @@ def validate(prefix, *, project=None, base_library=None):
         raise ValueError('heading overlay must contain only the pinned Shim package')
     if receipt.get('native_tests_passed') is not True:
         raise ValueError('native candidate tests were not completed')
+    if not (prefix / 'share/nav2_rotation_shim_controller/local_setup.bash').is_file():
+        raise ValueError('standalone ament package setup is missing')
     return receipt
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--overlay', type=Path, required=True)
+    parser.add_argument('--check-load', action='store_true')
     args = parser.parse_args()
     receipt = validate(args.overlay)
     version = subprocess.check_output(['dpkg-query', '-W', '-f=${Version}',
                                       'ros-humble-nav2-rotation-shim-controller'], text=True)
     if not version.startswith('1.1.20-'):
         raise SystemExit('installed Nav2 package version differs from 1.1.20')
+    if args.check_load:
+        verify_loaded_library(args.overlay)
     print(json.dumps({'nav2_version': receipt['nav2_version'],
                       'library_sha256': receipt['installed_files']['lib/libnav2_rotation_shim_controller.so']}))

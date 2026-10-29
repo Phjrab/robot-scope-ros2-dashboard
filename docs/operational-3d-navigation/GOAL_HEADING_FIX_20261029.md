@@ -6,6 +6,16 @@
 수정 후보를 빌드했다. **후보의 실제 정밀 도착은 아직 미검증**이다.
 새 현장 시험·Nav2 시작·goal 전송은 하지 않았다.
 
+**승인 후 준비 단계 추가 기록:** 사용자가 후보 배포와 새 목표 최대 2회/각 30초의
+시험창을 승인했다. `d8d15e5` 배포 후 첫 Nav2 준비는 goal 전송 전에 종료됐다.
+standalone CMake/ament 설치에는 prefix 루트의 `local_setup.bash`가 없는데 launcher가
+그 경로를 사용한 것이 원인이다. package별
+`share/nav2_rotation_shim_controller/local_setup.bash`로 바로잡았다.
+같은 .so에 대해 ament package 검색과 실제 로드 경로 검사가 장비에서 통과했다.
+이는 ROS node/goal을 만들지 않은 loader 검사이며 주행 성공 기록이 아니다.
+빌드 도구에도 이 검사를 추가해 같은 배포 누락을 사전에 검출한다.
+아래 표와 본문은 첫 후보 작성 시점의 기록이며 후속 현장 결과와 구분한다.
+
 ## 현재 배포와 설정
 
 | 구분 | 확인 결과 |

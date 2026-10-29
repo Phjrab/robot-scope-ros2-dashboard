@@ -28,6 +28,8 @@ class OverlayValidationTests(unittest.TestCase):
             packages = prefix / 'share/ament_index/resource_index/packages'
             packages.mkdir(parents=True)
             (packages / 'nav2_rotation_shim_controller').touch()
+            setup = prefix / 'share/nav2_rotation_shim_controller/local_setup.bash'
+            setup.touch()
             receipt = {'schema': 'robot-scope.nav2-heading-overlay.v1', 'nav2_version': '1.1.20',
                        'native_tests_passed': True, 'base_library_sha256': MODULE.digest(base),
                        'installed_files': {n: MODULE.digest(prefix / n) for n in paths},
@@ -36,6 +38,10 @@ class OverlayValidationTests(unittest.TestCase):
             receipt_path = prefix / 'robot-scope-heading-receipt.json'
             receipt_path.write_text(json.dumps(receipt))
             MODULE.validate(prefix, base_library=base)
+            setup.unlink()
+            with self.assertRaisesRegex(ValueError, 'setup is missing'):
+                MODULE.validate(prefix, base_library=base)
+            setup.touch()
             for path in [base, prefix / paths[0], prefix / paths[1]]:
                 original = path.read_bytes()
                 path.write_bytes(b'changed')

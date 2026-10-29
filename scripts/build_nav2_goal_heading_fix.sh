@@ -43,3 +43,8 @@ receipt={'schema':'robot-scope.nav2-heading-overlay.v1','nav2_version':'1.1.20',
 (prefix/'robot-scope-heading-receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
 PY
 python3 "$HEADING_PROJECT/scripts/check_nav2_heading_overlay.py" --overlay "$HEADING_OUTPUT/install"
+# Direct CMake/ament installs provide package-level setup, not colcon's root setup.
+set +u
+source "$HEADING_OUTPUT/install/share/nav2_rotation_shim_controller/local_setup.bash"
+set -u
+python3 "$HEADING_PROJECT/scripts/check_nav2_heading_overlay.py" --overlay "$HEADING_OUTPUT/install" --check-load
