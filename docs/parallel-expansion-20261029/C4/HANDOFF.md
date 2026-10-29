@@ -1,6 +1,8 @@
 # Latest follow-up
 
-See [ROUND2.md](ROUND2.md) for the actual pinned D2/D3/C1 composition, canonical validity conversion, explicit advisory/active modes, and the recorded C1→C3 failure. The first-round evidence below is retained as historical evidence.
+See [FOLLOWUP.md](FOLLOWUP.md) for current exact-SHA D2/D3/C1 0.2 composition,
+15 current integration checks, and the actual C3 0.2 rejection. [ROUND2.md](ROUND2.md)
+preserves the earlier 0.1 evidence. The first-round evidence below is historical.
 
 # C4 runtime ports — fixed offline candidate
 

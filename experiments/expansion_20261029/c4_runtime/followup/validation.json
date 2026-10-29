@@ -1,0 +1,42 @@
+{
+  "tested_source_sha": "183dcde9f41504310019ad1a7bc1da3311e5e68d",
+  "source_manifest_matches_committed_bytes": true,
+  "full_python": {
+    "status": "PASS",
+    "tests": 3150,
+    "skipped": 6,
+    "seconds": 110.549,
+    "nested_current_owner_tests": 15,
+    "prior_owner_focused_tests": 20,
+    "log_sha256": "9f01699b6f7968ffa3cbecfafc574fa96677f29dbb1c234e8ba6b6ea177e73f9"
+  },
+  "javascript": {
+    "status": "PASS",
+    "tests": 77,
+    "syntax_modules": 112,
+    "node": "24.22.1"
+  },
+  "checks": {
+    "ruff": "PASS",
+    "tracked_secrets": "PASS",
+    "diff": "PASS"
+  },
+  "python": "Python 3.12.3",
+  "packages": {
+    "numpy": "2.5.4",
+    "scipy": "1.18.1",
+    "fastapi": "0.162.0",
+    "pydantic": "2.14.1",
+    "httpx": "0.28.1",
+    "jsonschema": "4.26.0",
+    "ruff": "0.17.3"
+  },
+  "actual_C3_default_v02": {
+    "status": "FAIL",
+    "reason": "C1_VERSION_UNSUPPORTED",
+    "report_exit_code": 2
+  },
+  "native_ROS": "NOT_RUN",
+  "final_sink": "MOCK_ONLY",
+  "source_ci": "Final documentation HEAD push CI is reported separately in the delivery message; no inference from earlier CI."
+}

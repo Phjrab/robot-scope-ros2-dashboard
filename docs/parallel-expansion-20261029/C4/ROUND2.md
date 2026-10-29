@@ -1,5 +1,9 @@
 # C4 round 2 — actual core ports and binding
 
+**Latest continuation:** [FOLLOWUP.md](FOLLOWUP.md) records current C1 0.2,
+updated exact owner SHAs, full regression and the remaining actual C3 failure.
+The evidence below is the preserved earlier fixed-SHA 0.1 execution.
+
 Branch: `review/20261029-x-c4-runtime`. Started clean at
 `b9d700d754f0d3d43b9afdcffcb86e9deb7b1020`. Existing independent clone retained.
 No merge/cherry-pick/reset, no PR, no edits to another role, product entrypoint,
