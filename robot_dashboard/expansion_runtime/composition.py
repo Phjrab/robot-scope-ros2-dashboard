@@ -36,6 +36,7 @@ class SyntheticCoverage:
     observation_sequence: int
     valid_until_ns: int
     fixture_id: str
+    evidence: dict | None = None
 
     def __post_init__(self):
         integer(self.observation_sequence)
@@ -184,7 +185,8 @@ class Runtime:
             complete = bool(coverage and coverage.matches(packet, self.context, motion, d3_now))
             outside_scope = coverage is not None and not complete
             assessment = self.ports.assess(state, perception["obstacle_frame"], motion,
-                now_stamp_ns=d3_now - self.mapping.offset_ns, clock_domain=meta["clock_domain"], complete=complete)
+                now_stamp_ns=d3_now - self.mapping.offset_ns, clock_domain=meta["clock_domain"], complete=complete,
+                coverage_evidence=coverage.evidence if complete else None)
             timing["d3_finished_monotonic_ns"] = integer(self.clock())
             timing["c4_converted_monotonic_ns"] = integer(self.clock())
             wire = self.ports.canonical_assessment(assessment, context=self.context,
@@ -194,13 +196,16 @@ class Runtime:
             wire["producer"] = "c4.expansion_runtime"
             interval = wire["validity_interval"]
             start, end = interval.get("start_monotonic_ns"), interval.get("end_monotonic_ns")
+            # C1 0.2 owns lossless wire strings; the control loop uses exact ints.
+            start = int(start) if start is not None else None
+            end = int(end) if end is not None else None
             if complete and end is not None:
                 # Scoped evidence can shorten enforcement, never extend D3 expiry.
                 end = min(end, coverage.valid_until_ns)
-                interval["end_monotonic_ns"] = end
+                interval["end_monotonic_ns"] = str(end) if wire["schema_version"] == "0.2" else end
                 wire["freshness"]["c4"]["synthetic_scope"] = dict(
                     fixture_id=coverage.fixture_id, motion_hash=coverage.motion_hash,
-                    observation_sequence=coverage.observation_sequence, valid_until_ns=end)
+                    observation_sequence=coverage.observation_sequence, valid_until_ns=str(end))
             severity, reason = wire["severity"], wire["reason"]
             if outside_scope:
                 severity, reason = "UNKNOWN", "COVERAGE_OUTSIDE_MOTION_SCOPE"
@@ -208,6 +213,10 @@ class Runtime:
                 severity, reason = "UNKNOWN", "ASSESSMENT_EXPIRED_OR_UNMAPPED"
             if self.mode == "ACTIVE_CONSTRAINT" and not authority_present:
                 severity, reason = "UNKNOWN", "MISSING_TRUSTED_AUTHORITY"
+            wire["freshness"]["protection_mode"] = self.mode
+            wire["freshness"]["c4"]["intent_status"] = dict(
+                severity=severity, reason=reason, authority_present=authority_present,
+                product_enforcement_connected=False)
             self.ports.contracts.CollisionAssessment.from_dict(wire)
             return Result(Intent(**intent, severity=severity, reason=reason, valid_from_ns=start,
                 valid_until_ns=end, stamp_ns=meta["stamp_ns"]), perception["obstacle_frame"], wire,

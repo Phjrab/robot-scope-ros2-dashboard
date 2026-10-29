@@ -38,7 +38,7 @@ class CorePorts:
         self.contracts.ObstacleFrame.from_dict(result["obstacle_frame"])
         return result
 
-    def assess(self, state, frame, motion, *, now_stamp_ns, clock_domain, complete):
+    def assess(self, state, frame, motion, *, now_stamp_ns, clock_domain, complete, coverage_evidence=None):
         return self.d3.assess(self.geometry, state, frame, motion,
             now_stamp_ns=now_stamp_ns, now_clock_domain=clock_domain,
             uncertainty_in_extent=True, coverage="COMPLETE_SYNTHETIC" if complete else "SPARSE")

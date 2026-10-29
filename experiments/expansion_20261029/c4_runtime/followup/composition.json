@@ -1,0 +1,104 @@
+{
+  "dependencies": {
+    "c1": "4e1dd519a707169da5f88cf2a92a20ed3e701cc7",
+    "c3": "a2b6d37f61ac426ac8a21e941750099b28318fd8",
+    "d2": "7313f0a31c00ae87ae216b84ca41a23804e91917",
+    "d3": "356d0a036eb62d546e159e12a0691d7f5ea278f6"
+  },
+  "contracts": "C1 0.2; explicit opt-in C1-supported 0.1 only for safe host integers",
+  "actual_core_composition": {
+    "scoped_clear": {
+      "severity": "CLEAR",
+      "reason": "CLEAR",
+      "min_clearance": 1.5619999999999998,
+      "actual_cores": true
+    },
+    "model_overlap": {
+      "severity": "STOP_REQUIRED",
+      "reason": "MODEL_OVERLAP",
+      "min_clearance": -0.232,
+      "actual_cores": true
+    },
+    "sparse_positive_distance": {
+      "severity": "UNKNOWN",
+      "reason": "UNKNOWN",
+      "min_clearance": 1.5619999999999998,
+      "actual_cores": true
+    },
+    "empty_sparse": {
+      "severity": "UNKNOWN",
+      "reason": "UNKNOWN",
+      "min_clearance": null,
+      "actual_cores": true
+    }
+  },
+  "HTTP_response_profiles": {
+    "0.2": {
+      "actual_C1_ASGI_HTTP": "PASS",
+      "sha256": "cff9a0fcc11663a95eaf46606bff2b5142eec8dadef93661f859729d6a7e31e7",
+      "bytes": 11975,
+      "C3_actual_consumer": {
+        "status": "FAIL",
+        "reason": "C1_VERSION_UNSUPPORTED",
+        "exit_code": 2
+      }
+    },
+    "0.1": {
+      "actual_C1_ASGI_HTTP": "PASS",
+      "sha256": "d149132477455fbe03ea66ca166400b5bb519382fa725785f8cb21f5bafb78e0",
+      "bytes": 11957,
+      "C3_actual_consumer": {
+        "status": "PASS",
+        "accepted": true,
+        "obstacle_count": 1,
+        "collision_status": "UNAVAILABLE",
+        "collision_reason": "POSE_JOINT_OR_SOURCE_INSUFFICIENT",
+        "references_verified": false,
+        "expiry_preserved": true,
+        "schema_profile": "EXPLICIT_C1_0.1",
+        "scope": "ACTUAL_JS_CONSUMER_NOT_BROWSER_RENDER",
+        "exit_code": 0
+      }
+    }
+  },
+  "source_file_sha256": {
+    "experiments/expansion_20261029/c4_runtime/followup/consumer_check.mjs": "9f185c013dfed3d9a4266a930fdd361853ddc3743399cb3f73ad8c5c241fc814",
+    "experiments/expansion_20261029/c4_runtime/followup/dependencies.py": "eab1e204bbe8da5221e22bfed07b9fe1b25f6bac002b460529c9ac4121a3eb7e",
+    "experiments/expansion_20261029/c4_runtime/followup/report.py": "0f95689ca7ed5d038df5d58de6f0ce5f44fbe8c97f6e873d0ea2025206503e21",
+    "robot_dashboard/expansion_runtime/__init__.py": "62cf3982a8298708f0a3902a0fe830b5a34e8519f02b0755269712d0e8ad2aaf",
+    "robot_dashboard/expansion_runtime/binding.py": "074ef5ab4fd3a3276d0e38e940b4cc110004508cceee513c933b8ea3d92a06a6",
+    "robot_dashboard/expansion_runtime/canonical_ports.py": "f0a3929e395b25a0e80062a6e10b1dccee9617650efb0c342f0a172029a597ec",
+    "robot_dashboard/expansion_runtime/composition.py": "3a5358174374529db77d05e56adaa71c333fb77ac0014f089f9356fb5198ddbd",
+    "robot_dashboard/expansion_runtime/intent.py": "9367933450e09095a5ba2d0e498fc2dd6c8161b72a1c7b6ec82175632fe1b937",
+    "robot_dashboard/expansion_runtime/ports.py": "8b5305dbb13866e74898cf275dba1e7323e4bde7618b80ada8f1e4d4c6e21f29",
+    "robot_dashboard/expansion_runtime/sensor.py": "e38d536ac3306d1a0133a2dd1ce5028d5a0e5608eea4d140be3920a9d05e406d",
+    "tests/expansion_runtime/__init__.py": "93cec857d0cbadb8685e1fc718c3778a5eaa54f84447d77d5736667e502573a8",
+    "tests/expansion_runtime/fixtures.py": "5275b85cccb07ab8c110c0d5a670a372efe881cd4d19f43ad3ac6899ef7f7978",
+    "tests/expansion_runtime/latest_cases.py": "e3d4e1d0901d27e89a44c64065512c6eb88577a449fd238dd8c2289f5e27ef83",
+    "tests/expansion_runtime/latest_fixtures.py": "1ebe9b40e1296f1217e686b34e76bec569c5e07d1715f644842a1e8ee91d5f16",
+    "tests/expansion_runtime/test_binding.py": "4291290ab23f8b3d4c5e91583471ce85c37973039bc11149426fa70fa8dddee6",
+    "tests/expansion_runtime/test_latest.py": "83b7aac251ce073d2058f47f16c9cd948dac75997ac15776de3fec2c44e051e0",
+    "tests/expansion_runtime/test_real_composition.py": "7aca01dfebe84ce972d6fcb049aeb7c40b274323e61b3bef7c6d1f13e7e10176"
+  },
+  "coverage": "GENERATED_CLOSED_SCENE_VOLUME synthetic fixture only; no physical/free-space claim",
+  "final_sink": "MOCK_ONLY",
+  "mock_clear_velocity": [
+    0.1,
+    0.0,
+    0.0
+  ],
+  "ROS_modules": {
+    "rclpy": false,
+    "sensor_msgs": false,
+    "tf2_ros": false,
+    "nav2_msgs": false
+  },
+  "ROS_lifecycle": "NOT_RUN",
+  "native_costmap_mark_clear": "NOT_RUN",
+  "adapter_published": false,
+  "native_costmap_ingestion_observed": false,
+  "browser_render": "NOT_RUN",
+  "device": "DEVICE_NOT_RUN",
+  "latency": "NOT_BENCHMARK_DETERMINISTIC_FIXTURE_CLOCK",
+  "unresolved": "C3 canonical 0.2 and command-assessment references remain unsupported; no fake pose/joints/path supplied"
+}
