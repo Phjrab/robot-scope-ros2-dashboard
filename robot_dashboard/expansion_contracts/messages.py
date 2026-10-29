@@ -8,7 +8,7 @@ import hashlib
 import json
 import math
 import re
-from typing import Any
+from typing import Any, ClassVar
 
 MAX_DOCUMENT_BYTES = 128 * 1024
 ID = re.compile(r"[0-9a-f]{24}\Z")
@@ -106,7 +106,7 @@ class Wire:
     @classmethod
     def from_dict(cls, value):
         if not isinstance(value, dict) or set(value) != {f.name for f in fields(cls)}:
-            raise ContractError(f"{cls.__name__} fields differ from v0.1")
+            raise ContractError(f"{cls.__name__} fields differ from contract")
         canonical(value)
         try:
             return cls(**copy.deepcopy(value))
@@ -116,6 +116,7 @@ class Wire:
 
 @dataclass(frozen=True, kw_only=True)
 class Message(Wire):
+    versions: ClassVar[frozenset] = frozenset({"0.1"})
     schema_version: str
     evidence_kind: str
     producer: str
@@ -123,7 +124,7 @@ class Message(Wire):
     source_epoch: str
 
     def __post_init__(self):
-        if self.schema_version != "0.1" or self.evidence_kind not in {
+        if self.schema_version not in self.versions or self.evidence_kind not in {
             "SYNTHETIC",
             "REPLAY",
             "LIVE",
@@ -336,13 +337,23 @@ class FusionProposal(Message):
             raise ContractError("negative elapsed")
 
 
+def host_ns(value, version):
+    """v0.2 uses lossless decimal strings; v0.1 remains explicitly legacy."""
+    if version == "0.2":
+        token(
+            value, "decimal host nanoseconds", re.compile(r"(?:0|[1-9][0-9]{0,18})\Z")
+        )
+        value = int(value)
+    return integer(value, "host nanoseconds", 0, 2**63 - 1)
+
+
 def _observation(message):
     token(
         message.stamp_ns, "decimal nanoseconds", re.compile(r"(?:0|[1-9][0-9]{0,24})\Z")
     )
     token(message.clock_domain)
     token(message.host_clock_id)
-    integer(message.received_monotonic_ns, "received host time", 0, 2**63 - 1)
+    host_ns(message.received_monotonic_ns, message.schema_version)
     if (
         not isinstance(message.frame_key, dict)
         or set(message.frame_key) != {"source_epoch", "frame_id"}
@@ -363,11 +374,12 @@ def _observation(message):
 
 @dataclass(frozen=True, kw_only=True)
 class Observation(Message):
+    versions: ClassVar[frozenset] = frozenset({"0.1", "0.2"})
     frame_key: dict
     stamp_ns: str
     clock_domain: str
     host_clock_id: str
-    received_monotonic_ns: int
+    received_monotonic_ns: int | str
     map_binding: dict
 
     def __post_init__(self):
@@ -485,18 +497,14 @@ class CollisionAssessment(Observation):
                     "validity interval requires explicit host clock and monotonic bounds"
                 )
             token(self.validity_interval["host_clock_id"])
-            integer(
-                self.validity_interval["start_monotonic_ns"],
-                "validity start",
-                0,
-                2**63 - 1,
+            start = host_ns(
+                self.validity_interval["start_monotonic_ns"], self.schema_version
             )
-            integer(
-                self.validity_interval["end_monotonic_ns"],
-                "validity end",
-                self.validity_interval["start_monotonic_ns"],
-                2**63 - 1,
+            end = host_ns(
+                self.validity_interval["end_monotonic_ns"], self.schema_version
             )
+            if end < start:
+                raise ContractError("reversed validity interval")
         if (
             self.predicted_overlap is not None
             and type(self.predicted_overlap) is not bool
@@ -506,6 +514,7 @@ class CollisionAssessment(Observation):
 
 @dataclass(frozen=True, kw_only=True)
 class ScenePacket(Message):
+    versions: ClassVar[frozenset] = frozenset({"0.1", "0.2"})
     map_binding: dict
     stream_epoch: str
     robot_pose: dict | None
