@@ -1,0 +1,65 @@
+TAP version 13
+# Subtest: canonical C1 snapshot does not need sources.display; D2 geometry and UNKNOWN positive clearance preserved
+ok 1 - canonical C1 snapshot does not need sources.display; D2 geometry and UNKNOWN positive clearance preserved
+  ---
+  duration_ms: 4.879613
+  ...
+# Subtest: integer ns parser is exact beyond 2^53 and never rewrites quoted text
+ok 2 - integer ns parser is exact beyond 2^53 and never rewrites quoted text
+  ---
+  duration_ms: 0.609827
+  ...
+# Subtest: repeated HTTP sequence/renewed receipt never renew frozen source TTL or original expiry
+ok 3 - repeated HTTP sequence/renewed receipt never renew frozen source TTL or original expiry
+  ---
+  duration_ms: 1.704741
+  ...
+# Subtest: same immutable slot revisions reuse normalized geometry and remain bounded
+ok 4 - same immutable slot revisions reuse normalized geometry and remain bounded
+  ---
+  duration_ms: 49.350967
+  ...
+# Subtest: C1 omission at expiry is consumed on the same scene sequence
+ok 5 - C1 omission at expiry is consumed on the same scene sequence
+  ---
+  duration_ms: 0.847493
+  ...
+# Subtest: wrong host, future/expired interval, refs, missing source ages, and foreign clock cannot assert a current assessment
+ok 6 - wrong host, future/expired interval, refs, missing source ages, and foreign clock cannot assert a current assessment
+  ---
+  duration_ms: 2.93896
+  ...
+# Subtest: map generation/epoch/stream are fenced, no source clock inferred from stream epoch
+ok 7 - map generation/epoch/stream are fenced, no source clock inferred from stream epoch
+  ---
+  duration_ms: 0.735077
+  ...
+# Subtest: missing geometry is explicitly unavailable; no fake reference or paths invented
+ok 8 - missing geometry is explicitly unavailable; no fake reference or paths invented
+  ---
+  duration_ms: 0.630435
+  ...
+# Subtest: expired active constraints retain last reported HOLD state and a downgrade is explicit
+ok 9 - expired active constraints retain last reported HOLD state and a downgrade is explicit
+  ---
+  duration_ms: 1.380786
+  ...
+# Subtest: late pre-expiry HTTP response cannot resurrect C1-invalidated assessment
+ok 10 - late pre-expiry HTTP response cannot resurrect C1-invalidated assessment
+  ---
+  duration_ms: 2.630392
+  ...
+# Subtest: supplied invalid cloud cannot crash authoritative D2 object rendering
+ok 11 - supplied invalid cloud cannot crash authoritative D2 object rendering
+  ---
+  duration_ms: 1.907442
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 80.638576

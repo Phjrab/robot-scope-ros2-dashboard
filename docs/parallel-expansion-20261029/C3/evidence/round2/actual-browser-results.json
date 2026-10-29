@@ -1,0 +1,3742 @@
+{
+  "source_mode": "ACTUAL_C1_SERVICE",
+  "evidence_kind": "SYNTHETIC",
+  "browser": "151.0.7922.34",
+  "cases": [
+    {
+      "name": "PREDICTED_CONTACT",
+      "result": "PASS",
+      "endpoint_sha256": "99f3639d240dcb933a52ba3d5791de5549d9d0f4bcd9b990101fbb6213874ddd",
+      "view": {
+        "producer": "c1-scene",
+        "evidence_kind": "SYNTHETIC",
+        "stamp_ns": "9007199254740993",
+        "clock_domain": "synthetic-host-correspondence",
+        "source_epoch": "sensor-1",
+        "calibration_id": "synthetic-calibration",
+        "sequence": 5,
+        "frame_key": null,
+        "provenance": {
+          "c1_source_epoch": "scene-1"
+        },
+        "sensor_age_ms": null,
+        "host_clock_id": "",
+        "receipt_source_ns": "",
+        "stream_epoch": "scene-1",
+        "protection": {
+          "mode": "ADVISORY_ONLY",
+          "transition": "",
+          "recommendation": "SIMULATED_COMMAND_STOP_CONTACT_UNCONFIRMED"
+        },
+        "source_mode": "ACTUAL_C1_SERVICE",
+        "availability": {
+          "reference_cloud": "UNAVAILABLE",
+          "sensor_clouds": "SUPPLIED_SYNTHETIC_OR_REPLAY",
+          "sensor_origins": "SUPPLIED",
+          "bulk_references": "NO_C1_RESOLVER_CONTRACT",
+          "collision": {
+            "clock_mapping": {
+              "host_clock_id": "test-host",
+              "host_ns": "9007199254740993",
+              "kind": "SYNTHETIC_IDENTITY_ONLY",
+              "sensor_ns": "9007199254740993",
+              "source_epoch": "sensor-1"
+            },
+            "coverage": "SPARSE",
+            "joint_age_s": 0,
+            "obstacle_age_s": 0,
+            "original_validity_interval": {
+              "clock_domain": "synthetic-host-correspondence",
+              "from_ns": "9007199254740993",
+              "until_ns": "9007199504740993"
+            },
+            "pose_age_s": 0,
+            "protection_mode": "ADVISORY_ONLY"
+          },
+          "errors": []
+        },
+        "map_identity": {
+          "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+          "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "generation": 1,
+          "frame_id": "map",
+          "source_epoch": "sensor-1",
+          "stream_epoch": "scene-1",
+          "clock_domain": "synthetic-host-correspondence",
+          "calibration_id": "synthetic-calibration",
+          "units": "m",
+          "source_identity": "SYNTHETIC_SELECTED_IDENTITY_NOT_D1_MERGED_ARTIFACT"
+        },
+        "pose": {
+          "value": {
+            "producer": "c3.supplied-pose",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-1",
+            "calibration_id": "synthetic-calibration",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {
+              "collision_model": "BODY_BOX",
+              "visual_joints": "SYNTHETIC_DISPLAY_ONLY"
+            },
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "ref": "sensor-1:1",
+            "position_m": [
+              0,
+              0,
+              0.3
+            ],
+            "rpy_rad": [
+              0,
+              0,
+              0
+            ]
+          },
+          "reason": "",
+          "ttl": 500,
+          "age_ms": 88.7000002861023,
+          "receipt": 119.09999990463257
+        },
+        "joints": {
+          "value": {
+            "producer": "c3.supplied-pose",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-1",
+            "calibration_id": "synthetic-calibration",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {
+              "collision_model": "BODY_BOX",
+              "visual_joints": "SYNTHETIC_DISPLAY_ONLY"
+            },
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "ref": "9007199254740993",
+            "positions_rad": {
+              "FL_calf_joint": -1.5,
+              "FL_hip_joint": 0,
+              "FL_thigh_joint": 0.75,
+              "FR_calf_joint": -1.5,
+              "FR_hip_joint": 0,
+              "FR_thigh_joint": 0.75,
+              "RL_calf_joint": -1.5,
+              "RL_hip_joint": 0,
+              "RL_thigh_joint": 0.75,
+              "RR_calf_joint": -1.5,
+              "RR_hip_joint": 0,
+              "RR_thigh_joint": 0.75
+            }
+          },
+          "reason": "",
+          "ttl": 1200,
+          "age_ms": 88.7000002861023,
+          "receipt": 119.09999990463257
+        },
+        "sources": [
+          {
+            "id": "LIDAR",
+            "kind": "LIDAR",
+            "value": {
+              "producer": "c3.synthetic-input",
+              "evidence_kind": "SYNTHETIC",
+              "stamp_ns": "9007199254740993",
+              "clock_domain": "synthetic-host-correspondence",
+              "source_epoch": "sensor-1",
+              "calibration_id": "synthetic-calibration",
+              "sequence": 1,
+              "frame_key": {
+                "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+                "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "frame_id": "map"
+              },
+              "provenance": {
+                "kind": "SYNTHETIC_INPUT"
+              },
+              "sensor_age_ms": null,
+              "host_clock_id": "test-host",
+              "receipt_source_ns": "9007199254740993",
+              "id": "LIDAR",
+              "kind": "LIDAR",
+              "points_m": [
+                [
+                  0.7,
+                  -0.02,
+                  0.27999999999999997
+                ],
+                [
+                  0.7,
+                  -0.02,
+                  0.32
+                ],
+                [
+                  0.7,
+                  0.02,
+                  0.27999999999999997
+                ],
+                [
+                  0.7,
+                  0.02,
+                  0.32
+                ],
+                [
+                  0.72,
+                  -0.02,
+                  0.27999999999999997
+                ],
+                [
+                  0.72,
+                  -0.02,
+                  0.32
+                ],
+                [
+                  0.72,
+                  0.02,
+                  0.27999999999999997
+                ],
+                [
+                  0.72,
+                  0.02,
+                  0.32
+                ]
+              ],
+              "origin_m": [
+                0.08,
+                0,
+                0.4
+              ],
+              "health": "OK"
+            },
+            "reason": "",
+            "ttl": 1200,
+            "age_ms": 88.7000002861023,
+            "receipt": 119.09999990463257
+          }
+        ],
+        "obstacles": {
+          "value": {
+            "producer": "d2.offline",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-1",
+            "calibration_id": "synthetic-calibration",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {
+              "age_status": "CALLER_MAPPED",
+              "coverage": "PARTIAL",
+              "motion_compensated": false,
+              "reasons": [
+                "SELF_GEOMETRY_UNKNOWN",
+                "GROUND_UNKNOWN"
+              ],
+              "source_age_ns": 0
+            },
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "obstacles": [
+              {
+                "track_id": "track-1-1",
+                "class_name": "unknown",
+                "class_score": null,
+                "state": "OBSERVED",
+                "novelty": "UNRESOLVED",
+                "sensor_support": [
+                  "LIDAR"
+                ],
+                "geometry": {
+                  "center_m": [
+                    0.71,
+                    0,
+                    0.3
+                  ],
+                  "extent_m": [
+                    0.08000000000000002,
+                    0.1,
+                    0.10000000000000003
+                  ],
+                  "orientation_xyzw": [
+                    0,
+                    0,
+                    0,
+                    1
+                  ]
+                },
+                "provenance": {
+                  "field_layout": null,
+                  "motion_compensated": false,
+                  "point_count": 8,
+                  "source": {
+                    "calibration_id": "synthetic-calibration",
+                    "clock_domain": "synthetic-host-correspondence",
+                    "evidence_kind": "SYNTHETIC",
+                    "frame_key": {
+                      "frame_id": "map",
+                      "source_epoch": "sensor-1"
+                    },
+                    "health": "OK",
+                    "host_clock_id": "test-host",
+                    "kind": "LIDAR",
+                    "map_binding": {
+                      "generation": 1,
+                      "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+                      "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                    },
+                    "origin_m": [
+                      0.08,
+                      0,
+                      0.4
+                    ],
+                    "points_m": [
+                      [
+                        0.7,
+                        -0.02,
+                        0.27999999999999997
+                      ],
+                      [
+                        0.7,
+                        -0.02,
+                        0.32
+                      ],
+                      [
+                        0.7,
+                        0.02,
+                        0.27999999999999997
+                      ],
+                      [
+                        0.7,
+                        0.02,
+                        0.32
+                      ],
+                      [
+                        0.72,
+                        -0.02,
+                        0.27999999999999997
+                      ],
+                      [
+                        0.72,
+                        -0.02,
+                        0.32
+                      ],
+                      [
+                        0.72,
+                        0.02,
+                        0.27999999999999997
+                      ],
+                      [
+                        0.72,
+                        0.02,
+                        0.32
+                      ]
+                    ],
+                    "producer": "c3.synthetic-input",
+                    "provenance": {
+                      "kind": "SYNTHETIC_INPUT"
+                    },
+                    "received_monotonic_ns": "9007199254740993",
+                    "schema_version": "0.1",
+                    "sensor_id": "LIDAR",
+                    "sequence": 1,
+                    "source_age_ns": 0,
+                    "source_epoch": "sensor-1",
+                    "stamp_ns": "9007199254740993"
+                  }
+                }
+              }
+            ],
+            "suppressed": 0,
+            "published_to_nav2": false,
+            "costmap_ingestion_observed": false,
+            "controller_consumption_observed": false,
+            "canonical": true
+          },
+          "reason": "",
+          "ttl": 1200,
+          "age_ms": 88.7000002861023,
+          "receipt": 119.09999990463257
+        },
+        "path": {
+          "value": {
+            "producer": "c3.supplied-path",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-1",
+            "calibration_id": "",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {
+              "state": "SYNTHETIC_SUPPLIED"
+            },
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "generation": "plan-1",
+            "reason": "SUPPLIED_SYNTHETIC",
+            "representation": "XYZ",
+            "points_m": [
+              [
+                0,
+                0,
+                0.3
+              ],
+              [
+                0.6,
+                0,
+                0.3
+              ]
+            ]
+          },
+          "reason": "",
+          "ttl": 5000,
+          "age_ms": 88.7000002861023,
+          "receipt": 119.09999990463257
+        },
+        "local": {
+          "value": null,
+          "reason": "MISSING",
+          "ttl": 5000
+        },
+        "costmaps": [
+          {
+            "value": {
+              "producer": "c3.supplied-costmap",
+              "evidence_kind": "SYNTHETIC",
+              "stamp_ns": "9007199254740993",
+              "clock_domain": "synthetic-host-correspondence",
+              "source_epoch": "sensor-1",
+              "calibration_id": "",
+              "sequence": 1,
+              "frame_key": {
+                "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+                "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "frame_id": "map"
+              },
+              "provenance": {
+                "state": "SYNTHETIC_SUPPLIED"
+              },
+              "sensor_age_ms": null,
+              "host_clock_id": "test-host",
+              "receipt_source_ns": "9007199254740993",
+              "id": "synthetic-costmap",
+              "width": 2,
+              "height": 2,
+              "origin": [
+                0,
+                0,
+                0
+              ],
+              "resolution_m": 0.2,
+              "plane_z_m": 0,
+              "representation": "2D_GROUND_PLANE",
+              "cells": [
+                0,
+                254,
+                -1,
+                0
+              ]
+            },
+            "reason": "",
+            "ttl": 1500,
+            "age_ms": 88.7000002861023,
+            "receipt": 119.09999990463257
+          }
+        ],
+        "collision": {
+          "value": {
+            "producer": "d3.collision_geometry_core",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-1",
+            "calibration_id": "synthetic-calibration",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {},
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "canonical": true,
+            "severity": "STOP_REQUIRED",
+            "reason": "PREDICTED_COLLISION",
+            "contact_state": "PREDICTED_CONTACT",
+            "min_clearance_m": -0.252,
+            "modeled_ttc_s": 0.45,
+            "robot_geometry_hash": "97cf7803f6e642be65d4cbaaf1e3e6ce1f7dc96b217f659ee403859cbf85ec6f",
+            "validity_interval": {
+              "end_monotonic_ns": "9007199504740993",
+              "host_clock_id": "test-host",
+              "start_monotonic_ns": "9007199254740993"
+            },
+            "freshness": {
+              "clock_mapping": {
+                "host_clock_id": "test-host",
+                "host_ns": "9007199254740993",
+                "kind": "SYNTHETIC_IDENTITY_ONLY",
+                "sensor_ns": "9007199254740993",
+                "source_epoch": "sensor-1"
+              },
+              "coverage": "SPARSE",
+              "joint_age_s": 0,
+              "obstacle_age_s": 0,
+              "original_validity_interval": {
+                "clock_domain": "synthetic-host-correspondence",
+                "from_ns": "9007199254740993",
+                "until_ns": "9007199504740993"
+              },
+              "pose_age_s": 0,
+              "protection_mode": "ADVISORY_ONLY"
+            },
+            "coverage": "SPARSE",
+            "protection_mode": "ADVISORY_ONLY",
+            "recommendation": "SIMULATED_COMMAND_STOP_CONTACT_UNCONFIRMED",
+            "padded_envelope": {
+              "command_arc_approximation_bound_m": 0,
+              "continuous_clearance_lower_bound": -0.257,
+              "future_joints": "HELD_CURRENT_NOT_GAIT_PREDICTION",
+              "future_obstacles": "HELD_CURRENT_NOT_MOTION_PREDICTION",
+              "gait_margin_m": 0,
+              "joint_uncertainty_m": 0,
+              "mesh_backend": "NOT_RUN",
+              "min_clearance": -0.252,
+              "overlap": true,
+              "padding_m": 0.03,
+              "pose_uncertainty_m": 0.01,
+              "samples": 121,
+              "support_pairs": [],
+              "sweep_displacement_bound_m": 0.005,
+              "unmodeled": []
+            },
+            "unpadded_envelope": {
+              "distance_kind": "conservative_signed_lower_bound_m",
+              "geometry_source_hash": "11f5183cd2c92c5a786c0f624aec095429b0967e5b27b9a6b60ca668d0441a10",
+              "min_clearance": -0.21200000000000002,
+              "overlap": true,
+              "provenance": "SYNTHETIC_body_box_NOT_official_visual_collision_equivalence"
+            },
+            "envelopes": [],
+            "envelope_geometry_status": "UNAVAILABLE"
+          },
+          "reason": "",
+          "ttl": 500,
+          "age_ms": 88.7000002861023,
+          "receipt": 119.09999990463257,
+          "expires": 363.2999997138977
+        },
+        "ready": true,
+        "contextKey": "aaaaaaaaaaaaaaaaaaaaaaaa|bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb|map|sensor-1|scene-1|synthetic-host-correspondence|synthetic-calibration|m|1",
+        "history": [
+          {
+            "value": {
+              "producer": "c3.supplied-path",
+              "evidence_kind": "SYNTHETIC",
+              "stamp_ns": "9007199254740993",
+              "clock_domain": "synthetic-host-correspondence",
+              "source_epoch": "sensor-1",
+              "calibration_id": "",
+              "sequence": 1,
+              "frame_key": {
+                "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+                "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "frame_id": "map"
+              },
+              "provenance": {
+                "state": "SYNTHETIC_SUPPLIED"
+              },
+              "sensor_age_ms": null,
+              "host_clock_id": "test-host",
+              "receipt_source_ns": "9007199254740993",
+              "generation": "plan-1",
+              "reason": "SUPPLIED_SYNTHETIC",
+              "representation": "XYZ",
+              "points_m": [
+                [
+                  0,
+                  0,
+                  0.3
+                ],
+                [
+                  0.6,
+                  0,
+                  0.3
+                ]
+              ]
+            },
+            "reason": "",
+            "ttl": 5000,
+            "age_ms": 88.7000002861023,
+            "receipt": 119.09999990463257
+          }
+        ],
+        "lastRejection": ""
+      },
+      "diagnostics": {
+        "accepted": 1,
+        "rejected": 0,
+        "resets": 1,
+        "history": 1,
+        "retainedPackets": 1,
+        "lastSequence": 5,
+        "error": "",
+        "geometryCopies": 7,
+        "cachedLayers": 7,
+        "received": 2,
+        "rendered": 5,
+        "dropped": 0,
+        "pending": 1,
+        "maxPending": 1,
+        "maxDrawMs": 1.5,
+        "paused": true,
+        "destroyed": false,
+        "boxScratchBytes": 192,
+        "renderedObjects": 1
+      }
+    },
+    {
+      "name": "NEAR",
+      "result": "PASS",
+      "endpoint_sha256": "254b3eaee91f44194ef60fbb5d7d1d9da00abc5b594da8993912d68d4ee55b01",
+      "view": {
+        "producer": "c1-scene",
+        "evidence_kind": "SYNTHETIC",
+        "stamp_ns": "9007199254740993",
+        "clock_domain": "synthetic-host-correspondence",
+        "source_epoch": "sensor-2",
+        "calibration_id": "synthetic-calibration",
+        "sequence": 5,
+        "frame_key": null,
+        "provenance": {
+          "c1_source_epoch": "scene-2"
+        },
+        "sensor_age_ms": null,
+        "host_clock_id": "",
+        "receipt_source_ns": "",
+        "stream_epoch": "scene-2",
+        "protection": {
+          "mode": "ADVISORY_ONLY",
+          "transition": "",
+          "recommendation": "HOLD_FOR_VALID_INPUT"
+        },
+        "source_mode": "ACTUAL_C1_SERVICE",
+        "availability": {
+          "reference_cloud": "UNAVAILABLE",
+          "sensor_clouds": "SUPPLIED_SYNTHETIC_OR_REPLAY",
+          "sensor_origins": "SUPPLIED",
+          "bulk_references": "NO_C1_RESOLVER_CONTRACT",
+          "collision": {
+            "clock_mapping": {
+              "host_clock_id": "test-host",
+              "host_ns": "9007199254740993",
+              "kind": "SYNTHETIC_IDENTITY_ONLY",
+              "sensor_ns": "9007199254740993",
+              "source_epoch": "sensor-2"
+            },
+            "coverage": "SPARSE",
+            "issues": [
+              "SPARSE_COVERAGE_NOT_FREE_SPACE"
+            ],
+            "joint_age_s": 0,
+            "obstacle_age_s": 0,
+            "original_validity_interval": {
+              "clock_domain": "synthetic-host-correspondence",
+              "from_ns": "9007199254740993",
+              "until_ns": "9007199504740993"
+            },
+            "pose_age_s": 0,
+            "protection_mode": "ADVISORY_ONLY"
+          },
+          "errors": []
+        },
+        "map_identity": {
+          "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+          "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "generation": 2,
+          "frame_id": "map",
+          "source_epoch": "sensor-2",
+          "stream_epoch": "scene-2",
+          "clock_domain": "synthetic-host-correspondence",
+          "calibration_id": "synthetic-calibration",
+          "units": "m",
+          "source_identity": "SYNTHETIC_SELECTED_IDENTITY_NOT_D1_MERGED_ARTIFACT"
+        },
+        "pose": {
+          "value": {
+            "producer": "c3.supplied-pose",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-2",
+            "calibration_id": "synthetic-calibration",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {
+              "collision_model": "BODY_BOX",
+              "visual_joints": "SYNTHETIC_DISPLAY_ONLY"
+            },
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "ref": "sensor-2:1",
+            "position_m": [
+              0,
+              0,
+              0.3
+            ],
+            "rpy_rad": [
+              0,
+              0,
+              0
+            ]
+          },
+          "reason": "",
+          "ttl": 500,
+          "age_ms": 86.60000038146973,
+          "receipt": 56
+        },
+        "joints": {
+          "value": {
+            "producer": "c3.supplied-pose",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-2",
+            "calibration_id": "synthetic-calibration",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {
+              "collision_model": "BODY_BOX",
+              "visual_joints": "SYNTHETIC_DISPLAY_ONLY"
+            },
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "ref": "9007199254740993",
+            "positions_rad": {
+              "FL_calf_joint": -1.5,
+              "FL_hip_joint": 0,
+              "FL_thigh_joint": 0.75,
+              "FR_calf_joint": -1.5,
+              "FR_hip_joint": 0,
+              "FR_thigh_joint": 0.75,
+              "RL_calf_joint": -1.5,
+              "RL_hip_joint": 0,
+              "RL_thigh_joint": 0.75,
+              "RR_calf_joint": -1.5,
+              "RR_hip_joint": 0,
+              "RR_thigh_joint": 0.75
+            }
+          },
+          "reason": "",
+          "ttl": 1200,
+          "age_ms": 86.60000038146973,
+          "receipt": 56
+        },
+        "sources": [
+          {
+            "id": "LIDAR",
+            "kind": "LIDAR",
+            "value": {
+              "producer": "c3.synthetic-input",
+              "evidence_kind": "SYNTHETIC",
+              "stamp_ns": "9007199254740993",
+              "clock_domain": "synthetic-host-correspondence",
+              "source_epoch": "sensor-2",
+              "calibration_id": "synthetic-calibration",
+              "sequence": 1,
+              "frame_key": {
+                "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+                "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "frame_id": "map"
+              },
+              "provenance": {
+                "kind": "SYNTHETIC_INPUT"
+              },
+              "sensor_age_ms": null,
+              "host_clock_id": "test-host",
+              "receipt_source_ns": "9007199254740993",
+              "id": "LIDAR",
+              "kind": "LIDAR",
+              "points_m": [
+                [
+                  0.44,
+                  -0.02,
+                  0.27999999999999997
+                ],
+                [
+                  0.44,
+                  -0.02,
+                  0.32
+                ],
+                [
+                  0.44,
+                  0.02,
+                  0.27999999999999997
+                ],
+                [
+                  0.44,
+                  0.02,
+                  0.32
+                ],
+                [
+                  0.46,
+                  -0.02,
+                  0.27999999999999997
+                ],
+                [
+                  0.46,
+                  -0.02,
+                  0.32
+                ],
+                [
+                  0.46,
+                  0.02,
+                  0.27999999999999997
+                ],
+                [
+                  0.46,
+                  0.02,
+                  0.32
+                ]
+              ],
+              "origin_m": [
+                0.08,
+                0,
+                0.4
+              ],
+              "health": "OK"
+            },
+            "reason": "",
+            "ttl": 1200,
+            "age_ms": 86.60000038146973,
+            "receipt": 56
+          }
+        ],
+        "obstacles": {
+          "value": {
+            "producer": "d2.offline",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-2",
+            "calibration_id": "synthetic-calibration",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {
+              "age_status": "CALLER_MAPPED",
+              "coverage": "PARTIAL",
+              "motion_compensated": false,
+              "reasons": [
+                "SELF_GEOMETRY_UNKNOWN",
+                "GROUND_UNKNOWN"
+              ],
+              "source_age_ns": 0
+            },
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "obstacles": [
+              {
+                "track_id": "track-1-1",
+                "class_name": "unknown",
+                "class_score": null,
+                "state": "OBSERVED",
+                "novelty": "UNRESOLVED",
+                "sensor_support": [
+                  "LIDAR"
+                ],
+                "geometry": {
+                  "center_m": [
+                    0.45,
+                    0,
+                    0.3
+                  ],
+                  "extent_m": [
+                    0.08000000000000002,
+                    0.1,
+                    0.10000000000000003
+                  ],
+                  "orientation_xyzw": [
+                    0,
+                    0,
+                    0,
+                    1
+                  ]
+                },
+                "provenance": {
+                  "field_layout": null,
+                  "motion_compensated": false,
+                  "point_count": 8,
+                  "source": {
+                    "calibration_id": "synthetic-calibration",
+                    "clock_domain": "synthetic-host-correspondence",
+                    "evidence_kind": "SYNTHETIC",
+                    "frame_key": {
+                      "frame_id": "map",
+                      "source_epoch": "sensor-2"
+                    },
+                    "health": "OK",
+                    "host_clock_id": "test-host",
+                    "kind": "LIDAR",
+                    "map_binding": {
+                      "generation": 2,
+                      "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+                      "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                    },
+                    "origin_m": [
+                      0.08,
+                      0,
+                      0.4
+                    ],
+                    "points_m": [
+                      [
+                        0.44,
+                        -0.02,
+                        0.27999999999999997
+                      ],
+                      [
+                        0.44,
+                        -0.02,
+                        0.32
+                      ],
+                      [
+                        0.44,
+                        0.02,
+                        0.27999999999999997
+                      ],
+                      [
+                        0.44,
+                        0.02,
+                        0.32
+                      ],
+                      [
+                        0.46,
+                        -0.02,
+                        0.27999999999999997
+                      ],
+                      [
+                        0.46,
+                        -0.02,
+                        0.32
+                      ],
+                      [
+                        0.46,
+                        0.02,
+                        0.27999999999999997
+                      ],
+                      [
+                        0.46,
+                        0.02,
+                        0.32
+                      ]
+                    ],
+                    "producer": "c3.synthetic-input",
+                    "provenance": {
+                      "kind": "SYNTHETIC_INPUT"
+                    },
+                    "received_monotonic_ns": "9007199254740993",
+                    "schema_version": "0.1",
+                    "sensor_id": "LIDAR",
+                    "sequence": 1,
+                    "source_age_ns": 0,
+                    "source_epoch": "sensor-2",
+                    "stamp_ns": "9007199254740993"
+                  }
+                }
+              }
+            ],
+            "suppressed": 0,
+            "published_to_nav2": false,
+            "costmap_ingestion_observed": false,
+            "controller_consumption_observed": false,
+            "canonical": true
+          },
+          "reason": "",
+          "ttl": 1200,
+          "age_ms": 86.60000038146973,
+          "receipt": 56
+        },
+        "path": {
+          "value": {
+            "producer": "c3.supplied-path",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-2",
+            "calibration_id": "",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {
+              "state": "SYNTHETIC_SUPPLIED"
+            },
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "generation": "plan-2",
+            "reason": "SUPPLIED_SYNTHETIC",
+            "representation": "XYZ",
+            "points_m": [
+              [
+                0,
+                0,
+                0.3
+              ],
+              [
+                0,
+                0,
+                0.3
+              ]
+            ]
+          },
+          "reason": "",
+          "ttl": 5000,
+          "age_ms": 86.60000038146973,
+          "receipt": 56
+        },
+        "local": {
+          "value": null,
+          "reason": "MISSING",
+          "ttl": 5000
+        },
+        "costmaps": [
+          {
+            "value": {
+              "producer": "c3.supplied-costmap",
+              "evidence_kind": "SYNTHETIC",
+              "stamp_ns": "9007199254740993",
+              "clock_domain": "synthetic-host-correspondence",
+              "source_epoch": "sensor-2",
+              "calibration_id": "",
+              "sequence": 1,
+              "frame_key": {
+                "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+                "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "frame_id": "map"
+              },
+              "provenance": {
+                "state": "SYNTHETIC_SUPPLIED"
+              },
+              "sensor_age_ms": null,
+              "host_clock_id": "test-host",
+              "receipt_source_ns": "9007199254740993",
+              "id": "synthetic-costmap",
+              "width": 2,
+              "height": 2,
+              "origin": [
+                0,
+                0,
+                0
+              ],
+              "resolution_m": 0.2,
+              "plane_z_m": 0,
+              "representation": "2D_GROUND_PLANE",
+              "cells": [
+                0,
+                254,
+                -1,
+                0
+              ]
+            },
+            "reason": "",
+            "ttl": 1500,
+            "age_ms": 86.60000038146973,
+            "receipt": 56
+          }
+        ],
+        "collision": {
+          "value": {
+            "producer": "d3.collision_geometry_core",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-2",
+            "calibration_id": "synthetic-calibration",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {},
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "canonical": true,
+            "severity": "UNKNOWN",
+            "reason": "UNKNOWN",
+            "contact_state": "CONTACT_UNCONFIRMED",
+            "min_clearance_m": 0.012000000000000018,
+            "modeled_ttc_s": null,
+            "robot_geometry_hash": "97cf7803f6e642be65d4cbaaf1e3e6ce1f7dc96b217f659ee403859cbf85ec6f",
+            "validity_interval": {
+              "end_monotonic_ns": "9007199504740993",
+              "host_clock_id": "test-host",
+              "start_monotonic_ns": "9007199254740993"
+            },
+            "freshness": {
+              "clock_mapping": {
+                "host_clock_id": "test-host",
+                "host_ns": "9007199254740993",
+                "kind": "SYNTHETIC_IDENTITY_ONLY",
+                "sensor_ns": "9007199254740993",
+                "source_epoch": "sensor-2"
+              },
+              "coverage": "SPARSE",
+              "issues": [
+                "SPARSE_COVERAGE_NOT_FREE_SPACE"
+              ],
+              "joint_age_s": 0,
+              "obstacle_age_s": 0,
+              "original_validity_interval": {
+                "clock_domain": "synthetic-host-correspondence",
+                "from_ns": "9007199254740993",
+                "until_ns": "9007199504740993"
+              },
+              "pose_age_s": 0,
+              "protection_mode": "ADVISORY_ONLY"
+            },
+            "coverage": "SPARSE",
+            "protection_mode": "ADVISORY_ONLY",
+            "recommendation": "HOLD_FOR_VALID_INPUT",
+            "padded_envelope": {
+              "command_arc_approximation_bound_m": 0,
+              "continuous_clearance_lower_bound": 0.012000000000000018,
+              "future_joints": "HELD_CURRENT_NOT_GAIT_PREDICTION",
+              "future_obstacles": "HELD_CURRENT_NOT_MOTION_PREDICTION",
+              "gait_margin_m": 0,
+              "joint_uncertainty_m": 0,
+              "mesh_backend": "NOT_RUN",
+              "min_clearance": 0.012000000000000018,
+              "overlap": false,
+              "padding_m": 0.03,
+              "pose_uncertainty_m": 0.01,
+              "samples": 2,
+              "support_pairs": [],
+              "sweep_displacement_bound_m": 0,
+              "unmodeled": []
+            },
+            "unpadded_envelope": {
+              "distance_kind": "conservative_signed_lower_bound_m",
+              "geometry_source_hash": "11f5183cd2c92c5a786c0f624aec095429b0967e5b27b9a6b60ca668d0441a10",
+              "min_clearance": 0.05200000000000002,
+              "overlap": false,
+              "provenance": "SYNTHETIC_body_box_NOT_official_visual_collision_equivalence"
+            },
+            "envelopes": [],
+            "envelope_geometry_status": "UNAVAILABLE"
+          },
+          "reason": "",
+          "ttl": 500,
+          "age_ms": 86.60000038146973,
+          "receipt": 56,
+          "expires": 300.2999997138977
+        },
+        "ready": true,
+        "contextKey": "aaaaaaaaaaaaaaaaaaaaaaaa|bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb|map|sensor-2|scene-2|synthetic-host-correspondence|synthetic-calibration|m|2",
+        "history": [
+          {
+            "value": {
+              "producer": "c3.supplied-path",
+              "evidence_kind": "SYNTHETIC",
+              "stamp_ns": "9007199254740993",
+              "clock_domain": "synthetic-host-correspondence",
+              "source_epoch": "sensor-2",
+              "calibration_id": "",
+              "sequence": 1,
+              "frame_key": {
+                "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+                "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "frame_id": "map"
+              },
+              "provenance": {
+                "state": "SYNTHETIC_SUPPLIED"
+              },
+              "sensor_age_ms": null,
+              "host_clock_id": "test-host",
+              "receipt_source_ns": "9007199254740993",
+              "generation": "plan-2",
+              "reason": "SUPPLIED_SYNTHETIC",
+              "representation": "XYZ",
+              "points_m": [
+                [
+                  0,
+                  0,
+                  0.3
+                ],
+                [
+                  0,
+                  0,
+                  0.3
+                ]
+              ]
+            },
+            "reason": "",
+            "ttl": 5000,
+            "age_ms": 86.60000038146973,
+            "receipt": 56
+          }
+        ],
+        "lastRejection": ""
+      },
+      "diagnostics": {
+        "accepted": 1,
+        "rejected": 0,
+        "resets": 1,
+        "history": 1,
+        "retainedPackets": 1,
+        "lastSequence": 5,
+        "error": "",
+        "geometryCopies": 7,
+        "cachedLayers": 7,
+        "received": 1,
+        "rendered": 1,
+        "dropped": 0,
+        "pending": 0,
+        "maxPending": 1,
+        "maxDrawMs": 1,
+        "paused": true,
+        "destroyed": false,
+        "boxScratchBytes": 192,
+        "renderedObjects": 1
+      }
+    },
+    {
+      "name": "UNKNOWN_PARTIAL",
+      "result": "PASS",
+      "endpoint_sha256": "33c0681fd47c6fc64cd79d1bfa7ba9bc5f9928dfdaf8f797c1620acc683ed630",
+      "view": {
+        "producer": "c1-scene",
+        "evidence_kind": "SYNTHETIC",
+        "stamp_ns": "9007199254740993",
+        "clock_domain": "synthetic-host-correspondence",
+        "source_epoch": "sensor-3",
+        "calibration_id": "synthetic-calibration",
+        "sequence": 5,
+        "frame_key": null,
+        "provenance": {
+          "c1_source_epoch": "scene-3"
+        },
+        "sensor_age_ms": null,
+        "host_clock_id": "",
+        "receipt_source_ns": "",
+        "stream_epoch": "scene-3",
+        "protection": {
+          "mode": "ADVISORY_ONLY",
+          "transition": "",
+          "recommendation": "HOLD_FOR_VALID_INPUT"
+        },
+        "source_mode": "ACTUAL_C1_SERVICE",
+        "availability": {
+          "reference_cloud": "UNAVAILABLE",
+          "sensor_clouds": "SUPPLIED_SYNTHETIC_OR_REPLAY",
+          "sensor_origins": "SUPPLIED",
+          "bulk_references": "NO_C1_RESOLVER_CONTRACT",
+          "collision": {
+            "clock_mapping": {
+              "host_clock_id": "test-host",
+              "host_ns": "9007199254740993",
+              "kind": "SYNTHETIC_IDENTITY_ONLY",
+              "sensor_ns": "9007199254740993",
+              "source_epoch": "sensor-3"
+            },
+            "coverage": "SPARSE",
+            "issues": [
+              "SPARSE_COVERAGE_NOT_FREE_SPACE"
+            ],
+            "joint_age_s": 0,
+            "obstacle_age_s": 0,
+            "original_validity_interval": {
+              "clock_domain": "synthetic-host-correspondence",
+              "from_ns": "9007199254740993",
+              "until_ns": "9007199504740993"
+            },
+            "pose_age_s": 0,
+            "protection_mode": "ADVISORY_ONLY"
+          },
+          "errors": []
+        },
+        "map_identity": {
+          "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+          "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "generation": 3,
+          "frame_id": "map",
+          "source_epoch": "sensor-3",
+          "stream_epoch": "scene-3",
+          "clock_domain": "synthetic-host-correspondence",
+          "calibration_id": "synthetic-calibration",
+          "units": "m",
+          "source_identity": "SYNTHETIC_SELECTED_IDENTITY_NOT_D1_MERGED_ARTIFACT"
+        },
+        "pose": {
+          "value": {
+            "producer": "c3.supplied-pose",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-3",
+            "calibration_id": "synthetic-calibration",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {
+              "collision_model": "BODY_BOX",
+              "visual_joints": "SYNTHETIC_DISPLAY_ONLY"
+            },
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "ref": "sensor-3:1",
+            "position_m": [
+              0,
+              0,
+              0.3
+            ],
+            "rpy_rad": [
+              0,
+              0,
+              0
+            ]
+          },
+          "reason": "",
+          "ttl": 500,
+          "age_ms": 77.19999980926514,
+          "receipt": 61.80000019073486
+        },
+        "joints": {
+          "value": {
+            "producer": "c3.supplied-pose",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-3",
+            "calibration_id": "synthetic-calibration",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {
+              "collision_model": "BODY_BOX",
+              "visual_joints": "SYNTHETIC_DISPLAY_ONLY"
+            },
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "ref": "9007199254740993",
+            "positions_rad": {
+              "FL_calf_joint": -1.5,
+              "FL_hip_joint": 0,
+              "FL_thigh_joint": 0.75,
+              "FR_calf_joint": -1.5,
+              "FR_hip_joint": 0,
+              "FR_thigh_joint": 0.75,
+              "RL_calf_joint": -1.5,
+              "RL_hip_joint": 0,
+              "RL_thigh_joint": 0.75,
+              "RR_calf_joint": -1.5,
+              "RR_hip_joint": 0,
+              "RR_thigh_joint": 0.75
+            }
+          },
+          "reason": "",
+          "ttl": 1200,
+          "age_ms": 77.19999980926514,
+          "receipt": 61.80000019073486
+        },
+        "sources": [
+          {
+            "id": "LIDAR",
+            "kind": "LIDAR",
+            "value": {
+              "producer": "c3.synthetic-input",
+              "evidence_kind": "SYNTHETIC",
+              "stamp_ns": "9007199254740993",
+              "clock_domain": "synthetic-host-correspondence",
+              "source_epoch": "sensor-3",
+              "calibration_id": "synthetic-calibration",
+              "sequence": 1,
+              "frame_key": {
+                "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+                "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "frame_id": "map"
+              },
+              "provenance": {
+                "kind": "SYNTHETIC_INPUT"
+              },
+              "sensor_age_ms": null,
+              "host_clock_id": "test-host",
+              "receipt_source_ns": "9007199254740993",
+              "id": "LIDAR",
+              "kind": "LIDAR",
+              "points_m": [
+                [
+                  2,
+                  -0.02,
+                  0.27999999999999997
+                ],
+                [
+                  2,
+                  -0.02,
+                  0.32
+                ],
+                [
+                  2,
+                  0.02,
+                  0.27999999999999997
+                ],
+                [
+                  2,
+                  0.02,
+                  0.32
+                ],
+                [
+                  2.02,
+                  -0.02,
+                  0.27999999999999997
+                ],
+                [
+                  2.02,
+                  -0.02,
+                  0.32
+                ],
+                [
+                  2.02,
+                  0.02,
+                  0.27999999999999997
+                ],
+                [
+                  2.02,
+                  0.02,
+                  0.32
+                ]
+              ],
+              "origin_m": [
+                0.08,
+                0,
+                0.4
+              ],
+              "health": "OK"
+            },
+            "reason": "",
+            "ttl": 1200,
+            "age_ms": 77.19999980926514,
+            "receipt": 61.80000019073486
+          }
+        ],
+        "obstacles": {
+          "value": {
+            "producer": "d2.offline",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-3",
+            "calibration_id": "synthetic-calibration",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {
+              "age_status": "CALLER_MAPPED",
+              "coverage": "PARTIAL",
+              "motion_compensated": false,
+              "reasons": [
+                "SELF_GEOMETRY_UNKNOWN",
+                "GROUND_UNKNOWN"
+              ],
+              "source_age_ns": 0
+            },
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "obstacles": [
+              {
+                "track_id": "track-1-1",
+                "class_name": "unknown",
+                "class_score": null,
+                "state": "OBSERVED",
+                "novelty": "UNRESOLVED",
+                "sensor_support": [
+                  "LIDAR"
+                ],
+                "geometry": {
+                  "center_m": [
+                    2.01,
+                    0,
+                    0.3
+                  ],
+                  "extent_m": [
+                    0.08000000000000002,
+                    0.1,
+                    0.10000000000000003
+                  ],
+                  "orientation_xyzw": [
+                    0,
+                    0,
+                    0,
+                    1
+                  ]
+                },
+                "provenance": {
+                  "field_layout": null,
+                  "motion_compensated": false,
+                  "point_count": 8,
+                  "source": {
+                    "calibration_id": "synthetic-calibration",
+                    "clock_domain": "synthetic-host-correspondence",
+                    "evidence_kind": "SYNTHETIC",
+                    "frame_key": {
+                      "frame_id": "map",
+                      "source_epoch": "sensor-3"
+                    },
+                    "health": "OK",
+                    "host_clock_id": "test-host",
+                    "kind": "LIDAR",
+                    "map_binding": {
+                      "generation": 3,
+                      "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+                      "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                    },
+                    "origin_m": [
+                      0.08,
+                      0,
+                      0.4
+                    ],
+                    "points_m": [
+                      [
+                        2,
+                        -0.02,
+                        0.27999999999999997
+                      ],
+                      [
+                        2,
+                        -0.02,
+                        0.32
+                      ],
+                      [
+                        2,
+                        0.02,
+                        0.27999999999999997
+                      ],
+                      [
+                        2,
+                        0.02,
+                        0.32
+                      ],
+                      [
+                        2.02,
+                        -0.02,
+                        0.27999999999999997
+                      ],
+                      [
+                        2.02,
+                        -0.02,
+                        0.32
+                      ],
+                      [
+                        2.02,
+                        0.02,
+                        0.27999999999999997
+                      ],
+                      [
+                        2.02,
+                        0.02,
+                        0.32
+                      ]
+                    ],
+                    "producer": "c3.synthetic-input",
+                    "provenance": {
+                      "kind": "SYNTHETIC_INPUT"
+                    },
+                    "received_monotonic_ns": "9007199254740993",
+                    "schema_version": "0.1",
+                    "sensor_id": "LIDAR",
+                    "sequence": 1,
+                    "source_age_ns": 0,
+                    "source_epoch": "sensor-3",
+                    "stamp_ns": "9007199254740993"
+                  }
+                }
+              }
+            ],
+            "suppressed": 0,
+            "published_to_nav2": false,
+            "costmap_ingestion_observed": false,
+            "controller_consumption_observed": false,
+            "canonical": true
+          },
+          "reason": "",
+          "ttl": 1200,
+          "age_ms": 77.19999980926514,
+          "receipt": 61.80000019073486
+        },
+        "path": {
+          "value": {
+            "producer": "c3.supplied-path",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-3",
+            "calibration_id": "",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {
+              "state": "SYNTHETIC_SUPPLIED"
+            },
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "generation": "plan-3",
+            "reason": "SUPPLIED_SYNTHETIC",
+            "representation": "XYZ",
+            "points_m": [
+              [
+                0,
+                0,
+                0.3
+              ],
+              [
+                0,
+                0,
+                0.3
+              ]
+            ]
+          },
+          "reason": "",
+          "ttl": 5000,
+          "age_ms": 77.19999980926514,
+          "receipt": 61.80000019073486
+        },
+        "local": {
+          "value": null,
+          "reason": "MISSING",
+          "ttl": 5000
+        },
+        "costmaps": [
+          {
+            "value": {
+              "producer": "c3.supplied-costmap",
+              "evidence_kind": "SYNTHETIC",
+              "stamp_ns": "9007199254740993",
+              "clock_domain": "synthetic-host-correspondence",
+              "source_epoch": "sensor-3",
+              "calibration_id": "",
+              "sequence": 1,
+              "frame_key": {
+                "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+                "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "frame_id": "map"
+              },
+              "provenance": {
+                "state": "SYNTHETIC_SUPPLIED"
+              },
+              "sensor_age_ms": null,
+              "host_clock_id": "test-host",
+              "receipt_source_ns": "9007199254740993",
+              "id": "synthetic-costmap",
+              "width": 2,
+              "height": 2,
+              "origin": [
+                0,
+                0,
+                0
+              ],
+              "resolution_m": 0.2,
+              "plane_z_m": 0,
+              "representation": "2D_GROUND_PLANE",
+              "cells": [
+                0,
+                254,
+                -1,
+                0
+              ]
+            },
+            "reason": "",
+            "ttl": 1500,
+            "age_ms": 77.19999980926514,
+            "receipt": 61.80000019073486
+          }
+        ],
+        "collision": {
+          "value": {
+            "producer": "d3.collision_geometry_core",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-3",
+            "calibration_id": "synthetic-calibration",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {},
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "canonical": true,
+            "severity": "UNKNOWN",
+            "reason": "UNKNOWN",
+            "contact_state": "CONTACT_UNCONFIRMED",
+            "min_clearance_m": 1.5719999999999996,
+            "modeled_ttc_s": null,
+            "robot_geometry_hash": "97cf7803f6e642be65d4cbaaf1e3e6ce1f7dc96b217f659ee403859cbf85ec6f",
+            "validity_interval": {
+              "end_monotonic_ns": "9007199504740993",
+              "host_clock_id": "test-host",
+              "start_monotonic_ns": "9007199254740993"
+            },
+            "freshness": {
+              "clock_mapping": {
+                "host_clock_id": "test-host",
+                "host_ns": "9007199254740993",
+                "kind": "SYNTHETIC_IDENTITY_ONLY",
+                "sensor_ns": "9007199254740993",
+                "source_epoch": "sensor-3"
+              },
+              "coverage": "SPARSE",
+              "issues": [
+                "SPARSE_COVERAGE_NOT_FREE_SPACE"
+              ],
+              "joint_age_s": 0,
+              "obstacle_age_s": 0,
+              "original_validity_interval": {
+                "clock_domain": "synthetic-host-correspondence",
+                "from_ns": "9007199254740993",
+                "until_ns": "9007199504740993"
+              },
+              "pose_age_s": 0,
+              "protection_mode": "ADVISORY_ONLY"
+            },
+            "coverage": "SPARSE",
+            "protection_mode": "ADVISORY_ONLY",
+            "recommendation": "HOLD_FOR_VALID_INPUT",
+            "padded_envelope": {
+              "command_arc_approximation_bound_m": 0,
+              "continuous_clearance_lower_bound": 1.5719999999999996,
+              "future_joints": "HELD_CURRENT_NOT_GAIT_PREDICTION",
+              "future_obstacles": "HELD_CURRENT_NOT_MOTION_PREDICTION",
+              "gait_margin_m": 0,
+              "joint_uncertainty_m": 0,
+              "mesh_backend": "NOT_RUN",
+              "min_clearance": 1.5719999999999996,
+              "overlap": false,
+              "padding_m": 0.03,
+              "pose_uncertainty_m": 0.01,
+              "samples": 2,
+              "support_pairs": [],
+              "sweep_displacement_bound_m": 0,
+              "unmodeled": []
+            },
+            "unpadded_envelope": {
+              "distance_kind": "conservative_signed_lower_bound_m",
+              "geometry_source_hash": "11f5183cd2c92c5a786c0f624aec095429b0967e5b27b9a6b60ca668d0441a10",
+              "min_clearance": 1.6119999999999997,
+              "overlap": false,
+              "provenance": "SYNTHETIC_body_box_NOT_official_visual_collision_equivalence"
+            },
+            "envelopes": [],
+            "envelope_geometry_status": "UNAVAILABLE"
+          },
+          "reason": "",
+          "ttl": 500,
+          "age_ms": 77.19999980926514,
+          "receipt": 61.80000019073486,
+          "expires": 301.2000002861023
+        },
+        "ready": true,
+        "contextKey": "aaaaaaaaaaaaaaaaaaaaaaaa|bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb|map|sensor-3|scene-3|synthetic-host-correspondence|synthetic-calibration|m|3",
+        "history": [
+          {
+            "value": {
+              "producer": "c3.supplied-path",
+              "evidence_kind": "SYNTHETIC",
+              "stamp_ns": "9007199254740993",
+              "clock_domain": "synthetic-host-correspondence",
+              "source_epoch": "sensor-3",
+              "calibration_id": "",
+              "sequence": 1,
+              "frame_key": {
+                "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+                "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "frame_id": "map"
+              },
+              "provenance": {
+                "state": "SYNTHETIC_SUPPLIED"
+              },
+              "sensor_age_ms": null,
+              "host_clock_id": "test-host",
+              "receipt_source_ns": "9007199254740993",
+              "generation": "plan-3",
+              "reason": "SUPPLIED_SYNTHETIC",
+              "representation": "XYZ",
+              "points_m": [
+                [
+                  0,
+                  0,
+                  0.3
+                ],
+                [
+                  0,
+                  0,
+                  0.3
+                ]
+              ]
+            },
+            "reason": "",
+            "ttl": 5000,
+            "age_ms": 77.19999980926514,
+            "receipt": 61.80000019073486
+          }
+        ],
+        "lastRejection": ""
+      },
+      "diagnostics": {
+        "accepted": 1,
+        "rejected": 0,
+        "resets": 1,
+        "history": 1,
+        "retainedPackets": 1,
+        "lastSequence": 5,
+        "error": "",
+        "geometryCopies": 7,
+        "cachedLayers": 7,
+        "received": 1,
+        "rendered": 4,
+        "dropped": 0,
+        "pending": 0,
+        "maxPending": 1,
+        "maxDrawMs": 0.5999999046325684,
+        "paused": true,
+        "destroyed": false,
+        "boxScratchBytes": 192,
+        "renderedObjects": 1
+      }
+    },
+    {
+      "name": "SCOPED_SYNTHETIC_CLEAR",
+      "result": "PASS",
+      "endpoint_sha256": "c29f859ef85d13736e9823636303c995e8dc9f810e7948ba4c077dffd6833aa7",
+      "view": {
+        "producer": "c1-scene",
+        "evidence_kind": "SYNTHETIC",
+        "stamp_ns": "9007199254740993",
+        "clock_domain": "synthetic-host-correspondence",
+        "source_epoch": "sensor-4",
+        "calibration_id": "synthetic-calibration",
+        "sequence": 5,
+        "frame_key": null,
+        "provenance": {
+          "c1_source_epoch": "scene-4"
+        },
+        "sensor_age_ms": null,
+        "host_clock_id": "",
+        "receipt_source_ns": "",
+        "stream_epoch": "scene-4",
+        "protection": {
+          "mode": "ADVISORY_ONLY",
+          "transition": "",
+          "recommendation": "MODEL_ONLY_NOT_SAFETY_CERTIFIED"
+        },
+        "source_mode": "ACTUAL_C1_SERVICE",
+        "availability": {
+          "reference_cloud": "UNAVAILABLE",
+          "sensor_clouds": "SUPPLIED_SYNTHETIC_OR_REPLAY",
+          "sensor_origins": "SUPPLIED",
+          "bulk_references": "NO_C1_RESOLVER_CONTRACT",
+          "collision": {
+            "clock_mapping": {
+              "host_clock_id": "test-host",
+              "host_ns": "9007199254740993",
+              "kind": "SYNTHETIC_IDENTITY_ONLY",
+              "sensor_ns": "9007199254740993",
+              "source_epoch": "sensor-4"
+            },
+            "coverage": "COMPLETE_SYNTHETIC",
+            "joint_age_s": 0,
+            "obstacle_age_s": 0,
+            "original_validity_interval": {
+              "clock_domain": "synthetic-host-correspondence",
+              "from_ns": "9007199254740993",
+              "until_ns": "9007199504740993"
+            },
+            "pose_age_s": 0,
+            "protection_mode": "ADVISORY_ONLY"
+          },
+          "errors": []
+        },
+        "map_identity": {
+          "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+          "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "generation": 4,
+          "frame_id": "map",
+          "source_epoch": "sensor-4",
+          "stream_epoch": "scene-4",
+          "clock_domain": "synthetic-host-correspondence",
+          "calibration_id": "synthetic-calibration",
+          "units": "m",
+          "source_identity": "SYNTHETIC_SELECTED_IDENTITY_NOT_D1_MERGED_ARTIFACT"
+        },
+        "pose": {
+          "value": {
+            "producer": "c3.supplied-pose",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-4",
+            "calibration_id": "synthetic-calibration",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {
+              "collision_model": "BODY_BOX",
+              "visual_joints": "SYNTHETIC_DISPLAY_ONLY"
+            },
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "ref": "sensor-4:1",
+            "position_m": [
+              0,
+              0,
+              0.3
+            ],
+            "rpy_rad": [
+              0,
+              0,
+              0
+            ]
+          },
+          "reason": "",
+          "ttl": 500,
+          "age_ms": 79.50000047683716,
+          "receipt": 70.5
+        },
+        "joints": {
+          "value": {
+            "producer": "c3.supplied-pose",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-4",
+            "calibration_id": "synthetic-calibration",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {
+              "collision_model": "BODY_BOX",
+              "visual_joints": "SYNTHETIC_DISPLAY_ONLY"
+            },
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "ref": "9007199254740993",
+            "positions_rad": {
+              "FL_calf_joint": -1.5,
+              "FL_hip_joint": 0,
+              "FL_thigh_joint": 0.75,
+              "FR_calf_joint": -1.5,
+              "FR_hip_joint": 0,
+              "FR_thigh_joint": 0.75,
+              "RL_calf_joint": -1.5,
+              "RL_hip_joint": 0,
+              "RL_thigh_joint": 0.75,
+              "RR_calf_joint": -1.5,
+              "RR_hip_joint": 0,
+              "RR_thigh_joint": 0.75
+            }
+          },
+          "reason": "",
+          "ttl": 1200,
+          "age_ms": 79.50000047683716,
+          "receipt": 70.5
+        },
+        "sources": [
+          {
+            "id": "LIDAR",
+            "kind": "LIDAR",
+            "value": {
+              "producer": "c3.synthetic-input",
+              "evidence_kind": "SYNTHETIC",
+              "stamp_ns": "9007199254740993",
+              "clock_domain": "synthetic-host-correspondence",
+              "source_epoch": "sensor-4",
+              "calibration_id": "synthetic-calibration",
+              "sequence": 1,
+              "frame_key": {
+                "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+                "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "frame_id": "map"
+              },
+              "provenance": {
+                "kind": "SYNTHETIC_INPUT"
+              },
+              "sensor_age_ms": null,
+              "host_clock_id": "test-host",
+              "receipt_source_ns": "9007199254740993",
+              "id": "LIDAR",
+              "kind": "LIDAR",
+              "points_m": [
+                [
+                  2,
+                  -0.02,
+                  0.27999999999999997
+                ],
+                [
+                  2,
+                  -0.02,
+                  0.32
+                ],
+                [
+                  2,
+                  0.02,
+                  0.27999999999999997
+                ],
+                [
+                  2,
+                  0.02,
+                  0.32
+                ],
+                [
+                  2.02,
+                  -0.02,
+                  0.27999999999999997
+                ],
+                [
+                  2.02,
+                  -0.02,
+                  0.32
+                ],
+                [
+                  2.02,
+                  0.02,
+                  0.27999999999999997
+                ],
+                [
+                  2.02,
+                  0.02,
+                  0.32
+                ]
+              ],
+              "origin_m": [
+                0.08,
+                0,
+                0.4
+              ],
+              "health": "OK"
+            },
+            "reason": "",
+            "ttl": 1200,
+            "age_ms": 79.50000047683716,
+            "receipt": 70.5
+          }
+        ],
+        "obstacles": {
+          "value": {
+            "producer": "d2.offline",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-4",
+            "calibration_id": "synthetic-calibration",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {
+              "age_status": "CALLER_MAPPED",
+              "coverage": "PARTIAL",
+              "motion_compensated": false,
+              "reasons": [
+                "SELF_GEOMETRY_UNKNOWN",
+                "GROUND_UNKNOWN"
+              ],
+              "source_age_ns": 0
+            },
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "obstacles": [
+              {
+                "track_id": "track-1-1",
+                "class_name": "unknown",
+                "class_score": null,
+                "state": "OBSERVED",
+                "novelty": "UNRESOLVED",
+                "sensor_support": [
+                  "LIDAR"
+                ],
+                "geometry": {
+                  "center_m": [
+                    2.01,
+                    0,
+                    0.3
+                  ],
+                  "extent_m": [
+                    0.08000000000000002,
+                    0.1,
+                    0.10000000000000003
+                  ],
+                  "orientation_xyzw": [
+                    0,
+                    0,
+                    0,
+                    1
+                  ]
+                },
+                "provenance": {
+                  "field_layout": null,
+                  "motion_compensated": false,
+                  "point_count": 8,
+                  "source": {
+                    "calibration_id": "synthetic-calibration",
+                    "clock_domain": "synthetic-host-correspondence",
+                    "evidence_kind": "SYNTHETIC",
+                    "frame_key": {
+                      "frame_id": "map",
+                      "source_epoch": "sensor-4"
+                    },
+                    "health": "OK",
+                    "host_clock_id": "test-host",
+                    "kind": "LIDAR",
+                    "map_binding": {
+                      "generation": 4,
+                      "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+                      "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                    },
+                    "origin_m": [
+                      0.08,
+                      0,
+                      0.4
+                    ],
+                    "points_m": [
+                      [
+                        2,
+                        -0.02,
+                        0.27999999999999997
+                      ],
+                      [
+                        2,
+                        -0.02,
+                        0.32
+                      ],
+                      [
+                        2,
+                        0.02,
+                        0.27999999999999997
+                      ],
+                      [
+                        2,
+                        0.02,
+                        0.32
+                      ],
+                      [
+                        2.02,
+                        -0.02,
+                        0.27999999999999997
+                      ],
+                      [
+                        2.02,
+                        -0.02,
+                        0.32
+                      ],
+                      [
+                        2.02,
+                        0.02,
+                        0.27999999999999997
+                      ],
+                      [
+                        2.02,
+                        0.02,
+                        0.32
+                      ]
+                    ],
+                    "producer": "c3.synthetic-input",
+                    "provenance": {
+                      "kind": "SYNTHETIC_INPUT"
+                    },
+                    "received_monotonic_ns": "9007199254740993",
+                    "schema_version": "0.1",
+                    "sensor_id": "LIDAR",
+                    "sequence": 1,
+                    "source_age_ns": 0,
+                    "source_epoch": "sensor-4",
+                    "stamp_ns": "9007199254740993"
+                  }
+                }
+              }
+            ],
+            "suppressed": 0,
+            "published_to_nav2": false,
+            "costmap_ingestion_observed": false,
+            "controller_consumption_observed": false,
+            "canonical": true
+          },
+          "reason": "",
+          "ttl": 1200,
+          "age_ms": 79.50000047683716,
+          "receipt": 70.5
+        },
+        "path": {
+          "value": {
+            "producer": "c3.supplied-path",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-4",
+            "calibration_id": "",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {
+              "state": "SYNTHETIC_SUPPLIED"
+            },
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "generation": "plan-4",
+            "reason": "SUPPLIED_SYNTHETIC",
+            "representation": "XYZ",
+            "points_m": [
+              [
+                0,
+                0,
+                0.3
+              ],
+              [
+                0,
+                0,
+                0.3
+              ]
+            ]
+          },
+          "reason": "",
+          "ttl": 5000,
+          "age_ms": 79.50000047683716,
+          "receipt": 70.5
+        },
+        "local": {
+          "value": null,
+          "reason": "MISSING",
+          "ttl": 5000
+        },
+        "costmaps": [
+          {
+            "value": {
+              "producer": "c3.supplied-costmap",
+              "evidence_kind": "SYNTHETIC",
+              "stamp_ns": "9007199254740993",
+              "clock_domain": "synthetic-host-correspondence",
+              "source_epoch": "sensor-4",
+              "calibration_id": "",
+              "sequence": 1,
+              "frame_key": {
+                "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+                "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "frame_id": "map"
+              },
+              "provenance": {
+                "state": "SYNTHETIC_SUPPLIED"
+              },
+              "sensor_age_ms": null,
+              "host_clock_id": "test-host",
+              "receipt_source_ns": "9007199254740993",
+              "id": "synthetic-costmap",
+              "width": 2,
+              "height": 2,
+              "origin": [
+                0,
+                0,
+                0
+              ],
+              "resolution_m": 0.2,
+              "plane_z_m": 0,
+              "representation": "2D_GROUND_PLANE",
+              "cells": [
+                0,
+                254,
+                -1,
+                0
+              ]
+            },
+            "reason": "",
+            "ttl": 1500,
+            "age_ms": 79.50000047683716,
+            "receipt": 70.5
+          }
+        ],
+        "collision": {
+          "value": {
+            "producer": "d3.collision_geometry_core",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-4",
+            "calibration_id": "synthetic-calibration",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {},
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "canonical": true,
+            "severity": "CLEAR",
+            "reason": "CLEAR",
+            "contact_state": "CONTACT_UNCONFIRMED",
+            "min_clearance_m": 1.5719999999999996,
+            "modeled_ttc_s": null,
+            "robot_geometry_hash": "97cf7803f6e642be65d4cbaaf1e3e6ce1f7dc96b217f659ee403859cbf85ec6f",
+            "validity_interval": {
+              "end_monotonic_ns": "9007199504740993",
+              "host_clock_id": "test-host",
+              "start_monotonic_ns": "9007199254740993"
+            },
+            "freshness": {
+              "clock_mapping": {
+                "host_clock_id": "test-host",
+                "host_ns": "9007199254740993",
+                "kind": "SYNTHETIC_IDENTITY_ONLY",
+                "sensor_ns": "9007199254740993",
+                "source_epoch": "sensor-4"
+              },
+              "coverage": "COMPLETE_SYNTHETIC",
+              "joint_age_s": 0,
+              "obstacle_age_s": 0,
+              "original_validity_interval": {
+                "clock_domain": "synthetic-host-correspondence",
+                "from_ns": "9007199254740993",
+                "until_ns": "9007199504740993"
+              },
+              "pose_age_s": 0,
+              "protection_mode": "ADVISORY_ONLY"
+            },
+            "coverage": "COMPLETE_SYNTHETIC",
+            "protection_mode": "ADVISORY_ONLY",
+            "recommendation": "MODEL_ONLY_NOT_SAFETY_CERTIFIED",
+            "padded_envelope": {
+              "command_arc_approximation_bound_m": 0,
+              "continuous_clearance_lower_bound": 1.5719999999999996,
+              "future_joints": "HELD_CURRENT_NOT_GAIT_PREDICTION",
+              "future_obstacles": "HELD_CURRENT_NOT_MOTION_PREDICTION",
+              "gait_margin_m": 0,
+              "joint_uncertainty_m": 0,
+              "mesh_backend": "NOT_RUN",
+              "min_clearance": 1.5719999999999996,
+              "overlap": false,
+              "padding_m": 0.03,
+              "pose_uncertainty_m": 0.01,
+              "samples": 2,
+              "support_pairs": [],
+              "sweep_displacement_bound_m": 0,
+              "unmodeled": []
+            },
+            "unpadded_envelope": {
+              "distance_kind": "conservative_signed_lower_bound_m",
+              "geometry_source_hash": "11f5183cd2c92c5a786c0f624aec095429b0967e5b27b9a6b60ca668d0441a10",
+              "min_clearance": 1.6119999999999997,
+              "overlap": false,
+              "provenance": "SYNTHETIC_body_box_NOT_official_visual_collision_equivalence"
+            },
+            "envelopes": [],
+            "envelope_geometry_status": "UNAVAILABLE"
+          },
+          "reason": "",
+          "ttl": 500,
+          "age_ms": 79.50000047683716,
+          "receipt": 70.5,
+          "expires": 307.69999980926514
+        },
+        "ready": true,
+        "contextKey": "aaaaaaaaaaaaaaaaaaaaaaaa|bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb|map|sensor-4|scene-4|synthetic-host-correspondence|synthetic-calibration|m|4",
+        "history": [
+          {
+            "value": {
+              "producer": "c3.supplied-path",
+              "evidence_kind": "SYNTHETIC",
+              "stamp_ns": "9007199254740993",
+              "clock_domain": "synthetic-host-correspondence",
+              "source_epoch": "sensor-4",
+              "calibration_id": "",
+              "sequence": 1,
+              "frame_key": {
+                "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+                "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "frame_id": "map"
+              },
+              "provenance": {
+                "state": "SYNTHETIC_SUPPLIED"
+              },
+              "sensor_age_ms": null,
+              "host_clock_id": "test-host",
+              "receipt_source_ns": "9007199254740993",
+              "generation": "plan-4",
+              "reason": "SUPPLIED_SYNTHETIC",
+              "representation": "XYZ",
+              "points_m": [
+                [
+                  0,
+                  0,
+                  0.3
+                ],
+                [
+                  0,
+                  0,
+                  0.3
+                ]
+              ]
+            },
+            "reason": "",
+            "ttl": 5000,
+            "age_ms": 79.50000047683716,
+            "receipt": 70.5
+          }
+        ],
+        "lastRejection": ""
+      },
+      "diagnostics": {
+        "accepted": 1,
+        "rejected": 0,
+        "resets": 1,
+        "history": 1,
+        "retainedPackets": 1,
+        "lastSequence": 5,
+        "error": "",
+        "geometryCopies": 7,
+        "cachedLayers": 7,
+        "received": 1,
+        "rendered": 2,
+        "dropped": 0,
+        "pending": 0,
+        "maxPending": 1,
+        "maxDrawMs": 0.9000000953674316,
+        "paused": true,
+        "destroyed": false,
+        "boxScratchBytes": 192,
+        "renderedObjects": 1
+      }
+    },
+    {
+      "name": "ACTIVE_UNKNOWN",
+      "result": "PASS",
+      "endpoint_sha256": "62ee74b669fae303a29f5d0645e8a08bae375ebe46a85f6581bf8ec1a1a0fd4c",
+      "view": {
+        "producer": "c1-scene",
+        "evidence_kind": "SYNTHETIC",
+        "stamp_ns": "9007199254740993",
+        "clock_domain": "synthetic-host-correspondence",
+        "source_epoch": "sensor-5",
+        "calibration_id": "synthetic-calibration",
+        "sequence": 5,
+        "frame_key": null,
+        "provenance": {
+          "c1_source_epoch": "scene-5"
+        },
+        "sensor_age_ms": null,
+        "host_clock_id": "",
+        "receipt_source_ns": "",
+        "stream_epoch": "scene-5",
+        "protection": {
+          "mode": "ACTIVE_CONSTRAINT",
+          "transition": "",
+          "recommendation": "HOLD_FOR_VALID_INPUT"
+        },
+        "source_mode": "ACTUAL_C1_SERVICE",
+        "availability": {
+          "reference_cloud": "UNAVAILABLE",
+          "sensor_clouds": "SUPPLIED_SYNTHETIC_OR_REPLAY",
+          "sensor_origins": "SUPPLIED",
+          "bulk_references": "NO_C1_RESOLVER_CONTRACT",
+          "collision": {
+            "clock_mapping": {
+              "host_clock_id": "test-host",
+              "host_ns": "9007199254740993",
+              "kind": "SYNTHETIC_IDENTITY_ONLY",
+              "sensor_ns": "9007199254740993",
+              "source_epoch": "sensor-5"
+            },
+            "coverage": "SPARSE",
+            "issues": [
+              "SPARSE_COVERAGE_NOT_FREE_SPACE"
+            ],
+            "joint_age_s": 0,
+            "obstacle_age_s": 0,
+            "original_validity_interval": {
+              "clock_domain": "synthetic-host-correspondence",
+              "from_ns": "9007199254740993",
+              "until_ns": "9007199504740993"
+            },
+            "pose_age_s": 0,
+            "protection_mode": "ACTIVE_CONSTRAINT"
+          },
+          "errors": []
+        },
+        "map_identity": {
+          "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+          "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "generation": 5,
+          "frame_id": "map",
+          "source_epoch": "sensor-5",
+          "stream_epoch": "scene-5",
+          "clock_domain": "synthetic-host-correspondence",
+          "calibration_id": "synthetic-calibration",
+          "units": "m",
+          "source_identity": "SYNTHETIC_SELECTED_IDENTITY_NOT_D1_MERGED_ARTIFACT"
+        },
+        "pose": {
+          "value": {
+            "producer": "c3.supplied-pose",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-5",
+            "calibration_id": "synthetic-calibration",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {
+              "collision_model": "BODY_BOX",
+              "visual_joints": "SYNTHETIC_DISPLAY_ONLY"
+            },
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "ref": "sensor-5:1",
+            "position_m": [
+              0,
+              0,
+              0.3
+            ],
+            "rpy_rad": [
+              0,
+              0,
+              0
+            ]
+          },
+          "reason": "",
+          "ttl": 500,
+          "age_ms": 44.39999961853027,
+          "receipt": 61
+        },
+        "joints": {
+          "value": {
+            "producer": "c3.supplied-pose",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-5",
+            "calibration_id": "synthetic-calibration",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {
+              "collision_model": "BODY_BOX",
+              "visual_joints": "SYNTHETIC_DISPLAY_ONLY"
+            },
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "ref": "9007199254740993",
+            "positions_rad": {
+              "FL_calf_joint": -1.5,
+              "FL_hip_joint": 0,
+              "FL_thigh_joint": 0.75,
+              "FR_calf_joint": -1.5,
+              "FR_hip_joint": 0,
+              "FR_thigh_joint": 0.75,
+              "RL_calf_joint": -1.5,
+              "RL_hip_joint": 0,
+              "RL_thigh_joint": 0.75,
+              "RR_calf_joint": -1.5,
+              "RR_hip_joint": 0,
+              "RR_thigh_joint": 0.75
+            }
+          },
+          "reason": "",
+          "ttl": 1200,
+          "age_ms": 44.39999961853027,
+          "receipt": 61
+        },
+        "sources": [
+          {
+            "id": "LIDAR",
+            "kind": "LIDAR",
+            "value": {
+              "producer": "c3.synthetic-input",
+              "evidence_kind": "SYNTHETIC",
+              "stamp_ns": "9007199254740993",
+              "clock_domain": "synthetic-host-correspondence",
+              "source_epoch": "sensor-5",
+              "calibration_id": "synthetic-calibration",
+              "sequence": 1,
+              "frame_key": {
+                "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+                "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "frame_id": "map"
+              },
+              "provenance": {
+                "kind": "SYNTHETIC_INPUT"
+              },
+              "sensor_age_ms": null,
+              "host_clock_id": "test-host",
+              "receipt_source_ns": "9007199254740993",
+              "id": "LIDAR",
+              "kind": "LIDAR",
+              "points_m": [
+                [
+                  2,
+                  -0.02,
+                  0.27999999999999997
+                ],
+                [
+                  2,
+                  -0.02,
+                  0.32
+                ],
+                [
+                  2,
+                  0.02,
+                  0.27999999999999997
+                ],
+                [
+                  2,
+                  0.02,
+                  0.32
+                ],
+                [
+                  2.02,
+                  -0.02,
+                  0.27999999999999997
+                ],
+                [
+                  2.02,
+                  -0.02,
+                  0.32
+                ],
+                [
+                  2.02,
+                  0.02,
+                  0.27999999999999997
+                ],
+                [
+                  2.02,
+                  0.02,
+                  0.32
+                ]
+              ],
+              "origin_m": [
+                0.08,
+                0,
+                0.4
+              ],
+              "health": "OK"
+            },
+            "reason": "",
+            "ttl": 1200,
+            "age_ms": 44.39999961853027,
+            "receipt": 61
+          }
+        ],
+        "obstacles": {
+          "value": {
+            "producer": "d2.offline",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-5",
+            "calibration_id": "synthetic-calibration",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {
+              "age_status": "CALLER_MAPPED",
+              "coverage": "PARTIAL",
+              "motion_compensated": false,
+              "reasons": [
+                "SELF_GEOMETRY_UNKNOWN",
+                "GROUND_UNKNOWN"
+              ],
+              "source_age_ns": 0
+            },
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "obstacles": [
+              {
+                "track_id": "track-1-1",
+                "class_name": "unknown",
+                "class_score": null,
+                "state": "OBSERVED",
+                "novelty": "UNRESOLVED",
+                "sensor_support": [
+                  "LIDAR"
+                ],
+                "geometry": {
+                  "center_m": [
+                    2.01,
+                    0,
+                    0.3
+                  ],
+                  "extent_m": [
+                    0.08000000000000002,
+                    0.1,
+                    0.10000000000000003
+                  ],
+                  "orientation_xyzw": [
+                    0,
+                    0,
+                    0,
+                    1
+                  ]
+                },
+                "provenance": {
+                  "field_layout": null,
+                  "motion_compensated": false,
+                  "point_count": 8,
+                  "source": {
+                    "calibration_id": "synthetic-calibration",
+                    "clock_domain": "synthetic-host-correspondence",
+                    "evidence_kind": "SYNTHETIC",
+                    "frame_key": {
+                      "frame_id": "map",
+                      "source_epoch": "sensor-5"
+                    },
+                    "health": "OK",
+                    "host_clock_id": "test-host",
+                    "kind": "LIDAR",
+                    "map_binding": {
+                      "generation": 5,
+                      "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+                      "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+                    },
+                    "origin_m": [
+                      0.08,
+                      0,
+                      0.4
+                    ],
+                    "points_m": [
+                      [
+                        2,
+                        -0.02,
+                        0.27999999999999997
+                      ],
+                      [
+                        2,
+                        -0.02,
+                        0.32
+                      ],
+                      [
+                        2,
+                        0.02,
+                        0.27999999999999997
+                      ],
+                      [
+                        2,
+                        0.02,
+                        0.32
+                      ],
+                      [
+                        2.02,
+                        -0.02,
+                        0.27999999999999997
+                      ],
+                      [
+                        2.02,
+                        -0.02,
+                        0.32
+                      ],
+                      [
+                        2.02,
+                        0.02,
+                        0.27999999999999997
+                      ],
+                      [
+                        2.02,
+                        0.02,
+                        0.32
+                      ]
+                    ],
+                    "producer": "c3.synthetic-input",
+                    "provenance": {
+                      "kind": "SYNTHETIC_INPUT"
+                    },
+                    "received_monotonic_ns": "9007199254740993",
+                    "schema_version": "0.1",
+                    "sensor_id": "LIDAR",
+                    "sequence": 1,
+                    "source_age_ns": 0,
+                    "source_epoch": "sensor-5",
+                    "stamp_ns": "9007199254740993"
+                  }
+                }
+              }
+            ],
+            "suppressed": 0,
+            "published_to_nav2": false,
+            "costmap_ingestion_observed": false,
+            "controller_consumption_observed": false,
+            "canonical": true
+          },
+          "reason": "",
+          "ttl": 1200,
+          "age_ms": 44.39999961853027,
+          "receipt": 61
+        },
+        "path": {
+          "value": {
+            "producer": "c3.supplied-path",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-5",
+            "calibration_id": "",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {
+              "state": "SYNTHETIC_SUPPLIED"
+            },
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "generation": "plan-5",
+            "reason": "SUPPLIED_SYNTHETIC",
+            "representation": "XYZ",
+            "points_m": [
+              [
+                0,
+                0,
+                0.3
+              ],
+              [
+                0,
+                0,
+                0.3
+              ]
+            ]
+          },
+          "reason": "",
+          "ttl": 5000,
+          "age_ms": 44.39999961853027,
+          "receipt": 61
+        },
+        "local": {
+          "value": null,
+          "reason": "MISSING",
+          "ttl": 5000
+        },
+        "costmaps": [
+          {
+            "value": {
+              "producer": "c3.supplied-costmap",
+              "evidence_kind": "SYNTHETIC",
+              "stamp_ns": "9007199254740993",
+              "clock_domain": "synthetic-host-correspondence",
+              "source_epoch": "sensor-5",
+              "calibration_id": "",
+              "sequence": 1,
+              "frame_key": {
+                "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+                "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "frame_id": "map"
+              },
+              "provenance": {
+                "state": "SYNTHETIC_SUPPLIED"
+              },
+              "sensor_age_ms": null,
+              "host_clock_id": "test-host",
+              "receipt_source_ns": "9007199254740993",
+              "id": "synthetic-costmap",
+              "width": 2,
+              "height": 2,
+              "origin": [
+                0,
+                0,
+                0
+              ],
+              "resolution_m": 0.2,
+              "plane_z_m": 0,
+              "representation": "2D_GROUND_PLANE",
+              "cells": [
+                0,
+                254,
+                -1,
+                0
+              ]
+            },
+            "reason": "",
+            "ttl": 1500,
+            "age_ms": 44.39999961853027,
+            "receipt": 61
+          }
+        ],
+        "collision": {
+          "value": {
+            "producer": "d3.collision_geometry_core",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-5",
+            "calibration_id": "synthetic-calibration",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {},
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "canonical": true,
+            "severity": "UNKNOWN",
+            "reason": "UNKNOWN",
+            "contact_state": "CONTACT_UNCONFIRMED",
+            "min_clearance_m": 1.5719999999999996,
+            "modeled_ttc_s": null,
+            "robot_geometry_hash": "97cf7803f6e642be65d4cbaaf1e3e6ce1f7dc96b217f659ee403859cbf85ec6f",
+            "validity_interval": {
+              "end_monotonic_ns": "9007199504740993",
+              "host_clock_id": "test-host",
+              "start_monotonic_ns": "9007199254740993"
+            },
+            "freshness": {
+              "clock_mapping": {
+                "host_clock_id": "test-host",
+                "host_ns": "9007199254740993",
+                "kind": "SYNTHETIC_IDENTITY_ONLY",
+                "sensor_ns": "9007199254740993",
+                "source_epoch": "sensor-5"
+              },
+              "coverage": "SPARSE",
+              "issues": [
+                "SPARSE_COVERAGE_NOT_FREE_SPACE"
+              ],
+              "joint_age_s": 0,
+              "obstacle_age_s": 0,
+              "original_validity_interval": {
+                "clock_domain": "synthetic-host-correspondence",
+                "from_ns": "9007199254740993",
+                "until_ns": "9007199504740993"
+              },
+              "pose_age_s": 0,
+              "protection_mode": "ACTIVE_CONSTRAINT"
+            },
+            "coverage": "SPARSE",
+            "protection_mode": "ACTIVE_CONSTRAINT",
+            "recommendation": "HOLD_FOR_VALID_INPUT",
+            "padded_envelope": {
+              "command_arc_approximation_bound_m": 0,
+              "continuous_clearance_lower_bound": 1.5719999999999996,
+              "future_joints": "HELD_CURRENT_NOT_GAIT_PREDICTION",
+              "future_obstacles": "HELD_CURRENT_NOT_MOTION_PREDICTION",
+              "gait_margin_m": 0,
+              "joint_uncertainty_m": 0,
+              "mesh_backend": "NOT_RUN",
+              "min_clearance": 1.5719999999999996,
+              "overlap": false,
+              "padding_m": 0.03,
+              "pose_uncertainty_m": 0.01,
+              "samples": 2,
+              "support_pairs": [],
+              "sweep_displacement_bound_m": 0,
+              "unmodeled": []
+            },
+            "unpadded_envelope": {
+              "distance_kind": "conservative_signed_lower_bound_m",
+              "geometry_source_hash": "11f5183cd2c92c5a786c0f624aec095429b0967e5b27b9a6b60ca668d0441a10",
+              "min_clearance": 1.6119999999999997,
+              "overlap": false,
+              "provenance": "SYNTHETIC_body_box_NOT_official_visual_collision_equivalence"
+            },
+            "envelopes": [],
+            "envelope_geometry_status": "UNAVAILABLE"
+          },
+          "reason": "",
+          "ttl": 500,
+          "age_ms": 44.39999961853027,
+          "receipt": 61,
+          "expires": 302.2000002861023
+        },
+        "ready": true,
+        "contextKey": "aaaaaaaaaaaaaaaaaaaaaaaa|bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb|map|sensor-5|scene-5|synthetic-host-correspondence|synthetic-calibration|m|5",
+        "history": [
+          {
+            "value": {
+              "producer": "c3.supplied-path",
+              "evidence_kind": "SYNTHETIC",
+              "stamp_ns": "9007199254740993",
+              "clock_domain": "synthetic-host-correspondence",
+              "source_epoch": "sensor-5",
+              "calibration_id": "",
+              "sequence": 1,
+              "frame_key": {
+                "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+                "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "frame_id": "map"
+              },
+              "provenance": {
+                "state": "SYNTHETIC_SUPPLIED"
+              },
+              "sensor_age_ms": null,
+              "host_clock_id": "test-host",
+              "receipt_source_ns": "9007199254740993",
+              "generation": "plan-5",
+              "reason": "SUPPLIED_SYNTHETIC",
+              "representation": "XYZ",
+              "points_m": [
+                [
+                  0,
+                  0,
+                  0.3
+                ],
+                [
+                  0,
+                  0,
+                  0.3
+                ]
+              ]
+            },
+            "reason": "",
+            "ttl": 5000,
+            "age_ms": 44.39999961853027,
+            "receipt": 61
+          }
+        ],
+        "lastRejection": ""
+      },
+      "diagnostics": {
+        "accepted": 1,
+        "rejected": 0,
+        "resets": 1,
+        "history": 1,
+        "retainedPackets": 1,
+        "lastSequence": 5,
+        "error": "",
+        "geometryCopies": 7,
+        "cachedLayers": 7,
+        "received": 1,
+        "rendered": 2,
+        "dropped": 0,
+        "pending": 0,
+        "maxPending": 1,
+        "maxDrawMs": 0.7999997138977051,
+        "paused": true,
+        "destroyed": false,
+        "boxScratchBytes": 192,
+        "renderedObjects": 1
+      }
+    },
+    {
+      "name": "EXPIRED",
+      "result": "PASS",
+      "endpoint_sha256": "a9ab84340d19d71a4d8117e731000601a7fa6c13759f62afcfb0af947a4857ef",
+      "view": {
+        "producer": "c1-scene",
+        "evidence_kind": "SYNTHETIC",
+        "stamp_ns": "9007199254740993",
+        "clock_domain": "synthetic-host-correspondence",
+        "source_epoch": "sensor-6",
+        "calibration_id": "synthetic-calibration",
+        "sequence": 5,
+        "frame_key": null,
+        "provenance": {
+          "c1_source_epoch": "scene-6"
+        },
+        "sensor_age_ms": null,
+        "host_clock_id": "",
+        "receipt_source_ns": "",
+        "stream_epoch": "scene-6",
+        "protection": {
+          "mode": "UNAVAILABLE",
+          "transition": "",
+          "recommendation": "UNAVAILABLE"
+        },
+        "source_mode": "ACTUAL_C1_SERVICE",
+        "availability": {
+          "reference_cloud": "UNAVAILABLE",
+          "sensor_clouds": "SUPPLIED_SYNTHETIC_OR_REPLAY",
+          "sensor_origins": "SUPPLIED",
+          "bulk_references": "NO_C1_RESOLVER_CONTRACT",
+          "collision": {
+            "state": "REFERENCE_OR_VALIDITY_UNKNOWN"
+          },
+          "errors": []
+        },
+        "map_identity": {
+          "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+          "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "generation": 6,
+          "frame_id": "map",
+          "source_epoch": "sensor-6",
+          "stream_epoch": "scene-6",
+          "clock_domain": "synthetic-host-correspondence",
+          "calibration_id": "synthetic-calibration",
+          "units": "m",
+          "source_identity": "SYNTHETIC_SELECTED_IDENTITY_NOT_D1_MERGED_ARTIFACT"
+        },
+        "pose": {
+          "value": null,
+          "reason": "STALE",
+          "age_ms": 2050.199999809265
+        },
+        "joints": {
+          "value": null,
+          "reason": "STALE",
+          "age_ms": 2050.199999809265
+        },
+        "sources": [
+          {
+            "id": "LIDAR",
+            "kind": "LIDAR",
+            "value": null,
+            "reason": "STALE",
+            "ttl": 1200,
+            "age_ms": 2050.199999809265,
+            "receipt": 51.5
+          }
+        ],
+        "obstacles": {
+          "value": null,
+          "reason": "STALE",
+          "age_ms": 2050.199999809265
+        },
+        "path": {
+          "value": {
+            "producer": "c3.supplied-path",
+            "evidence_kind": "SYNTHETIC",
+            "stamp_ns": "9007199254740993",
+            "clock_domain": "synthetic-host-correspondence",
+            "source_epoch": "sensor-6",
+            "calibration_id": "",
+            "sequence": 1,
+            "frame_key": {
+              "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+              "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "frame_id": "map"
+            },
+            "provenance": {
+              "state": "SYNTHETIC_SUPPLIED"
+            },
+            "sensor_age_ms": null,
+            "host_clock_id": "test-host",
+            "receipt_source_ns": "9007199254740993",
+            "generation": "plan-6",
+            "reason": "SUPPLIED_SYNTHETIC",
+            "representation": "XYZ",
+            "points_m": [
+              [
+                0,
+                0,
+                0.3
+              ],
+              [
+                0,
+                0,
+                0.3
+              ]
+            ]
+          },
+          "reason": "",
+          "ttl": 5000,
+          "age_ms": 2050.199999809265,
+          "receipt": 51.5
+        },
+        "local": {
+          "value": null,
+          "reason": "MISSING",
+          "ttl": 5000
+        },
+        "costmaps": [
+          {
+            "value": null,
+            "reason": "STALE",
+            "age_ms": 2050.199999809265
+          }
+        ],
+        "collision": {
+          "value": null,
+          "reason": "POSE_JOINT_OR_SOURCE_INSUFFICIENT"
+        },
+        "ready": true,
+        "contextKey": "aaaaaaaaaaaaaaaaaaaaaaaa|bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb|map|sensor-6|scene-6|synthetic-host-correspondence|synthetic-calibration|m|6",
+        "history": [
+          {
+            "value": {
+              "producer": "c3.supplied-path",
+              "evidence_kind": "SYNTHETIC",
+              "stamp_ns": "9007199254740993",
+              "clock_domain": "synthetic-host-correspondence",
+              "source_epoch": "sensor-6",
+              "calibration_id": "",
+              "sequence": 1,
+              "frame_key": {
+                "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+                "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "frame_id": "map"
+              },
+              "provenance": {
+                "state": "SYNTHETIC_SUPPLIED"
+              },
+              "sensor_age_ms": null,
+              "host_clock_id": "test-host",
+              "receipt_source_ns": "9007199254740993",
+              "generation": "plan-6",
+              "reason": "SUPPLIED_SYNTHETIC",
+              "representation": "XYZ",
+              "points_m": [
+                [
+                  0,
+                  0,
+                  0.3
+                ],
+                [
+                  0,
+                  0,
+                  0.3
+                ]
+              ]
+            },
+            "reason": "",
+            "ttl": 5000,
+            "age_ms": 2050.199999809265,
+            "receipt": 51.5
+          }
+        ],
+        "lastRejection": ""
+      },
+      "diagnostics": {
+        "accepted": 1,
+        "rejected": 0,
+        "resets": 1,
+        "history": 1,
+        "retainedPackets": 1,
+        "lastSequence": 5,
+        "error": "",
+        "geometryCopies": 6,
+        "cachedLayers": 6,
+        "received": 1,
+        "rendered": 1,
+        "dropped": 0,
+        "pending": 0,
+        "maxPending": 1,
+        "maxDrawMs": 0.7999997138977051,
+        "paused": true,
+        "destroyed": false,
+        "boxScratchBytes": 192,
+        "renderedObjects": 0
+      }
+    }
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/experiments/expansion_20261029/c3_scene_ui/fixture.html?actual=PREDICTED_CONTACT"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/c3-context/PREDICTED_CONTACT"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/c1_adapter.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/actual/PREDICTED_CONTACT/api/v1/extensions/scene/snapshot"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/actual/PREDICTED_CONTACT/api/v1/extensions/scene/snapshot"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/experiments/expansion_20261029/c3_scene_ui/fixture.html?actual=NEAR"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/c3-context/NEAR"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/c1_adapter.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/actual/NEAR/api/v1/extensions/scene/snapshot"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/experiments/expansion_20261029/c3_scene_ui/fixture.html?actual=UNKNOWN_PARTIAL"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/c3-context/UNKNOWN_PARTIAL"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/c1_adapter.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/actual/UNKNOWN_PARTIAL/api/v1/extensions/scene/snapshot"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/actual/UNKNOWN_PARTIAL/api/v1/extensions/scene/snapshot"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/actual/UNKNOWN_PARTIAL/api/v1/extensions/scene/snapshot"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/actual/UNKNOWN_PARTIAL/api/v1/extensions/scene/snapshot"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/actual/UNKNOWN_PARTIAL/api/v1/extensions/scene/snapshot"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/actual/UNKNOWN_PARTIAL/api/v1/extensions/scene/snapshot"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/actual/UNKNOWN_PARTIAL/api/v1/extensions/scene/snapshot"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/actual/UNKNOWN_PARTIAL/api/v1/extensions/scene/snapshot"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/actual/UNKNOWN_PARTIAL/api/v1/extensions/scene/snapshot"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/actual/UNKNOWN_PARTIAL/api/v1/extensions/scene/snapshot"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/experiments/expansion_20261029/c3_scene_ui/fixture.html?actual=SCOPED_SYNTHETIC_CLEAR"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/c3-context/SCOPED_SYNTHETIC_CLEAR"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/c1_adapter.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/actual/SCOPED_SYNTHETIC_CLEAR/api/v1/extensions/scene/snapshot"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/experiments/expansion_20261029/c3_scene_ui/fixture.html?actual=ACTIVE_UNKNOWN"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/c3-context/ACTIVE_UNKNOWN"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/c1_adapter.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/actual/ACTIVE_UNKNOWN/api/v1/extensions/scene/snapshot"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/experiments/expansion_20261029/c3_scene_ui/fixture.html?actual=EXPIRED"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/c3-context/EXPIRED"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/c1_adapter.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/actual/EXPIRED/api/v1/extensions/scene/snapshot"
+    }
+  ],
+  "errors": [],
+  "http": [
+    {
+      "name": "PREDICTED_CONTACT",
+      "status": 200,
+      "unauthorized_status": 401,
+      "sha256": "99f3639d240dcb933a52ba3d5791de5549d9d0f4bcd9b990101fbb6213874ddd",
+      "bytes": 10578
+    },
+    {
+      "name": "NEAR",
+      "status": 200,
+      "unauthorized_status": 401,
+      "sha256": "254b3eaee91f44194ef60fbb5d7d1d9da00abc5b594da8993912d68d4ee55b01",
+      "bytes": 10675
+    },
+    {
+      "name": "UNKNOWN_PARTIAL",
+      "status": 200,
+      "unauthorized_status": 401,
+      "sha256": "33c0681fd47c6fc64cd79d1bfa7ba9bc5f9928dfdaf8f797c1620acc683ed630",
+      "bytes": 10659
+    },
+    {
+      "name": "SCOPED_SYNTHETIC_CLEAR",
+      "status": 200,
+      "unauthorized_status": 401,
+      "sha256": "c29f859ef85d13736e9823636303c995e8dc9f810e7948ba4c077dffd6833aa7",
+      "bytes": 10602
+    },
+    {
+      "name": "ACTIVE_UNKNOWN",
+      "status": 200,
+      "unauthorized_status": 401,
+      "sha256": "62ee74b669fae303a29f5d0645e8a08bae375ebe46a85f6581bf8ec1a1a0fd4c",
+      "bytes": 10667
+    },
+    {
+      "name": "EXPIRED",
+      "status": 200,
+      "unauthorized_status": 401,
+      "sha256": "a9ab84340d19d71a4d8117e731000601a7fa6c13759f62afcfb0af947a4857ef",
+      "bytes": 7586
+    }
+  ],
+  "frozen_time": {
+    "result": "PASS",
+    "same_scene_sequence": 5,
+    "repeated_gets": 9,
+    "geometry_copies": 7,
+    "pose": "STALE",
+    "obstacles": "STALE"
+  },
+  "status": "PASS"
+}

@@ -1,0 +1,25 @@
+✔ source descriptors pin identity and reject missing units / session / hash (1.578514ms)
+✔ SE3 contract uses column vectors, radians and row-major translation; scale/reflection rejected (0.432433ms)
+✔ rotated non-square projection and CSS pixel inverse preserve meters without x/y scale distortion (0.261034ms)
+✔ preview LOD bounds buffers and refuses stale pinned identity and unsupported schema (5.469503ms)
+✔ duplicate session revisions and merged ancestors remain explicit warnings (0.314877ms)
+✔ 3D correspondence validation rejects 2D, insufficient, collinear, duplicate, clustered; advises extra spread (0.413355ms)
+✔ manual changes, undo, redo, reset and source switch invalidate late proposals without restoring identity (805.709401ms)
+✔ only newest job ticket can replace candidate; source pins and job revision checked (160.971613ms)
+✔ solved candidate requires complete transforms and connectivity, anchor identity (482.246119ms)
+✔ disconnected 3-map components block accept; ambiguous warnings preserved (321.923588ms)
+✔ requests contain full descriptors / pins, priors and XYZ without any preview or runtime control (0.277548ms)
+✔ accept and export verify server identity; originals immutable and catalogue refresh independent (321.869951ms)
+✔ stale review/save and server reuse of original identity fail closed (562.201894ms)
+✔ cancel invalidates in-flight response, failure remains retryable (160.804694ms)
+✔ HTTP adapter centralizes only extension paths; no calls until explicit actions (0.730792ms)
+✔ diagnostic NEEDS_PRIOR / DISCONNECTED retain partial transforms and warnings without acceptance (7.431815ms)
+✔ frontend imports create no network or runtime process (1.481142ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2839.892151

@@ -1,5 +1,7 @@
 # C3 scene UI handoff — 2026-10-29 (Asia/Seoul)
 
+> 최신 결과: [2차 보완 ROUND2](ROUND2.md). 아래 내용은 1차 제출의 역사적 증거입니다. C1 bootstrap/sources.display 가정은 2차 canonical adapter와 실제 core·HTTP 결과로 대체됐습니다.
+
 - **MODULE_IMPLEMENTED / OFFLINE_TESTED / PRODUCT_WIRING_DEFERRED / DEVICE_NOT_RUN**.
 - Repository: https://github.com/Phjrab/robot-scope-ros2-dashboard
 - Branch: `review/20261029-x-c3-scene-ui` (new independent ordinary clone, not a past C3/controller branch).

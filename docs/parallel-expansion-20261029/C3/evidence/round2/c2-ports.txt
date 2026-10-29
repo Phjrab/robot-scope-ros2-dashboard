@@ -1,0 +1,10 @@
+✔ C1 HTTP normalization preserves full sources, advances reviewed revision, verifies exported reload (3.11077ms)
+✔ C1 review revision bump cannot be forged without candidate identity (3.157373ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10.003025
