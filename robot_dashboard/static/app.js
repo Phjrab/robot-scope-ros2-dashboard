@@ -768,6 +768,7 @@ async function applyRobotModel(profile = activeRobotProfile()) {
       scale: 1,
     });
   });
+  scheduleNavigationMapDraw();
   if (ui.selectedRobotModel) ui.selectedRobotModel.textContent = `${profile.model?.label || profile.label} · ${modelFidelityNote(profile)}`;
   if (ui.selectedRobotUrdf) {
     const urdfUrl = String(profile.model?.urdf_url || '').trim();
@@ -793,6 +794,7 @@ async function applyRobotModel(profile = activeRobotProfile()) {
     if (generation !== robotModelLoadGeneration) return;
     console.warn(`${profile.label} model fallback:`, error);
     robotModelsFailed = true;
+    scheduleNavigationMapDraw();
     ui.savedModelState.textContent = `${modelBadgeLabel(profile)} · FALLBACK`;
     ui.savedModelState.classList.add('fallback');
     updateLiveModelBadge();
@@ -3559,37 +3561,14 @@ async function loadNavigationMap(meta) {
   }
 }
 
-function drawNavigationPoseMarker(context, layout, pose, color, label, ratio = 1, dashed = false) {
-  if (!pose || !navigationEngine) return;
-  let projected;
-  try { projected = navigationEngine.worldToCanvas(layout, pose); }
-  catch (_) { return; }
-  if (!projected.inside) return;
-  const radius = 6 * ratio;
-  const arrow = 28 * ratio;
-  context.save();
-  context.lineCap = 'round';
-  context.lineJoin = 'round';
-  context.strokeStyle = color;
-  context.fillStyle = color;
-  context.lineWidth = 2 * ratio;
-  if (dashed) context.setLineDash([5 * ratio, 4 * ratio]);
-  context.beginPath();
-  context.arc(projected.x, projected.y, radius, 0, Math.PI * 2);
-  context.stroke();
-  const tipX = projected.x + Math.cos(projected.heading) * arrow;
-  const tipY = projected.y + Math.sin(projected.heading) * arrow;
-  context.beginPath();
-  context.moveTo(projected.x, projected.y);
-  context.lineTo(tipX, tipY);
-  context.stroke();
-  context.setLineDash([]);
-  context.beginPath();
-  context.arc(tipX, tipY, 2.5 * ratio, 0, Math.PI * 2);
-  context.fill();
-  context.font = globalThis.RobotScopeTypography?.canvasFont('mono', 13 * ratio, 400) || `400 ${13 * ratio}px "IBM Plex Mono", "IBM Plex Sans KR", monospace`;
-  context.fillText(label, projected.x + 9 * ratio, projected.y - 9 * ratio);
-  context.restore();
+function drawNavigationPoseMarker(...args) {
+  return navigationEngine?.drawPoseMarker(...args);
+}
+
+function drawNavigationPosePreview(context, layout, pose, ratio, state = 'staged') {
+  if (!pose || !navigationEngine.worldToCanvas(layout, pose).inside) return;
+  const preview = navigationEngine.navigationPosePreview(savedScene3d, context, layout, pose, state);
+  drawNavigationPoseMarker(context, layout, pose, preview.color, preview.label, ratio, state !== 'staged', preview.drawn);
 }
 
 function drawNavigationMap() {
@@ -3634,18 +3613,13 @@ function drawNavigationMap() {
       context.stroke();
       context.restore();
     }
-    drawNavigationPoseMarker(context, layout, navigationSnapshot?.localization?.pose, '#7df0b6', 'ROBOT', ratio);
-    drawNavigationPoseMarker(context, layout, navigationSnapshot?.goal?.pose, '#a28bff', 'GOAL', ratio, true);
+    const goalOverlay = navigationEngine.goalPoseOverlay(navigationSnapshot, navigationMapSnapshot);
+    if (goalOverlay) drawNavigationPosePreview(context, layout, goalOverlay.pose, ratio, goalOverlay.state);
     if (navigationStagedPose) {
-      drawNavigationPoseMarker(
-        context,
-        layout,
-        navigationStagedPose,
-        navigationStagedPose.mode === 'initial' ? '#5dded8' : '#ffc66d',
-        navigationEngine.initialPoseModelLabel(savedScene3d, context, layout, navigationStagedPose),
-        ratio,
-      );
+      drawNavigationPosePreview(context, layout, navigationStagedPose, ratio);
     }
+    // Keep the measured current robot visible above planned pose overlays.
+    drawNavigationPoseMarker(context, layout, navigationSnapshot?.localization?.pose, '#7df0b6', 'ROBOT', ratio);
   } catch (error) {
     navigationMapLayout = null;
     navigationMapError = error.message;
@@ -3697,7 +3671,7 @@ function renderNavigationPoseSelection() {
     ? `${staged.mode === 'initial' ? 'INITIAL' : 'GOAL'} · STAGED`
     : navigationMapTool ? `${navigationMapTool === 'initial' ? 'INITIAL' : 'GOAL'} · DRAW ON MAP` : 'NO TOOL';
   ui.navigationPoseCoordinates.textContent = staged
-    ? `X ${staged.x.toFixed(3)} · Y ${staged.y.toFixed(3)} · YAW ${staged.yaw.toFixed(3)}${staged.mode === 'initial' ? ' · URDF 기본 자세 미리보기' : ''}`
+    ? `X ${staged.x.toFixed(3)} · Y ${staged.y.toFixed(3)} · YAW ${staged.yaw.toFixed(3)} · ${staged.mode === 'initial' ? '초기 위치' : '목표 정지 자세'} 미리보기 (URDF 또는 방향 마커)`
     : 'X — · Y — · YAW —';
   const stagedAllowed = staged && navigationPoseToolAllowed(staged.mode);
   ui.navigationPoseDiscard.disabled = !staged || navigationOperationBusy;

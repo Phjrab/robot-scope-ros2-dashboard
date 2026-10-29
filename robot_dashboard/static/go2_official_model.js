@@ -476,7 +476,9 @@
     prototype.drawRobotMapPreview = function drawRobotMapPreview(ctx, pose, project, color = '#5dded8') {
       const config = this._ensureGo2OfficialConfig();
       const runtime = this._go2OfficialRuntime;
-      if (!config.enabled || !runtime || this._go2OfficialLoadedUrl !== config.assetUrl
+      if (!config.enabled || config.assetUrl !== DEFAULT_ASSET_URL
+          || (this._robotModelType && this._robotModelType !== 'go2')
+          || !runtime || this._go2OfficialLoadedUrl !== config.assetUrl
           || !['x', 'y', 'yaw'].every(key => Number.isFinite(pose?.[key]))) return false;
       const view = {
         ctx, width: ctx.canvas.width, height: ctx.canvas.height, _go2OfficialConfig: config,

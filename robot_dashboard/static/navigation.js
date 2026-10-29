@@ -88,14 +88,84 @@
     return number;
   }
 
-  function initialPoseModelLabel(scene, context, layout, pose) {
-    if (pose.mode !== 'initial') return 'GOAL · STAGED';
+  function navigationPosePreview(scene, context, layout, pose, state = 'staged') {
+    const initial = pose?.mode === 'initial';
+    const staged = state === 'staged';
+    const color = initial ? '#5dded8' : staged ? '#ffc66d' : '#a28bff';
+    let drawn = false;
+    context.save();
     try {
-      if (scene?.drawRobotMapPreview?.(context, pose, point => worldToCanvas(layout, point))) return 'INITIAL · URDF';
+      context.globalAlpha *= staged ? 0.9 : 0.75;
+      drawn = scene?.drawRobotMapPreview?.(context, pose, point => worldToCanvas(layout, point), color) === true;
     } catch (error) {
-      console.warn('Initial pose model preview unavailable:', error);
+      console.warn('Navigation pose model preview unavailable:', error);
+    } finally {
+      context.restore();
     }
-    return 'INITIAL · STAGED';
+    return { drawn, color, label: initial ? `INITIAL · ${drawn ? 'URDF' : 'STAGED'}` : `GOAL · ${state.toUpperCase()}` };
+  }
+
+  // Render-only association: an old goal must not move onto a newly selected map.
+  // Missing metrology/map evidence hides the overlay, never changes admission.
+  function goalPoseOverlay(snapshot, map) {
+    const goal = snapshot?.goal;
+    const evidence = goal?.precision_evidence;
+    const pin = evidence?.context;
+    const state = String(goal?.state || '').toLowerCase();
+    if (!['pending', 'active', 'canceling', 'canceled', 'cancelled', 'succeeded', 'failed', 'rejected'].includes(state)
+        || !goal?.goal_id || evidence?.goal_id !== goal.goal_id
+        || !map?.id || !map?.revision || map.frame_id !== 'map'
+        || snapshot?.map?.id !== map.id || snapshot?.map?.revision !== map.revision
+        || pin?.map_id !== map.id || pin?.map_revision !== map.revision
+        || !['x', 'y', 'yaw'].every(key => Number.isFinite(goal.pose?.[key]))) return null;
+    return { pose: goal.pose, state: state === 'pending' ? 'sent' : state };
+  }
+
+  function drawPoseMarker(context, layout, pose, color, label, ratio = 1, dashed = false, modelDrawn = false) {
+    if (!pose) return;
+    let projected;
+    try { projected = worldToCanvas(layout, pose); }
+    catch (_) { return; }
+    if (!projected.inside) return;
+    const radius = 6 * ratio;
+    const arrow = 28 * ratio;
+    context.save();
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+    context.strokeStyle = color;
+    context.fillStyle = color;
+    context.lineWidth = 2 * ratio;
+    if (!modelDrawn) {
+      if (dashed) context.setLineDash([5 * ratio, 4 * ratio]);
+      context.beginPath();
+      context.arc(projected.x, projected.y, radius, 0, Math.PI * 2);
+      context.stroke();
+      const tipX = projected.x + Math.cos(projected.heading) * arrow;
+      const tipY = projected.y + Math.sin(projected.heading) * arrow;
+      context.beginPath();
+      context.moveTo(projected.x, projected.y);
+      context.lineTo(tipX, tipY);
+      context.stroke();
+      context.setLineDash([]);
+      context.beginPath();
+      context.arc(tipX, tipY, 2.5 * ratio, 0, Math.PI * 2);
+      context.fill();
+    }
+    context.font = globalThis.RobotScopeTypography?.canvasFont('mono', 13 * ratio, 400) || `400 ${13 * ratio}px "IBM Plex Mono", "IBM Plex Sans KR", monospace`;
+    if (modelDrawn) {
+      const margin = 5 * ratio;
+      const textWidth = context.measureText(label).width;
+      const offset = Math.max(18 * ratio, 0.46 * layout.scale / layout.resolution);
+      const x = Math.max(margin, Math.min(layout.canvasWidth - textWidth - margin, projected.x - textWidth / 2));
+      const y = Math.max(18 * ratio, Math.min(layout.canvasHeight - margin, projected.y + (dashed ? -offset : offset + 14 * ratio)));
+      context.fillStyle = 'rgba(4,16,13,.92)';
+      context.fillRect(x - margin, y - 14 * ratio, textWidth + 2 * margin, 18 * ratio);
+      context.fillStyle = color;
+      context.fillText(label, x, y);
+    } else {
+      context.fillText(label, projected.x + 9 * ratio, projected.y - 9 * ratio);
+    }
+    context.restore();
   }
 
   function normalizeYaw(value) {
@@ -398,6 +468,8 @@
     goalPrecisionText,
     parameterEvidenceText,
     operationalLocalizationStatus,
-    initialPoseModelLabel,
+    navigationPosePreview,
+    drawPoseMarker,
+    goalPoseOverlay,
   });
 }));
