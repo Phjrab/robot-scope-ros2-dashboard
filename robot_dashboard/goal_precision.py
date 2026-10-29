@@ -90,6 +90,9 @@ def parameter_observation(readback):
         "controller": copy.deepcopy(controller),
         "planner": copy.deepcopy(parameters.get("/planner_server", {})),
         "lifecycle": copy.deepcopy(readback.get("lifecycle", {})),
+        "node_status": copy.deepcopy(readback.get("node_status", {})),
+        "applicability": copy.deepcopy(readback.get("applicability", {})),
+        "missing_required": copy.deepcopy(readback.get("missing_required", {})),
     }
 
 

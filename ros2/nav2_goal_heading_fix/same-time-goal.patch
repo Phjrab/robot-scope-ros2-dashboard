@@ -1,0 +1,95 @@
+--- a/nav2_rotation_shim_controller/src/nav2_rotation_shim_controller.cpp
++++ b/nav2_rotation_shim_controller/src/nav2_rotation_shim_controller.cpp
+@@ -13,6 +13,7 @@
+ // limitations under the License.
+ 
+ #include <algorithm>
++#include "common_time.hpp"
+ #include <string>
+ #include <limits>
+ #include <memory>
+@@ -162,36 +163,39 @@
+     std::lock_guard<std::mutex> lock_reinit(mutex_);
+ 
+     try {
+-      geometry_msgs::msg::PoseStamped sampled_pt_goal = getSampledPathGoal();
+-
+-      if (!nav2_util::transformPoseInTargetFrame(
+-          sampled_pt_goal, sampled_pt_goal, *tf_,
+-          pose.header.frame_id))
+-      {
+-        throw std::runtime_error("Failed to transform pose to base frame!");
+-      }
++      const auto now = clock_->now();
++      if (last_control_time_ns_ > now.nanoseconds()) {
++        clock_reset_requires_plan_ = true;
++      }
++      last_control_time_ns_ = now.nanoseconds();
++      if (clock_reset_requires_plan_) {
++        throw nav2_core::PlannerException("GOAL_TF_CLOCK_RESET_REQUIRES_PLAN");
++      }
++      const auto aligned = robot_scope_heading::commonTimePoses(
++        *tf_, pose, getSampledPathGoal(), costmap_ros_->getBaseFrameID(),
++        now, costmap_ros_->getTransformTolerance());
++      const auto & aligned_pose = aligned.first;
++      const auto & sampled_pt_goal = aligned.second;
+ 
+       geometry_msgs::msg::Pose pose_tolerance;
+       geometry_msgs::msg::Twist vel_tolerance;
+       goal_checker->getTolerances(pose_tolerance, vel_tolerance);
+       position_goal_checker_->setXYGoalTolerance(pose_tolerance.position.x);
+ 
+-      if (position_goal_checker_->isGoalReached(pose.pose, sampled_pt_goal.pose, velocity)) {
+-        double pose_yaw = tf2::getYaw(pose.pose.orientation);
++      if (position_goal_checker_->isGoalReached(aligned_pose.pose, sampled_pt_goal.pose, velocity)) {
++        double pose_yaw = tf2::getYaw(aligned_pose.pose.orientation);
+         double goal_yaw = tf2::getYaw(sampled_pt_goal.pose.orientation);
+ 
+         double angular_distance_to_heading = angles::shortest_angular_distance(pose_yaw, goal_yaw);
+ 
+-        auto cmd_vel = computeRotateToHeadingCommand(angular_distance_to_heading, pose, velocity);
++        auto cmd_vel = computeRotateToHeadingCommand(angular_distance_to_heading, aligned_pose, velocity);
+         last_angular_vel_ = cmd_vel.twist.angular.z;
+         return cmd_vel;
+       }
+     } catch (const std::runtime_error & e) {
+-      RCLCPP_INFO(
+-        logger_,
+-        "Rotation Shim Controller was unable to find a goal point,"
+-        " a rotational collision was detected, or TF failed to transform"
+-        " into base frame! what(): %s", e.what());
++      // ControllerServer publishes ZERO on PlannerException. A failed goal
++      // transform/collision must never silently become a nonzero RPP command.
++      throw nav2_core::PlannerException(e.what());
+     }
+   }
+ 
+@@ -274,7 +278,6 @@
+ 
+   auto goal = current_path_.poses.back();
+   goal.header.frame_id = current_path_.header.frame_id;
+-  goal.header.stamp = clock_->now();
+   return goal;
+ }
+ 
+@@ -354,6 +357,8 @@
+ 
+ void RotationShimController::setPlan(const nav_msgs::msg::Path & path)
+ {
++  last_control_time_ns_ = 0;
++  clock_reset_requires_plan_ = false;
+   path_updated_ = true;
+   current_path_ = path;
+   primary_controller_->setPlan(path);
+--- a/nav2_rotation_shim_controller/include/nav2_rotation_shim_controller/nav2_rotation_shim_controller.hpp
++++ b/nav2_rotation_shim_controller/include/nav2_rotation_shim_controller/nav2_rotation_shim_controller.hpp
+@@ -181,6 +181,9 @@
+   bool closed_loop_;
+   double last_angular_vel_ = std::numeric_limits<double>::max();
+ 
++  int64_t last_control_time_ns_ = 0;
++  bool clock_reset_requires_plan_ = false;
++
+   // Dynamic parameters handler
+   std::mutex mutex_;
+   rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr dyn_params_handler_;

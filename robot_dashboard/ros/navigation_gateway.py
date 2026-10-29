@@ -31,6 +31,7 @@ from ..localization_health import (
 from ..localization_diagnostics import sanitize_localization_diagnostics
 from ..navigation_policy import POLICY_SCHEMA
 from ..goal_precision import GoalPrecision, parameter_observation
+from ..goal_evidence_sink import GoalEvidenceSink
 from .initial_pose_receipt import operational_initial_pose_context, wait_initial_pose_receipt
 
 
@@ -176,6 +177,7 @@ class NavigationRosGateway:
         graph_getter: Callable[[], Mapping[str, Mapping[str, Any]]],
         profile: Mapping[str, Any] | None = None,
         navigation_profile: str = "",
+        goal_evidence_dir=None,
     ) -> None:
         self._control_port = control_port
         self._node_getter = node_getter
@@ -261,6 +263,7 @@ class NavigationRosGateway:
         self._goal_precision = GoalPrecision()
         self._goal_precision_context = {}
         self._goal_precision_fault = False
+        self._goal_evidence_sink = GoalEvidenceSink(goal_evidence_dir) if goal_evidence_dir is not None else None
         self._navigation_goal_progress = self._new_navigation_goal_progress()
         self._navigation_goal_first_nonready: Optional[Dict[str, Any]] = None
         self._navigation: Dict[str, Any] = {
@@ -352,11 +355,19 @@ class NavigationRosGateway:
             return
         recorder.last_log = now
         value = recorder.snapshot(now)
-        # Journald preserves numeric evidence without browser polling. No commands.
+        # The application supplies an explicit private sink. Queueing never
+        # performs disk IO or waits for a slow writer on this callback.
         if event is None:
             recorder.logged_samples += 1
             value = {key: value[key] for key in ('goal_id', 'current', 'stop', 'plan_endpoint')}
-        LOGGER.info('Nav2 goal metrology %s %s', event or 'sample', json.dumps(value, allow_nan=False))
+        if self._goal_evidence_sink is not None:
+            self._goal_evidence_sink.submit(event or 'sample', value)
+        else:
+            LOGGER.info('Nav2 goal metrology %s %s', event or 'sample', json.dumps(value, allow_nan=False))
+
+    def close_goal_evidence(self):
+        if self._goal_evidence_sink is not None:
+            self._goal_evidence_sink.close()
 
     @property
     def lock(self) -> threading.RLock:
@@ -3411,6 +3422,8 @@ class NavigationRosGateway:
             goal_snapshot["first_nonready_health"] = first_nonready
             with self._navigation_lock:
                 evidence = self._goal_precision_call('snapshot', now)
+                if evidence is not None:
+                    evidence['persistence'] = self._goal_evidence_sink.snapshot() if self._goal_evidence_sink else {'configured': False}
                 goal_snapshot["precision_evidence"] = (
                     evidence if evidence and evidence['goal_id'] == goal_snapshot.get('goal_id') else None
                 )

@@ -29,6 +29,8 @@ CONTROLLER_FIELDS = (
     "FollowPath.min_approach_linear_velocity",
     "progress_checker.required_movement_radius",
     "progress_checker.movement_time_allowance",
+    "progress_checker.plugin",
+    "progress_checker.required_movement_angle",
 )
 PLANNER_FIELDS = (
     "planner_plugins",

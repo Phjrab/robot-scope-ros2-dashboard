@@ -15,6 +15,8 @@ class DispatchHarness:
         self.max_pending = 0
         self.observer = RosPolicyReadback(NS(), clock=lambda: self.now)
         self.observer._authorities = lambda: {name: "a" * 48 for name in PARAMETERS}
+        self.observer._declarations = (0, self.observer._authorities(),
+            {name: frozenset(keys) for name, keys in PARAMETERS.items()})
         self.observer._param_type = NS(Request=NS)
         self.observer._state_type = NS(Request=NS)
         self.observer._clients = {
@@ -52,7 +54,7 @@ class DispatchHarness:
                 harness.attempts.append((name, kind, request))
                 if harness.fail_at == position:
                     raise RuntimeError("private dispatch failure must not be exported")
-                value = (NS(values=[NS(type=0) for _ in PARAMETERS[name]])
+                value = (NS(values=[NS(type=4, string_value="fixture") for _ in PARAMETERS[name]])
                          if kind == "parameters" else NS(current_state=NS(id=3)))
                 future = Future(value)
                 harness.futures.append(future)

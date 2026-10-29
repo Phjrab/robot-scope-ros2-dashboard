@@ -1,0 +1,41 @@
+{
+  "version": "1.1.20",
+  "files": {
+    "nav2_rotation_shim_controller/src/nav2_rotation_shim_controller.cpp": {
+      "url": "https://raw.githubusercontent.com/ros-navigation/navigation2/1.1.20/nav2_rotation_shim_controller/src/nav2_rotation_shim_controller.cpp",
+      "sha256": "e06b6c6a64853334b20398f750c517018c17a2017bec864c626726fcea261288"
+    },
+    "nav2_rotation_shim_controller/include/nav2_rotation_shim_controller/nav2_rotation_shim_controller.hpp": {
+      "url": "https://raw.githubusercontent.com/ros-navigation/navigation2/1.1.20/nav2_rotation_shim_controller/include/nav2_rotation_shim_controller/nav2_rotation_shim_controller.hpp",
+      "sha256": "6bbd9ebf8eda7bbb9d32be60d7640d2e22e06801d30d87364dd3242b7a44ad01"
+    },
+    "nav2_rotation_shim_controller/test/test_shim_controller.cpp": {
+      "url": "https://raw.githubusercontent.com/ros-navigation/navigation2/1.1.20/nav2_rotation_shim_controller/test/test_shim_controller.cpp",
+      "sha256": "ba6dea210b9a357da244abafe8eb1472ebfad694d4efac8b7d64aceccb09005b"
+    },
+    "nav2_rotation_shim_controller/CMakeLists.txt": {
+      "url": "https://raw.githubusercontent.com/ros-navigation/navigation2/1.1.20/nav2_rotation_shim_controller/CMakeLists.txt",
+      "sha256": "837229353cbf8de2ba90706f26160d1765616a994d51f0c14ceef221ebc5fbd5"
+    },
+    "nav2_rotation_shim_controller/package.xml": {
+      "url": "https://raw.githubusercontent.com/ros-navigation/navigation2/1.1.20/nav2_rotation_shim_controller/package.xml",
+      "sha256": "f4c57958fec392f9395082d291d2c5431c39d158ddf4618ef490530eef9ae510"
+    },
+    "nav2_rotation_shim_controller/nav2_rotation_shim_controller.xml": {
+      "url": "https://raw.githubusercontent.com/ros-navigation/navigation2/1.1.20/nav2_rotation_shim_controller/nav2_rotation_shim_controller.xml",
+      "sha256": "efd520f83ddcbe8848ac4fe0d38571ce29e09a9d83cd265e609091aa36d31d2b"
+    },
+    "nav2_controller/plugins/pose_progress_checker.cpp": {
+      "url": "https://raw.githubusercontent.com/ros-navigation/navigation2/1.1.20/nav2_controller/plugins/pose_progress_checker.cpp",
+      "sha256": "558c2efe99ed189d7a626724e504a82f55c42137e9d3663b3673b0247967be07"
+    },
+    "nav2_util/src/robot_utils.cpp": {
+      "url": "https://raw.githubusercontent.com/ros-navigation/navigation2/1.1.20/nav2_util/src/robot_utils.cpp",
+      "sha256": "6b53efeda093ef7ccf4a30b802e208fccc74884d367b7c9bcb3d831285816625"
+    },
+    "LICENSE": {
+      "url": "https://raw.githubusercontent.com/ros-navigation/navigation2/1.1.20/LICENSE",
+      "sha256": "e71fcb65bd31cdbdcf50cf43ab87a0c600ea3ec407495c2e15d1e68bc9c3bfc1"
+    }
+  }
+}

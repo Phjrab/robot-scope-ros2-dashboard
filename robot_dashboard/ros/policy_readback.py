@@ -15,6 +15,7 @@ from ..goal_precision_parameters import CONTROLLER_FIELDS, PLANNER_FIELDS
 from ..navigation_policy import POLICY_DIAGNOSTICS_SCHEMA, POLICY_ENDPOINTS, POLICY_SCHEMA, POLICY_TTL_S
 from ..navigation_collision_profile import BINDING_TOPIC, MASK_TTL_S, parse_mask_binding
 from .collision_mask_publisher import source_authorities
+from .policy_parameters import declaration_names, complete_parameters
 
 PARAMETERS = {
     "/planner_server": ("planner_plugins", "GridBased.plugin", "GridBased.allow_unknown", "GridBased.use_astar", "GridBased.tolerance"),
@@ -69,6 +70,10 @@ class RosPolicyReadback:
         self._cache = {"schema": POLICY_SCHEMA, "status": "unavailable", "parameters": {}, "authorities": {}, "lifecycle": {}}
         self._received = None
         self._clients = {}
+        self._list_clients = {}
+        self._list_batch = None
+        self._declarations = None
+        self._request_names = {}
         self._last_tick = None
         self._attempt_sequence = 0
         self._dispatch_duration = None
@@ -79,7 +84,7 @@ class RosPolicyReadback:
 
     def setup(self):
         from rcl_interfaces.msg import ParameterEvent
-        from rcl_interfaces.srv import GetParameters
+        from rcl_interfaces.srv import GetParameters, ListParameters
         from lifecycle_msgs.srv import GetState
         from rclpy.qos import qos_profile_parameter_events
         from rclpy.callback_groups import MutuallyExclusiveCallbackGroup
@@ -87,10 +92,13 @@ class RosPolicyReadback:
         from std_msgs.msg import String
         self._group = MutuallyExclusiveCallbackGroup()
         for node in PARAMETERS:
+            self._list_clients[node] = self.node.create_client(
+                ListParameters, node + '/list_parameters', callback_group=self._group)
             self._clients[node] = (
                 self.node.create_client(GetParameters, node + "/get_parameters", callback_group=self._group),
                 self.node.create_client(GetState, node + "/get_state", callback_group=self._group))
         self._param_type, self._state_type = GetParameters, GetState
+        self._list_type = ListParameters
         self._events = self.node.create_subscription(ParameterEvent, "/parameter_events", self._on_event,
             qos_profile_parameter_events, callback_group=self._group)
         self._mask_subscription = self.node.create_subscription(String, BINDING_TOPIC, self._on_mask,
@@ -151,9 +159,42 @@ class RosPolicyReadback:
             self._epoch += 1
             self._invalidate("PARAMETERS_CHANGED")
 
+    def _ensure_declarations(self, identities, now):
+        # Cache only within one authority incarnation and parameter-event epoch.
+        # Discovery has its own existing 0.5s deadline. Parameter freshness still
+        # starts at GetParameters dispatch; no service deadline is relaxed.
+        if self._declarations is not None and self._declarations[:2] == (self._epoch, identities):
+            return True
+        self._declarations = None
+        if self._list_batch is None:
+            if set(self._list_clients) != set(PARAMETERS) or any(
+                    not c.service_is_ready() for c in self._list_clients.values()):
+                raise ValueError('POLICY_SERVICES_UNAVAILABLE')
+            futures = {}
+            self._list_batch = (now, self._epoch, identities, futures)
+            for name, client in self._list_clients.items():
+                request = self._list_type.Request()
+                request.depth = 0
+                request.prefixes = []
+                futures[name] = client.call_async(request)
+            return False
+        started, epoch, original, futures = self._list_batch
+        if original != identities or epoch != self._epoch:
+            raise ValueError('POLICY_SOURCE_CHANGED_DURING_READBACK')
+        if now - started > .5:
+            raise ValueError('POLICY_READBACK_TIMEOUT')
+        if not all(f.done() for f in futures.values()):
+            return False
+        declared = {name: declaration_names(f.result()) for name, f in futures.items()}
+        self._declarations = (epoch, original, declared)
+        self._list_batch = None
+        return True
+
     def _invalidate(self, reason):
         with self._lock:
             self._cache["status"], self._cache["reason"] = "invalid", reason
+            if 'node_status' in self._cache:
+                self._cache['node_status'] = {name: 'invalid' for name in PARAMETERS}
 
     def _authorities(self):
         result = {name: [] for name in PARAMETERS}
@@ -219,6 +260,8 @@ class RosPolicyReadback:
                 with self._lock:
                     if self._cache["authorities"] != identities:
                         self._cache.update(status="invalid", reason="POLICY_AUTHORITY_CHANGED", authorities=identities)
+                if not self._ensure_declarations(identities, now):
+                    return
                 if any(not c.service_is_ready() for pair in self._clients.values() for c in pair):
                     raise ValueError("POLICY_SERVICES_UNAVAILABLE")
                 futures = {}
@@ -230,7 +273,8 @@ class RosPolicyReadback:
                     for name, (params, state) in self._clients.items():
                         pair = futures[name] = []
                         request = self._param_type.Request()
-                        request.names = list(PARAMETERS[name])
+                        request.names = [key for key in PARAMETERS[name] if key in self._declarations[2][name]]
+                        self._request_names[name] = request.names
                         pair.append(params.call_async(request))
                         pair.append(state.call_async(self._state_type.Request()))
                 finally:
@@ -243,22 +287,31 @@ class RosPolicyReadback:
                 raise ValueError("POLICY_READBACK_TIMEOUT")
             if not all(f.done() for pair in futures.values() for f in pair):
                 return
-            parameters, lifecycle = {}, {}
+            parameters, lifecycle, applicability, missing = {}, {}, {}, {}
             for name, (params, state) in futures.items():
                 values = params.result().values
-                if len(values) != len(PARAMETERS[name]):
-                    raise ValueError("POLICY_PARTIAL_READBACK")
-                parameters[name] = {key: parameter_value(value) for key, value in zip(PARAMETERS[name], values)}
+                names = self._request_names[name]
+                # One broken node must not erase valid controller/planner
+                # metrology. Overall policy still fails closed.
+                observed = {} if len(values) != len(names) else {
+                    key: parameter_value(value) for key, value in zip(names, values)}
+                parameters[name], applicability[name], missing[name] = complete_parameters(
+                    name, PARAMETERS[name], observed)
                 lifecycle[name] = state.result().current_state.id
+            reason = 'POLICY_PARTIAL_READBACK' if any(missing.values()) else None
             self._sequence += 1
             with self._lock:
-                self._cache = {"schema": POLICY_SCHEMA, "status": "current", "parameters": parameters,
-                    "lifecycle": lifecycle, "authorities": identities, "sequence": self._sequence, "reason": None}
+                self._cache = {"schema": POLICY_SCHEMA, "status": "invalid" if reason else "current", "parameters": parameters,
+                    "lifecycle": lifecycle, "authorities": identities, "sequence": self._sequence, "reason": reason,
+                    "applicability": applicability, "missing_required": missing,
+                    "node_status": {name: 'invalid' if missing[name] else 'current' for name in PARAMETERS}}
                 # Age is measured from request start, never rebased to a late reply.
                 self._received = started
-            self._finish_diagnostics(reason=None, now=self.clock(), tick_gap=tick_gap,
+            self._finish_diagnostics(reason=reason, now=self.clock(), tick_gap=tick_gap,
                                      authority_duration=authority_duration)
             self._batch = None
+            if reason:
+                self._declarations = None
         except Exception as exc:
             # Do not export exception strings (paths/environment/remote data).
             known = {"POLICY_AUTHORITY_NOT_UNIQUE", "POLICY_SERVICES_UNAVAILABLE",
@@ -275,6 +328,11 @@ class RosPolicyReadback:
                         if not future.done():
                             future.cancel()
                 self._batch = None
+            if self._list_batch is not None:
+                for future in self._list_batch[3].values():
+                    if not future.done():
+                        future.cancel()
+                self._list_batch = None
 
     def snapshot(self):
         with self._lock:
@@ -291,6 +349,8 @@ class RosPolicyReadback:
             value["diagnostics"] = diagnostics
         if age is None or age > POLICY_TTL_S:
             value["status"] = "stale" if received is not None else "unavailable"
+            if 'node_status' in value:
+                value['node_status'] = {name: value['status'] for name in PARAMETERS}
         if mask is not None:
             mask["age_s"] = None if mask_received is None else max(0.0, self.clock() - mask_received)
             if mask["age_s"] is None or mask["age_s"] > MASK_TTL_S:

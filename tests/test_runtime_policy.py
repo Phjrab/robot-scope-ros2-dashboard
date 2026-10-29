@@ -200,9 +200,11 @@ class ReadbackTransportTests(unittest.TestCase):
                 f = Future(self.value); owner.futures.append(f); return f
         self.observer = RosPolicyReadback(NS(), clock=lambda: self.clock[0])
         self.observer._authorities = lambda: dict(self.gids)
+        self.observer._declarations = (0, dict(self.gids),
+            {name: frozenset(keys) for name, keys in PARAMETERS.items()})
         self.observer._param_type = NS(Request=NS)
         self.observer._state_type = NS(Request=NS)
-        self.observer._clients = {node: (Client(NS(values=[NS(type=0) for _ in PARAMETERS[node]])), Client(NS(current_state=NS(id=3)))) for node in REQUIRED_NODES}
+        self.observer._clients = {node: (Client(NS(values=[NS(type=4, string_value="fixture") for _ in PARAMETERS[node]])), Client(NS(current_state=NS(id=3)))) for node in REQUIRED_NODES}
 
     def test_bounded_async_fixed_readback_and_expiry(self):
         self.observer.tick()
@@ -226,7 +228,7 @@ class ReadbackTransportTests(unittest.TestCase):
             if reason == 'timeout': self.clock[0] += .501; self.done = False
             if reason == 'partial': self.futures[0].value.values = []
             self.observer.tick()
-            self.assertEqual(self.observer.snapshot()['status'], 'unavailable')
+            self.assertEqual(self.observer.snapshot()['status'], 'invalid' if reason == 'partial' else 'unavailable')
             self.assertEqual(self.observer.snapshot()['reason'], {
                 'source': 'POLICY_SOURCE_CHANGED_DURING_READBACK',
                 'event': 'POLICY_SOURCE_CHANGED_DURING_READBACK', 'timeout': 'POLICY_READBACK_TIMEOUT',

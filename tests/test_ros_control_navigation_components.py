@@ -251,6 +251,9 @@ class RosControlNavigationArchitectureTests(unittest.TestCase):
                 events.append(f"navigation:{reason}")
                 return {}
 
+            def close_goal_evidence(self):
+                events.append("evidence-close")
+
         class FakeTransport:
             def shutdown(self):
                 events.append("control-shutdown")
@@ -284,6 +287,7 @@ class RosControlNavigationArchitectureTests(unittest.TestCase):
                 "camera-shutdown",
                 "executor-shutdown",
                 "runtime-join",
+                "evidence-close",
             ],
         )
 

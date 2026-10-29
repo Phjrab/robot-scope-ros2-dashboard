@@ -1,0 +1,83 @@
+--- a/nav2_rotation_shim_controller/src/nav2_rotation_shim_controller.cpp
++++ b/nav2_rotation_shim_controller/src/nav2_rotation_shim_controller.cpp
+@@ -188,7 +188,7 @@
+ 
+         double angular_distance_to_heading = angles::shortest_angular_distance(pose_yaw, goal_yaw);
+ 
+-        auto cmd_vel = computeRotateToHeadingCommand(angular_distance_to_heading, aligned_pose, velocity);
++        auto cmd_vel = computeRotateToHeadingCommand(angular_distance_to_heading, aligned_pose, velocity, true);
+         last_angular_vel_ = cmd_vel.twist.angular.z;
+         return cmd_vel;
+       }
+@@ -295,7 +295,7 @@
+ RotationShimController::computeRotateToHeadingCommand(
+   const double & angular_distance_to_heading,
+   const geometry_msgs::msg::PoseStamped & pose,
+-  const geometry_msgs::msg::Twist & velocity)
++  const geometry_msgs::msg::Twist & velocity, const bool goal_heading)
+ {
+   auto current = closed_loop_ ? velocity.angular.z : last_angular_vel_;
+   if (current == std::numeric_limits<double>::max()) {
+@@ -312,14 +312,14 @@
+   cmd_vel.twist.angular.z =
+     std::clamp(angular_vel, min_feasible_angular_speed, max_feasible_angular_speed);
+ 
+-  isCollisionFree(cmd_vel, angular_distance_to_heading, pose);
++  isCollisionFree(cmd_vel, angular_distance_to_heading, pose, goal_heading);
+   return cmd_vel;
+ }
+ 
+ void RotationShimController::isCollisionFree(
+   const geometry_msgs::msg::TwistStamped & cmd_vel,
+   const double & angular_distance_to_heading,
+-  const geometry_msgs::msg::PoseStamped & pose)
++  const geometry_msgs::msg::PoseStamped & pose, const bool goal_heading)
+ {
+   // Simulate rotation ahead by time in control frequency increments
+   double simulated_time = 0.0;
+@@ -334,7 +334,9 @@
+     yaw = initial_yaw + cmd_vel.twist.angular.z * simulated_time;
+ 
+     // Stop simulating past the point it would be passed onto the primary controller
+-    if (angles::shortest_angular_distance(yaw, initial_yaw) >= remaining_rotation_before_thresh) {
++    if (!goal_heading &&
++      angles::shortest_angular_distance(yaw, initial_yaw) >= remaining_rotation_before_thresh)
++    {
+       break;
+     }
+ 
+@@ -351,6 +353,14 @@
+ 
+     if (footprint_cost >= static_cast<double>(LETHAL_OBSTACLE)) {
+       throw std::runtime_error("RotationShimController detected collision ahead!");
++    }
++
++    // Final heading has no handoff at angular_dist_threshold_. Check the
++    // footprint before stopping the sweep, for both rotation directions.
++    if (goal_heading && fabs(cmd_vel.twist.angular.z * simulated_time) >=
++      fabs(angular_distance_to_heading))
++    {
++      break;
+     }
+   }
+ }
+--- a/nav2_rotation_shim_controller/include/nav2_rotation_shim_controller/nav2_rotation_shim_controller.hpp
++++ b/nav2_rotation_shim_controller/include/nav2_rotation_shim_controller/nav2_rotation_shim_controller.hpp
+@@ -141,7 +141,7 @@
+   geometry_msgs::msg::TwistStamped computeRotateToHeadingCommand(
+     const double & angular_distance,
+     const geometry_msgs::msg::PoseStamped & pose,
+-    const geometry_msgs::msg::Twist & velocity);
++    const geometry_msgs::msg::Twist & velocity, bool goal_heading = false);
+ 
+   /**
+    * @brief Checks if rotation is safe
+@@ -152,7 +152,7 @@
+   void isCollisionFree(
+     const geometry_msgs::msg::TwistStamped & cmd_vel,
+     const double & angular_distance_to_heading,
+-    const geometry_msgs::msg::PoseStamped & pose);
++    const geometry_msgs::msg::PoseStamped & pose, bool goal_heading = false);
+ 
+   /**
+    * @brief Callback executed when a parameter change is detected

@@ -49,6 +49,14 @@ case "$MAPPING_PROFILE" in
 esac
 cd "$PROJECT_DIR"
 
+# Explicit host selection only; the dashboard API cannot choose paths/plugins.
+# Empty means the original installed Shim. This does not change goal parameters.
+HEADING_OVERLAY="${ROBOT_SCOPE_NAV2_HEADING_OVERLAY:-}"
+if [[ -n "$HEADING_OVERLAY" ]]; then
+  /usr/bin/python3 "$PROJECT_DIR/scripts/check_nav2_heading_overlay.py" --overlay "$HEADING_OVERLAY"
+  source "$HEADING_OVERLAY/local_setup.bash"
+fi
+
 PYTHON_BIN="$PROJECT_DIR/.venv/bin/python"
 if [[ ! -x "$PYTHON_BIN" ]]; then
   PYTHON_BIN="/usr/bin/python3"

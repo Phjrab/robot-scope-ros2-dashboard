@@ -18,6 +18,8 @@ class Harness:
         self.futures = []
         self.observer = RosPolicyReadback(NS(), clock=lambda: self.now)
         self.observer._authorities = self.authorities
+        self.observer._declarations = (0, {name: "a" * 48 for name in PARAMETERS},
+            {name: frozenset(keys) for name, keys in PARAMETERS.items()})
         self.observer._param_type = NS(Request=NS)
         self.observer._state_type = NS(Request=NS)
         self.observer._clients = {name: (self.client(name, "parameters"), self.client(name, "state"))
@@ -47,7 +49,7 @@ class Harness:
                 self.is_cancelled = True
 
             def result(self):
-                return (NS(values=[NS(type=0) for _ in PARAMETERS[name]])
+                return (NS(values=[NS(type=4, string_value="fixture") for _ in PARAMETERS[name]])
                         if kind == "parameters" else NS(current_state=NS(id=3)))
 
         class Client:

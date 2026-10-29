@@ -1365,6 +1365,7 @@ def main() -> None:
         cloud_max_points=args.cloud_max_points,
         source_selection_path=args.source_selection_state or None,
         navigation_profile=args.mapping_profile,
+        goal_evidence_dir=Path(args.navigation_runtime_dir).expanduser() / 'goal-evidence',
     )
     if bool(args.perception_source_ip) != bool(args.perception_policy):
         raise RuntimeError("perception source IP and policy must be configured together")

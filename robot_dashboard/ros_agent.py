@@ -130,6 +130,7 @@ class RosAgent(ObservationSubscriptionMixin, RawObservationAccessMixin):
         source_selection_path: Optional[str] = None,
         navigation_profile: str = "",
         enable_stationary_relocalization_observer: Optional[bool] = None,
+        goal_evidence_dir: Optional[Path] = None,
     ) -> None:
         self.robot_ip = self._valid_ip(robot_ip)
         normalized_cloud_max_points = self._normalize_cloud_max_points(cloud_max_points)
@@ -330,6 +331,7 @@ class RosAgent(ObservationSubscriptionMixin, RawObservationAccessMixin):
             graph_getter=lambda: self._graph,
             profile=self.profile,
             navigation_profile=navigation_profile,
+            goal_evidence_dir=goal_evidence_dir,
         )
         self._network_cache: Tuple[float, bool, Optional[float]] = (0.0, False, None)
 
@@ -965,6 +967,7 @@ class RosAgent(ObservationSubscriptionMixin, RawObservationAccessMixin):
         self._camera_hub.shutdown()
         self._ros_runtime.shutdown_executor()
         self._ros_runtime.join()
+        self._navigation_gateway.close_goal_evidence()
 
     def _run(self) -> None:
         try:
