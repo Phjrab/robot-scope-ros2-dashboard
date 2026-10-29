@@ -7,7 +7,7 @@ export const TTL_MS = Object.freeze({ source: 1200, pose: 500, joints: 1200,
 const text = value => typeof value === 'string' ? value.slice(0, 256) : '';
 const finite = x => typeof x === 'number' && Number.isFinite(x);
 const vector = (v, n) => Array.isArray(v) && v.length === n && v.every(finite);
-const stamp = x => typeof x === 'string' && /^\d{1,24}$/.test(x);
+const stamp = x => typeof x === 'string' && /^(0|[1-9]\d{0,24})$/.test(x);
 const sequence = x => Number.isSafeInteger(x) && x >= 0;
 const quaternion = q => vector(q, 4) && Math.abs(Math.hypot(...q) - 1) < 0.001;
 const key = c => c ? [c.map_id, c.revision, c.frame_id, c.source_epoch,
@@ -41,6 +41,7 @@ export function createSceneConsumer({ getMap, clock = () => performance.now() })
   let context = null, contextKey = '', latest = null, history = [], lastSequence = -1;
   const anchors = new Map(), geometryCache = new Map(); let geometryCopies = 0;
   let retiredCollisionSequence = -1;
+  const retiredSources = new Map();
   let protection = {mode:'UNAVAILABLE',transition:'',recommendation:'UNAVAILABLE'};
   let destroyed = false, receipt = 0, error = 'WAITING', accepted = 0, rejected = 0, resets = 0;
   function syncContext() {
@@ -48,7 +49,7 @@ export function createSceneConsumer({ getMap, clock = () => performance.now() })
     const nextKey = contextValid(next) ? key(next) : '';
     if (nextKey !== contextKey || !nextKey && latest) {
       contextKey = nextKey; context = nextKey ? { ...next } : null;
-      latest = null; history = []; lastSequence = -1; anchors.clear(); geometryCache.clear(); retiredCollisionSequence=-1; protection={mode:'UNAVAILABLE',transition:'',recommendation:'UNAVAILABLE'}; resets++; error = 'CONTEXT_CHANGED';
+      latest = null; history = []; lastSequence = -1; anchors.clear(); geometryCache.clear(); retiredSources.clear(); retiredCollisionSequence=-1; protection={mode:'UNAVAILABLE',transition:'',recommendation:'UNAVAILABLE'}; resets++; error = 'CONTEXT_CHANGED';
       return true;
     }
     context = nextKey ? { ...next } : null;
@@ -68,6 +69,8 @@ export function createSceneConsumer({ getMap, clock = () => performance.now() })
     return '';
   }
   function layer(value, packet, ttl, calibration, copy, slot) {
+    const retired = retiredSources.get(slot.startsWith('sensor:')?'obstacles':slot);
+    if (packet.canonical && retired && (!value || value.sequence <= retired.sequence)) return {value:null,reason:value?'SERVER_INVALIDATED':`SERVER_${retired.status.toUpperCase()}`,ttl};
     const reason = guard(value, packet, ttl, calibration);
     if (reason) return { value: null, reason, ttl };
     let age = Number(BigInt(packet.stamp_ns) - BigInt(value.stamp_ns)) / 1e6;
@@ -99,6 +102,10 @@ export function createSceneConsumer({ getMap, clock = () => performance.now() })
     if (packet.sequence < lastSequence || packet.sequence === lastSequence && !packet.canonical) return reject('OUT_OF_ORDER');
     if (latest && packet.stamp_ns !== '0' && BigInt(packet.stamp_ns) < BigInt(latest.stamp_ns)) return reject('STAMP_ROLLBACK');
     receipt = clock();
+    for (const [slot,source] of Object.entries(packet.invalidated_sources || {})) {
+      if (source.source_epoch === context.source_epoch && sequence(source.sequence) && ['expired','unavailable','pending'].includes(source.status)
+        && source.sequence >= (retiredSources.get(slot)?.sequence ?? -1)) retiredSources.set(slot,{sequence:source.sequence,status:source.status});
+    }
     if (packet.canonical && packet.invalidated_assessment?.source_epoch === context.source_epoch
       && sequence(packet.invalidated_assessment.sequence)) retiredCollisionSequence=Math.max(retiredCollisionSequence,packet.invalidated_assessment.sequence);
     const pose = layer(packet.robot_pose, packet, TTL_MS.pose, true, v =>
@@ -151,12 +158,13 @@ export function createSceneConsumer({ getMap, clock = () => performance.now() })
     const costmaps = [];
     for (const value of Array.isArray(packet.costmaps) ? packet.costmaps.slice(0, 2) : []) {
       costmaps.push(layer(value, packet, TTL_MS.costmap, false, v => {
+        if (v.cell_encoding && !['OCCUPANCY_PERCENT','NAV2_COST_0_255'].includes(v.cell_encoding)) return null;
         if (!sequence(v.width) || !sequence(v.height) || !v.width || !v.height || v.width * v.height > LIMITS.costCells
           || !vector(v.origin, 3) || !finite(v.resolution_m) || v.resolution_m <= 0 || !finite(v.plane_z_m)
           || v.representation !== '2D_GROUND_PLANE' || !Array.isArray(v.cells)
-          || v.cells.length !== v.width * v.height || !v.cells.every(x => Number.isInteger(x) && x >= -1 && x <= 255)) return null;
+          || v.cells.length !== v.width * v.height || !v.cells.every(x => Number.isInteger(x) && x >= -1 && x <= (v.cell_encoding === 'OCCUPANCY_PERCENT' ? 100 : 255))) return null;
         return { ...metadata(v), id: text(v.id), width: v.width, height: v.height, origin: v.origin.slice(),
-          resolution_m: v.resolution_m, plane_z_m: v.plane_z_m, representation: v.representation, cells: v.cells.slice() };
+          resolution_m: v.resolution_m, plane_z_m: v.plane_z_m, representation: v.representation, cell_encoding:v.cell_encoding || 'NAV2_COST_0_255', cells: v.cells.slice() };
       }, `costmap:${costmaps.length}`));
     }
     let collision = layer(packet.collision_assessment, packet, TTL_MS.collision, true, v => {
@@ -243,5 +251,5 @@ export function createSceneConsumer({ getMap, clock = () => performance.now() })
   }
   return { ingest, snapshot, syncContext,
     diagnostics: () => ({ accepted, rejected, resets, history: history.length, retainedPackets: latest ? 1 : 0, lastSequence, error, geometryCopies, cachedLayers:geometryCache.size }),
-    destroy() { destroyed = true; latest = null; history = []; anchors.clear(); geometryCache.clear(); } };
+    destroy() { destroyed = true; latest = null; history = []; anchors.clear(); geometryCache.clear(); retiredSources.clear(); } };
 }

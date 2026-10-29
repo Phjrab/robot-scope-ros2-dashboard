@@ -55,7 +55,7 @@ export function createOverlayPainter(canvas, scene) {
           const p = gridToWorld(map, gx, v.height-gy); return scene.project([p.x,p.y,v.plane_z_m]);
         });
         if (quad.some(p => !p)) continue;
-        ctx.fillStyle = cost === -1 || cost === 255 ? (dark ? '#9ba9bb45' : '#44556a45') : cost >= 253 ? '#f06a4b99' : '#e3af3d55';
+        ctx.fillStyle = cost === -1 || cost === 255 ? (dark ? '#9ba9bb45' : '#44556a45') : cost >= (v.cell_encoding === 'OCCUPANCY_PERCENT' ? 100 : 253) ? '#f06a4b99' : '#e3af3d55';
         ctx.beginPath(); quad.forEach((p,j) => j ? ctx.lineTo(p.x,p.y) : ctx.moveTo(p.x,p.y)); ctx.closePath(); ctx.fill();
       }
     }

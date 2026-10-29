@@ -1,0 +1,14 @@
+✔ dashboard uses the readable Mission Control typography scale (1.314511ms)
+✔ all workspaces share the scale while canvas HUD remains compact (0.517714ms)
+✔ waiting, disconnected, stale and unknown remain distinct in Korean (0.649136ms)
+✔ unknown state and blocker codes stay verbatim instead of acquiring an invented cause (0.151771ms)
+✔ synthetic and replay labels never describe live data (0.086952ms)
+✔ navigation blockers identify only their reported condition and a relevant check (0.827623ms)
+ℹ tests 699
+ℹ suites 0
+ℹ pass 699
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1423.585365

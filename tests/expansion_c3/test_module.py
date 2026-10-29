@@ -11,7 +11,7 @@ class SceneConsumerTests(unittest.TestCase):
         if not node:
             self.skipTest("Node.js unavailable")
         root = Path(__file__).resolve().parents[2]
-        for suite in ("test_consumer.mjs", "test_canonical.mjs"):
+        for suite in ("test_consumer.mjs", "test_canonical.mjs", "test_assets.mjs"):
             with self.subTest(suite=suite):
                 result = subprocess.run([node, f"tests/expansion_c3/{suite}"], cwd=root,
                                         capture_output=True, text=True, timeout=30, check=False)

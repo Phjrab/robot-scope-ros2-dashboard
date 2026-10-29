@@ -1,0 +1,25 @@
+✔ canonical C1 snapshot does not need sources.display; D2 geometry and UNKNOWN positive clearance preserved (3.354463ms)
+✔ integer ns parser is exact beyond 2^53 and never rewrites quoted text (0.478342ms)
+✔ repeated HTTP sequence/renewed receipt never renew frozen source TTL or original expiry (0.846754ms)
+✔ same immutable slot revisions reuse normalized geometry and remain bounded (10.045452ms)
+✔ C1 omission at expiry is consumed on the same scene sequence (0.382774ms)
+✔ wrong host, future/expired interval, refs, missing source ages, and foreign clock cannot assert a current assessment (0.627022ms)
+✔ map generation/epoch/stream are fenced, no source clock inferred from stream epoch (0.241902ms)
+✔ missing geometry is explicitly unavailable; no fake reference or paths invented (0.200711ms)
+✔ expired active constraints retain last reported HOLD state and a downgrade is explicit (0.252098ms)
+✔ late pre-expiry HTTP response cannot resurrect C1-invalidated assessment (0.301493ms)
+✔ supplied invalid cloud cannot crash authoritative D2 object rendering (0.480199ms)
+✔ C1 0.2 decimal intervals preserve exact nanoseconds and coverage independently (0.784294ms)
+✔ C1 0.2 expired or unavailable slots retire same-sequence late responses and reset on context change (0.759301ms)
+✔ v02 non-ready payloads cannot render even if an inconsistent server includes them (0.167806ms)
+✔ canonical full source stamp accepts C1 25-digit bound without host conversion (0.158459ms)
+✔ recorded native occupancy percent is explicit; unknown cell encoding is rejected (0.980026ms)
+✔ bulk display geometry cannot replace canonical identity, receipt or evidence; retired refs are hidden (0.474822ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 26.015675

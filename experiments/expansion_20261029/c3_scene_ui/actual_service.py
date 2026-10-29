@@ -13,24 +13,18 @@ from pathlib import Path
 import sys
 import subprocess
 import tempfile
+import time
+from dataclasses import replace
 
-PINS = {
-    "C1": "54629c793ad4ae0ea88127f00ed1b7f8805fc4e2",
-    "D2": "c0d266e290a2d29c173d3b83520f8c96efea9447",
-    "D3": "09b68b692fa4b7ccdea39b1a16e3ff150794e12d",
-}
+from prepare_dependencies import PINS, PATHS
+
 TOKEN = "public-c3-synthetic-offline-test-bearer"
 CASES = ("PREDICTED_CONTACT", "NEAR", "UNKNOWN_PARTIAL", "SCOPED_SYNTHETIC_CLEAR", "ACTIVE_UNKNOWN", "EXPIRED")
 
 
 def verify_exports(deps, root):
     """Fail if the read-only import tree differs from any claimed Git blob."""
-    paths = {
-        "C1": ("robot_dashboard/expansion_contracts", "robot_dashboard/expansion_services",
-               "experiments/expansion_20261029/c1_service_host/host.py"),
-        "D2": ("robot_dashboard/obstacle_fusion_core",),
-        "D3": ("robot_dashboard/collision_geometry_core",),
-    }
+    paths = PATHS
     verified = {}
     for role, directories in paths.items():
         records = subprocess.check_output(["git", "ls-tree", "-r", "-z", PINS[role], "--", *directories], cwd=root)
@@ -50,7 +44,7 @@ def verify_exports(deps, root):
     return verified
 
 
-def build(deps, root, output):
+def build(deps, root, output, native_zip=None):
     verified = verify_exports(deps, root)
     sys.path.insert(0, str(root))
     import robot_dashboard
@@ -58,13 +52,43 @@ def build(deps, root, output):
     from robot_dashboard.obstacle_fusion_core import core as d2
     from robot_dashboard.collision_geometry_core import assess, RobotGeometry, transform
     import robot_dashboard.collision_geometry_core.assessment as d3
-    from robot_dashboard.expansion_contracts import CollisionAssessment, ContractError, ObstacleFrame
+    from robot_dashboard.expansion_contracts import CollisionAssessment, ObstacleFrame
+    from robot_dashboard.expansion_contracts.time_binding import ClockBinding, normalize_collision_assessment
+    from robot_dashboard.collision_geometry_core.contracts import canonical_assessment
     spec = importlib.util.spec_from_file_location("c1_exact_offline_host", deps / "experiments/expansion_20261029/c1_service_host/host.py")
     host = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(host)
     from starlette.staticfiles import StaticFiles
     from fastapi.responses import JSONResponse
     apps, raw_reports, contexts = {}, {}, {}
+    # One short actual D1->C1 save/reload supplies a real merged synthetic identity
+    # for C3; C2's already verified UI is not rebuilt or retuned.
+    import experiments.expansion_20261029 as experiments_root
+    experiments_root.__path__.append(str(deps / 'experiments/expansion_20261029'))
+    map_spec=importlib.util.spec_from_file_location('c2_exact_map_host', deps / 'experiments/expansion_20261029/c2_map_ui/exact_service_host.py')
+    map_host=importlib.util.module_from_spec(map_spec);map_spec.loader.exec_module(map_host)
+    from robot_dashboard.expansion_contracts.fixtures import request
+    (output / 'merged-map').mkdir()
+    composition=map_host.compose(output / 'merged-map',include_bundles=True)
+    try:
+        sources=[v.descriptor for v in composition.resolved.values()]
+        request_wire=replace(request(),request_id='c3-merged-reference',sources=[v.to_dict() for v in sources],
+            anchor_source_key=sources[0].key,source_pins={v.key:v.sha256 for v in sources},
+            initial_guesses=[dict(source_key=v.key,T_anchor_source=t.reshape(16).tolist()) for v,t in zip(sources,composition.poses)],
+            correspondences=[],mode='seeded',options={}).to_dict()
+        job=composition.manager.enqueue(request_wire)
+        for _ in range(400):
+            job=composition.manager.status(job['job_id'])
+            if job['state'] not in ('QUEUED','RUNNING'):break
+            time.sleep(.025)
+        assert job['state']=='SOLVED_CANDIDATE',job
+        reviewed=composition.manager.review(job['job_id'],job['proposal_revision'],True)
+        merged=composition.manager.export(job['job_id'],'c3_synthetic_display_reference',reviewed['proposal_revision'])
+        saved=composition.store.reload(merged['id'])
+        preview=composition.catalogue.preview(saved.descriptor.map_id)
+    finally:composition.manager.close()
+    assert merged['point_count']==800
+    map_report=dict(manifest=merged,preview=preview,source='ACTUAL_D1_CORE_C1_BUNDLESTORE_SYNTHETIC')
     for i, name in enumerate(CASES, 1):
         app = host.create_test_host(output / f"private-host-{i}", TOKEN)
         scene = app.state.c1[2]
@@ -73,6 +97,8 @@ def build(deps, root, output):
         host_ns = 9_007_199_254_740_993  # deliberately beyond JS safe integers
         binding = dict(map_id="a" * 24, revision="b" * 64, generation=i)
         epoch, stream = f"sensor-{i}", f"scene-{i}"
+        binding.update(map_id=merged["id"],revision=merged["revision"])
+        scene.schema_version="0.2"
         scene.reset(binding, stream)
         scene.clock = lambda n=host_ns, expired=name == "EXPIRED": n + (2_000_000_000 if expired else 0)
         meta = dict(schema_version="0.1", evidence_kind="SYNTHETIC", producer="c3.synthetic-input",
@@ -96,24 +122,19 @@ def build(deps, root, output):
         path_meta = dict(meta, producer="c3.supplied-path")
         path = {"ref": {"source_epoch":epoch,"sequence":1}, "poses":[{"time_s":0.,"pose":state["pose"]},
                 {"time_s":1.,"pose":transform((0.6 if name=="PREDICTED_CONTACT" else 0.,0,0.3)).tolist()}]}
-        coverage = "COMPLETE_SYNTHETIC" if name=="SCOPED_SYNTHETIC_CLEAR" else "SPARSE"
+        coverage = None
+        if name=="SCOPED_SYNTHETIC_CLEAR":
+            coverage=dict(kind="GENERATED_CLOSED_SCENE_VOLUME",complete_for_motion=True,evidence_kind="SYNTHETIC",
+                source_refs=[{"generator":"c3.closed.synthetic.scene","sequence":1}],horizon_s=1.,
+                volume_min=[-3,-3,-1],volume_max=[3,3,2],valid_from_ns=meta["stamp_ns"],valid_until_ns=str(host_ns+1_000_000_000),
+                **{k:copy.deepcopy(state[k]) for k in ("source_epoch","clock_domain","frame_key","map_binding")})
         raw = assess(model,state,obstacle,path,now_stamp_ns=host_ns,now_clock_domain=meta["clock_domain"],coverage=coverage)
-        # Prove the direct incompatibility instead of calling it a passing wire.
-        try:
-            CollisionAssessment.from_dict(raw)
-        except ContractError as exc:
-            incompatibility = str(exc)
-        else:
-            raise AssertionError("Expected pinned D3/C1 validity mismatch disappeared; inspect pins")
-        c = copy.deepcopy(raw)
-        interval = c["validity_interval"]
-        assert interval["clock_domain"] == meta["clock_domain"] and meta["stamp_ns"] == str(meta["received_monotonic_ns"])
-        c["freshness"].update(original_validity_interval=interval, clock_mapping={"kind":"SYNTHETIC_IDENTITY_ONLY", "source_epoch":epoch,
-            "sensor_ns":meta["stamp_ns"],"host_ns":str(host_ns),"host_clock_id":"test-host"}, coverage=coverage,
-            protection_mode="ACTIVE_CONSTRAINT" if name=="ACTIVE_UNKNOWN" else "ADVISORY_ONLY")
-        c["validity_interval"] = dict(host_clock_id="test-host",start_monotonic_ns=int(interval["from_ns"]),end_monotonic_ns=int(interval["until_ns"]))
-        c["obstacle_frame_ref"] = {"source_epoch":epoch,"sequence":obstacle["sequence"]} # C1 snapshot requires exact two-key reference
-        collision = CollisionAssessment.from_dict(c).to_dict()
+        clock_binding=ClockBinding(meta["clock_domain"],epoch,"test-host",0,0,"c3-synthetic-identity-only")
+        collision=canonical_assessment(raw,normalize=normalize_collision_assessment,clock_binding=clock_binding)
+        collision["freshness"]["protection_mode"]="ACTIVE_CONSTRAINT" if name=="ACTIVE_UNKNOWN" else "ADVISORY_ONLY"
+        CollisionAssessment.from_dict(collision)
+        assert collision["validity_interval"]["start_monotonic_ns"]==str(host_ns)
+        assert collision["freshness"]["time_conversion"]["original_interval"]==raw["freshness"]["source_validity_interval"]
         def generic(data, producer):
             return {k:meta[k] for k in ("schema_version","evidence_kind","sequence","source_epoch","frame_key","stamp_ns","clock_domain","host_clock_id","received_monotonic_ns","map_binding")} | {"producer":producer,"data":data,"health":{"state":"SYNTHETIC_SUPPLIED"}}
         pose = generic(dict(position_m=[0,0,0.3],rpy_rad=[0,0,0],calibration_id=meta["calibration_id"],
@@ -125,16 +146,24 @@ def build(deps, root, output):
         for slot,value in (("robot_pose",pose),("obstacle_frame",obstacle),("global_path",supplied_path),
                            ("costmap_snapshot",cost),("collision_assessment",collision)):
             assert scene.ingest(slot,value),slot
+        reference_bytes=json.dumps(dict(profile="c3-test-display-v1",map_binding=binding,
+            points_m=[preview['points'][j:j+3] for j in range(0,len(preview['points']),3)],
+            provenance=dict(kind="ACTUAL_D1_SYNTHETIC_MERGED_PREVIEW",manifest=merged)),separators=(',',':')).encode()
+        scene.publish_asset('saved_reference_cloud','d1-merged-preview',reference_bytes,media_type='application/json')
         snapshot = scene.snapshot()
         if name=="PREDICTED_CONTACT": assert raw["reason"]=="PREDICTED_COLLISION",raw
         elif name=="SCOPED_SYNTHETIC_CLEAR": assert raw["severity"]=="CLEAR",raw
         else: assert raw["severity"]=="UNKNOWN" and raw["min_clearance"]>0,raw
         if name=="EXPIRED": assert snapshot["collision_assessment"] is None
-        raw_reports[name] = dict(raw_d3=raw,direct_c1_validation="EXPECTED_CONTRACT_FAILURE",error=incompatibility,
-            projection="EXPLICIT_SYNTHETIC_CLOCK_MAP",snapshot=snapshot,scene_metrics=scene.metrics())
+        raw_reports[name] = dict(raw_d3=raw,canonical_d3=collision,direct_c1_validation="PASS_V02_CANONICAL",
+            projection="ACTUAL_D3_CANONICAL_ASSESSMENT_AND_C1_CLOCK_BINDING",snapshot=snapshot,scene_metrics=scene.metrics())
         contexts[name] = dict(binding,frame_id="map",source_epoch=epoch,stream_epoch=stream,clock_domain=meta["clock_domain"],
-            calibration_id=meta["calibration_id"],units="m",source_identity="SYNTHETIC_SELECTED_IDENTITY_NOT_D1_MERGED_ARTIFACT")
+            calibration_id=meta["calibration_id"],units="m",source_identity="ACTUAL_D1_C1_SAVED_MERGED_SYNTHETIC")
         apps[name]=app
+    native_report=None
+    if native_zip:
+        from native_replay import add_native_replay
+        native_report=add_native_replay(native_zip,host,output,apps,contexts,TOKEN)
     from fastapi import FastAPI
     @host.asynccontextmanager
     async def lifespan(_app):
@@ -151,8 +180,8 @@ def build(deps, root, output):
     for value in modules.values(): assert str(deps) in value
     output.mkdir(parents=True,exist_ok=True)
     # Inputs/snapshots are bounded synthetic JSON; never captured point clouds.
-    report=dict(pins=PINS,verified_dependencies=verified,contract="0.1",modules=modules,source_mode="ACTUAL_C1_SERVICE",evidence="SYNTHETIC",
-                native="NOT_RUN",ros="NOT_RUN",merged_map="INPUT_REQUIRED",cases=raw_reports)
+    report=dict(pins=PINS,verified_dependencies=verified,contract="0.2",modules=modules,source_mode="ACTUAL_C1_SERVICE",evidence="SYNTHETIC",
+                native="RECORDED_REPLAY" if native_report else "NOT_RUN",ros="NOT_RUN_LOCAL",merged_map=map_report,native_replay=native_report,cases=raw_reports)
     (output/'core-results.json').write_text(json.dumps(report,indent=2)+'\n')
     return wrapper
 
@@ -162,12 +191,13 @@ def main():
     parser.add_argument('--deps',type=Path,required=True)
     parser.add_argument('--out',type=Path,required=True)
     parser.add_argument('--port',type=int,default=4184)
+    parser.add_argument("--native-zip",type=Path)
     args=parser.parse_args()
     root=Path(__file__).resolve().parents[3]
     args.out.mkdir(parents=True,exist_ok=True)
     # C1 temporary source/bundle files must never enter repository evidence.
     with tempfile.TemporaryDirectory(prefix='c3-c1-round2-') as private:
-        app=build(args.deps,root,Path(private))
+        app=build(args.deps,root,Path(private),args.native_zip)
         raw=(Path(private)/'core-results.json').read_bytes()
         (args.out/'core-results.json').write_bytes(raw)
         print(json.dumps(dict(status="READY",core_report_sha256=hashlib.sha256(raw).hexdigest(),port=args.port)),flush=True)

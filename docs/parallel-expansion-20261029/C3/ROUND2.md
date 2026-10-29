@@ -1,5 +1,7 @@
 # C3 2차 보완 — canonical snapshot / 실제 core·HTTP 연결
 
+> 최신 후속 검증: [C1 0.2·bulk·native 기록 재생](ROUND2_V02.md). 아래는 이전 SHA의 역사적 결과이며 현재 계약/실행 상태는 이 링크를 우선합니다.
+
 2026-10-29. **C3 보완 구현 및 합성 입력의 실제 core·HTTP·화면 검증 완료. 생산자 계약 직접 연결은 미완료. ROS/native/device 미실행.**
 
 ## 제출 및 검증 기준

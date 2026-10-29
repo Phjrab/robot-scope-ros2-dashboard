@@ -1,0 +1,39 @@
+{
+  "status": "PASS",
+  "cases": [
+    {
+      "name": "PREDICTED_CONTACT",
+      "result": "PASS"
+    },
+    {
+      "name": "NEAR",
+      "result": "PASS"
+    },
+    {
+      "name": "UNKNOWN_PARTIAL",
+      "result": "PASS"
+    },
+    {
+      "name": "SCOPED_SYNTHETIC_CLEAR",
+      "result": "PASS"
+    },
+    {
+      "name": "ACTIVE_UNKNOWN",
+      "result": "PASS"
+    },
+    {
+      "name": "EXPIRED",
+      "result": "PASS"
+    }
+  ],
+  "frozen_time": {
+    "result": "PASS",
+    "same_scene_sequence": 6,
+    "repeated_gets": 9,
+    "geometry_copies": 7,
+    "pose": "STALE",
+    "obstacles": "STALE"
+  },
+  "requests": 123,
+  "errors": []
+}

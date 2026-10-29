@@ -68,3 +68,43 @@ test('supplied invalid cloud cannot crash authoritative D2 object rendering',()=
   const h=harness(),w=fixture();w.obstacle_frame.input_sources=[{...w.obstacle_frame,sensor_id:'LIDAR',kind:'LIDAR',health:'OK',points_m:[[NaN,0,0]]}];
   assert.ok(h.ingest(w));assert.equal(h.consumer.snapshot().sources[0].value,null);assert.equal(h.consumer.snapshot().obstacles.value.obstacles.length,1);
 });
+
+function v02(){const w=fixture();w.schema_version='0.2';for(const value of Object.values(w.sources))value.status='ready';return w;}
+test('C1 0.2 decimal intervals preserve exact nanoseconds and coverage independently',()=>{
+  const w=v02(),h=harness();w.collision_assessment.freshness.coverage={complete_for_motion:false,status:'MOTION_COVERAGE_NOT_QUALIFIED'};
+  h.ingest(w);const v=h.consumer.snapshot();assert.equal(v.collision.value.validity_interval.start_monotonic_ns,'9007199254740993');assert.equal(v.collision.value.coverage.complete_for_motion,false);
+  assert.equal(v.collision.value.severity,'UNKNOWN');assert.equal(v.availability.bulk_references,'C1_AUTHENTICATED_ASSETS');
+});
+test('C1 0.2 expired or unavailable slots retire same-sequence late responses and reset on context change',()=>{
+  for(const status of ['expired','unavailable']){
+    const h=harness(),old=v02(),expired=v02();h.ingest(old);
+    for(const slot of ['robot_pose','obstacle_frame','collision_assessment']){expired[slot]=null;expired.sources[slot].status=status;}
+    h.ingest(expired);assert.equal(h.consumer.snapshot().pose.reason,`SERVER_${status.toUpperCase()}`);
+    h.ingest(old);assert.equal(h.consumer.snapshot().pose.reason,'SERVER_INVALIDATED');assert.equal(h.consumer.snapshot().obstacles.value,null);assert.equal(h.consumer.snapshot().collision.value,null);
+    h.setContext({...context,generation:2});h.consumer.snapshot();h.setContext(context);h.ingest(old);assert.ok(h.consumer.snapshot().pose.value);
+  }
+});
+test('v02 non-ready payloads cannot render even if an inconsistent server includes them',()=>{
+  const w=v02();w.sources.robot_pose.status='expired';const h=harness();h.ingest(w);assert.equal(h.consumer.snapshot().pose.value,null);
+});
+test('canonical full source stamp accepts C1 25-digit bound without host conversion',()=>{
+  const h=harness(),w=v02();for(const slot of ['robot_pose','obstacle_frame','collision_assessment']){w[slot].stamp_ns='1000000000000000000000000';w.sources[slot].stamp_ns=w[slot].stamp_ns;}
+  h.ingest(w);assert.ok(h.consumer.snapshot().pose.value);assert.equal(h.consumer.snapshot().pose.value.stamp_ns,'1000000000000000000000000');
+});
+test('recorded native occupancy percent is explicit; unknown cell encoding is rejected',()=>{
+  for(const encoding of ['OCCUPANCY_PERCENT','unrecognized']){
+    const h=harness(),w=v02();w.costmap_snapshot={...w.robot_pose,data:{id:'native',width:2,height:2,origin:[0,0,0],resolution_m:.2,plane_z_m:0,representation:'2D_GROUND_PLANE',cells:[-1,0,50,100],cell_encoding:encoding}};
+    w.sources.costmap_snapshot={...w.sources.robot_pose};h.ingest(w);
+    if(encoding==='OCCUPANCY_PERCENT'){assert.equal(h.consumer.snapshot().costmaps[0].value.cell_encoding,encoding);assert.deepEqual(h.consumer.snapshot().costmaps[0].value.cells,[-1,0,50,100]);}
+    else assert.equal(h.consumer.snapshot().costmaps[0].value,null);
+  }
+});
+test('bulk display geometry cannot replace canonical identity, receipt or evidence; retired refs are hidden',()=>{
+  const w=v02(),h=harness(),ref={id:'a'.repeat(24),revision:'b'.repeat(64),role:'costmap',source:'costmap_snapshot',media_type:'application/json',bytes:123,usage:'DISPLAY_ONLY'};
+  w.sources.assets=[ref];w.costmap_snapshot={...w.robot_pose,data:{asset_ref:ref}};w.sources.costmap_snapshot={...w.sources.robot_pose};
+  const asset={ref,status:'READY',value:{map_binding:w.map_binding,costmap:{id:'native',width:1,height:1,cells:[100],cell_encoding:'OCCUPANCY_PERCENT',origin:[0,0,0],resolution_m:.2,plane_z_m:0,representation:'2D_GROUND_PLANE',sequence:999,stamp_ns:'1',age_ms:0,received_monotonic_ns:'1',evidence_kind:'LIVE',producer:'forged'}}};
+  const a=adaptC1ScenePacket(w,context,{displayAssets:[asset],transportAgeMs:5});h.consumer.ingest(a.packet);const c=h.consumer.snapshot().costmaps[0].value;
+  assert.equal(c.evidence_kind,'SYNTHETIC');assert.equal(c.producer,w.robot_pose.producer);assert.equal(c.sequence,1);assert.equal(c.receipt_source_ns,'9007199254740993');
+  assert.equal(c.stamp_ns,w.robot_pose.stamp_ns);
+  w.sources.assets=[];const retired=adaptC1ScenePacket(w,context,{displayAssets:[asset]});assert.equal(retired.packet.costmaps.length,0);assert.ok(retired.packet.availability.errors.includes('costmap_snapshot:DISPLAY_ASSET_UNAVAILABLE'));
+});

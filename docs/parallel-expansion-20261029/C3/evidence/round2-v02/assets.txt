@@ -1,0 +1,13 @@
+✔ opaque bytes fetched, verified and decoded once per revision; source omission/reset/dispose clear cache (17.911265ms)
+✔ retired revision, auth denial, corrupt body and oversize body never decode or retry on every poll (1.223496ms)
+✔ only bounded opaque IDs and allowlisted roles/media are accepted; no URL or path resolution (0.349022ms)
+✔ map change during in-flight download cannot repopulate cache with the previous map (0.30408ms)
+✔ invalid display profile is an explicit cached decoder failure (0.288355ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 24.090982

@@ -1,4 +1,4 @@
-// C1 0.1 canonical SceneSnapshotService consumer. C1 owns wire validation.
+// C1 0.1/0.2 canonical SceneSnapshotService consumer. C1 owns wire validation.
 // JSON integers carrying host nanoseconds must never pass through a JS Number.
 export function parseC1SceneJSON(raw) {
   if (typeof raw !== 'string' || new TextEncoder().encode(raw).length > 128 * 1024) throw new Error('C1_DOCUMENT_LIMIT');
@@ -26,15 +26,19 @@ const refMatches = (ref, value) => ref && value && ['source_epoch','sequence'].e
   && (!ref.map_binding || sameBinding(ref.map_binding,value.map_binding));
 const geometry = g => g ? {center_m:g.center,extent_m:g.extent,orientation_xyzw:g.orientation_xyzw} : null;
 
-export function adaptC1ScenePacket(wire, context, { transportAgeMs = 0 } = {}) {
+export function adaptC1ScenePacket(wire, context, { transportAgeMs = 0, displayAssets = [] } = {}) {
   const failure = reason => ({packet:null,reason});
-  if (wire?.schema_version !== '0.1') return failure('C1_VERSION_UNSUPPORTED');
+  if (!['0.1','0.2'].includes(wire?.schema_version)) return failure('C1_VERSION_UNSUPPORTED');
   if (!sameBinding(wire.map_binding,context)) return failure('C1_MAP_GENERATION_MISMATCH');
   if (wire.stream_epoch !== context.stream_epoch || wire.source_epoch !== wire.stream_epoch) return failure('C1_STREAM_MISMATCH');
   if (!Number.isFinite(transportAgeMs) || transportAgeMs < 0) return failure('C1_TRANSPORT_AGE_UNKNOWN');
-  const errors = [];
+  displayAssets=displayAssets.filter(a=>wire.sources?.assets?.some(ref=>['id','revision','role','source','media_type','bytes','usage'].every(k=>ref[k]===a.ref?.[k])));
+  const errors = displayAssets.filter(a=>a.status!=='READY').map(a=>`asset:${a.ref.role}:${a.status}`);
   function observation(value, slot) {
     if (!value) return null;
+    if (wire.schema_version === '0.2' && wire.sources?.[slot]?.status !== 'ready') {
+      errors.push(`${slot}:SERVER_NOT_READY`); return null;
+    }
     if (value.frame_key?.frame_id !== context.frame_id || value.frame_key?.source_epoch !== value.source_epoch
       || value.source_epoch !== context.source_epoch || value.clock_domain !== context.clock_domain
       || !sameBinding(value.map_binding,wire.map_binding)) { errors.push(`${slot}:IDENTITY_OR_CLOCK_MISMATCH`); return null; }
@@ -72,7 +76,17 @@ export function adaptC1ScenePacket(wire, context, { transportAgeMs = 0 } = {}) {
   }
   const path = observation(wire.global_path,'global_path');
   const local = observation(wire.controller_local_trajectory,'controller_local_trajectory');
-  const costmap = observation(wire.costmap_snapshot,'costmap_snapshot');
+  let costmap = observation(wire.costmap_snapshot,'costmap_snapshot');
+  const costRef=wire.costmap_snapshot?.data?.asset_ref;
+  if(costmap && costRef){
+    const asset=displayAssets.find(a=>a.status==='READY' && a.ref.role==='costmap' && a.ref.source==='costmap_snapshot'
+      && a.ref.id===costRef.id && a.ref.revision===costRef.revision && sameBinding(a.value?.map_binding,wire.map_binding));
+    if(asset?.value?.costmap)costmap={...costmap,
+      // Only geometry is decoded: bytes cannot replace canonical identity/time.
+      ...Object.fromEntries(['id','width','height','cells','origin','resolution_m','plane_z_m','representation','cell_encoding'].map(k=>[k,asset.value.costmap[k]])),
+      provenance:{...costmap.provenance,display_asset:asset.ref,display_transform:asset.value.display_transform}};
+    else {errors.push('costmap_snapshot:DISPLAY_ASSET_UNAVAILABLE');costmap=null;}
+  }
   let assessment = observation(wire.collision_assessment,'collision_assessment');
   if (assessment) {
     const interval = assessment.validity_interval, start=ns(interval?.start_monotonic_ns), end=ns(interval?.end_monotonic_ns);
@@ -101,15 +115,18 @@ export function adaptC1ScenePacket(wire, context, { transportAgeMs = 0 } = {}) {
     }
   }
   const slots=[pose,obstacles,path,local,costmap,assessment].filter(Boolean);
-  const stamps=slots.map(x=>x.stamp_ns).filter(s=>typeof s==='string' && /^\d+$/.test(s));
+  const stamps=[...slots,...Object.values(wire.sources || {})].map(x=>x?.stamp_ns).filter(s=>typeof s==='string' && /^\d{1,25}$/.test(s));
   const newest=stamps.reduce((a,b)=>BigInt(a)>BigInt(b)?a:b,'0');
   return {reason:'',packet:{schema_version:'robot-scope.scene-packet.v1',canonical:true,
-    invalidated_assessment:!wire.collision_assessment && wire.sources?.collision_assessment?.health?.state==='REFERENCE_OR_VALIDITY_UNKNOWN' ? {source_epoch:wire.sources.collision_assessment.source_epoch,sequence:wire.sources.collision_assessment.sequence} : null,
+    invalidated_sources:Object.fromEntries(Object.entries({pose:'robot_pose',joints:'robot_pose',obstacles:'obstacle_frame',global_path:'global_path',local_trajectory:'controller_local_trajectory','costmap:0':'costmap_snapshot',collision:'collision_assessment'}).filter(([,slot])=>wire.schema_version==='0.2' && wire.sources?.[slot]?.status!=='ready' && Number.isSafeInteger(wire.sources?.[slot]?.sequence)).map(([slot,source])=>[slot,wire.sources[source]])),
+    invalidated_assessment:!wire.collision_assessment && (wire.sources?.collision_assessment?.health?.state==='REFERENCE_OR_VALIDITY_UNKNOWN' || wire.schema_version==='0.2' && ['expired','unavailable'].includes(wire.sources?.collision_assessment?.status)) ? {source_epoch:wire.sources.collision_assessment.source_epoch,sequence:wire.sources.collision_assessment.sequence} : null,
     source_mode:'ACTUAL_C1_SERVICE',evidence_kind:wire.evidence_kind,producer:wire.producer,sequence:wire.sequence,
     source_epoch:context.source_epoch,stream_epoch:wire.stream_epoch,stamp_ns:newest,clock_domain:context.clock_domain,
     map_identity:{...context},calibration_id:context.calibration_id,provenance:{c1_source_epoch:wire.source_epoch},
     robot_pose:pose,joint_state:joints,obstacle_frame:obstacles,global_path:path,local_trajectory:local,
     costmaps:costmap?[costmap]:[],collision_assessment:assessment,sources:sensors,
-    availability:{reference_cloud:'UNAVAILABLE',sensor_clouds:sensors.length?'SUPPLIED_SYNTHETIC_OR_REPLAY':'UNAVAILABLE',sensor_origins:sensors.some(s=>s.origin_m)?'SUPPLIED':'UNAVAILABLE',
-      bulk_references:'NO_C1_RESOLVER_CONTRACT',collision:wire.sources?.collision_assessment?.health ?? null,errors}}};
+    availability:{reference_cloud:displayAssets.some(a=>a.status==='READY' && a.ref.role==='saved_reference_cloud' && sameBinding(a.value?.map_binding,wire.map_binding))?'SUPPLIED_DISPLAY_ASSET':'UNAVAILABLE',sensor_clouds:sensors.length?'SUPPLIED_SYNTHETIC_OR_REPLAY':'UNAVAILABLE',sensor_origins:sensors.some(s=>s.origin_m)?'SUPPLIED':'UNAVAILABLE',
+      bulk_references:wire.schema_version==='0.2'?'C1_AUTHENTICATED_ASSETS':'NO_C1_RESOLVER_CONTRACT',asset_count:wire.sources?.assets?.length || 0,
+      source_status:wire.schema_version==='0.2'?Object.fromEntries(Object.entries(wire.sources || {}).filter(([k])=>k!=='assets').map(([k,v])=>[k,v.status])):null,
+      collision:wire.sources?.collision_assessment?.health ?? null,errors}}};
 }

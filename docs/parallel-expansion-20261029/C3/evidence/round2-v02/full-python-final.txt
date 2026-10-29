@@ -1,0 +1,14 @@
+test_last_accepted_and_forwarded_ages_are_explicit_and_bounded (test_xt16_wireless_udp_relay.RelayLoopTests.test_last_accepted_and_forwarded_ages_are_explicit_and_bounded) ... ok
+test_only_packet_host_valid_frames_are_forwarded (test_xt16_wireless_udp_relay.RelayLoopTests.test_only_packet_host_valid_frames_are_forwarded) ... ok
+test_periodic_and_final_statistics_are_bounded (test_xt16_wireless_udp_relay.RelayLoopTests.test_periodic_and_final_statistics_are_bounded) ... ok
+test_reject_summary_accepts_only_fixed_categories (test_xt16_wireless_udp_relay.RelayLoopTests.test_reject_summary_accepts_only_fixed_categories) ... ok
+test_sequence_and_counter_accounting_is_saturating (test_xt16_wireless_udp_relay.RelayLoopTests.test_sequence_and_counter_accounting_is_saturating) ... ok
+test_short_udp_send_is_an_error_and_capture_continues (test_xt16_wireless_udp_relay.RelayLoopTests.test_short_udp_send_is_an_error_and_capture_continues) ... ok
+test_transient_send_failure_recovers_in_the_same_process (test_xt16_wireless_udp_relay.RelayLoopTests.test_transient_send_failure_recovers_in_the_same_process) ... ok
+
+----------------------------------------------------------------------
+Ran 3117 tests in 102.865s
+
+OK (skipped=2)
+{"status": "BLOCKED", "output": "/tmp/tmpziy07n9z/blocked.json"}
+{"status": "COMPUTED_DECLARED_INPUTS", "output": "/tmp/tmpou2x_8j_/result.json"}

@@ -1,0 +1,24 @@
+✔ synthetic scenarios execute without generating paths or collisions (5.234697ms)
+✔ empty/no local trajectory is explicit and preserves no previous objects (0.315899ms)
+✔ all identity changes clear history and reject old packets before new input (2.25836ms)
+✔ trusted context unavailable, unknown units and source clock are rejected (0.249629ms)
+✔ sequence, duplicate, epoch reconnect and source stamp rollback are fenced (0.405372ms)
+✔ ns remain exact beyond Number.MAX_SAFE_INTEGER and source clocks are never subtracted from host (0.295689ms)
+✔ bad calibration, unknown clock, sensor skew fail closed without losing single sensor geometry (0.545237ms)
+✔ future, wrong frame, invalid quaternion and source geometry oversize never draw (0.780216ms)
+✔ pose/joints stale hide robot inputs and suppress derived risk immediately (0.401954ms)
+✔ fresh but temporally incompatible pose/joints or obstacle source are blocked (0.42609ms)
+✔ collision validity interval, refs and unsupported physical contact are not accepted (1.127426ms)
+✔ costmap and XY path must explicitly declare their display plane (0.186301ms)
+✔ path generations bounded; missing current path is never substituted by history (1.833091ms)
+✔ retained geometry and metadata are isolated from producer reuse (0.22383ms)
+✔ 1200 synchronous packets retain one packet, at most 3 path generations, and destroy releases all (60.511772ms)
+✔ module import has no DOM, network, model-loading or process side effects (1.6577ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 84.964793

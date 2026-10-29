@@ -59,70 +59,55 @@ Current explicit display budgets (not safety thresholds): 4 sources × 4096 poin
 
 Pausing freezes the displayed snapshot, explicitly labeled PAUSED; new input stays latest-only. Step consumes that one pending packet, not a hidden unbounded replay queue. The external replay producer owns the timeline. Map/context changes still clear a paused display. No control/safety stop is invoked.
 
-## Current exact C1 service boundary
+## Current exact C1 service boundary — 0.2 continuation
 
-Round 2 uses C1 `54629c793ad4ae0ea88127f00ed1b7f8805fc4e2`, D2
-`c0d266e290a2d29c173d3b83520f8c96efea9447` and D3
-`09b68b692fa4b7ccdea39b1a16e3ff150794e12d` as verified read-only imports.
-The previous bootstrap experiment is historical evidence in HANDOFF; its
-`sources.display` assumptions are superseded. See [ROUND2.md](ROUND2.md).
+Current source/contract pins, evidence and remaining input are in
+[ROUND2_V02](ROUND2_V02.md). C1 `4e1dd519a707169da5f88cf2a92a20ed3e701cc7`
+provides canonical 0.2 with decimal host ns and explicit slot status. Legacy 0.1
+continues to work through the lossless token parser. D3
+`356d0a036eb62d546e159e12a0691d7f5ea278f6` calls the actual C1 normalizer; no
+consumer alias schema, ref truncation or receipt-time TTL restart is needed.
 
-At the eventual authorized transport boundary:
+A future authorized host can inject this read-only boundary:
 
 ```js
-const started = performance.now();
-const raw = await response.text();
-const wire = parseC1SceneJSON(raw); // preserve integer ns tokens exactly
+const start = performance.now();
+const wire = parseC1SceneJSON(await response.text());
+const displayAssets = await assetCache.resolve(wire);
 const {packet, reason} = adaptC1ScenePacket(wire, trustedContext, {
-  transportAgeMs: performance.now() - started,
+  transportAgeMs: performance.now() - start,
+  displayAssets,
 });
-if (packet) publishToDisplay(packet); // read-only subscription callback
+if (packet) publishToDisplay(packet);
 ```
 
-Start timing before the HTTP request, as the isolated host does; transport elapsed
-is a conservative added age. C1 still owns canonical validation. The JavaScript
-parser bounds the document and preserves integer nanoseconds before Number
-rounding; it is not a replacement schema validator. Unsafe already-parsed Number
-values are withheld. The public wire remains C1 **0.1** with Python integer host
-nanoseconds. Do not publish the internal scene-packet display shape as a new
-producer contract.
+Start timing before the request. Host clocks are never compared with browser
+monotonic clocks. The C1 status `expired`/`unavailable` fences that slot sequence,
+including late HTTP responses. Context/epoch/generation reset clears these fences.
+The original validity interval, conversion provenance, receipt, clock and full
+refs remain available to inspection. 25-digit source stamps match C1's bound;
+host ns remain bounded to 2^63-1. UNKNOWN and positive clearance coexist.
 
-C1 uses `sources[slot]` age/epoch/sequence metadata and generic observation
-`data` envelopes. Its stream epoch is not the sensor source epoch. Map generation
-is now part of the consumer context key. C1's interval is exactly
-`{host_clock_id,start_monotonic_ns,end_monotonic_ns}`. Remaining time is computed
-from the same-host producer receipt plus C1's received age, never by subtracting
-browser and server monotonic clocks. Original interval/host/domain/receipt stay
-in the inspector. Absolute sensor age remains UNKNOWN where C1 provides null.
-Repeated HTTP scene sequence is permitted for server invalidation/age updates;
-per-layer frozen source stamps cannot restart TTL. C1-invalidated assessment
-sequence stays tombstoned even if an earlier HTTP response arrives late.
+`createC1AssetCache({fetchAsset,decode})` accepts only C1 opaque ID/revision refs
+and calls `/api/v1/extensions/scene/assets/{id}/{revision}` through trusted
+transport. Maximum 8 refs, 2 MiB each, 8 MiB total; media/length/SHA256 checked.
+The host supplies authentication and an explicitly chosen geometry decoder.
+Unknown formats fail visibly. C1 does not define asset cloud/costmap geometry;
+`c3-test-display-v1` belongs only to the isolated C3 test host. No arbitrary URL,
+filesystem path or new common v1 is resolved. Cache entries retire on omission,
+map reset, revision replacement or dispose; stale asynchronous results cannot
+repopulate a new context. Immutable successes/failures are not refetched per poll.
 
-Actual D2 `geometry.center/extent/orientation_xyzw` maps to display metre fields.
-Objects retain structured provenance even when a visual cloud is unavailable.
-Optional `input_sources` geometry is used only when explicitly supplied with
-matching identity/clock/calibration; it is not an automatic C1 cloud service.
-There is no joint-state slot or standard generic geometry sub-schema in this
-C1 SHA. The isolated runner supplies pose/path/costmap dictionaries and synthetic
-visual joints explicitly. Missing reference/merged cloud, local trajectory and
-bulk resolver remain UNAVAILABLE. The 16 KiB/slot, 80 KiB latest set and 128 KiB
-wire bounds remain intact. C3 reuses immutable slot revisions and does not fetch
-uncontracted URLs or parse geometry on animation frames.
+The adapter's optional display costmap must match the current observation's
+asset ref and map generation. Bytes cannot replace canonical timestamp, source,
+clock or sequence. Cell encoding explicitly distinguishes OCCUPANCY_PERCENT
+(100 occupied) from NAV2_COST_0_255 (253/254 lethal,255 unknown). Native display
+reduction preserves original grid bounds and unknown cells; safety inputs stay
+unchanged. A bulk response does not refresh source age.
 
-D3 raw validity still fails C1's validator. The C3-owned runner records the exact
-failure and applies only an explicit synthetic clock correspondence, preserving
-its original interval; it is not production clock synchronization. D3 scalar
-envelope summaries are inspected as evidence, never invented as drawable boxes.
-UNKNOWN and positive clearance are retained together. Coverage, reported protection
-mode, recommendation and actual evidence level are separate. Missing active input
-retains the last reported ACTIVE_CONSTRAINT/HOLD state; an upstream downgrade is
-explicitly flagged, never silently treated as verified protection.
-
-## One next action
-
-Supply one producer-owned canonical scene replay bundle at an exact SHA, including
-its source-to-host clock correspondence and real merged-map/native/bulk references.
-That single input enables the remaining actual-payload check. The current result
-is actual offline core + HTTP execution on synthetic inputs, with production
-clock/geometry profiles and ROS/native replay still unverified. Product wiring
-and equipment validation remain outside this branch's authorization.
+Generic pose/path/joint geometry remains host-defined. Missing native joints,
+calibration, local trajectory and assessment stay unavailable. Scalar D3
+envelopes are never drawn as invented boxes. Reported ACTIVE constraints retain
+UNKNOWN/HOLD on missing evidence; downgrade remains visible. Neither the test
+host nor this feature has a command sink. Shared app/renderer/goal hooks above
+are proposals only, not connected by this submission.

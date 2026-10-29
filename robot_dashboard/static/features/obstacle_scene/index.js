@@ -96,7 +96,7 @@ export function mountObstacleScene(host, { scene, subscribe, getMap, theme = 'da
       const assessment = view.collision.value;
       risk.textContent = assessment ? `${assessment.severity} · ${assessment.contact_state} · ${assessment.reason} · clearance ${assessment.min_clearance_m ?? 'UNKNOWN'} m`
         : `데이터 불충분 · UNKNOWN · ${view.collision.reason}`;
-      if (assessment?.canonical) risk.textContent += ` · coverage ${typeof assessment.coverage === 'string' ? assessment.coverage : JSON.stringify(assessment.coverage)} · protection ${assessment.protection_mode} · ${assessment.recommendation} · envelope geometry ${assessment.envelope_geometry_status}`;
+      if (assessment?.canonical) risk.textContent += ` · coverage ${typeof assessment.coverage === 'string' ? assessment.coverage : `${assessment.coverage?.status || 'UNKNOWN'} / complete_for_motion=${assessment.coverage?.complete_for_motion ?? 'UNKNOWN'}`} · protection ${assessment.protection_mode} · ${assessment.recommendation} · envelope geometry ${assessment.envelope_geometry_status}`;
       if (view.source_mode==='ACTUAL_C1_SERVICE' && !assessment) risk.textContent += ` · last reported protection ${view.protection.mode} · ${view.protection.recommendation} · 현재 근거 UNAVAILABLE`;
       if (view.protection?.transition) risk.textContent += ' · '+view.protection.transition;
       if (view.availability?.errors.length) risk.textContent += ' · ' + view.availability.errors.join(', ');
@@ -119,6 +119,7 @@ export function mountObstacleScene(host, { scene, subscribe, getMap, theme = 'da
           costmap_ingestion_observed: view.obstacles.value.costmap_ingestion_observed,
           controller_consumption_observed: view.obstacles.value.controller_consumption_observed } });
       else if (selected) { selected = ''; inspector.textContent = '선택 객체가 현재 frame에서 제거/차단되었습니다.'; }
+      else inspector.textContent = '물체 또는 위험 상태를 선택하면 source·geometry·frame·time·provenance가 표시됩니다.';
     }
     metrics.textContent = `수신 ${received} · 표시 ${rendered} · coalesced/drop ${dropped} · 대기 ${pending ? 1 : 0}/1 · retained history ${consumer.diagnostics().history}/${LIMITS.pathHistory}`;
   }

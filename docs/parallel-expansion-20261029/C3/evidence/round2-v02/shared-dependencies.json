@@ -1,0 +1,14 @@
+{
+  "C1": {
+    "sha": "4e1dd519a707169da5f88cf2a92a20ed3e701cc7",
+    "shared_import_blobs_verified": 5
+  },
+  "D1": {
+    "sha": "203c144f6b4a90966839c34b603ae12ee676cb12",
+    "shared_import_blobs_verified": 5
+  },
+  "D2": {
+    "sha": "7313f0a31c00ae87ae216b84ca41a23804e91917",
+    "shared_import_blobs_verified": 5
+  }
+}

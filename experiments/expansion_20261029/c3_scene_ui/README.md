@@ -22,78 +22,72 @@ Playwright 1.62.1 and its Chromium are used without changing root package/lockfi
 
 The full mandatory regression commands and unresolved dependency/device checks are in `docs/parallel-expansion-20261029/C3/HANDOFF.md`; future host hooks and the explicit consumer field profile are in `INTEGRATION_POINTS.md` there.
 
-## Round 2: exact producers and actual offline HTTP
+## Round 2 continuation: C1 0.2, exact cores and recorded native replay
 
-The original page still defaults to `SOURCE MODE: FIXTURE`. The actual service
-mode is opt-in, uses the same renderer and feature, and has no fixture replay
-controls. It shows SYNTHETIC evidence separately from ACTUAL_C1_SERVICE transport.
-See `docs/parallel-expansion-20261029/C3/ROUND2.md` for measured results and limits.
-
-Prepare read-only dependencies outside the repository (no merge/cherry-pick):
+The default page remains the original fixture. `?actual=UNKNOWN_PARTIAL` selects
+actual authenticated C1 HTTP with generated D2/D3 input; `?actual=NATIVE_REPLAY`
+selects original D3 hosted native records. Neither mode connects the product or a
+robot. Current pins and results: [ROUND2_V02](../../../docs/parallel-expansion-20261029/C3/ROUND2_V02.md).
+Historical 0.1 results remain in ROUND2.md and Git; current `actual_service.py`
+uses the new pins below and the real owner normalization API.
 
 ```sh
-git fetch --no-tags origin 54629c793ad4ae0ea88127f00ed1b7f8805fc4e2 c0d266e290a2d29c173d3b83520f8c96efea9447 09b68b692fa4b7ccdea39b1a16e3ff150794e12d
-mkdir -p /tmp/c3-round2-deps
-git archive 54629c793ad4ae0ea88127f00ed1b7f8805fc4e2 robot_dashboard/expansion_contracts robot_dashboard/expansion_services experiments/expansion_20261029/c1_service_host | tar -x -C /tmp/c3-round2-deps
-git archive c0d266e290a2d29c173d3b83520f8c96efea9447 robot_dashboard/obstacle_fusion_core | tar -x -C /tmp/c3-round2-deps
-git archive 09b68b692fa4b7ccdea39b1a16e3ff150794e12d robot_dashboard/collision_geometry_core | tar -x -C /tmp/c3-round2-deps
-chmod -R a-w /tmp/c3-round2-deps
-python3 experiments/expansion_20261029/c3_scene_ui/actual_service.py --deps /tmp/c3-round2-deps --out /tmp/c3-round2-results --port 4184
+git fetch origin 4e1dd519a707169da5f88cf2a92a20ed3e701cc7 203c144f6b4a90966839c34b603ae12ee676cb12 7313f0a31c00ae87ae216b84ca41a23804e91917 356d0a036eb62d546e159e12a0691d7f5ea278f6 47a1d031d797c098c38a0147894523d07d30db8f
+python3 experiments/expansion_20261029/c3_scene_ui/prepare_dependencies.py /tmp/c3-next-deps-v2
+# Optional exact native artifact (975251 bytes; no local ROS execution):
+gh api repos/Phjrab/robot-scope-ros2-dashboard/actions/artifacts/12882393645/zip > /tmp/c3-d3-native-fa8e26e.zip
+# Python environment: requirements.txt + requirements-competition-offline.txt.
+PYTHONDONTWRITEBYTECODE=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python3 experiments/expansion_20261029/c3_scene_ui/actual_service.py --deps /tmp/c3-next-deps-v2 --out /tmp/c3-next-results --native-zip /tmp/c3-d3-native-fa8e26e.zip --port 4184
 ```
 
-Use repository Python requirements plus `requirements-competition-offline.txt` in
-an external venv. No ROS, model weights or robot network is required. The runner
-verifies all imported role files against the exact Git blobs before running.
-C1's existing `create_test_host`/router/SceneSnapshotService execute unchanged.
-Temporary PCDs from that test host are deleted with its temporary directory.
+The exporter requires a new directory and makes every file read-only. The runner
+verifies each owner Git blob before importing it. Temporary D1/C1 maps, merged
+PCD and manifests are private to TemporaryDirectory and never committed. One
+short actual D1 seeded solve -> C1 save/reload supplies the merged map identity
+and 160-point display preview of its 800-point result. C2's exact host wiring is
+reused read-only; its UI remains frozen. All service limits stay unchanged.
 
-Open `http://127.0.0.1:4184/experiments/expansion_20261029/c3_scene_ui/fixture.html?actual=UNKNOWN_PARTIAL`.
-Only the local test bearer constant is used; it is public synthetic test data,
-not a product credential. The browser polls only the authenticated snapshot GET.
-Each scene freezes its virtual source/host clock intentionally, allowing repeated
-HTTP reads to expose accidental TTL renewal. C3 still advances local elapsed age.
-`EXPIRED` has a server clock already 2 seconds past receipt.
+Omit `--native-zip` to run only the six generated-core cases. An unavailable or
+expired GitHub artifact is INPUT_REQUIRED; a mismatched hash fails. Never create
+a replacement recording and call it this native run. Expected ZIP SHA256:
+`0f09cf101555dbef3368fc6913acd9cdd61e380ad45c51472ea5e6b1b3cdc6aa`.
 
-In another shell with Playwright/Chromium installed externally:
+In another shell, after the server reports READY:
 
 ```sh
 node tests/expansion_c3/test_consumer.mjs
 node tests/expansion_c3/test_canonical.mjs
-C3_EVIDENCE=/tmp/c3-round2-results node tests/expansion_c3/actual_browser.mjs
-# C3_PLAYWRIGHT may name the external playwright package;
-# PLAYWRIGHT_BROWSERS_PATH may select its external browser cache.
+node tests/expansion_c3/test_assets.mjs
+C3_NATIVE_REPLAY=1 C3_EVIDENCE=/tmp/c3-next-results node tests/expansion_c3/actual_browser.mjs
+# Set C3_PLAYWRIGHT and PLAYWRIGHT_BROWSERS_PATH for the external installation.
+# Without native artifact, omit C3_NATIVE_REPLAY=1.
+C3_FIXTURE_URL=http://127.0.0.1:4184/experiments/expansion_20261029/c3_scene_ui/fixture.html C3_EVIDENCE=/tmp/c3-next-fixture-results node tests/expansion_c3/browser.mjs
 ```
 
-`actual_browser.mjs` audits GET-only loopback traffic, hashes the exact endpoint
-response bytes and connects those hashes to six displayed cases and screenshots.
-`NEAR` is a test scenario name: the pinned D3 producer returns UNKNOWN with a
-positive distance, not a NEAR enum. `PREDICTED_CONTACT` displays the producer's
-PREDICTED_COLLISION reason as modeled contact; physical contact is unconfirmed.
-The sole CLEAR case is explicitly COMPLETE_SYNTHETIC for a limited body-box
-model and the supplied one-second path, not real free-space evidence.
+Run heavy checks sequentially. Node 24.22.1 / Playwright 1.62.1 / Chromium
+151.0.7922.34 were used. Python's mandatory discovery also executes all three
+C3 unit files. Remote common CI does not fetch these peer pins or replay the
+native artifact: local actual integration and remote regression are separate.
 
-The runner is test wiring, not a proposed universal producer schema. C1 generic
-`robot_pose.data`, `global_path.data` and `costmap_snapshot.data` accept dictionaries
-but define no geometry sub-schema. Here those supplied synthetic payloads use
-existing C3 metre/radian fields; `robot_pose.data.joint_state` animates the visual
-URDF only. Raw synthetic LiDAR points/origin are passed into actual D2 and retained
-in its `input_sources`; C3 uses them only when explicitly supplied. No reference
-cloud, merged map, local trajectory, drawable D3 envelopes or native costmap data
-is invented. Large data has no canonical bulk resolver in this C1 SHA; C3 does not
-fetch arbitrary references. Immutable slot sequence/epoch revisions reuse bounded
-normalized geometry; stale rendering never reparses incoming JSON each frame.
+C1 supplies the canonical 0.2 decimal timestamps and fixed authenticated asset
+route. D3 `canonical_assessment` calls C1 `normalize_collision_assessment` with
+an explicit epoch-bound `ClockBinding`; C3 no longer renames validity keys or
+narrows full refs. The six core cases use an explicitly synthetic identity clock
+mapping, not measured sensor clock calibration. The scoped CLEAR case passes a
+finite generated closed-scene volume, horizon and source identity to D3's real
+coverage qualifier. NEAR remains a scenario name; its actual risk is UNKNOWN.
 
-The raw D3 interval fails the pinned C1 validator. The runner records that failure
-and retains the original interval in `freshness.original_validity_interval` while
-applying an explicit SYNTHETIC identity source-to-host clock correspondence.
-It also projects D3's full obstacle reference to the exact two-key reference C1
-snapshot requires. This conversion does not establish real host-clock alignment.
-`parseC1SceneJSON` preserves canonical integer ns tokens as decimal strings before
-JS Number conversion; already-rounded unsafe Numbers are rejected. C1's Python
-validator still consumes canonical integers, not a new string-valued wire version.
+Asset content is opaque in C1. `createC1AssetCache` only fetches fixed opaque IDs,
+checks byte limits/media/SHA256, and caches a host-injected decoder. This isolated
+host explicitly selects `c3-test-display-v1`; that is NOT a C1 public geometry
+schema. Its native occupancy grid uses percent values, preserves -1 unknown,
+and downsamples 200x150 -> 40x30 with exact grid bounds for display only. No D2,
+D3 or native safety input is modified. Original native plan points are unchanged.
 
-Round 1's bootstrap-only compatibility scripts have been updated: run
-`c1_compatibility.py` on an actual endpoint JSON using the pinned C1 PYTHONPATH,
-and `check_c1.mjs <response.json> <trusted-context.json>` for the consumer. The
-original fixture browser checks remain in `browser.mjs`; the old optional
-bootstrap check is replaced by the stronger actual HTTP suite above.
+Native records keep their sim stamps and host receipt values. Host receipt in
+that artifact is floating seconds, explicitly rounded to ns, never described as
+nanosecond capture precision. A recording-specific host alias and the original
+recorded maximum receipt define the paused historical snapshot; no source/host
+clock equality is assumed. Local browser age continues and cannot renew frozen
+data. Native joint state, calibration and C3 collision assessment were not
+recorded and remain unavailable; UI never infers native 3D protection from them.
