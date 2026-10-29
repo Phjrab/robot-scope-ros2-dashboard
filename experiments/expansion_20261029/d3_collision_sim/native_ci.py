@@ -44,6 +44,13 @@ def stage(destination):
         adapted = original.replace(b"c3_nav2", b"robot_scope_review_x").replace(
             b"ROS_DOMAIN_ID=193", b"ROS_DOMAIN_ID=194"
         )
+        if p.name == "configure.py":
+            # Preserve the production-prefix ban. Normalize ONLY this exact
+            # approved review namespace for that textual validation check.
+            adapted = adapted.replace(
+                b"text = json.dumps(cfg)",
+                b'text = json.dumps(cfg).replace("/robot_scope_review_x/", "/c3_nav2/")',
+            )
         if p.name == "preflight.py":
             adapted = adapted.replace(b'!= "193"', b'!= "194"')
         if adapted != original:
@@ -59,7 +66,7 @@ def stage(destination):
         destination.parent / "namespace-adaptation.json",
         dict(
             changes=changes,
-            policy="namespace/domain literals ONLY; no controller, limits, geometry or outcomes changed",
+            policy="namespace/domain literals and exact review-prefix validation normalization ONLY; no controller, limits, geometry or outcomes changed",
         ),
     )
     return destination / BASELINE
@@ -86,7 +93,12 @@ def run_case(native, lock, output, scenario):
             str(target),
         ],
         check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
     )
+    print(p.stdout, flush=True)
+    (target / "driver-output.txt").write_text(p.stdout)
 
     def read(name):
         path = target / "run" / name
@@ -109,6 +121,7 @@ def run_case(native, lock, output, scenario):
         and validation.get("status") == "PASS"
         and result.get("outcome") == expected
         else "FAIL",
+        driver_error=p.stdout[-3000:] if p.returncode else None,
         result=result,
         validation=validation,
     )
@@ -182,7 +195,7 @@ def main():
             if row["status"] != "PASS":
                 summary["first_blocker"] = dict(
                     scenario=scenario,
-                    error=row["result"].get("error"),
+                    error=row["result"].get("error") or row.get("driver_error"),
                     terminal_fault=row["result"].get("terminal_fault"),
                     outcome=row["result"].get("outcome"),
                     action=row["result"].get("action"),
@@ -198,7 +211,7 @@ def main():
                 if row["status"] != "PASS":
                     summary["first_blocker"] = dict(
                         scenario=scenario,
-                        error=row["result"].get("error"),
+                        error=row["result"].get("error") or row.get("driver_error"),
                         terminal_fault=row["result"].get("terminal_fault"),
                         outcome=row["result"].get("outcome"),
                     )

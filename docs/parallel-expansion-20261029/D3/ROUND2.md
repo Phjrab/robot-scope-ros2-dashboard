@@ -55,7 +55,7 @@ GitHub-hosted Ubuntu 22.04 only; no self-hosted runner, secret, host network,
 physical-device mount, deployment or workflow_dispatch assumption.
 
 `native_ci.py` reuses the existing `experiments/competition_nav2` executor in a
-transient tracked-source export. Namespace/domain literals alone are replaced
+transient tracked-source export. Namespace/domain literals are replaced (with exact approved-prefix normalization for the legacy production-prefix validator)
 with `/robot_scope_review_x` / 194; source and adapted hashes are recorded.
 Actual parameters, Nav2 package versions, plugin library hashes, immutable image
 ID/base digest, raw Twist, plant pose, odometry, scan, costmap, plan, lifecycle,
