@@ -1,5 +1,7 @@
 # C2 round 2 — compatibility and freeze
 
+Update: [Published canonical/zero-residual follow-up](ROUND2_LATEST.md) closes the unavailable-commit item below and records the completed CI receipt.
+
 2026-10-29, Asia/Seoul. **C2_COMPATIBLE_FROZEN — current pinned combination only.**
 Actual C1/D1 synthetic registration and full-source export remain verified.
 The requested newer canonical/zero-RMSE commits were not published at the initial

@@ -1,6 +1,7 @@
 # C2 handoff — multi-map selection and fusion review UI
 
-Latest: [Round 2 compatibility and freeze](ROUND2.md). The evidence below is the preserved round-1 record.
+Latest: [Published canonical/zero-residual compatibility](ROUND2_LATEST.md).
+Earlier: [Round 2 compatibility and freeze](ROUND2.md). The evidence below is the preserved round-1 record.
 
 2026-10-29 (Asia/Seoul). **UI_MODULE_TESTED / PRODUCT_WIRING_DEFERRED / DEVICE_NOT_RUN**.
 
