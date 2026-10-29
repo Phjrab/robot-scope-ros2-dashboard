@@ -1,0 +1,48 @@
+{
+  "evidence_kind": "SYNTHETIC",
+  "D2": "fixture_called",
+  "scene_sequence": 1199,
+  "health": {
+    "sources": {
+      "lidar": {
+        "age_ns": 0,
+        "stale": false,
+        "source_stamp_ns": "1000001199",
+        "fusion_time": "SOURCE_CLOCK_ONLY"
+      }
+    },
+    "rejected": 0,
+    "late_results": 0,
+    "dropped": 1199,
+    "invalid": 0,
+    "latency": {
+      "queue_ms": 0.0,
+      "processing_ms": 0.0,
+      "receipt_to_done_ms": 0.0
+    },
+    "worker_error": null,
+    "queue_capacity": 1,
+    "executing_capacity": 1
+  },
+  "mock_sink": {
+    "velocity": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "hold": true,
+    "reason": "STOP_REQUIRED"
+  },
+  "native_evidence": {
+    "published_to_nav2": false,
+    "costmap_ingestion_observed": false,
+    "actual_plan_change_observed": false,
+    "controller_consumption_observed": false,
+    "publication": null,
+    "costmaps": {},
+    "global_path": null,
+    "local_trajectory": null
+  },
+  "NATIVE_NAV2_SIM": "NOT_RUN_NO_ROS",
+  "DEVICE_NOT_RUN": true
+}

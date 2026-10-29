@@ -1,0 +1,111 @@
+{
+  "base_sha": "f469155c2b0c505f3e472e878f75029d7b8d39df",
+  "branch": "review/20261029-x-c4-runtime",
+  "execution_date": "2026-10-29",
+  "environment": {
+    "python": "3.12.3",
+    "node": "24.22.1",
+    "os": "Linux x86_64 desktop",
+    "packages": {
+      "numpy": "2.5.4",
+      "PyYAML": "6.0.3",
+      "fastapi": "0.162.0",
+      "pydantic": "2.14.1",
+      "httpx": "0.28.1",
+      "opencv-python-headless": "5.0.0.93"
+    }
+  },
+  "UNIT": {
+    "focused": {
+      "tests": 46,
+      "skipped": 1,
+      "failures": 0,
+      "errors": 0
+    },
+    "python_full": {
+      "tests": 2987,
+      "skipped": 17,
+      "failures": 0,
+      "errors": 0
+    },
+    "javascript": {
+      "test_files": 77,
+      "passed": 77,
+      "failed": 0
+    },
+    "compileall": "PASS",
+    "git_diff_check": "PASS"
+  },
+  "SYNTHETIC": {
+    "messages": 1200,
+    "pending_capacity": 1,
+    "executing_capacity": 1,
+    "superseded": 1199,
+    "latest_sequence": 1199,
+    "mock_stop_velocity": [
+      0,
+      0,
+      0
+    ],
+    "mock_stop_hold": true,
+    "latency_clock": "VIRTUAL_NOT_BENCHMARK"
+  },
+  "exact_sha": {
+    "C1_contracts": "2402c02c6f91ba54064894b21735e01b98610acd",
+    "C1_parser_projection": "PASS",
+    "C1_service": "NOT_RUN_BOOTSTRAP_HAS_NO_SERVICE",
+    "D2": "NOT_RUN_NO_PUBLISHED_SHA_AT_SINGLE_CHECK",
+    "D3": "NOT_RUN_NO_PUBLISHED_SHA_AT_SINGLE_CHECK",
+    "C3": "NOT_RUN_NO_PUBLISHED_SHA_AT_SINGLE_CHECK"
+  },
+  "NOT_RUN": {
+    "NATIVE_NAV2_SIM": "ROS Humble/Nav2 installation unavailable",
+    "generated_ROS_types": "rclpy/sensor_msgs unavailable",
+    "native_plugin_load": "not installed",
+    "effective_profile_readback": "not installed",
+    "native_mark_clear_occlusion_dropout_matrix": "D3 owns full native harness",
+    "native_plan_change": "no actual native snapshots",
+    "controller_enforcement": "memory sink only",
+    "REPLAY_REAL": "no real recordings used",
+    "UI_FIXTURE": "C3 consumer unavailable",
+    "DEVICE_NOT_RUN": "all physical robot/sensors/TF/goal/velocity/deployment untested"
+  },
+  "evidence_flags": {
+    "published_to_nav2": false,
+    "costmap_ingestion_observed": false,
+    "actual_plan_change_observed": false,
+    "controller_consumption_observed": false,
+    "mock_command_enforcement_observed": true
+  },
+  "initial_attempts": {
+    "system_python": "missing numpy/HTTP deps; replaced with isolated temporary venv",
+    "restricted_sandbox_full": "interrupted after asyncio teardown stopped progressing; self-pipe suppression separately reproduced",
+    "restricted_sandbox_filtered_diagnostic": "stopped by timeout; no pass claimed",
+    "system_node18": "70 passed, 7 ESM loader failures; unchanged tests all pass under bundled Node24"
+  },
+  "network_guard": "offline_test_guard.py installed as temporary sitecustomize; non-loopback connect/bind/sendto and external DNS forbidden for successful full run",
+  "commands": [
+    "python3 -m unittest discover -s tests/expansion_c4 -t tests -v",
+    "PYTHONPATH=/tmp/c4-network-guard:. python3 -m unittest discover -s tests -v",
+    "node --test tests/*.mjs",
+    "PYTHONPATH=.:tests python3 experiments/expansion_20261029/c4_runtime/smoke.py",
+    "PYTHONPATH=.:tests python3 experiments/expansion_20261029/c4_runtime/compat_c1.py --export /tmp/c4-c1-2402c02c-readonly",
+    "PYTHONPATH=. python3 experiments/expansion_20261029/c4_runtime/prepare_profile.py --envelope-radius-m .65 --padding-m .1 --output /tmp/c4-review-parameters.yaml",
+    "python3 -m compileall -q robot_dashboard/obstacle_runtime_adapter tests/expansion_c4 experiments/expansion_20261029/c4_runtime ros2/robot_scope_obstacle_adapter/launch",
+    "git diff --check"
+  ],
+  "full_log_fingerprints": {
+    "focused": {
+      "sha256": "f812187c96d9bc647f5f2f3758f52d4e9392d78a2621f6cecfd55cab9bc63e26",
+      "bytes": 7243
+    },
+    "python_full": {
+      "sha256": "0585ccaa8f587d1d96a43011d4de710d3ddb002641fe67462554b082a8829ea5",
+      "bytes": 532113
+    },
+    "javascript": {
+      "sha256": "00985c537e88b3212723b484187e1cd3481288bf81f6cfff7af2beceeb5a1b60",
+      "bytes": 4090
+    }
+  }
+}

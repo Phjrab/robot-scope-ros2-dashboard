@@ -1,0 +1,8 @@
+<!-- D3's synthetic harness may explicitly request plans; no motion recovery. -->
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <RateController hz="1.0">
+      <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
+    </RateController>
+  </BehaviorTree>
+</root>
