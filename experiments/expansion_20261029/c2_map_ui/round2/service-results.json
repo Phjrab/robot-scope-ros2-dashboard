@@ -1,0 +1,62 @@
+{
+  "classification": "ACTUAL_CORE + ASGI_HTTP + OFFLINE_BUNDLESTORE / SYNTHETIC",
+  "robot_ros_native": "NOT_RUN",
+  "checks": [
+    {
+      "name": "2-map / explicit review-export / double apply CAS",
+      "result": "PASS",
+      "duplicate_http": {
+        "detail": "stale input/revision or immutable conflict"
+      }
+    },
+    {
+      "name": "3-map actual solve/export",
+      "result": "PASS",
+      "edges": 3
+    },
+    {
+      "name": "(A+B)+C full-source / new identity / all ancestry",
+      "result": "PASS",
+      "ancestry_nodes": 5,
+      "point_count": 1200
+    },
+    {
+      "name": "(A+B)+(B+C) refusal without dedup",
+      "result": "PASS",
+      "private_reason": "duplicate ancestor across fusion inputs",
+      "http_detail": "stale input/revision or immutable conflict",
+      "precise_reason_over_http": "BLOCKED_C1_GENERIC_CONFLICT"
+    },
+    {
+      "name": "completed source-revision drift + cancelled candidate cannot apply",
+      "result": "PASS"
+    }
+  ],
+  "source_bytes_unchanged": true,
+  "contract_example_sha256": "c7c82d1e42dc24154548715013c60b7efedd39791ae550a012d39f436d65b013",
+  "contract_version": "0.1",
+  "zero_residual": {
+    "classification": "ACTUAL_CORE_METRIC; not end-to-end zero-candidate ranking",
+    "metrics": {
+      "overlap_target": 1.0,
+      "overlap_source": 1.0,
+      "rmse_m": 0.0,
+      "distance_p50_m": 0.0,
+      "distance_p95_m": 0.0,
+      "inliers": 80,
+      "spatial_eigenvalues": [
+        0.6870776866723616,
+        1.1870995314654669,
+        3.2052483207870384
+      ],
+      "geometry_ratio": 0.21436020486039967,
+      "normal_eigenvalues": [
+        0.22484059211412535,
+        0.28916000833467065,
+        0.48599939955120386
+      ],
+      "observability_condition": 4.665044991215799
+    },
+    "d1_ranking_fix": "NOT_AVAILABLE_AT_PINNED_HEAD"
+  }
+}

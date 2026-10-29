@@ -8,7 +8,7 @@ export function mount(host,{catalogue,jobs,renderer,onReview=()=>{},confirmDisca
   if(!host||!catalogue?.list||!catalogue?.preview||!jobs?.start)throw new TypeError('Host, catalogue and jobs ports required.');
   const doc=host.ownerDocument,win=doc.defaultView,session=createSession();
   let entries=[],previews=new Map(),visibility={},dirty=false,destroyed=false,active=null,timer=null,loadGeneration=0,previewGeneration=0,busy=false;
-  let message='Loading local catalogue…',savedMap=null,viewMode='both',drag=null,previewError=false;
+  let savedStorage='',message='Loading local catalogue…',savedMap=null,viewMode='both',drag=null,previewError=false;
   const root=doc.createElement('section');root.className='mmf';root.setAttribute('aria-label','Multi-map fusion review');host.append(root);
   root.innerHTML=`<header class="mmf-header"><div><small>C2 / OFFLINE REVIEW MODULE</small><h2>여러 지도 · 정합 검토</h2><p>원본 보존 · 새 PCD 후보 · 운영 지도에 적용하지 않습니다.</p></div><span class="mmf-badge">SAMPLED PREVIEW</span></header>
     <div class="mmf-layout"><aside class="mmf-card"><h3>01 · Source catalogue</h3><button type="button" data-action="reload">목록 새로고침 / Retry</button><div data-slot="catalogue"></div><p data-slot="empty"></p>
@@ -72,7 +72,7 @@ export function mount(host,{catalogue,jobs,renderer,onReview=()=>{},confirmDisca
       for(const row of (metrics?.pairwise||[]).slice(0,64)){const tr=el('tr');[row.pair?.join(' ↔ '),row.overlap, row.distance_p95_m!=null?`${Number(row.distance_p95_m).toFixed(4)} p95 / ${Number(row.rmse_m).toFixed(4)} RMSE`:row.rmse_m,row.warning||'Requires review'].forEach(v=>tr.append(el('td',String(v??'unavailable'))));table.append(tr);}slot('diagnostics').append(table,el('small','Heatmap: '+(s.proposal.heatmap?.length?'provider residual samples':'not supplied')+' · Low RMSE alone is not acceptance.'));}
     slot('pairs').replaceChildren(...s.draft.correspondences.map((p,i)=>el('li',`${i+1}. ${p.source_id}: [${p.source_xyz}] ↔ [${p.anchor_xyz}] (${p.provenance})`)));
     if(s.draft.correspondences.length){try{validateCorrespondences(s.draft.correspondences).forEach(w=>slot('pairs').append(el('li',w)));}catch(e){slot('pairs').append(el('li',e.message));}}
-    slot('saved').textContent=savedMap?`새 identity 확인: ${savedMap.id} · rev ${savedMap.revision} · SHA-256 ${savedMap.sha256} · 원본 유지 · 운영 미적용`:'';
+    slot('saved').textContent=savedMap?`새 identity 확인: ${savedMap.id} · ${savedStorage} · rev ${savedMap.revision} · SHA-256 ${savedMap.sha256} · 원본 유지 · 운영 미적용`:'';
     draw();renderLayers(s);renderCatalogue();
   }
   for(const [key,label] of [['x','X m'],['y','Y m'],['yaw','Yaw rad'],['z','Z m (advanced)'],['roll','Roll rad (advanced)'],['pitch','Pitch rad (advanced)']]){
@@ -127,7 +127,7 @@ export function mount(host,{catalogue,jobs,renderer,onReview=()=>{},confirmDisca
     },
     cancel:async()=>{const old=active;active=null;clearTimeout(timer);session.cancel();message='Cancelled locally; late responses cannot alter this draft.';refresh();if(old?.id)await jobs.cancel(old.id);else if(old)old.cancelWhenStarted=true;},
     accept:async()=>{const request=session.reviewRequest();busy=true;refresh();try{const result=await jobs.accept(request);session.reviewed(request,result);await onReview(clone(result));message='Accepted candidate · save a new PCD explicitly.';}finally{busy=false;}},
-    save:async()=>{const request=session.saveRequest(field('name').value.trim());busy=true;refresh();try{savedMap=session.saved(request,await jobs.save(request));dirty=false;message='New PCD identity verified; refreshing catalogue.';
+    save:async()=>{const request=session.saveRequest(field('name').value.trim());busy=true;refresh();try{const result=await jobs.save(request);savedMap=session.saved(request,result);savedStorage=result.storage==='offline BundleStore'?'offline BundleStore':'';dirty=false;message='New PCD identity verified; refreshing catalogue.';
       try{await loadCatalogue();if(!entries.some(s=>pinsEqual(pin(s),pin(savedMap))))message='Saved identity verified; catalogue has not returned it yet. Retry refresh.';else message='Saved and listed · originals preserved · operation map unchanged.';}catch(e){message=`Saved ${savedMap.id}; catalogue refresh failed: ${e.message}`;}
     }finally{busy=false;}}
   };

@@ -1,0 +1,342 @@
+{
+  "node": "v24.22.1",
+  "root": "/tmp/c2-round2-branch",
+  "console": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    }
+  ],
+  "network": [
+    {
+      "url": "/static/go2_official_model.js",
+      "status": 200,
+      "bytes": 22552,
+      "sha256": "02f6a19a3f178c771a0a3677a8235f12d5b7dd5ac2eba87aa28140fd9554ad81",
+      "timing": {
+        "startTime": 1793259914487.4702,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 3.407,
+        "responseStart": 4.793,
+        "responseEnd": 33.853
+      }
+    },
+    {
+      "url": "/static/features/resources/model.js",
+      "status": 200,
+      "bytes": 7926,
+      "sha256": "f157341e61312c94d8bf41ba5027d1eaf35efaab69b4e219b211d523a52fd863",
+      "timing": {
+        "startTime": 1793259914578.038,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 26.029,
+        "responseStart": 29.446,
+        "responseEnd": 40.529
+      }
+    },
+    {
+      "url": "/static/assets/go2/go2-official-lite.json",
+      "status": 200,
+      "bytes": 73634,
+      "sha256": "a638b56b309d37b089dc2e22d5683289be8268ce69a2cdd71ecf943d9294056f",
+      "timing": {
+        "startTime": 1793259914777.498,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 0.319,
+        "responseStart": 0.898,
+        "responseEnd": 15.745
+      }
+    },
+    {
+      "url": "/static/data/go2_saved_map.json",
+      "status": 404,
+      "bytes": 9,
+      "sha256": "907ba78b4545338d3539683e63ecb51cf51c10adc9dabd86e92bd52339f298b9",
+      "timing": {
+        "startTime": 1793259914826.365,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "secureConnectionStart": -1,
+        "connectEnd": -1,
+        "requestStart": 0.163,
+        "responseStart": 0.788,
+        "responseEnd": 1.972
+      }
+    }
+  ],
+  "page_errors": [],
+  "result": "PASS",
+  "browser": "151.0.7922.34",
+  "before_drag": {
+    "time": 478,
+    "scenes": [
+      {
+        "canvas": "sceneCanvas",
+        "status": {
+          "state": "ready",
+          "enabled": true,
+          "url": "/static/assets/go2/go2-official-lite.json",
+          "model": "Unitree Go2",
+          "source": {
+            "project": "Unitree Robotics unitree_ros / go2_description",
+            "repository": "https://github.com/unitreerobotics/unitree_ros",
+            "commit": "f3772ce54c56ef2d34c6aee8100bc768896c7d19",
+            "package": "go2_description",
+            "license": "BSD-3-Clause",
+            "license_file": "/static/assets/go2/LICENSE.txt",
+            "files": [
+              "urdf/go2_description.urdf",
+              "dae/base.dae",
+              "dae/hip.dae",
+              "dae/thigh.dae",
+              "dae/thigh_mirror.dae",
+              "dae/calf.dae",
+              "dae/calf_mirror.dae",
+              "dae/foot.dae"
+            ],
+            "modifications": "DAE transforms applied; meshes simplified by deterministic vertex clustering; positions quantized to 0.01 mm; textures omitted."
+          },
+          "error": null
+        }
+      },
+      {
+        "canvas": "savedSceneCanvas",
+        "status": {
+          "state": "ready",
+          "enabled": true,
+          "url": "/static/assets/go2/go2-official-lite.json",
+          "model": "Unitree Go2",
+          "source": {
+            "project": "Unitree Robotics unitree_ros / go2_description",
+            "repository": "https://github.com/unitreerobotics/unitree_ros",
+            "commit": "f3772ce54c56ef2d34c6aee8100bc768896c7d19",
+            "package": "go2_description",
+            "license": "BSD-3-Clause",
+            "license_file": "/static/assets/go2/LICENSE.txt",
+            "files": [
+              "urdf/go2_description.urdf",
+              "dae/base.dae",
+              "dae/hip.dae",
+              "dae/thigh.dae",
+              "dae/thigh_mirror.dae",
+              "dae/calf.dae",
+              "dae/calf_mirror.dae",
+              "dae/foot.dae"
+            ],
+            "modifications": "DAE transforms applied; meshes simplified by deterministic vertex clustering; positions quantized to 0.01 mm; textures omitted."
+          },
+          "error": null
+        }
+      }
+    ]
+  },
+  "draws": [
+    {
+      "time": 609.9000000953674,
+      "scene": "savedSceneCanvas",
+      "pose": {
+        "mode": "initial",
+        "x": 0.5,
+        "y": 0.5,
+        "yaw": 0.5956836583880522
+      },
+      "result": true,
+      "model": {
+        "state": "ready",
+        "enabled": true,
+        "url": "/static/assets/go2/go2-official-lite.json",
+        "model": "Unitree Go2",
+        "source": {
+          "project": "Unitree Robotics unitree_ros / go2_description",
+          "repository": "https://github.com/unitreerobotics/unitree_ros",
+          "commit": "f3772ce54c56ef2d34c6aee8100bc768896c7d19",
+          "package": "go2_description",
+          "license": "BSD-3-Clause",
+          "license_file": "/static/assets/go2/LICENSE.txt",
+          "files": [
+            "urdf/go2_description.urdf",
+            "dae/base.dae",
+            "dae/hip.dae",
+            "dae/thigh.dae",
+            "dae/thigh_mirror.dae",
+            "dae/calf.dae",
+            "dae/calf_mirror.dae",
+            "dae/foot.dae"
+          ],
+          "modifications": "DAE transforms applied; meshes simplified by deterministic vertex clustering; positions quantized to 0.01 mm; textures omitted."
+        },
+        "error": null
+      }
+    },
+    {
+      "time": 637.9000000953674,
+      "scene": "savedSceneCanvas",
+      "pose": {
+        "mode": "initial",
+        "x": 0.5,
+        "y": 0.5,
+        "yaw": 0.5956827380300297
+      },
+      "result": true,
+      "model": {
+        "state": "ready",
+        "enabled": true,
+        "url": "/static/assets/go2/go2-official-lite.json",
+        "model": "Unitree Go2",
+        "source": {
+          "project": "Unitree Robotics unitree_ros / go2_description",
+          "repository": "https://github.com/unitreerobotics/unitree_ros",
+          "commit": "f3772ce54c56ef2d34c6aee8100bc768896c7d19",
+          "package": "go2_description",
+          "license": "BSD-3-Clause",
+          "license_file": "/static/assets/go2/LICENSE.txt",
+          "files": [
+            "urdf/go2_description.urdf",
+            "dae/base.dae",
+            "dae/hip.dae",
+            "dae/thigh.dae",
+            "dae/thigh_mirror.dae",
+            "dae/calf.dae",
+            "dae/calf_mirror.dae",
+            "dae/foot.dae"
+          ],
+          "modifications": "DAE transforms applied; meshes simplified by deterministic vertex clustering; positions quantized to 0.01 mm; textures omitted."
+        },
+        "error": null
+      }
+    },
+    {
+      "time": 670.4000000953674,
+      "scene": "savedSceneCanvas",
+      "pose": {
+        "mode": "initial",
+        "x": 0.5,
+        "y": 0.5,
+        "yaw": 0.5956822130367574
+      },
+      "result": true,
+      "model": {
+        "state": "ready",
+        "enabled": true,
+        "url": "/static/assets/go2/go2-official-lite.json",
+        "model": "Unitree Go2",
+        "source": {
+          "project": "Unitree Robotics unitree_ros / go2_description",
+          "repository": "https://github.com/unitreerobotics/unitree_ros",
+          "commit": "f3772ce54c56ef2d34c6aee8100bc768896c7d19",
+          "package": "go2_description",
+          "license": "BSD-3-Clause",
+          "license_file": "/static/assets/go2/LICENSE.txt",
+          "files": [
+            "urdf/go2_description.urdf",
+            "dae/base.dae",
+            "dae/hip.dae",
+            "dae/thigh.dae",
+            "dae/thigh_mirror.dae",
+            "dae/calf.dae",
+            "dae/calf_mirror.dae",
+            "dae/foot.dae"
+          ],
+          "modifications": "DAE transforms applied; meshes simplified by deterministic vertex clustering; positions quantized to 0.01 mm; textures omitted."
+        },
+        "error": null
+      }
+    },
+    {
+      "time": 706,
+      "scene": "savedSceneCanvas",
+      "pose": {
+        "mode": "initial",
+        "x": 0.5,
+        "y": 0.5,
+        "yaw": 0.5956823442849338
+      },
+      "result": true,
+      "model": {
+        "state": "ready",
+        "enabled": true,
+        "url": "/static/assets/go2/go2-official-lite.json",
+        "model": "Unitree Go2",
+        "source": {
+          "project": "Unitree Robotics unitree_ros / go2_description",
+          "repository": "https://github.com/unitreerobotics/unitree_ros",
+          "commit": "f3772ce54c56ef2d34c6aee8100bc768896c7d19",
+          "package": "go2_description",
+          "license": "BSD-3-Clause",
+          "license_file": "/static/assets/go2/LICENSE.txt",
+          "files": [
+            "urdf/go2_description.urdf",
+            "dae/base.dae",
+            "dae/hip.dae",
+            "dae/thigh.dae",
+            "dae/thigh_mirror.dae",
+            "dae/calf.dae",
+            "dae/calf_mirror.dae",
+            "dae/foot.dae"
+          ],
+          "modifications": "DAE transforms applied; meshes simplified by deterministic vertex clustering; positions quantized to 0.01 mm; textures omitted."
+        },
+        "error": null
+      }
+    },
+    {
+      "time": 734.5,
+      "scene": "savedSceneCanvas",
+      "pose": {
+        "mode": "initial",
+        "x": 0.5,
+        "y": 0.5,
+        "yaw": 0.5956824230338854
+      },
+      "result": true,
+      "model": {
+        "state": "ready",
+        "enabled": true,
+        "url": "/static/assets/go2/go2-official-lite.json",
+        "model": "Unitree Go2",
+        "source": {
+          "project": "Unitree Robotics unitree_ros / go2_description",
+          "repository": "https://github.com/unitreerobotics/unitree_ros",
+          "commit": "f3772ce54c56ef2d34c6aee8100bc768896c7d19",
+          "package": "go2_description",
+          "license": "BSD-3-Clause",
+          "license_file": "/static/assets/go2/LICENSE.txt",
+          "files": [
+            "urdf/go2_description.urdf",
+            "dae/base.dae",
+            "dae/hip.dae",
+            "dae/thigh.dae",
+            "dae/thigh_mirror.dae",
+            "dae/calf.dae",
+            "dae/calf_mirror.dae",
+            "dae/foot.dae"
+          ],
+          "modifications": "DAE transforms applied; meshes simplified by deterministic vertex clustering; positions quantized to 0.01 mm; textures omitted."
+        },
+        "error": null
+      }
+    }
+  ],
+  "pose_mutations": []
+}

@@ -8,9 +8,9 @@ import {createC1Ports} from '/robot_dashboard/static/features/multimap_fusion/c1
 import {createC1Fixture} from '/experiments/expansion_20261029/c2_map_ui/c1_host.mjs';
 import {createFixture} from '/experiments/expansion_20261029/c2_map_ui/fixture.mjs';
 const query=new URLSearchParams(location.search);
-const transport=async(path,{method,body})=>{const r=await fetch(path,{method,headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});if(!r.ok)throw new Error(`C1 HTTP ${r.status}`);return r.json();};
+const transport=async(path,{method,body})=>{const r=await fetch(path,{method,headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});const value=await r.json();if(!r.ok)throw new Error(`C1 HTTP ${r.status}: ${typeof value.detail==='string'?value.detail:'request rejected'}`);return value;};
 const fixture=query.get('scenario')==='c1-service' ? {...createC1Ports(transport),calls:[]} : query.get('scenario')==='c1-exact' ? createC1Fixture(await (await fetch('/c1-exact.json')).json()) : createFixture({scenario:query.get('scenario')||'normal',delay:Number(query.get('delay')||40)});
-if(query.get('scenario')==='c1-service')document.querySelector('.test-banner span').textContent='SYNTHETIC / EXACT C1 + D1 · TEST-ONLY HOST · PRODUCT_WIRING_DEFERRED';
+if(query.get('scenario')==='c1-service')document.querySelector('.test-banner span').textContent='SYNTHETIC / EXACT C1 + D1 · OFFLINE BundleStore · TEST-ONLY HOST · PRODUCT_WIRING_DEFERRED';
 window.fixture=fixture;window.reviews=[];
 window.module=mount(document.querySelector('#host'),{catalogue:fixture.catalogue,jobs:fixture.jobs,renderer:createRobotSceneRenderer(window.RobotScene3D),onReview:r=>window.reviews.push(r),pollMs:80});
 document.querySelector('#theme').onclick=()=>{document.documentElement.dataset.theme=document.documentElement.dataset.theme==='light'?'dark':'light';};

@@ -1,0 +1,83 @@
+{
+  "starting_c2_sha": "5eed1a9959ca25a4f30bd5b5712806a5ad660c51",
+  "c1_sha": "54629c793ad4ae0ea88127f00ed1b7f8805fc4e2",
+  "d1_sha": "cbedd05ba6f97dad5506e8003302f689ed8fcb4c",
+  "state": "C2_COMPATIBLE_FROZEN_CURRENT_PINS_ONLY",
+  "unavailable_new_contract_and_zero_rmse_fix": "NOT_RUN",
+  "environment": {
+    "os": "Ubuntu 24.04.5",
+    "python": "3.12.3",
+    "node": "24.22.1",
+    "playwright": "1.62.1",
+    "chromium": "151.0.7922.34"
+  },
+  "tests": {
+    "c2_unit": {
+      "pass": 20,
+      "fail": 0,
+      "skip": 0
+    },
+    "c2_regression_browser": {
+      "pass": 18,
+      "fail": 0
+    },
+    "round2_browser": {
+      "pass": 5,
+      "fail": 0
+    },
+    "round2_service": {
+      "pass": 5,
+      "fail": 0
+    },
+    "full_python": {
+      "run": 3116,
+      "pass": 3114,
+      "skip": 2,
+      "fail": 0,
+      "seconds": 102.95,
+      "skip_reasons": [
+        "optional SVG plotting dependency absent",
+        "optional rosbags backend not installed"
+      ]
+    },
+    "full_js": {
+      "pass": 699,
+      "fail": 0,
+      "skip": 0
+    },
+    "frontend_syntax_modules": 118,
+    "secret_scan": "PASS"
+  },
+  "remote_ci_starting_head": {
+    "run_id": 40830021190,
+    "result": "FAIL",
+    "hardware_jobs_each": {
+      "python_run": 3116,
+      "python_skipped": 2,
+      "js_pass": 699,
+      "browser_pass": 226,
+      "browser_fail": 1
+    },
+    "first_failure": "mount_calibration.spec.mjs:343; estimate helper:144; results-content hidden; enclosing test timeout 20000ms",
+    "urdf_goal_precision": "PASS in both jobs",
+    "mission_real_api": "SKIPPED after browser failure"
+  },
+  "base_ci": {
+    "run_id": 40826730094,
+    "result": "PASS"
+  },
+  "controlled_local_protected_e2e": {
+    "base_sha": "f469155c2b0c505f3e472e878f75029d7b8d39df",
+    "branch_sha": "5eed1a9959ca25a4f30bd5b5712806a5ad660c51",
+    "cases": [
+      "URDF initial pose drag",
+      "saved SYNTHETIC mount calibration"
+    ],
+    "base_pass": 2,
+    "branch_pass": 2,
+    "seconds_each": 5.4,
+    "limitation": "local Node24; hosted CI Node20; full-suite timeout root cause not reproduced"
+  },
+  "ros_native_robot_deployment": "NOT_RUN",
+  "next_connection": "Pin published C1 canonical + D1 zero-RMSE correction and rerun compatibility sequence, including specific ancestry error/lineage propagation."
+}

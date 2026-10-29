@@ -1,0 +1,34 @@
+Python: Ran 3116 tests in 102.950s
+
+OK (skipped=2)
+
+JavaScript:
+✔ navigation blockers identify only their reported condition and a relevant check (0.974694ms)
+ℹ tests 699
+ℹ suites 0
+ℹ pass 699
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1390.354766
+
+Existing browser:
+PASS open/click/keyboard/drag, rotated non-square scale, no API mutations
+PASS dirty source selector confirmation keeps/replaces draft, anchor and duplicate ancestry
+PASS late automatic response after manual hint is ignored; undo/redo/reset draft only
+PASS cancel pending start, cancel polling, retry with explicit server progress
+PASS failure reason then retry recovers; no false success from low RMSE
+PASS 3-map disconnected components block candidate accept
+PASS ambiguous metrics/heatmap and before/after remain reviewable; manual/solved separate
+PASS 3D XYZ pairs validate non-collinear and additional spread points; pick exact sample
+PASS explicit accept then new server ID/revision/hash export, originals kept and catalogue refreshed
+PASS save failure preserves accepted proposal and allows retry
+PASS empty state and recovery
+PASS unsupported state and recovery
+PASS loading-failure state and recovery
+PASS preview-failure state and recovery
+PASS dark/light 390/1440, resize + HiDPI, bounded large preview, show/hide opacity
+PASS exact C1 external contract fixture in identical host; no solver/service claim
+PASS exact C1 HTTP + actual D1 synthetic solve/review/export/reload in identical host
+PASS all fixture APIs and browser traffic stay within explicit review surface, device mutations zero

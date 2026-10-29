@@ -19,7 +19,7 @@ const status=p=>p.locator('[data-slot=status]');
 async function ready(p,text){await p.waitForFunction(t=>document.querySelector('[data-slot=status]')?.textContent.includes(t),text);}
 async function select(p,three=false){await p.getByRole('checkbox',{name:'Select West hall',exact:true}).check();await ready(p,'previews ready');await p.getByRole('checkbox',{name:'Select East hall',exact:true}).check();await ready(p,'previews ready');if(three){await p.getByRole('checkbox',{name:'Select Upper wing',exact:true}).check();await ready(p,'previews ready');}}
 async function solve(p){await p.locator('[data-action=start]').click();await ready(p,'SOLVED_CANDIDATE');}
-async function shot(p,name){await p.screenshot({path:output+name+'.png',fullPage:true});screenshots.push(name+'.png');}
+async function shot(p,name){if(process.env.C2_SKIP_SCREENSHOTS==='1')return;await p.screenshot({path:output+name+'.png',fullPage:true});screenshots.push(name+'.png');}
 async function check(name,fn){try{await fn();results.push({name,result:'PASS'});console.log('PASS',name);}catch(e){results.push({name,result:'FAIL',error:e.stack});console.error('FAIL',name,e.message);}}
 const snap=p=>p.evaluate(()=>window.module.snapshot());
 const calls=p=>p.evaluate(()=>window.fixture.calls);
@@ -109,6 +109,6 @@ try{
 }finally{
  await browser.close();await new Promise(resolve=>server.close(resolve));
  const report={classification:'UI_FIXTURE / SYNTHETIC',module:'UI_MODULE_TESTED',product:'PRODUCT_WIRING_DEFERRED',device:'DEVICE_NOT_RUN',results,screenshots,exact_dependency_evidence:exactEvidence,exact_dependency_http_operations:httpAudit,forbidden_network_mutations:violations.length,forbidden_api_mutations:apiAudit.filter(c=>/nav|initialpose|goal|cmd|control/.test(c.operation)).length,api_operation_counts:Object.fromEntries([...new Set(apiAudit.map(c=>c.operation))].map(op=>[op,apiAudit.filter(c=>c.operation===op).length]))};
- await writeFile(fileURLToPath(new URL('../../experiments/expansion_20261029/c2_map_ui/browser-results.json',import.meta.url)),JSON.stringify(report,null,2)+'\n');
+ await writeFile(process.env.C2_REPORT_PATH||fileURLToPath(new URL('../../experiments/expansion_20261029/c2_map_ui/browser-results.json',import.meta.url)),JSON.stringify(report,null,2)+'\n');
 }
 if(results.some(r=>r.result==='FAIL'))process.exitCode=1;

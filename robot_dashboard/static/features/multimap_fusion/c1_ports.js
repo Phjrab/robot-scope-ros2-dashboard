@@ -24,7 +24,7 @@ export function createC1Ports(request){
     if(manifest.schema!=='robot-scope.multimap-fusion.v1'||manifest.job_id!==req.proposal_id||manifest.proposal_revision!==req.proposal_revision||manifest.operational_installed!==false)throw new Error('Invalid C1 export acknowledgement.');
     const loaded=await get(`/exports/${key(manifest.id)}`);
     if(loaded.revision!==manifest.revision||loaded.output_hashes?.['map.pcd']!==manifest.output_hashes?.['map.pcd'])throw new Error('C1 exported identity reload mismatch.');
-    return{runtime_installed:false,map:sourceDescriptor({id:loaded.id,name:loaded.name,kind:'pointcloud3d',session_id:`unverified:${loaded.id}`,revision:loaded.revision,sha256:loaded.output_hashes['map.pcd'],frame_id:loaded.frame_id,units:'m',point_count:loaded.point_count,ancestors:loaded.sources.map(s=>s.map_id)})};}
+    return{runtime_installed:false,storage:'offline BundleStore',map:sourceDescriptor({id:loaded.id,name:loaded.name,kind:'pointcloud3d',session_id:`unverified:${loaded.id}`,revision:loaded.revision,sha256:loaded.output_hashes['map.pcd'],frame_id:loaded.frame_id,units:'m',point_count:loaded.point_count,ancestors:[...new Set([...loaded.sources.map(s=>s.map_id),...Object.keys(loaded.provenance_dag||{}).map(k=>k.split(':')[0])])]})};}
  };
  return{catalogue,jobs};
 }

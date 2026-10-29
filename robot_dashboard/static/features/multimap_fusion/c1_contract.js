@@ -10,7 +10,7 @@ export function fromC1Source(wire,{name,ancestors=[]}={}) {
 }
 export function toC1Request(ui,{request_id,sequence=0,source_epoch='c2-offline-review'}={}) {
   if(ui.schema!==SCHEMA||!request_id)throw new Error('Pinned UI request / request_id required.');
-  const sources=ui.sources.map(s=>{if(!s.wire_descriptor)throw new Error('Full C1 descriptor unavailable.');const w=s.wire_descriptor;if(w.map_id!==s.id||w.revision!==s.revision||w.sha256!==s.sha256||!['SYNTHETIC','REPLAY'].includes(w.evidence_kind))throw new Error('C1 source pin changed / live input refused.');return clone(w);});
+  const sources=ui.sources.map(s=>{if(!s.wire_descriptor)throw new Error('Full C1 descriptor unavailable.');const w=s.wire_descriptor;if(w.map_id!==s.id||w.revision!==s.revision||w.sha256!==s.sha256||w.frame_id!==s.frame_id||w.units!==s.units||(w.mapping_session_id||`unverified:${w.map_id}`)!==s.session_id||!['SYNTHETIC','REPLAY'].includes(w.evidence_kind))throw new Error('C1 source pin changed / live input refused.');return clone(w);});
   const keys=Object.fromEntries(sources.map(s=>[s.map_id,sourceKey(s)]));
   return {schema_version:'0.1',evidence_kind:sources.some(s=>s.evidence_kind==='REPLAY')?'REPLAY':'SYNTHETIC',producer:'c2-ui',sequence,source_epoch,
     request_id,anchor_source_key:keys[ui.anchor],sources,source_pins:Object.fromEntries(sources.map(s=>[sourceKey(s),s.sha256])),

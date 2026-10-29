@@ -1,0 +1,31 @@
+{
+  "classification": "ACTUAL_TCP_HTTP + ACTUAL_CORE / SYNTHETIC, plus separately labeled UI_FIXTURE",
+  "results": [
+    {
+      "name": "2-map actual TCP HTTP/core + offline save/refresh",
+      "result": "PASS"
+    },
+    {
+      "name": "3-map actual TCP HTTP/core + offline save/refresh",
+      "result": "PASS"
+    },
+    {
+      "name": "(A+B)+C actual UI/core/export preserves all three roots and new identity",
+      "result": "PASS"
+    },
+    {
+      "name": "overlapping roots: actual HTTP refusal displayed unchanged, both inputs retained",
+      "result": "PASS",
+      "limitation": "C1 HTTP detail does not expose duplicate-ancestor reason"
+    },
+    {
+      "name": "exact zero residual displayed as 0.0000",
+      "result": "PASS",
+      "classification": "UI_FIXTURE with ACTUAL_CORE_METRIC; not corrected D1 candidate ranking"
+    }
+  ],
+  "errors": [],
+  "violations": [],
+  "post_count": 10,
+  "product_ros_native": "NOT_RUN"
+}

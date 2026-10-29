@@ -1,0 +1,172 @@
+{
+  "classification": "UI_FIXTURE / SYNTHETIC",
+  "module": "UI_MODULE_TESTED",
+  "product": "PRODUCT_WIRING_DEFERRED",
+  "device": "DEVICE_NOT_RUN",
+  "results": [
+    {
+      "name": "open/click/keyboard/drag, rotated non-square scale, no API mutations",
+      "result": "PASS"
+    },
+    {
+      "name": "dirty source selector confirmation keeps/replaces draft, anchor and duplicate ancestry",
+      "result": "PASS"
+    },
+    {
+      "name": "late automatic response after manual hint is ignored; undo/redo/reset draft only",
+      "result": "PASS"
+    },
+    {
+      "name": "cancel pending start, cancel polling, retry with explicit server progress",
+      "result": "PASS"
+    },
+    {
+      "name": "failure reason then retry recovers; no false success from low RMSE",
+      "result": "PASS"
+    },
+    {
+      "name": "3-map disconnected components block candidate accept",
+      "result": "PASS"
+    },
+    {
+      "name": "ambiguous metrics/heatmap and before/after remain reviewable; manual/solved separate",
+      "result": "PASS"
+    },
+    {
+      "name": "3D XYZ pairs validate non-collinear and additional spread points; pick exact sample",
+      "result": "PASS"
+    },
+    {
+      "name": "explicit accept then new server ID/revision/hash export, originals kept and catalogue refreshed",
+      "result": "PASS"
+    },
+    {
+      "name": "save failure preserves accepted proposal and allows retry",
+      "result": "PASS"
+    },
+    {
+      "name": "empty state and recovery",
+      "result": "PASS"
+    },
+    {
+      "name": "unsupported state and recovery",
+      "result": "PASS"
+    },
+    {
+      "name": "loading-failure state and recovery",
+      "result": "PASS"
+    },
+    {
+      "name": "preview-failure state and recovery",
+      "result": "PASS"
+    },
+    {
+      "name": "dark/light 390/1440, resize + HiDPI, bounded large preview, show/hide opacity",
+      "result": "PASS"
+    },
+    {
+      "name": "exact C1 external contract fixture in identical host; no solver/service claim",
+      "result": "PASS"
+    },
+    {
+      "name": "exact C1 HTTP + actual D1 synthetic solve/review/export/reload in identical host",
+      "result": "PASS"
+    },
+    {
+      "name": "all fixture APIs and browser traffic stay within explicit review surface, device mutations zero",
+      "result": "PASS"
+    }
+  ],
+  "screenshots": [],
+  "exact_dependency_evidence": {
+    "classification": "SYNTHETIC: actual D1 solver and C1 HTTP, DEVICE_NOT_RUN",
+    "c1_sha": "54629c793ad4ae0ea88127f00ed1b7f8805fc4e2",
+    "d1_sha": "cbedd05ba6f97dad5506e8003302f689ed8fcb4c",
+    "sources": [
+      {
+        "id": "000000000000000000000001",
+        "revision": "5a501d26741196765823c05d816df8d1ab171dd9bdf10e9f6abc7da99b1e8a8f",
+        "sha256": "5a501d26741196765823c05d816df8d1ab171dd9bdf10e9f6abc7da99b1e8a8f",
+        "point_count": 400
+      },
+      {
+        "id": "000000000000000000000002",
+        "revision": "6d8385d3772a00e58e1b13335c782a9e1e4caeb13e55cdb9d1d28bc17a5a2869",
+        "sha256": "6d8385d3772a00e58e1b13335c782a9e1e4caeb13e55cdb9d1d28bc17a5a2869",
+        "point_count": 400
+      }
+    ],
+    "components": 1,
+    "accepted_edges": 1,
+    "metrics": {
+      "pairwise": [
+        {
+          "pair": [
+            "000000000000000000000001",
+            "000000000000000000000002"
+          ],
+          "overlap": "1.00 source / 1.00 target",
+          "rmse_m": 0.002431879284260114,
+          "distance_p95_m": 0.003887927457660127,
+          "warning": "Review accepted edge"
+        }
+      ]
+    },
+    "reviewed_revision": 2,
+    "export_confirmation": "\uc0c8 identity \ud655\uc778: 0aac808861e94c518bb454a5 \u00b7 offline BundleStore \u00b7 rev b7baa43ea4c07158284f922f35fba3092ffe4200378c8610769102d504fbd1a6 \u00b7 SHA-256 46be1a0ec38166fc78e7d0344d3e241d57e3c29807f22e819e22e04d1ec9dbde \u00b7 \uc6d0\ubcf8 \uc720\uc9c0 \u00b7 \uc6b4\uc601 \ubbf8\uc801\uc6a9",
+    "catalogue_status": "SAVED \u00b7 Saved identity verified; catalogue has not returned it yet. Retry refresh."
+  },
+  "exact_dependency_http_operations": [
+    {
+      "path": "/api/v1/extensions/multimap/sources",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v1/extensions/multimap/sources/000000000000000000000001/preview",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v1/extensions/multimap/sources/000000000000000000000001/preview",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v1/extensions/multimap/sources/000000000000000000000002/preview",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v1/extensions/multimap/jobs",
+      "method": "POST"
+    },
+    {
+      "path": "/api/v1/extensions/multimap/jobs/f00d1f3cbb224bfcb09f7918",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v1/extensions/multimap/jobs/f00d1f3cbb224bfcb09f7918/review",
+      "method": "POST"
+    },
+    {
+      "path": "/api/v1/extensions/multimap/jobs/f00d1f3cbb224bfcb09f7918/exports",
+      "method": "POST"
+    },
+    {
+      "path": "/api/v1/extensions/multimap/exports/0aac808861e94c518bb454a5",
+      "method": "GET"
+    },
+    {
+      "path": "/api/v1/extensions/multimap/sources",
+      "method": "GET"
+    }
+  ],
+  "forbidden_network_mutations": 0,
+  "forbidden_api_mutations": 0,
+  "api_operation_counts": {
+    "sources": 20,
+    "preview": 41,
+    "job": 11,
+    "job-status": 9,
+    "cancel": 1,
+    "review": 2,
+    "export": 3
+  }
+}
