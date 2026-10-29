@@ -110,3 +110,33 @@ and never force-pushes. No main/product/robot/deploy changes.
 
 **Next one item:** proceed to D2's bounded latest-contract/consumer compatibility
 in its existing independent clone; real-map accuracy still requires actual maps.
+
+## Source commit and remote CI observation
+
+- Locally tested source/test commit: `0a00649b4baa46408481f61d9d23ffb3bf7e48be`.
+- Published source/test SHA: `70d94b51669af8e9fb496de400de394cf088a5f2`.
+  Remote and local complete trees both `297f513618ab5a33b92a8496b93bb0193729c876`.
+- [Exact source CI run 40836821084](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40836821084):
+  **FAIL overall**, not hidden by the D1-focused results.
+  `competition-offline-integration` and Ubuntu22/Python3.10 matrix **PASS**.
+  Ubuntu24/Python3.12 full Python coverage, static/security/audits, JS and syntax
+  **PASS**; browser E2E **226 PASS, 1 FAIL**, subsequent mission fixture SKIPPED.
+- First actual error: `tests/e2e/mount_calibration.spec.mjs:343:3`, saved synthetic
+  artifact import/relative-only export case. 20,000 ms test timeout; helper
+  line 142 expected `#mount-calibration-results-content` visible but it stayed
+  hidden. This is a mocked calibration UI integration case, not D1 solver or
+  real-camera evidence. [Failed job](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40836821084/job/123323429669).
+- Baseline comparison: test, common product sources and CI configuration are
+  unchanged from `cbedd05ba6f97dad5506e8003302f689ed8fcb4c`; its
+  [prior CI 40827660911](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40827660911)
+  passed both matrices. The same source SHA's other matrix also passed. These
+  observations suggest timing/environment sensitivity but do NOT prove a flaky
+  root cause or turn this failure into a pass. No timeout/threshold was relaxed,
+  no tests deleted, and common calibration code is outside D1 ownership.
+- This evidence-only documentation commit leaves source/test bytes unchanged.
+  Its final remote HEAD and CI are checked and reported separately in delivery.
+  No repeated tuning or shared-code fix is authorized by the D1 scope.
+
+If the unchanged calibration failure persists, the next required input is the
+common calibration owner's diagnosis of this exact failed UI trace; D1 numerical
+and latest pinned core/storage verification is complete.
