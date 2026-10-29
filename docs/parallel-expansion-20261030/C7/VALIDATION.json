@@ -1,0 +1,61 @@
+{
+  "python_initial": {
+    "sha256": "e74f5c49d74a3cf563ac65b53e3646bb7ba843f2f089461d72fd5006ed284c1d",
+    "summary": [
+      "Ran 3139 tests in 131.906s",
+      "FAILED (failures=2, errors=125, skipped=4)"
+    ]
+  },
+  "python_resolved_tmp": {
+    "sha256": "5f9ce5ae8716cda87519d96f79cef3a0f11296be3c86a0bfc316182b298983fe",
+    "summary": [
+      "Ran 3139 tests in 144.177s",
+      "FAILED (failures=7, errors=3, skipped=4)"
+    ]
+  },
+  "python_final": {
+    "sha256": "d98fc5e151876012e23bb81d8d57282e0613a92deef87f9b64c74460ebe81121",
+    "summary": [
+      "Ran 3139 tests in 139.568s",
+      "OK (skipped=4)"
+    ]
+  },
+  "environment_recheck": {
+    "sha256": "22088cb11c8e4701cbedf53d95f8b2a140aa751d48b0bdb659e16e52ab06ad0f",
+    "summary": [
+      "Ran 15 tests in 1.230s",
+      "OK"
+    ]
+  },
+  "javascript": {
+    "sha256": "ead74bdc5bfa486ed09e0ea281c78aa2a1fd4cc66a6f569b234365554f9ebd88",
+    "summary": [
+      "# tests 700",
+      "# pass 700",
+      "# fail 0",
+      "# skipped 0"
+    ]
+  },
+  "c3_units": {
+    "sha256": "59214c9f58c1bebd31323b06021d1730d34ebf16397feecab8efafa4df8dbc27",
+    "summary": [
+      "# tests 38",
+      "# pass 38",
+      "# fail 0",
+      "# skipped 0"
+    ]
+  },
+  "syntax": {
+    "sha256": "c36cf76ce9fbdcddace4eea32781a3431bd0ae9127e0ccf6c9926aa08ce8af8e",
+    "summary": [
+      "checked JavaScript syntax for 112 dashboard modules"
+    ]
+  },
+  "source_paths_changed": [
+    "robot_dashboard/expansion_diagnostics/",
+    "tests/expansion_c7/",
+    "experiments/expansion_20261030/c7_capacity/",
+    "docs/parallel-expansion-20261030/C7/"
+  ],
+  "operational_actions": "NOT_RUN_NO_ROBOT_NO_NATIVE_NO_DEPLOYMENT"
+}

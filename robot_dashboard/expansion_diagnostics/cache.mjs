@@ -1,0 +1,21 @@
+// Observe the existing C3 cache; memory Response is explicitly transport injection.
+import {createHash} from 'node:crypto';
+import {pathToFileURL} from 'node:url';
+import assert from 'node:assert/strict';
+const {createC1AssetCache}=await import(pathToFileURL(`${process.argv[2]}/C3/robot_dashboard/static/features/obstacle_scene/c1_assets.js`));
+const body=new TextEncoder().encode('{"points":[[1,2,3]]}');
+const hash=v=>createHash('sha256').update(v).digest('hex');
+const ref={id:'a'.repeat(24),revision:hash(body),role:'saved_reference_cloud',source:'map',usage:'DISPLAY_ONLY',bytes:body.length,media_type:'application/json'};
+const wire={map_binding:{map_id:'a'.repeat(24),revision:'b'.repeat(64),generation:0},stream_epoch:'c7-stream',sources:{assets:[ref]}};
+const c=createC1AssetCache({fetchAsset:async()=>new Response(body,{headers:{'content-type':'application/json'}}),decode:b=>JSON.parse(new TextDecoder().decode(b)),digest:hash});
+for(let i=0;i<100;i++)await c.resolve(wire);
+const repeated=c.diagnostics();assert.equal(repeated.downloads,1);assert.equal(repeated.decodes,1);
+await c.resolve({...wire,stream_epoch:'reconnect-stream'});
+const reconnect=c.diagnostics();assert.equal(reconnect.downloads,2);assert.equal(reconnect.entries,1);
+await c.resolve({...wire,map_binding:{...wire.map_binding,revision:'c'.repeat(64),generation:1}});
+const revision=c.diagnostics();assert.equal(revision.downloads,3);assert.equal(revision.entries,1);
+const totalRefs=Array.from({length:5},(_,i)=>({...ref,id:String(i).padStart(24,'0'),source:`map-${i}`,bytes:2*1024*1024}));
+await assert.rejects(c.resolve({...wire,sources:{assets:totalRefs}}),/ASSET_TOTAL_LIMIT/);
+await c.resolve({...wire,sources:{assets:[]}});const removed=c.diagnostics();assert.equal(removed.entries,0);
+c.dispose();assert.equal(c.diagnostics().entries,0);
+console.log(JSON.stringify({status:'PASS',evidence_kind:'ACTUAL_C3_CACHE_WITH_MEMORY_TRANSPORT',repeated,reconnect,revision,removed,disposed:c.diagnostics(),polls:100,total_limit_rejected:true}));

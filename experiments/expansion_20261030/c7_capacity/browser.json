@@ -1,0 +1,120 @@
+{
+  "kind": "UI_FIXTURE",
+  "input": "SYNTHETIC only; not native Nav2 or robot replay",
+  "browser": "151.0.7922.34",
+  "cases": [
+    {
+      "name": "existing official renderer and shared model cache",
+      "result": "PASS"
+    },
+    {
+      "name": "empty \u2192 cone \u2192 costmap \u2192 supplied path generations \u2192 supplied local trajectory",
+      "result": "PASS"
+    },
+    {
+      "name": "moved, occluded, removed, lidar-only, depth-only, unmatched YOLO",
+      "result": "PASS"
+    },
+    {
+      "name": "wrong calibration, unmapped clock, sensor time skew block derived geometry/risk",
+      "result": "PASS"
+    },
+    {
+      "name": "map/epoch invalidation while paused and reconnect late packets",
+      "result": "PASS"
+    },
+    {
+      "name": "stale pose/joints and idle expiry hide URDF and risk; no goal substitution",
+      "result": "PASS"
+    },
+    {
+      "name": "inspect provenance, layer toggles, pause/step/resume, dark desktop",
+      "result": "PASS"
+    },
+    {
+      "name": "light, narrow 390px, HiDPI, accessible labels and no horizontal overflow",
+      "result": "PASS"
+    },
+    {
+      "name": "1200 packets at >=10Hz with bounded retention, UI response and burst coalescing",
+      "result": "PASS"
+    },
+    {
+      "name": "destroy/remount unsubscribes, releases history, removes canvas and cancels callbacks",
+      "result": "PASS"
+    },
+    {
+      "name": "no mutation / ROS / goal / cmd / service / websocket requests or page errors",
+      "result": "PASS"
+    }
+  ],
+  "errors": [],
+  "stress": {
+    "count": 1200,
+    "elapsedMs": 30002.10000014305,
+    "rateHz": 39.99720019579557,
+    "rafCallbacks": 1801,
+    "maxRafGapMs": 32.89999985694885,
+    "timerDelayP95Ms": 9,
+    "diagnostics": {
+      "accepted": 1216,
+      "rejected": 3,
+      "resets": 2,
+      "history": 1,
+      "retainedPackets": 1,
+      "lastSequence": 1224,
+      "error": "",
+      "geometryCopies": 0,
+      "cachedLayers": 0,
+      "received": 1227,
+      "rendered": 1263,
+      "dropped": 8,
+      "pending": 0,
+      "maxPending": 1,
+      "maxDrawMs": 5.8999998569488525,
+      "paused": false,
+      "destroyed": false,
+      "boxScratchBytes": 192,
+      "renderedObjects": 3
+    },
+    "heapBeforeGcBytes": 3115620,
+    "heapAfterGcBytes": 3330300,
+    "heapDeltaBytes": 214680,
+    "interactionMs": [
+      25,
+      60,
+      46,
+      49,
+      48,
+      45
+    ],
+    "burst": {
+      "accepted": 1217,
+      "rejected": 3,
+      "resets": 2,
+      "history": 1,
+      "retainedPackets": 1,
+      "lastSequence": 2424,
+      "error": "",
+      "geometryCopies": 0,
+      "cachedLayers": 0,
+      "received": 2427,
+      "rendered": 1265,
+      "dropped": 1207,
+      "pending": 0,
+      "maxPending": 1,
+      "maxDrawMs": 5.8999998569488525,
+      "paused": false,
+      "destroyed": false,
+      "boxScratchBytes": 192,
+      "renderedObjects": 3
+    }
+  },
+  "request_count": 22,
+  "c3_sha": "5bf58097f4a67806f5515b931a3b8013d65bf01e",
+  "source": "tests/expansion_c3/browser.mjs unchanged",
+  "exit_code": 0,
+  "local_only": true,
+  "evidence_kind": "ACTUAL_BROWSER_UI_FIXTURE_NOT_NUMERICAL_COMPOSITION",
+  "stderr": ""
+}
