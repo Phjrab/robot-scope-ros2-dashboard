@@ -70,7 +70,38 @@ test('sent goal overlay requires matching goal evidence and selected map revisio
   }
 });
 
-test('successful model suppresses only the duplicate circle/line marker; fallback and current robot retain them', () => {
+test('real map_id response retains sent goal and current robot without relaxing map identity', () => {
+  const map = { map_id: 'map', revision: 'revision', frame_id: 'map' };
+  const pose = Object.freeze({ x: 1, y: 2, yaw: .4 });
+  const snapshot = { map: { id: 'map', revision: 'revision' },
+    localization: { state: 'localized', pose },
+    goal: { goal_id: 'goal', state: 'active', pose,
+      precision_evidence: { goal_id: 'goal', context: { map_id: 'map', map_revision: 'revision' } } } };
+  assert.equal(nav.goalPoseOverlay(snapshot, map).pose, pose);
+  const robot = nav.currentRobotOverlay(snapshot, map);
+  assert.deepEqual(robot, { ...pose, mode: 'robot' });
+  assert.equal(pose.mode, undefined);
+  const ctx = context();
+  const scene = { drawRobotMapPreview(c, p, _project, color) {
+    assert.equal(c.globalAlpha, .8);
+    assert.equal(p, robot);
+    assert.equal(color, '#7df0b6');
+    return true;
+  } };
+  assert.deepEqual(nav.navigationPosePreview(scene, ctx, {}, robot, 'current'),
+    { drawn: true, color: '#7df0b6', label: 'ROBOT' });
+  for (const mismatch of [{ ...map, map_id: 'other' }, { ...map, id: 'contradiction' },
+    { ...map, revision: 'other' }, { ...map, frame_id: 'odom' }]) {
+    assert.equal(nav.goalPoseOverlay(snapshot, mismatch), null);
+    assert.equal(nav.currentRobotOverlay(snapshot, mismatch), null);
+  }
+  snapshot.localization.state = 'lost';
+  assert.equal(nav.currentRobotOverlay(snapshot, map), null);
+  snapshot.localization = { state: 'localized', pose: { x: 1, y: 2, yaw: null } };
+  assert.equal(nav.currentRobotOverlay(snapshot, map), null);
+});
+
+test('successful model suppresses only the duplicate circle/line marker; fallback retains them', () => {
   const layout = nav.mapLayout({ width: 80, height: 60, resolution: .05, origin: [0, 0, 0] }, 500, 300);
   for (const drawn of [true, false]) {
     const calls = [];

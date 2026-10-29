@@ -3,12 +3,13 @@ import { installDashboardBackend } from './dashboard_backend.mjs';
 
 async function prepare(page, { yaw = 0 } = {}) {
   const backend = await installDashboardBackend(page);
-  const map = { id: backend.mapId, revision: backend.mapRevision, name: 'Synthetic UI verification',
+  // Match SavedMapCatalog._occupancy_snapshot: /data has map_id, not id.
+  const map = { map_id: backend.mapId, revision: backend.mapRevision, name: 'Synthetic UI verification',
     frame_id: 'map', width: 64, height: 48, resolution: .05, origin: [.2, -.4, yaw],
     data_b64: Buffer.alloc(64 * 48).toString('base64') };
   backend.on(`/api/v1/saved-maps/${backend.mapId}/data`, ({ json }) => json(map));
   Object.assign(backend.state.navigation, { pipeline: { state: 'running', job_id: '2'.repeat(32) },
-    map: { id: map.id, revision: map.revision }, localization: { state: 'localized', pose: { x: 2.8, y: .3, yaw: .1 } },
+    map: { id: map.map_id, revision: map.revision }, localization: { state: 'localized', pose: { x: 2.8, y: .3, yaw: .1 } },
     safety: { can_set_initial_pose: true, can_send_goal: true, blockers: [] } });
   backend.on('/api/v1/navigation/goal', ({ body, json }) => {
     backend.state.navigation.goal = { state: 'active', goal_id: '3'.repeat(32), pose: body.pose,
@@ -64,6 +65,8 @@ async function lastDraw(page, color) {
 test('Navigation initial and goal share official URDF; explicit send, actual states and stale map defense remain intact', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1100 });
   const backend = await prepare(page);
+  const robot = await lastDraw(page, '#7df0b6');
+  expect(robot.pose).toEqual({ x: 2.8, y: .3, yaw: .1, mode: 'robot' });
   const canvas = await drag(page, 'initial');
   const initial = await lastDraw(page, '#5dded8');
   await canvas.screenshot({ path: 'test-results/navigation-urdf-initial.png' });
@@ -72,6 +75,7 @@ test('Navigation initial and goal share official URDF; explicit send, actual sta
   const goal = await lastDraw(page, '#ffc66d');
   expect(goal.status.url).toBe('/static/assets/go2/go2-official-lite.json');
   expect(goal.status.model).toBe(initial.status.model);
+  expect(robot.status.model).toBe(initial.status.model);
   expect(goal.pose.x).toBeCloseTo(initial.pose.x, 8);
   expect(goal.pose.y).toBeCloseTo(initial.pose.y, 8);
   expect(goal.pose.yaw).toBeCloseTo(initial.pose.yaw, 8);
@@ -90,8 +94,12 @@ test('Navigation initial and goal share official URDF; explicit send, actual sta
   const sent = await lastDraw(page, '#a28bff');
   expect(sent.pose).toEqual({ x: goal.pose.x, y: goal.pose.y, yaw: goal.pose.yaw });
   await expect.poll(() => page.evaluate(() => window.navLabels)).toContain('GOAL · ACTIVE');
+  await expect.poll(() => page.evaluate(() => window.navLabels)).toContain('ROBOT');
   await expect(page.locator('#navigationPoseSend')).toBeDisabled();
   await canvas.screenshot({ path: 'test-results/navigation-urdf-goal-active.png' });
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => window.navLabels)).toContain('GOAL · ACTIVE');
+  await expect.poll(() => page.evaluate(() => window.navLabels)).toContain('ROBOT');
   for (const state of ['canceling', 'canceled', 'succeeded', 'failed']) {
     backend.state.navigation.goal.state = state;
     await expect.poll(() => page.evaluate(() => window.navLabels)).toContain(`GOAL · ${state.toUpperCase()}`);

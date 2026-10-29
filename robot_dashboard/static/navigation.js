@@ -90,19 +90,36 @@
 
   function navigationPosePreview(scene, context, layout, pose, state = 'staged') {
     const initial = pose?.mode === 'initial';
+    const robot = pose?.mode === 'robot';
     const staged = state === 'staged';
-    const color = initial ? '#5dded8' : staged ? '#ffc66d' : '#a28bff';
+    const color = robot ? '#7df0b6' : initial ? '#5dded8' : staged ? '#ffc66d' : '#a28bff';
     let drawn = false;
     context.save();
     try {
-      context.globalAlpha *= staged ? 0.9 : 0.75;
+      context.globalAlpha *= robot ? 1 : staged ? 0.9 : 0.75;
       drawn = scene?.drawRobotMapPreview?.(context, pose, point => worldToCanvas(layout, point), color) === true;
     } catch (error) {
       console.warn('Navigation pose model preview unavailable:', error);
     } finally {
       context.restore();
     }
-    return { drawn, color, label: initial ? `INITIAL · ${drawn ? 'URDF' : 'STAGED'}` : `GOAL · ${state.toUpperCase()}` };
+    return { drawn, color, label: robot ? 'ROBOT' : initial ? `INITIAL · ${drawn ? 'URDF' : 'STAGED'}` : `GOAL · ${state.toUpperCase()}` };
+  }
+
+  function matchingPoseMap(snapshot, map) {
+    // SavedMaps /data uses map_id; catalogue/navigation metadata uses id.
+    // Reject contradictory aliases instead of selecting one silently.
+    const id = map?.map_id || map?.id;
+    return Boolean(id && map.revision && map.frame_id === 'map'
+      && !(map.map_id && map.id && map.map_id !== map.id)
+      && snapshot?.map?.id === id && snapshot?.map?.revision === map.revision);
+  }
+
+  function currentRobotOverlay(snapshot, map) {
+    const pose = snapshot?.localization?.pose;
+    if (!matchingPoseMap(snapshot, map) || snapshot?.localization?.state !== 'localized'
+        || !['x', 'y', 'yaw'].every(key => Number.isFinite(pose?.[key]))) return null;
+    return { ...pose, mode: 'robot' };
   }
 
   // Render-only association: an old goal must not move onto a newly selected map.
@@ -114,9 +131,8 @@
     const state = String(goal?.state || '').toLowerCase();
     if (!['pending', 'active', 'canceling', 'canceled', 'cancelled', 'succeeded', 'failed', 'rejected'].includes(state)
         || !goal?.goal_id || evidence?.goal_id !== goal.goal_id
-        || !map?.id || !map?.revision || map.frame_id !== 'map'
-        || snapshot?.map?.id !== map.id || snapshot?.map?.revision !== map.revision
-        || pin?.map_id !== map.id || pin?.map_revision !== map.revision
+        || !matchingPoseMap(snapshot, map)
+        || pin?.map_id !== (map.map_id || map.id) || pin?.map_revision !== map.revision
         || !['x', 'y', 'yaw'].every(key => Number.isFinite(goal.pose?.[key]))) return null;
     return { pose: goal.pose, state: state === 'pending' ? 'sent' : state };
   }
@@ -471,5 +487,6 @@
     navigationPosePreview,
     drawPoseMarker,
     goalPoseOverlay,
+    currentRobotOverlay,
   });
 }));

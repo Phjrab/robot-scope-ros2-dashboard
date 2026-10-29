@@ -3568,7 +3568,7 @@ function drawNavigationPoseMarker(...args) {
 function drawNavigationPosePreview(context, layout, pose, ratio, state = 'staged') {
   if (!pose || !navigationEngine.worldToCanvas(layout, pose).inside) return;
   const preview = navigationEngine.navigationPosePreview(savedScene3d, context, layout, pose, state);
-  drawNavigationPoseMarker(context, layout, pose, preview.color, preview.label, ratio, state !== 'staged', preview.drawn);
+  drawNavigationPoseMarker(context, layout, pose, preview.color, preview.label, ratio, state !== 'staged' && state !== 'current', preview.drawn);
 }
 
 function drawNavigationMap() {
@@ -3619,7 +3619,8 @@ function drawNavigationMap() {
       drawNavigationPosePreview(context, layout, navigationStagedPose, ratio);
     }
     // Keep the measured current robot visible above planned pose overlays.
-    drawNavigationPoseMarker(context, layout, navigationSnapshot?.localization?.pose, '#7df0b6', 'ROBOT', ratio);
+    const currentRobot = navigationEngine.currentRobotOverlay(navigationSnapshot, navigationMapSnapshot);
+    if (currentRobot) drawNavigationPosePreview(context, layout, currentRobot, ratio, 'current');
   } catch (error) {
     navigationMapLayout = null;
     navigationMapError = error.message;
