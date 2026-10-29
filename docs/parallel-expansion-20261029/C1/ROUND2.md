@@ -1,5 +1,9 @@
 # C1 round 2 — actual contract and composition evidence
 
+Latest dependency continuation: [ROUND2_FOLLOWUP.md](ROUND2_FOLLOWUP.md).
+It supersedes the dependency/native status below; this report preserves the
+original pinned execution and implementation evidence.
+
 Branch: `review/20261029-x-c1-services`. Start HEAD:
 `54629c793ad4ae0ea88127f00ed1b7f8805fc4e2`. BASE remains
 `f469155c2b0c505f3e472e878f75029d7b8d39df`; fetched main was inspected only.

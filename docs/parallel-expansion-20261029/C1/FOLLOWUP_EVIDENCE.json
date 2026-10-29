@@ -1,0 +1,318 @@
+{
+  "pins": {
+    "C2": "47a1d031d797c098c38a0147894523d07d30db8f",
+    "C3": "a2b6d37f61ac426ac8a21e941750099b28318fd8",
+    "C4": "073d05b24c73b4de08c754833d4c05e537a23727",
+    "D1": "203c144f6b4a90966839c34b603ae12ee676cb12",
+    "D2": "7313f0a31c00ae87ae216b84ca41a23804e91917",
+    "D3": "356d0a036eb62d546e159e12a0691d7f5ea278f6"
+  },
+  "sequence": [
+    "D1_C2_HTTP",
+    "D2",
+    "D3",
+    "C4_RUNTIME"
+  ],
+  "map": {
+    "job_id": "68ebdff3eea441a5b1982c9f",
+    "proposal_revision": 2,
+    "export_id": "6060242368394c819161d7d3",
+    "state": "SOLVED_CANDIDATE",
+    "c2": "ACTUAL_PORTS_HTTP_PASS",
+    "points": 800,
+    "attributes": [
+      "x",
+      "y",
+      "z",
+      "normal_x",
+      "normal_y",
+      "normal_z",
+      "intensity"
+    ],
+    "source_hashes": {
+      "000000000000000000000001": "5a501d26741196765823c05d816df8d1ab171dd9bdf10e9f6abc7da99b1e8a8f",
+      "000000000000000000000002": "6d8385d3772a00e58e1b13335c782a9e1e4caeb13e55cdb9d1d28bc17a5a2869"
+    },
+    "output_hashes": {
+      "map.pcd": "46be1a0ec38166fc78e7d0344d3e241d57e3c29807f22e819e22e04d1ec9dbde",
+      "occupancy.pgm": "0f99d8759571beb4e73558bf36391d2e081cea53e99ef764494aa4b55105cbf7",
+      "occupancy.yaml": "266e51a3f2dad9b78c41e698df7eb882fd4b9ac7c6e9fedaec1135bf3b2ef965"
+    },
+    "shared_root": "REJECTED",
+    "stale_apply": "REJECTED",
+    "cancel": "CANCELED",
+    "solver": "d1-rigid-0.1",
+    "list_reload": "PASS",
+    "frozen": true
+  },
+  "observation": {
+    "actual_d2_owned_c4_port": "PASS",
+    "input_points": 2051,
+    "calibration": "UNKNOWN_NO_METADATA_IN_POINTCLOUD2_PORT",
+    "actual_d3_owned_c1_converter": "PASS",
+    "severity": "UNKNOWN",
+    "coverage": {
+      "complete_for_motion": false,
+      "horizon_s": 0.1,
+      "swept_volume_min": [
+        -0.4734879566956773,
+        -0.4734879566956773,
+        -0.1734879566956773
+      ],
+      "swept_volume_max": [
+        0.4834879566956773,
+        0.4734879566956773,
+        0.7734879566956773
+      ],
+      "evidence": null,
+      "status": "MOTION_COVERAGE_NOT_QUALIFIED"
+    },
+    "original_interval": {
+      "clock_domain": "fixture-clock",
+      "from_ns": "1000000000",
+      "until_ns": "1250000000"
+    },
+    "canonical_interval": {
+      "end_monotonic_ns": "1250000000",
+      "host_clock_id": "fixture-host",
+      "start_monotonic_ns": "1000000000"
+    },
+    "snapshot_bytes": 10379,
+    "snapshot_sha256": "c14e80c05f324d3e052620dcfd7b24084f9bcb92da5f3ec4fb2470a07ad69872",
+    "c4_obstacle_sink": "PASS",
+    "c4_old_sink_assessment": "NOT_FORWARDED_EXPLICIT_D3_C1_PORT_USED",
+    "c3_http": [
+      {
+        "schema_version": "0.1",
+        "result": "PASS_OBSTACLE_ONLY",
+        "reason": "",
+        "bytes": 6084,
+        "objects": 2,
+        "availability": {
+          "reference_cloud": "UNAVAILABLE",
+          "sensor_clouds": "UNAVAILABLE",
+          "sensor_origins": "UNAVAILABLE",
+          "bulk_references": "NO_C1_RESOLVER_CONTRACT",
+          "collision": null,
+          "errors": []
+        }
+      },
+      {
+        "schema_version": "0.2",
+        "result": "FAIL",
+        "reason": "C1_VERSION_UNSUPPORTED",
+        "bytes": 10379
+      }
+    ],
+    "d3_legacy_c4_constraint": "PASS_UNKNOWN_PRESERVED",
+    "command_memory_only": {
+      "sequence": 1,
+      "velocity": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "hold": true,
+      "reason": "UNKNOWN",
+      "assessment_ref": "synthetic-1/1"
+    },
+    "cases": {
+      "calibration_unknown": {
+        "pose_age_s": 0.0,
+        "joint_age_s": 0.0,
+        "obstacle_age_s": 0.0,
+        "issues": [
+          "CALIBRATION_UNKNOWN"
+        ]
+      },
+      "stale": {
+        "pose_age_s": 1.0,
+        "joint_age_s": 1.0,
+        "obstacle_age_s": 1.0,
+        "issues": [
+          "STALE_OR_FUTURE_INPUT"
+        ]
+      },
+      "map_revision": {
+        "pose_age_s": 0.0,
+        "joint_age_s": 0.0,
+        "obstacle_age_s": 0.0,
+        "issues": [
+          "MISMATCH_map_binding"
+        ]
+      },
+      "wrong_clock": {
+        "pose_age_s": 0.0,
+        "joint_age_s": 0.0,
+        "obstacle_age_s": 0.0,
+        "issues": [
+          "CLOCK_MAPPING_UNKNOWN"
+        ]
+      },
+      "wrong_host_clock": "explicit matching source/epoch/host clock binding required",
+      "wrong_source_epoch": "explicit matching source/epoch/host clock binding required",
+      "wrong_ttl": "invalid original validity duration",
+      "original_expiry": "SUPPRESSED_WITHOUT_TTL_RESTART",
+      "restart_sequence_reset": "NEW_EPOCH_ACCEPTED_OLD_EPOCH_REJECTED",
+      "map_reset_missing_input": "UNAVAILABLE_OLD_MAP_REJECTED"
+    },
+    "sizes": [
+      {
+        "requested_cones": 0,
+        "input_points": 984,
+        "objects": 0,
+        "full_bytes": 1867,
+        "compact_bytes": 1914,
+        "snapshot_bytes": 3316,
+        "outcome": "ACCEPTED_ALL_GEOMETRY"
+      },
+      {
+        "requested_cones": 1,
+        "input_points": 1176,
+        "objects": 1,
+        "full_bytes": 3544,
+        "compact_bytes": 2706,
+        "snapshot_bytes": 4109,
+        "outcome": "ACCEPTED_ALL_GEOMETRY"
+      },
+      {
+        "requested_cones": 4,
+        "input_points": 1752,
+        "objects": 4,
+        "full_bytes": 8620,
+        "compact_bytes": 5127,
+        "snapshot_bytes": 6530,
+        "outcome": "ACCEPTED_ALL_GEOMETRY"
+      },
+      {
+        "requested_cones": 12,
+        "input_points": 3288,
+        "objects": 12,
+        "full_bytes": 22123,
+        "compact_bytes": 11550,
+        "snapshot_bytes": 12953,
+        "outcome": "ACCEPTED_ALL_GEOMETRY"
+      },
+      {
+        "requested_cones": 16,
+        "input_points": 4056,
+        "objects": 16,
+        "full_bytes": 28876,
+        "compact_bytes": null,
+        "snapshot_bytes": 886,
+        "outcome": "FRAME_BUDGET_EXCEEDED:14763+2048>16384"
+      },
+      {
+        "requested_cones": 32,
+        "input_points": 7128,
+        "objects": 32,
+        "full_bytes": 55904,
+        "compact_bytes": null,
+        "snapshot_bytes": 886,
+        "outcome": "FRAME_BUDGET_EXCEEDED:27631+2048>16384"
+      }
+    ]
+  },
+  "c4_runtime": {
+    "result": "FAIL",
+    "reason": "UNSUPPORTED_D3_ASSESSMENT",
+    "active_mode_preserved": "ACTIVE_CONSTRAINT",
+    "scene_error": "NO_VALIDATED_SCENE_SAMPLE",
+    "timing": {
+      "c4_received_monotonic_ns": 1010000000,
+      "observation_stamp_ns": "1000000000",
+      "observation_received_monotonic_ns": 1001000000,
+      "source_clock_domain": "fixture-clock",
+      "d2_started_monotonic_ns": 1010000000,
+      "d2_finished_monotonic_ns": 1010000000,
+      "d3_started_monotonic_ns": 1010000000,
+      "d3_finished_monotonic_ns": 1010000000,
+      "c4_converted_monotonic_ns": 1010000000
+    },
+    "command_memory_only": {
+      "sequence": -1,
+      "velocity": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "hold": true,
+      "reason": "REJECTED_BINDING_ORDER_OR_TTL",
+      "assessment_ref": null
+    }
+  },
+  "full_chain": "FAIL",
+  "local_ros_native": "NOT_RUN",
+  "physical_robot": "NOT_RUN",
+  "evidence_kind": "SYNTHETIC_REAL_ALGORITHMS_AND_HTTP_WITH_SEPARATE_MEMORY_COMMAND_SINK",
+  "c1_production_code_sha": "4b9c02b2119c984d0bf4322bc292007df90fd032",
+  "followup_test_sha": "commit containing this evidence; exact final HEAD in chat receipt",
+  "test_file_sha256": {
+    "tests/expansion_services/followup_composition.py": "6ce1acb65a258440974d9ebcd8b2c6d15d2b8a745c87842a11dc4ec760e48042",
+    "tests/expansion_services/check_followup_consumer.mjs": "254507af62c9d14fd87731cda666920fe49a26d5a0263930e89e4d9933dcfdee",
+    "tests/expansion_services/prepare_dependencies.py": "e92b39af1c5fa567768a8ed47d537d1492dbfef06b9e1ce41dd8c003c637d0ce",
+    "tests/expansion_services/followup_pins.json": "c6bb1eda893001532c7a887eab0f605d0f42ec9f7e47353ff8cb660788b50f03"
+  },
+  "d3_remote_native_review": {
+    "verification": "READ_ONLY_PUBLISHED_EVIDENCE_AND_REMOTE_RUN_STATUS_NOT_C1_EXECUTION",
+    "source_sha": "fa8e26e02194d3c99ccc7b8e45eb3177a6fce19d",
+    "run_id": 40840774827,
+    "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40840774827",
+    "remote_conclusion": "success",
+    "summary_sha256": "7a7663945cf69d88832bd56e43dfb297017731228aa449586f9184e5831f1c08",
+    "cases": [
+      {
+        "scenario": "empty",
+        "status": "PASS",
+        "outcome": "GOAL_REACHED"
+      },
+      {
+        "scenario": "diagnostic_single_obstacle",
+        "status": "PASS",
+        "outcome": "GOAL_REACHED"
+      },
+      {
+        "scenario": "fully_blocked",
+        "status": "PASS",
+        "outcome": "SAFE_WAIT"
+      },
+      {
+        "scenario": "diagnostic_appearing_obstacle",
+        "status": "PASS",
+        "outcome": "GOAL_REACHED"
+      },
+      {
+        "scenario": "sensor_stale",
+        "status": "PASS",
+        "outcome": "SAFE_WAIT"
+      }
+    ],
+    "additional_3d_constraint_mode": "ADVISORY_ONLY",
+    "native_nav2_collision_detection": "ACTIVE_EXISTING_RPP",
+    "c4_d2_d3_native_full_composition": "NOT_RUN"
+  },
+  "local_regression": {
+    "python": "3.12.3",
+    "tests": 3146,
+    "existing_skips": 2,
+    "elapsed_seconds": 104.269,
+    "C2_CROSS_REQUIRED": true,
+    "javascript_test_files_passed": 77,
+    "dashboard_modules_syntax_passed": 112,
+    "new_consumer_http_probe": "PASS_ASSERTIONS_WITH_REPORTED_V02_FAIL",
+    "ruff": "PASS",
+    "tracked_source_secret_scan": "PASS",
+    "mypy": "NOT_RUN_LOCAL_MODULE_ABSENT"
+  },
+  "previous_c1_ci": {
+    "head": "4e1dd519a707169da5f88cf2a92a20ed3e701cc7",
+    "run_id": 40842714164,
+    "conclusion": "success"
+  },
+  "d1_source_ci": {
+    "head": "70d94b51669af8e9fb496de400de394cf088a5f2",
+    "run_id": 40836821084,
+    "conclusion": "failure",
+    "failed_job": "hardware-free-tests (ubuntu-24.04, 3.12)"
+  }
+}

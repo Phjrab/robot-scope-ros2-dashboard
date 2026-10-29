@@ -1,8 +1,10 @@
 # C1 services handoff — independent expansion, 2026-10-29 KST
 
-Latest follow-up: [ROUND2.md](ROUND2.md) — actual pinned core/HTTP composition,
-canonical observation 0.2, CI import fix, and explicit remaining C3/C4 failures.
-The round-1 record below is historical; use ROUND2 for current dependency status.
+Latest continuation: [ROUND2_FOLLOWUP.md](ROUND2_FOLLOWUP.md) — new exact owner
+SHAs, D2/D3-owned ports, actual C3 HTTP compatibility, new C4 runtime failure,
+and reviewed D3 native evidence. C1 production code is unchanged.
+[ROUND2.md](ROUND2.md) preserves the first round-2 implementation/CI record.
+The round-1 record below is historical; use ROUND2_FOLLOWUP for current status.
 
 Branch: [review/20261029-x-c1-services](https://github.com/Phjrab/robot-scope-ros2-dashboard/tree/review/20261029-x-c1-services)
 

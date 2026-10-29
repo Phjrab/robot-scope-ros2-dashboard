@@ -14,9 +14,10 @@ import tempfile
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--parent", type=Path, default=Path("/tmp"))
+    p.add_argument("--pins", type=Path, default=Path(__file__).with_name("pins.json"))
     args = p.parse_args()
     root = Path(tempfile.mkdtemp(prefix="c1-round2-deps-", dir=args.parent))
-    pins = json.loads(Path(__file__).with_name("pins.json").read_text())
+    pins = json.loads(args.pins.read_text())
     for role, sha in pins.items():
         subprocess.run(["git", "cat-file", "-e", sha + "^{commit}"], check=True)
         target = root / role
