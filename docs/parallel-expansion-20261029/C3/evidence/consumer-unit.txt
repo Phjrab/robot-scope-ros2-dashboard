@@ -1,0 +1,90 @@
+TAP version 13
+# Subtest: synthetic scenarios execute without generating paths or collisions
+ok 1 - synthetic scenarios execute without generating paths or collisions
+  ---
+  duration_ms: 8.13434
+  ...
+# Subtest: empty/no local trajectory is explicit and preserves no previous objects
+ok 2 - empty/no local trajectory is explicit and preserves no previous objects
+  ---
+  duration_ms: 0.659278
+  ...
+# Subtest: all identity changes clear history and reject old packets before new input
+ok 3 - all identity changes clear history and reject old packets before new input
+  ---
+  duration_ms: 5.596143
+  ...
+# Subtest: trusted context unavailable, unknown units and source clock are rejected
+ok 4 - trusted context unavailable, unknown units and source clock are rejected
+  ---
+  duration_ms: 1.345914
+  ...
+# Subtest: sequence, duplicate, epoch reconnect and source stamp rollback are fenced
+ok 5 - sequence, duplicate, epoch reconnect and source stamp rollback are fenced
+  ---
+  duration_ms: 1.212829
+  ...
+# Subtest: ns remain exact beyond Number.MAX_SAFE_INTEGER and source clocks are never subtracted from host
+ok 6 - ns remain exact beyond Number.MAX_SAFE_INTEGER and source clocks are never subtracted from host
+  ---
+  duration_ms: 0.651907
+  ...
+# Subtest: bad calibration, unknown clock, sensor skew fail closed without losing single sensor geometry
+ok 7 - bad calibration, unknown clock, sensor skew fail closed without losing single sensor geometry
+  ---
+  duration_ms: 1.670453
+  ...
+# Subtest: future, wrong frame, invalid quaternion and source geometry oversize never draw
+ok 8 - future, wrong frame, invalid quaternion and source geometry oversize never draw
+  ---
+  duration_ms: 1.122195
+  ...
+# Subtest: pose/joints stale hide robot inputs and suppress derived risk immediately
+ok 9 - pose/joints stale hide robot inputs and suppress derived risk immediately
+  ---
+  duration_ms: 1.08747
+  ...
+# Subtest: fresh but temporally incompatible pose/joints or obstacle source are blocked
+ok 10 - fresh but temporally incompatible pose/joints or obstacle source are blocked
+  ---
+  duration_ms: 0.870423
+  ...
+# Subtest: collision validity interval, refs and unsupported physical contact are not accepted
+ok 11 - collision validity interval, refs and unsupported physical contact are not accepted
+  ---
+  duration_ms: 3.168208
+  ...
+# Subtest: costmap and XY path must explicitly declare their display plane
+ok 12 - costmap and XY path must explicitly declare their display plane
+  ---
+  duration_ms: 0.348082
+  ...
+# Subtest: path generations bounded; missing current path is never substituted by history
+ok 13 - path generations bounded; missing current path is never substituted by history
+  ---
+  duration_ms: 4.66809
+  ...
+# Subtest: retained geometry and metadata are isolated from producer reuse
+ok 14 - retained geometry and metadata are isolated from producer reuse
+  ---
+  duration_ms: 1.060363
+  ...
+# Subtest: 1200 synchronous packets retain one packet, at most 3 path generations, and destroy releases all
+ok 15 - 1200 synchronous packets retain one packet, at most 3 path generations, and destroy releases all
+  ---
+  duration_ms: 241.863892
+  ...
+# Subtest: module import has no DOM, network, model-loading or process side effects
+ok 16 - module import has no DOM, network, model-loading or process side effects
+  ---
+  duration_ms: 11.377552
+  ...
+1..16
+# tests 16
+# suites 0
+# pass 16
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 291.89157

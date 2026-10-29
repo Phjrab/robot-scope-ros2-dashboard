@@ -1,0 +1,6 @@
+test_consumer_suite (tests.expansion_c3.test_module.SceneConsumerTests.test_consumer_suite) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.542s
+
+OK

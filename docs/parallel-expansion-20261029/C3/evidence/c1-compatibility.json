@@ -1,0 +1,28 @@
+{
+  "result": "PASS",
+  "kind": "SYNTHETIC",
+  "dependency_sha": "2402c02c6f91ba54064894b21735e01b98610acd",
+  "actual_calls": [
+    "C1 ObstacleFrame",
+    "C1 CollisionAssessment",
+    "C1 ScenePacket.from_dict",
+    "C3 adaptC1ScenePacket",
+    "C3 consumer.ingest"
+  ],
+  "limitations": [
+    "C1 wire validation plus explicit C3 nested display fixture only",
+    "No D2/D3 geometry solver or native replay",
+    "Not product wiring"
+  ],
+  "displayed": {
+    "objects": 3,
+    "path": "fixture-plan-2",
+    "costmaps": 1,
+    "contact": "CONTACT_UNCONFIRMED"
+  },
+  "checks": [
+    "map generation mismatch rejected",
+    "odom layer without transform withheld",
+    "missing display profile withheld"
+  ]
+}
