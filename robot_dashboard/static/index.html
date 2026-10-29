@@ -738,11 +738,12 @@
               <div data-navigation-ready="scan"><span>XT16 /SCAN</span><strong>WAIT</strong></div>
             </div>
             <div class="navigation-goal-progress">
-              <div><span>DISTANCE</span><strong id="navigationGoalDistance">—</strong><small>m remaining</small></div>
+              <div><span>PATH REMAINING</span><strong id="navigationGoalDistance">—</strong><small>m · 실제 목표 오차와 별도</small></div>
               <div><span>ELAPSED</span><strong id="navigationGoalElapsed">—</strong><small>navigation time</small></div>
               <div><span>RECOVERIES</span><strong id="navigationGoalRecoveries">0</strong><small>behavior attempts</small></div>
               <progress id="navigationGoalProgress" max="1" value="0"></progress>
               <p id="navigationGoalMessage">Nav2를 시작하고 초기 위치를 지정한 뒤 목표를 보낼 수 있습니다.</p>
+              <details open><summary>목표 위치·방향 오차와 정지 기록</summary><pre id="navigationGoalPrecision" style="white-space:pre-wrap;overflow-wrap:anywhere">목표 오차·정지 증거: 미확인</pre></details>
             </div>
             <div class="navigation-mission-actions">
               <button id="navigationCancelGoal" class="navigation-danger" type="button" disabled>CANCEL GOAL</button>

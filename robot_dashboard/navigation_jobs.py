@@ -30,6 +30,8 @@ from typing import Any, Callable, Mapping, Optional, Sequence
 
 import yaml
 
+from .goal_precision_parameters import precision_preset, generated_readback
+
 from .public_diagnostics import (
     PUBLIC_DIAGNOSTIC_INPUT_CHARS,
     PUBLIC_DIAGNOSTIC_MESSAGE_CHARS,
@@ -116,6 +118,7 @@ HUMBLE_BT_PLUGIN_LIBRARIES = (
     "nav2_drive_on_heading_cancel_bt_node",
     "nav2_is_battery_charging_condition_bt_node",
 )
+
 
 class NavigationJobError(RuntimeError):
     """Base class for expected navigation-control failures."""
@@ -315,6 +318,7 @@ class NavigationJobManager:
         raw_runtime.mkdir(mode=0o700, parents=True, exist_ok=True)
         if raw_runtime.is_symlink():
             raise ValueError("navigation runtime directory must not be a symlink")
+        self._generated_parameter_evidence = None
         self.runtime_dir = raw_runtime.resolve(strict=True)
         if not self.runtime_dir.is_dir():
             raise ValueError("navigation runtime directory must be a directory")
@@ -487,6 +491,10 @@ class NavigationJobManager:
                 "pipeline": dict(self._pipeline),
                 "map": self._public_map_locked(),
                 "parameters_revision": _parameter_revision(self._parameters),
+                "parameter_evidence": {
+                    "stored": {"revision": _parameter_revision(self._parameters), "values": dict(self._parameters)},
+                    "generated_job_yaml": copy.deepcopy(self._generated_parameter_evidence),
+                },
                 "command_topic": PRIVATE_CMD_VEL_TOPIC,
                 "navigation_profile": self.navigation_profile,
                 "controller_odometry_topic": self.controller_odom_topic,
@@ -597,7 +605,8 @@ class NavigationJobManager:
                             "기본 linear 0.25 m/s (상한 1.0), rotation 0.50 rad/s, angular accel 1.20 rad/s²."
                         ),
                         "values": dict(SAFE_TUNED_PARAMETERS),
-                    }
+                    },
+                    precision_preset(values, _parameter_revision(values)),
                 ],
                 "values": values,
                 "requires_restart": True,
@@ -700,6 +709,13 @@ class NavigationJobManager:
                     generated_signature,
                     self.max_parameter_bytes,
                 )
+            generated_bytes = params_file.read_bytes()
+            self._generated_parameter_evidence = {
+                'job_id': token, 'parameters_revision': parameters_revision,
+                'sha256': hashlib.sha256(generated_bytes).hexdigest(),
+                'parameters': generated_readback(yaml.safe_load(generated_bytes)),
+                'meaning': 'GENERATED_YAML_NOT_LIVE_ROS_READBACK',
+            }
             argv = self._render_argv(
                 map_yaml=map_snapshot.yaml_path,
                 params_file=params_file,

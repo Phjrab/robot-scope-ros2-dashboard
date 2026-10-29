@@ -104,3 +104,9 @@ Jetson private root: `/home/unitree/robot-scope-backups/operational-3d-20261028`
 **시험용 녹색 버튼의 실제 stop-and-go와 경사로 위치추정은 NOT_RUN**이다.
 OPERATOR_TEST의 소프트웨어 검증과 실제 현장 검증을 구분한다. YOLO GREEN을
 위조하지 않았으며 경사로 baseline 전 후방·측면 가중치 개선을 주장하지 않는다.
+
+## 2026-10-29 후속
+
+사용자는 “처음부터 덜 돌아간게 맞아”라고 현장 관찰을 추가했다. 성공 순간과 동기화한
+수치 측정으로 해석하지 않는다. [정밀 도착 후속 진단·구현](GOAL_PRECISION_FOLLOWUP.md)에서
+원본 결과를 보존한 채 두 tolerance만 바꾸는 후보와 시각별 오차 기록을 진행한다.

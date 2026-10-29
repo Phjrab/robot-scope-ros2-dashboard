@@ -277,6 +277,48 @@
     return Object.freeze({ inside: true, free: value === 0, value, cellX, cellY });
   }
 
+  function goalPrecisionText(goal) {
+    const evidence = goal?.precision_evidence;
+    const result = String(goal?.state || 'idle').toUpperCase();
+    const lines = [`Nav2 결과: ${result} · 남은 경로 거리 0은 좌표 오차 0을 뜻하지 않습니다.`];
+    if (!evidence || evidence.goal_id !== goal?.goal_id) return [...lines, '목표 오차·정지 증거: 미확인'].join('\n');
+    const number = (value, digits = 3) => typeof value === 'number' && Number.isFinite(value) ? value.toFixed(digits) : '미확인';
+    const sample = (label, value) => {
+      if (!value?.error) return `${label}: 미확인`;
+      return `${label}: XY ${number(value.error.xy_m)} m · yaw ${number(value.error.yaw_rad)} rad (${number(value.error.yaw_rad * 180 / Math.PI, 2)}°)`;
+    };
+    lines.push(sample(evidence.current?.fresh ? '현재 오차' : '마지막 오차 (현재 신선도 미충족)', evidence.current));
+    lines.push(sample('결과 수신 부근 표본', evidence.near_result));
+    lines.push(`성공 원시 시각: 미제공 · 결과 수신 ROS ns: ${evidence.result?.received_ros_ns || '미확인'} · 표본 시간차 ${number(evidence.near_result?.offset_from_result_receipt_s)} s`);
+    lines.push(sample('2초 정지 관측 후 첫 표본', evidence.after_stop));
+    lines.push(`정지 확인: ${evidence.stop?.confirmed_now ? '현재 측정 확인' : '현재 미확인'} · 10cm / 0.10rad 충족: ${evidence.precision?.satisfied_now === true ? '충족' : evidence.precision?.satisfied_now === false ? '미충족' : '미확인'}`);
+    lines.push(`pose: ${evidence.current?.frame_id || '미확인'} → ${evidence.current?.body_frame_id || '미확인'} · source ns ${evidence.current?.stamp_ns || '미확인'} · age ${number(evidence.current?.age_s)} s`);
+    const window = evidence.stop?.window;
+    if (window) lines.push(`정지 관측 ${number(window.observed_stopped_seconds, 2)} s · 후속 ${window.samples} 표본 · 최대 XY ${number(window.max_xy_error_m)} m / yaw ${number(window.max_abs_yaw_error_rad)} rad`);
+    const change = evidence.motion_vs_correction;
+    lines.push(change ? `결과 부근→정지: 본체 odom 이동 ${number(change.body_odom_translation_m)} m / 회전 ${number(change.body_odom_rotation_rad)} rad · map→odom 변화 ${number(change.map_odom_translation_m)} m / ${number(change.map_odom_rotation_rad)} rad` : '본체 이동 / 지도 보정 분리: 동시각 pose 쌍 미확인');
+    const plan = evidence.plan_endpoint;
+    lines.push(plan?.request_error ? `관측 경로 끝점 차이: XY ${number(plan.request_error.xy_m)} m / yaw ${number(plan.request_error.yaw_rad)} rad · /plan은 action ID를 포함하지 않아 목표 연관 미확정` : '관측 경로 끝점: 미확인');
+    lines.push(`ZERO 전달: ${evidence.zero_command_issued ? '기존 경로 발행 완료 (실제 정지와 별도)' : '미확인'} · bridge ACK: ${evidence.zero_command_issued?.bridge_ack || '미확인'}`);
+    lines.push(`goal ${evidence.goal_id} · job ${evidence.context?.job_id || '미확인'} · map revision ${evidence.context?.map_revision || '미확인'}`);
+    lines.push(`설정 revision ${evidence.context?.parameters_revision || '미확인'} · 결과 시 live ROS readback ${evidence.effective_at_result?.status || '미확인'}`);
+    return lines.join('\n');
+  }
+
+  function parameterEvidenceText(evidence) {
+    const num = (v) => typeof v === 'number' && Number.isFinite(v) ? v.toFixed(2) : '미확인';
+    const saved = evidence?.saved_and_generated?.stored;
+    const generated = evidence?.saved_and_generated?.generated_job_yaml;
+    const live = evidence?.live_ros;
+    const gc = generated?.parameters?.['/controller_server'];
+    const lc = live?.parameters?.['/controller_server'];
+    return [
+      `저장 설정: XY ${num(saved?.values?.xy_goal_tolerance)} m / yaw ${num(saved?.values?.yaw_goal_tolerance)} rad`,
+      `job 생성 YAML: XY ${num(gc?.['goal_checker.xy_goal_tolerance'])} m / yaw ${num(gc?.['goal_checker.yaw_goal_tolerance'])} rad · job ${generated?.job_id || '미확인'}`,
+      `실행 ROS readback (${live?.status || '미확인'}): XY ${num(lc?.['goal_checker.xy_goal_tolerance'])} m / yaw ${num(lc?.['goal_checker.yaw_goal_tolerance'])} rad · age ${num(live?.age_s)} s`,
+    ].join('\n');
+  }
+
   function pipelineActive(snapshot) {
     return PIPELINE_ACTIVE_STATES.includes(String(snapshot?.pipeline?.state || '').toLowerCase());
   }
@@ -320,5 +362,7 @@
     pipelineActive,
     goalActive,
     manualControlActive,
+    goalPrecisionText,
+    parameterEvidenceText,
   });
 }));

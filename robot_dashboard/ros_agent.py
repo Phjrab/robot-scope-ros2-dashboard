@@ -1253,6 +1253,9 @@ class RosAgent(ObservationSubscriptionMixin, RawObservationAccessMixin):
             future,
         )
 
+    def navigation_prepare_goal_evidence(self, context):
+        self._navigation_gateway.prepare_goal_evidence(context)
+
     def navigation_send_goal(
         self,
         *,

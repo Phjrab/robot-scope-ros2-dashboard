@@ -75,6 +75,32 @@ class NavigationJobManagerTests(unittest.TestCase):
         options.update(overrides)
         return NavigationJobManager(**options)
 
+    def test_precision_candidate_preserves_custom_baseline_and_materializes_new_job(self):
+        before = self.manager.parameters_snapshot()
+        custom = self.manager.update_parameters(before['revision'], {'desired_linear_vel': .31, 'lookahead_time': 1.1})
+        safe = custom['presets'][0]
+        candidate = next(p for p in custom['presets'] if p['id'] == 'go2-precision-10cm')
+        self.assertEqual(safe['values']['xy_goal_tolerance'], .35)
+        changed = {k:v for k,v in candidate['values'].items() if custom['values'][k] != v}
+        self.assertEqual(changed, {'xy_goal_tolerance': .1, 'yaw_goal_tolerance': .1})
+        saved = self.manager.create_preset('10cm candidate', candidate['values'])
+        self.assertEqual(self.manager.parameters_snapshot()['revision'], custom['revision'])
+        applied = self.manager.update_parameters(custom['revision'], changed)
+        state = self.manager.start(map_id=MAP_ID, map_revision=MAP_REVISION, parameters_revision=applied['revision'])
+        doc = yaml.safe_load((self.manager._job_dir / 'nav2_params.yaml').read_text())
+        c = doc['controller_server']['ros__parameters']
+        self.assertEqual(c['goal_checker'], {'plugin':'nav2_controller::SimpleGoalChecker', 'xy_goal_tolerance':.1, 'yaw_goal_tolerance':.1, 'stateful':True})
+        self.assertEqual(c['FollowPath']['desired_linear_vel'], .31)
+        self.assertEqual(c['FollowPath']['lookahead_time'], 1.1)
+        self.assertEqual(c['controller_frequency'], 10.)
+        evidence=state['parameter_evidence']['generated_job_yaml']
+        self.assertEqual(evidence['job_id'],state['pipeline']['job_id'])
+        self.assertEqual(evidence['parameters']['/controller_server']['goal_checker.xy_goal_tolerance'],.1)
+        self.manager.stop()
+        self.assertEqual(self.manager.saved_presets()['presets'][0]['id'],saved['preset']['id'])
+        restored=self.manager.update_parameters(applied['revision'], {'xy_goal_tolerance':.35,'yaw_goal_tolerance':.45})
+        self.assertEqual(restored['values'],custom['values'])
+
     def test_onboard_fastlio_source_preserves_existing_tuning_and_transport(self):
         self.manager.close()
         self.manager = self.make_manager(navigation_profile="go2-onboard",

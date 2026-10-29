@@ -30,6 +30,7 @@ from ..localization_health import (
 )
 from ..localization_diagnostics import sanitize_localization_diagnostics
 from ..navigation_policy import POLICY_SCHEMA
+from ..goal_precision import GoalPrecision, parameter_observation
 from .initial_pose_receipt import operational_initial_pose_context, wait_initial_pose_receipt
 
 
@@ -257,6 +258,9 @@ class NavigationRosGateway:
             NAVIGATION_FAST_LIO_ODOM_TOPIC: None,
             self._controller_odom_topic: None,
         }
+        self._goal_precision = GoalPrecision()
+        self._goal_precision_context = {}
+        self._goal_precision_fault = False
         self._navigation_goal_progress = self._new_navigation_goal_progress()
         self._navigation_goal_first_nonready: Optional[Dict[str, Any]] = None
         self._navigation: Dict[str, Any] = {
@@ -303,6 +307,56 @@ class NavigationRosGateway:
         self._localization_failure_callback: Callable[[str], None] | None = None
         self._policy_readback: Any = None
         self._policy_readback_unavailable_reason = "POLICY_OBSERVER_NOT_INITIALIZED"
+
+    def prepare_goal_evidence(self, context):
+        with self._navigation_lock:
+            self._goal_precision_context = copy.deepcopy(context)
+
+    def _goal_precision_clock(self):
+        try:
+            return int(self._node_getter().get_clock().now().nanoseconds)
+        except (AttributeError, TypeError, ValueError):
+            return 0
+
+    def _goal_precision_call(self, method, *args, event=None):
+        """Optional metrology must never interrupt feedback, result or STOP."""
+        if method == 'start':
+            self._goal_precision_fault = False
+        if self._goal_precision_fault:
+            return None
+        try:
+            value = getattr(self._goal_precision, method)(*args)
+            if method != 'snapshot':
+                self._goal_precision_log(time.monotonic(), event)
+            return value
+        except Exception:
+            self._goal_precision_fault = True
+            LOGGER.warning('Nav2 goal metrology unavailable; control path unchanged')
+            return None
+
+    def _goal_precision_plan_callback(self, message):
+        if self._navigation_source_count('/plan') != 1:
+            return
+        with self._navigation_lock:
+            self._goal_precision_call('observe_plan', message, self._goal_precision_clock(), time.monotonic())
+
+    def _goal_precision_log(self, now, event=None):
+        recorder = self._goal_precision
+        if not recorder.goal_id:
+            return
+        if recorder.after_stop and not recorder.logged_stop:
+            event = event or 'first_measured_stop'
+            recorder.logged_stop = True
+        if event is None and (recorder.logged_samples >= 600 or now - recorder.last_log < .5 or
+                              recorder.result and now - recorder.result['received_monotonic_s'] > 15):
+            return
+        recorder.last_log = now
+        value = recorder.snapshot(now)
+        # Journald preserves numeric evidence without browser polling. No commands.
+        if event is None:
+            recorder.logged_samples += 1
+            value = {key: value[key] for key in ('goal_id', 'current', 'stop', 'plan_endpoint')}
+        LOGGER.info('Nav2 goal metrology %s %s', event or 'sample', json.dumps(value, allow_nan=False))
 
     @property
     def lock(self) -> threading.RLock:
@@ -450,6 +504,14 @@ class NavigationRosGateway:
                 self._navigation_clear_clients = clear_clients
                 self._navigation["error"] = None
                 self._navigation["seq"] += 1
+            # Goal metrology is optional and not one of the five safety inputs.
+            try:
+                self._goal_plan_subscription = node.create_subscription(
+                    get_message('nav_msgs/msg/Path'), '/plan', self._goal_precision_plan_callback,
+                    reliable, callback_group=callback_group)
+            except Exception:
+                self._goal_plan_subscription = None
+                LOGGER.info('Nav2 goal path metrology unavailable')
             # Optional read-only observer failure never removes STOP/control
             # transport. It can only keep managed mission admission closed.
             try:
@@ -1153,6 +1215,8 @@ class NavigationRosGateway:
                                 6,
                             )
             with self._navigation_lock:
+                if topic == self._controller_odom_topic:
+                    self._goal_precision_call('observe_odom', message, self._goal_precision_clock(), observed_at)
                 if topic in self._navigation_validated_receipts:
                     self._navigation_validated_receipts[topic] = observed_at
         except (AttributeError, TypeError, ValueError, OverflowError) as exc:
@@ -1878,6 +1942,10 @@ class NavigationRosGateway:
                 "state": "localized",
                 "pose": {"x": x, "y": y, "yaw": yaw},
             }
+            operational = self._navigation_runtime_health.get('operational_3d') or {}
+            generation = (self._navigation_runtime_health.get('runtime_instance_generation'),
+                          operational.get('bundle_generation'), operational.get('localization_generation'))
+            self._goal_precision_call('observe_map', message, self._goal_precision_clock(), now, generation)
             if self._localization_only.get("active"):
                 self._localization_only["state"] = "localized"
             self._navigation["seq"] += 1
@@ -2032,6 +2100,8 @@ class NavigationRosGateway:
                     ]
                 )
             self._control_port.flush_outputs()
+            with self._navigation_lock:
+                self._goal_precision_call('issued_zero', self._goal_precision_clock(), time.monotonic(), event='zero_issued')
 
     def keepalive_locked(self, now: float) -> Optional[str]:
         """Refresh the internal autonomous lease or return a failure reason."""
@@ -2469,6 +2539,7 @@ class NavigationRosGateway:
                 and bool(getattr(handle, "accepted", False))
             ):
                 self._navigation_goal_handle = handle
+                self._goal_precision_call('accepted', handle, event='accepted')
                 goal["state"] = "canceling" if cancel_requested else "active"
                 self._navigation["goal"] = goal
                 self._navigation["seq"] += 1
@@ -2543,6 +2614,8 @@ class NavigationRosGateway:
             goal["error"] = (
                 error if error else ("navigation aborted" if status == 6 else None)
             )
+            self._goal_precision_call('finish', state, self._goal_precision_clock(), time.monotonic(),
+                                      self._policy_readback_snapshot(), event='result')
             self._navigation["goal"] = goal
             self._navigation_goal_handle = None
             self._navigation_cancel_requested = False
@@ -2603,6 +2676,9 @@ class NavigationRosGateway:
                 self._navigation_goal_progress = self._new_navigation_goal_progress(
                     time.monotonic()
                 )
+                self._goal_precision_call('start', goal_id, self._navigation['goal']['pose'],
+                                           {**self._goal_precision_context, 'map_id': map_id, 'map_revision': map_revision,
+                                            'effective_at_dispatch': parameter_observation(self._policy_readback_snapshot())})
                 self._navigation_goal_first_nonready = None
                 self._navigation["seq"] += 1
                 action_type = self._navigation_action_type
@@ -2621,6 +2697,8 @@ class NavigationRosGateway:
                         )
                     ),
                 )
+                with self._navigation_lock:
+                    self._goal_precision_call('sent', goal_message.pose, self._goal_precision_clock(), time.monotonic(), event='dispatch')
                 future.add_done_callback(
                     lambda completed, g=generation, i=goal_id: (
                         self._navigation_goal_response_callback(g, i, completed)
@@ -3331,6 +3409,11 @@ class NavigationRosGateway:
         goal_snapshot = snapshot.get("goal")
         if isinstance(goal_snapshot, dict):
             goal_snapshot["first_nonready_health"] = first_nonready
+            with self._navigation_lock:
+                evidence = self._goal_precision_call('snapshot', now)
+                goal_snapshot["precision_evidence"] = (
+                    evidence if evidence and evidence['goal_id'] == goal_snapshot.get('goal_id') else None
+                )
         calibration_assistant = self._calibration_assistant(
             runtime_health,
             topic_publishers,

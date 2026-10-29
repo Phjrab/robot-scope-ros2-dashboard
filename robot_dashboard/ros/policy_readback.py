@@ -10,6 +10,8 @@ import copy
 import threading
 import time
 
+from ..goal_precision_parameters import CONTROLLER_FIELDS, PLANNER_FIELDS
+
 from ..navigation_policy import POLICY_DIAGNOSTICS_SCHEMA, POLICY_ENDPOINTS, POLICY_SCHEMA, POLICY_TTL_S
 from ..navigation_collision_profile import BINDING_TOPIC, MASK_TTL_S, parse_mask_binding
 from .collision_mask_publisher import source_authorities
@@ -21,6 +23,9 @@ PARAMETERS = {
     "/global_costmap/global_costmap": ("global_frame", "robot_base_frame", "robot_radius", "footprint", "footprint_padding", "track_unknown_space", "plugins", "filters", "static_layer.plugin", "static_layer.map_topic", "static_layer.enabled", "keepout_filter.plugin", "keepout_filter.enabled", "keepout_filter.filter_info_topic"),
     "/local_costmap/local_costmap": ("global_frame", "robot_base_frame", "robot_radius", "footprint", "footprint_padding", "track_unknown_space", "plugins", "filters", "static_layer.plugin", "static_layer.map_topic", "static_layer.enabled", "keepout_filter.plugin", "keepout_filter.enabled", "keepout_filter.filter_info_topic"),
 }
+PARAMETERS['/planner_server'] = tuple(dict.fromkeys(PARAMETERS['/planner_server'] + PLANNER_FIELDS))
+PARAMETERS['/controller_server'] = tuple(dict.fromkeys(PARAMETERS['/controller_server'] + CONTROLLER_FIELDS))
+
 for _costmap in ("/global_costmap/global_costmap", "/local_costmap/local_costmap"):
     PARAMETERS[_costmap] += (
         "policy_layer.plugin", "policy_layer.enabled", "policy_layer.map_topic",

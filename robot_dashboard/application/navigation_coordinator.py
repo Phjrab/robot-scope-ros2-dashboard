@@ -1259,6 +1259,14 @@ class NavigationCoordinator:
             if dispatch_guard is not None:
                 raise OperatorDispatchRejected(str(exc)) from exc
             raise
+        prepare = getattr(self._agent, 'navigation_prepare_goal_evidence', None)
+        if callable(prepare):
+            job = self._jobs.snapshot()
+            await asyncio.to_thread(prepare, {
+                'job_id': (job.get('pipeline') or {}).get('job_id'),
+                'parameters_revision': job.get('parameters_revision'),
+                'parameter_evidence': job.get('parameter_evidence'),
+            })
         await asyncio.to_thread(
             self._agent.navigation_send_guarded_goal if dispatch_guard is not None else self._agent.navigation_send_goal,
             map_id=map_id,
@@ -2257,6 +2265,7 @@ class NavigationCoordinator:
             "recoveries": int(goal.get("recoveries", 0) or 0),
             "error": _public_navigation_diagnostic(goal.get("error")),
             "first_nonready_health": first_nonready_health,
+            "precision_evidence": goal.get("precision_evidence"),
         }
         running = pipeline_state == "running" and manager_map is not None
         runtime_goal_active = goal_state in {"pending", "active", "canceling"}
@@ -2357,6 +2366,8 @@ class NavigationCoordinator:
             ),
             "localization_session": localization_session,
             "goal": goal_view,
+            "parameter_evidence": {"saved_and_generated": manager.get("parameter_evidence"),
+                                   "live_ros": runtime.get("policy_readback")},
             "safety": safety,
             "command_topic": str(
                 manager.get("command_topic", "/robot_scope/nav/cmd_vel_raw")

@@ -254,6 +254,7 @@ const ui = {
   navigationGoalRecoveries: $('#navigationGoalRecoveries'),
   navigationGoalProgress: $('#navigationGoalProgress'),
   navigationGoalMessage: $('#navigationGoalMessage'),
+  navigationGoalPrecision: $('#navigationGoalPrecision'),
   navigationCancelGoal: $('#navigationCancelGoal'),
   navigationClearCostmaps: $('#navigationClearCostmaps'),
   navigationHealthState: $('#navigationHealthState'),
@@ -4018,7 +4019,7 @@ function renderNavigationStatus() {
   ui.navigationScanBinding.textContent = bindings.scan || '/scan · XT16 360°';
   ui.navigationOdomBinding.textContent = bindings.odometry || '/utlidar/robot_odom';
 
-  const distance = Number(snapshot.goal?.distance_remaining);
+  const distance = snapshot.goal?.distance_remaining == null ? NaN : Number(snapshot.goal.distance_remaining);
   const elapsed = Number(snapshot.goal?.navigation_time);
   const recoveries = Number(snapshot.goal?.recoveries);
   ui.navigationGoalDistance.textContent = Number.isFinite(distance) ? distance.toFixed(2) : '—';
@@ -4034,9 +4035,11 @@ function renderNavigationStatus() {
   }
   ui.navigationGoalMessage.textContent = snapshot.goal?.error || snapshot.goal?.message || (
     goalState === 'active' ? 'Nav2가 목표 경로를 추종하고 있습니다.' :
-      goalState === 'succeeded' ? '목표에 도착했습니다.' :
+      goalState === 'succeeded' ? 'Nav2 성공 · 실제 위치·방향 오차와 정지 확인은 아래 기록을 확인하세요.' :
         'Nav2를 시작하고 초기 위치를 지정한 뒤 목표를 보낼 수 있습니다.'
   );
+
+  ui.navigationGoalPrecision.textContent = navigationEngine.goalPrecisionText(snapshot.goal) + '\n\n' + navigationEngine.parameterEvidenceText(snapshot.parameter_evidence);
 
   const mapReady = Boolean(
     navigationSelectedMapMeta &&
@@ -4312,7 +4315,7 @@ function syncNavigationParameterControls() {
   } else {
     setStatePill(ui.navigationParameterState, 'ok', 'APPLIED');
     ui.navigationParameterMessage.textContent = navigationParameterSnapshot.requires_restart
-      ? '현재 revision이 적용되어 있습니다. 이후 변경은 Nav2 중지 상태에서 저장되고 다음 시작에 사용됩니다.'
+      ? '서버 저장값입니다. 다음 Nav2 시작에 사용되며 실행 중 ROS 적용값과는 별도입니다.'
       : '현재 revision이 적용되어 있습니다.';
     ui.navigationParameterMessage.classList.remove('is-error');
   }
