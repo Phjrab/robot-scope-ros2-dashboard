@@ -1,0 +1,137 @@
+{
+  "robot_dashboard/expansion_contracts/__init__.py": {
+    "role": "C1",
+    "sha": "50600c7bce6f5fae743cd836ca1d8ee68d91b05a",
+    "sha256": "28f281af20c9dd72ea3cbbeacad550e9b99a492a499a9e627692407d25245de3"
+  },
+  "robot_dashboard/expansion_contracts/fixtures.py": {
+    "role": "C1",
+    "sha": "50600c7bce6f5fae743cd836ca1d8ee68d91b05a",
+    "sha256": "e3fa192c044c5eab687b6e80584e755d345b4ddbed8bbda598a7c237113ced45"
+  },
+  "robot_dashboard/expansion_contracts/messages.py": {
+    "role": "C1",
+    "sha": "50600c7bce6f5fae743cd836ca1d8ee68d91b05a",
+    "sha256": "17cd2a5fa0645fbe540796fd30fc38307dd6b2f1cb104ef5507dcf30d7ead508"
+  },
+  "robot_dashboard/expansion_contracts/time_binding.py": {
+    "role": "C1",
+    "sha": "50600c7bce6f5fae743cd836ca1d8ee68d91b05a",
+    "sha256": "73893ef7abe877a96fa253f14aad7f9ef3f2acf2c14b94b8243dbd42aa7f211f"
+  },
+  "robot_dashboard/expansion_services/__init__.py": {
+    "role": "C1",
+    "sha": "50600c7bce6f5fae743cd836ca1d8ee68d91b05a",
+    "sha256": "53232f88f05bff6db541dd8b9bdd2b8e33eadc04e3dfd9a6fe365d089f4faca7"
+  },
+  "robot_dashboard/expansion_services/catalogue.py": {
+    "role": "C1",
+    "sha": "50600c7bce6f5fae743cd836ca1d8ee68d91b05a",
+    "sha256": "1fbd2ff7b5dcbd2b2cbc72e17ce0a5e9cdee9a95b5ad5da0b7cbb8259899b968"
+  },
+  "robot_dashboard/expansion_services/export.py": {
+    "role": "C1",
+    "sha": "50600c7bce6f5fae743cd836ca1d8ee68d91b05a",
+    "sha256": "1e1fc2e932384f080f5d1cc125ece1f2bd0bb1aad7942df101226adf41b2d74d"
+  },
+  "robot_dashboard/expansion_services/jobs.py": {
+    "role": "C1",
+    "sha": "50600c7bce6f5fae743cd836ca1d8ee68d91b05a",
+    "sha256": "1971a5a7105624919557abf5b7efcd076d1d5c6cc0a5e2b30f68823cac80b979"
+  },
+  "robot_dashboard/expansion_services/router.py": {
+    "role": "C1",
+    "sha": "50600c7bce6f5fae743cd836ca1d8ee68d91b05a",
+    "sha256": "e7ea875b8b8b7ec81ea13d5cfe9eb56f69a22cce743fb9ebedef06dc158b7f88"
+  },
+  "robot_dashboard/expansion_services/scene.py": {
+    "role": "C1",
+    "sha": "50600c7bce6f5fae743cd836ca1d8ee68d91b05a",
+    "sha256": "316d757fcd3cb79ad9497f4a1a2c66aab802835ea596658d8a0f3f1b27902ad6"
+  },
+  "robot_dashboard/expansion_services/scene_assets.py": {
+    "role": "C1",
+    "sha": "50600c7bce6f5fae743cd836ca1d8ee68d91b05a",
+    "sha256": "99137b9408c9700eafbbea8f43ac19439e790bb7dae2a9daade375f0201617d8"
+  },
+  "docs/parallel-expansion-20261029/C3/evidence/round2-v02/NATIVE_REPLAY.http-body.json": {
+    "role": "C3",
+    "sha": "5bf58097f4a67806f5515b931a3b8013d65bf01e",
+    "sha256": "3915a5f6ead1013d825850f348014ee045f7bb4a31b69094dd2eaa78d1ecbc40"
+  },
+  "robot_dashboard/static/features/obstacle_scene/c1_adapter.js": {
+    "role": "C3",
+    "sha": "5bf58097f4a67806f5515b931a3b8013d65bf01e",
+    "sha256": "6f4dd8f6c25441e8df14620c41430a1d2816c361bf2e87619950436294d83edc"
+  },
+  "robot_dashboard/static/features/obstacle_scene/c1_assets.js": {
+    "role": "C3",
+    "sha": "5bf58097f4a67806f5515b931a3b8013d65bf01e",
+    "sha256": "7b39c2a79dcfa2397db08f71673cc162aafc2fa03974b4070421d93f475d2a96"
+  },
+  "robot_dashboard/static/features/obstacle_scene/consumer.js": {
+    "role": "C3",
+    "sha": "5bf58097f4a67806f5515b931a3b8013d65bf01e",
+    "sha256": "6914363f2bdc83cac796c0933a464d6e36f6239f20481d0abd398603d131048f"
+  },
+  "robot_dashboard/static/features/obstacle_scene/draw.js": {
+    "role": "C3",
+    "sha": "5bf58097f4a67806f5515b931a3b8013d65bf01e",
+    "sha256": "ef62fe72665ea799249fe28b8b341b363364d6b1f0bb8bc66df3ad295543ffa0"
+  },
+  "robot_dashboard/static/features/obstacle_scene/index.js": {
+    "role": "C3",
+    "sha": "5bf58097f4a67806f5515b931a3b8013d65bf01e",
+    "sha256": "3462f4e6d42fbc2c1fb252fda2f36f89fafe7863d4c742f59e5cad9e5853a9b8"
+  },
+  "robot_dashboard/static/features/obstacle_scene/obstacle_scene.css": {
+    "role": "C3",
+    "sha": "5bf58097f4a67806f5515b931a3b8013d65bf01e",
+    "sha256": "a7e30d9ac7d91d3c81b0aa104134d9c1c546630cecadb5b4564e519fc700fb3b"
+  },
+  "robot_dashboard/static/features/route_planner/spatial_editor.js": {
+    "role": "C3",
+    "sha": "5bf58097f4a67806f5515b931a3b8013d65bf01e",
+    "sha256": "3830357bc67409583c864dfbf514e39ccdd95d998676212d48e22367f0c490ce"
+  },
+  "robot_dashboard/collision_geometry_core/UNITREE_LICENSE.txt": {
+    "role": "D3",
+    "sha": "356d0a036eb62d546e159e12a0691d7f5ea278f6",
+    "sha256": "2b794acf1e250f5545ae5a47d81e5685ea5488ce077d1087ed8be5f81e9ba5c0"
+  },
+  "robot_dashboard/collision_geometry_core/__init__.py": {
+    "role": "D3",
+    "sha": "356d0a036eb62d546e159e12a0691d7f5ea278f6",
+    "sha256": "fe69f934fb083a343a51ace1dc3af31e39d9fd41d5ed2022eabbd0cbcb07fa0b"
+  },
+  "robot_dashboard/collision_geometry_core/assessment.py": {
+    "role": "D3",
+    "sha": "356d0a036eb62d546e159e12a0691d7f5ea278f6",
+    "sha256": "c778af46df73d1e329abd787caa0e64ccfbf1f1127bcaddab91b7e4d5ac385c6"
+  },
+  "robot_dashboard/collision_geometry_core/contracts.py": {
+    "role": "D3",
+    "sha": "356d0a036eb62d546e159e12a0691d7f5ea278f6",
+    "sha256": "5786ec92f022e4ee71c7d96f66cfd45a90a00689f4961017b59e0552bb7181bb"
+  },
+  "robot_dashboard/collision_geometry_core/coverage.py": {
+    "role": "D3",
+    "sha": "356d0a036eb62d546e159e12a0691d7f5ea278f6",
+    "sha256": "ab8ba9f19095e679b8aef025158f9cc8f970bee0297050f412e96f85bd517aab"
+  },
+  "robot_dashboard/collision_geometry_core/geometry.py": {
+    "role": "D3",
+    "sha": "356d0a036eb62d546e159e12a0691d7f5ea278f6",
+    "sha256": "190dbd809897a3edf3572d52a88187f75480a7335f5320fc03895c787ec569af"
+  },
+  "robot_dashboard/collision_geometry_core/go2_collision_source.urdf": {
+    "role": "D3",
+    "sha": "356d0a036eb62d546e159e12a0691d7f5ea278f6",
+    "sha256": "8f4571b49f35ce04b8833d561c403bddeb9cd8f7077e2ddbee82895726de487c"
+  },
+  "docs/parallel-expansion-20261029/C4/FOLLOWUP.md": {
+    "role": "C4",
+    "sha": "7ac0d55b07abd20902d6d756c6b225733613fea7",
+    "sha256": "0df523fb70e18bb4089bc513cf87a8865da837a3760993ae367b7ef78b53f44f"
+  }
+}

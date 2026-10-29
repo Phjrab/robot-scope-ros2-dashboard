@@ -1,0 +1,61 @@
+{
+  "receipts": [
+    {
+      "kind": "REAL",
+      "original_pose_goal_time": "EXACT_MATCH",
+      "result": "canceled",
+      "events": 115
+    },
+    {
+      "kind": "REAL",
+      "original_pose_goal_time": "EXACT_MATCH",
+      "result": "canceled",
+      "events": 48
+    },
+    {
+      "original_sha256": "bb5e23e1f3e0a02bb67afa7e362e11ec626cbd15be9275e4daf214643acf1c1c",
+      "original_unchanged": true
+    },
+    {
+      "kind": "RECORDED_NATIVE_SIM",
+      "case": "diagnostic_appearing_obstacle",
+      "events": 752,
+      "frames": 717,
+      "result": "succeeded",
+      "local_native_execution": "NOT_RUN"
+    },
+    {
+      "kind": "RECORDED_NATIVE_SIM",
+      "case": "diagnostic_single_obstacle",
+      "events": 688,
+      "frames": 656,
+      "result": "succeeded",
+      "local_native_execution": "NOT_RUN"
+    },
+    {
+      "kind": "RECORDED_NATIVE_SIM",
+      "case": "empty",
+      "events": 444,
+      "frames": 424,
+      "result": "succeeded",
+      "local_native_execution": "NOT_RUN"
+    },
+    {
+      "kind": "RECORDED_NATIVE_SIM",
+      "case": "fully_blocked",
+      "events": 194,
+      "frames": 181,
+      "result": "failed",
+      "local_native_execution": "NOT_RUN"
+    },
+    {
+      "kind": "RECORDED_NATIVE_SIM",
+      "case": "sensor_stale",
+      "events": 153,
+      "frames": 145,
+      "result": "canceled",
+      "local_native_execution": "NOT_RUN"
+    }
+  ],
+  "robot_control_mutations": 0
+}

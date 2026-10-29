@@ -1,0 +1,85 @@
+{
+  "main": "5154761bba6fa4f171881e61f986901e2b415ed9",
+  "branch": "review/20261030-x-c6-run-review",
+  "candidate": "commit containing this receipt; resolve with git rev-parse HEAD",
+  "dependencies": {
+    "main": "5154761bba6fa4f171881e61f986901e2b415ed9",
+    "C1": "50600c7bce6f5fae743cd836ca1d8ee68d91b05a",
+    "C3": "5bf58097f4a67806f5515b931a3b8013d65bf01e",
+    "C4": "7ac0d55b07abd20902d6d756c6b225733613fea7",
+    "D3": "356d0a036eb62d546e159e12a0691d7f5ea278f6"
+  },
+  "source_sha256": {
+    "experiments/expansion_20261030/c6_run_review/README.md": "780f2bb3608d2a9678edbdd857195e8027c893063ef32c61817a534b65994aa7",
+    "experiments/expansion_20261030/c6_run_review/host.js": "4dde39b7daf91d8c57f22ccd1d6ea9935dcac6e9ef211cd9777b3bd889f7b73c",
+    "experiments/expansion_20261030/c6_run_review/review.html": "35db784cf020d1b861819c09a07308396bfd99e3faeb4ad1079a18eb789fa0de",
+    "experiments/expansion_20261030/c6_run_review/serve.py": "023cfeef8ab0517dcd40c127e9a0aeaf98029a091e7d5e65e3c5f1867c1a9b0c",
+    "robot_dashboard/run_review/__init__.py": "feb961491693bd89b407b45f60043b6990d873625f0f8641adee2def3adf3e02",
+    "robot_dashboard/run_review/__main__.py": "b3d7000273a864959c9eaf1cba95ac0a38eb59f49a06652e65bb3661b9e700f7",
+    "robot_dashboard/run_review/dependencies.py": "99be161449f66572dabb07d8d4768e93ee99d6f13332146ad5eb907e6aec0a59",
+    "robot_dashboard/run_review/io.py": "b2db21f1eed0af13f4b087707d229df4700dcb8ff686e45864f8ce57b8dee329",
+    "robot_dashboard/run_review/review.py": "abd071eba33520f38597688831f0004dfb3cd43bacf08c18ef7d0cab37e129e6",
+    "robot_dashboard/run_review/summary.py": "be9d4a1822639c1f2228e08a61b4e31c2399f0f0b4b1ff38960cebe61b3ee956",
+    "robot_dashboard/static/features/run_review/index.js": "2659562631e84237dda1c31e9384cf65fde9f30d6e15b75c51731783dc889088",
+    "robot_dashboard/static/features/run_review/replay.js": "ca84146aae2ff2a7a17bcba3bd3a4e9eaa496009e29f365f74b4cfec3df08f2a",
+    "robot_dashboard/static/features/run_review/review.css": "591e59bdf99f2bc0c6f0d6e4713a1f330dd3a2dff57b353e91462084e2e2f791",
+    "tests/expansion_c6/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tests/expansion_c6/actual_c3.mjs": "da5d7f5dfe1c4b6708a2ab1dca9f0d596da834a3153a6ebdc167a5df51302730",
+    "tests/expansion_c6/browser.mjs": "07a24dfe66e881ddb8d74ca20c4a25d733a64e2300e7251c9c6305c9741673d1",
+    "tests/expansion_c6/fixtures.py": "0d4a8ebd0caf46b37df8ed7cb7976ca040d14b4f752474f368150c01cd5303e6",
+    "tests/expansion_c6/pins.json": "81cd0ae1749ec0827d2209ac1b0fc2ac832f8adb2f8562fcf70bfabcd60532f6",
+    "tests/expansion_c6/prepare_dependencies.py": "872f69b9092de90eb1f147d615d912c8e3024fa75dfc586e9ac4c400539f7d90",
+    "tests/expansion_c6/prepare_native.py": "861ff4977a387fb460fe7959aaa08446ceafe1021d1b20e0cd5c4b3083e30a0d",
+    "tests/expansion_c6/test_replay.mjs": "eb53d9ecfe5d7e7bfba6561359b922a33566dea2714df4aea5064aab75635876",
+    "tests/expansion_c6/test_review.py": "501e04f96adaa9f5779a2c590660e0d8d2ad96fdc664cfc0a30d9ed14acb73a5",
+    "tests/expansion_c6/verify_artifacts.py": "bff6d9a9815bedf4138c988888429bbff283245fec5963d0df58b8af92861407"
+  },
+  "private_log_sha256": {
+    "c6-python-full.log": "724609e2ba35774fc7b28a269e45e3f02776f52704ae2a56426f9b09ff8eccc2",
+    "c6-python-full-resolved-tmp.log": "f6cbd5391856aac28be1a485cafad3baee9c0ea45c6710d77f4b56407e13bbc1",
+    "c6-python-final.log": "9067ef6b2571064c0787b50d3b5444f11fded78494a82ecd4f567fe5fb0410fa",
+    "c6-js-full.log": "4bf3148051928750f8a327c06ceac42a3bfd414a935128d9f4203428361759b2",
+    "c6-focused-final.log": "5902fd2d8ed7a0a3d95f05d9b008dd51ca31807798db53f725514fed6b322c62",
+    "c6-browser-final.json": "05dced29e3d072a9b0bc33f80fc31a37693705848cbaab986d0b464e54e3a5ae"
+  },
+  "checks": {
+    "python": {
+      "run": 3144,
+      "failures": 0,
+      "errors": 0,
+      "existing_skips": 3,
+      "seconds": 138.602
+    },
+    "focused_actual_and_mock_python": 12,
+    "shared_js": 700,
+    "mock_js": 4,
+    "syntax_modules": 114,
+    "ruff": "PASS",
+    "mypy": "PASS_CONFIGURED_4_FILES",
+    "secrets": "PASS",
+    "whitespace": "PASS",
+    "browser": {
+      "browser": "PASS",
+      "actual_c3_mount": true,
+      "external_requests": 0,
+      "control_mutations": 0,
+      "requests": 12,
+      "scenarios": [
+        "arrival",
+        "heading-comparison",
+        "paused",
+        "stale",
+        "seek-back",
+        "map-change",
+        "XSS",
+        "D3-native-replay"
+      ]
+    },
+    "real_file_browser_goal_pose_stamp": "EXACT_MATCH"
+  },
+  "publication": {
+    "ci": "CHECK_AFTER_PUSH_EXACT_HEAD",
+    "no_pr": true,
+    "no_main_merge": true
+  }
+}
