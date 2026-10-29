@@ -1,0 +1,62 @@
+{
+  "evidence_kind": "SYNTHETIC",
+  "device": "DEVICE_NOT_RUN",
+  "real_maps": "INPUT_REQUIRED",
+  "runs": [
+    {
+      "maps": 2,
+      "status": "SOLVED_CANDIDATE",
+      "elapsed_ms": 18.466611999883753,
+      "cpu_seconds": 0.02552642799999999,
+      "max_matrix_error": 0.00016120515964076023,
+      "full_export_points": 1496,
+      "occupancy": {
+        "status": "CANDIDATE",
+        "name": "synthetic_obstacle_band",
+        "z_min": 0.3,
+        "z_max": 2.0,
+        "resolution": 0.1,
+        "frame": "fused",
+        "origin": [
+          0,
+          0
+        ],
+        "axis": "x-right/y-up",
+        "background": "UNKNOWN",
+        "free_cells": [],
+        "policy": "height-band conservative occupied union; no ray/free evidence; no ground inference",
+        "annotation_policy": "Not transferred; requires frame-bound explicit transformation",
+        "operational_installed": false
+      },
+      "max_rss_kib": 61468
+    },
+    {
+      "maps": 3,
+      "status": "SOLVED_CANDIDATE",
+      "elapsed_ms": 38.499834000049304,
+      "cpu_seconds": 0.04421888800000001,
+      "max_matrix_error": 0.0003064197820478606,
+      "full_export_points": 2165,
+      "occupancy": {
+        "status": "CANDIDATE",
+        "name": "synthetic_obstacle_band",
+        "z_min": 0.3,
+        "z_max": 2.0,
+        "resolution": 0.1,
+        "frame": "fused",
+        "origin": [
+          0,
+          0
+        ],
+        "axis": "x-right/y-up",
+        "background": "UNKNOWN",
+        "free_cells": [],
+        "policy": "height-band conservative occupied union; no ray/free evidence; no ground inference",
+        "annotation_policy": "Not transferred; requires frame-bound explicit transformation",
+        "operational_installed": false
+      },
+      "max_rss_kib": 61468
+    }
+  ],
+  "cli": "PASS"
+}
