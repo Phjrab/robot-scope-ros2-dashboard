@@ -1,0 +1,51 @@
+{
+  "HTTP": "NOT_RUN",
+  "REAL_YOLO_EVALUATION": "INPUT_REQUIRED",
+  "ROS": "NOT_RUN",
+  "actual_c1_service_python": true,
+  "actual_c1_validator": true,
+  "actual_c4_python_ports": true,
+  "actual_core": true,
+  "errors": 0,
+  "example_sha256": "26f7924e2b3a423779eb6be73bb5324d88b5f3ffe0dd8d198b55fe80c0b14e9b",
+  "failures": 0,
+  "payloads": [
+    {
+      "c4_projection_bytes": 2642,
+      "d2_bytes": 2525,
+      "objects": 1,
+      "port": "ACCEPTED",
+      "sha256": "26f7924e2b3a423779eb6be73bb5324d88b5f3ffe0dd8d198b55fe80c0b14e9b"
+    },
+    {
+      "c4_projection_bytes": 7129,
+      "d2_bytes": 7012,
+      "objects": 8,
+      "port": "ACCEPTED",
+      "sha256": "41f954dfc5f99f129cee7bca43ae9c8681d16df94f2740b0118ad573d0ee1fb5"
+    },
+    {
+      "c4_projection_bytes": 12264,
+      "d2_bytes": 12147,
+      "objects": 16,
+      "port": "ACCEPTED",
+      "sha256": "67494015d0743f6491274c8fd0d291de31e3e6618ade4b5963b6df1ff7bbb202"
+    },
+    {
+      "objects": 32,
+      "port": "REJECTED_NO_TRUNCATION",
+      "reason": "FRAME_BUDGET_EXCEEDED:22419+2048>16384"
+    },
+    {
+      "objects": 64,
+      "port": "REJECTED_NO_TRUNCATION",
+      "reason": "FRAME_BUDGET_EXCEEDED:42963+2048>16384"
+    }
+  ],
+  "pins": {
+    "c1": "54629c793ad4ae0ea88127f00ed1b7f8805fc4e2",
+    "c4": "b9d700d754f0d3d43b9afdcffcb86e9deb7b1020"
+  },
+  "skips": 0,
+  "tests": 7
+}

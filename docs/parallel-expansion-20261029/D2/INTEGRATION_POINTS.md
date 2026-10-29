@@ -1,3 +1,5 @@
+> Updated by [ROUND2.md](ROUND2.md): actual C4 shim and C1 default-service budget are now exercised. Original integration notes below remain historical where superseded.
+
 # D2 runtime-independent integration points
 
 No shared product code changed. C1 wire validator is pinned read-only at

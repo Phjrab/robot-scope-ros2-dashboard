@@ -1,0 +1,181 @@
+{
+  "calibration_id": "cal-a",
+  "clock_domain": "source",
+  "controller_consumption_observed": false,
+  "costmap_ingestion_observed": false,
+  "dropped_counts": {
+    "ground": 0,
+    "invalid_or_range": 0,
+    "object_budget": 0,
+    "self": 0,
+    "transport_invalid": 0
+  },
+  "evidence_kind": "SYNTHETIC",
+  "frame_key": {
+    "frame_id": "odom",
+    "source_epoch": "epoch"
+  },
+  "health": {
+    "age_status": "UNKNOWN",
+    "c4_source_identity": {
+      "provenance": null,
+      "receipt_clock_id": null,
+      "received_ns": null,
+      "source_id": null,
+      "tf_epoch": null
+    },
+    "coverage": "PARTIAL",
+    "motion_compensated": false,
+    "postprocess": {
+      "completed_monotonic_ns": 9000000000,
+      "host_clock_id": "d2-process-monotonic",
+      "renews_observation": false
+    },
+    "provenance_encoding": "input_sources_index_v1",
+    "reasons": [
+      "SELF_GEOMETRY_UNKNOWN",
+      "GROUND_UNKNOWN"
+    ],
+    "source_age_ns": null
+  },
+  "host_clock_id": "receiver",
+  "input_sources": [
+    {
+      "calibration_id": "cal-a",
+      "clock_domain": "source",
+      "evidence_kind": "SYNTHETIC",
+      "field_layout": [
+        {
+          "count": 1,
+          "datatype": 7,
+          "name": "x",
+          "offset": 0
+        },
+        {
+          "count": 1,
+          "datatype": 7,
+          "name": "y",
+          "offset": 4
+        },
+        {
+          "count": 1,
+          "datatype": 7,
+          "name": "z",
+          "offset": 8
+        }
+      ],
+      "frame_id": "odom",
+      "frame_key": {
+        "frame_id": "odom",
+        "source_epoch": "epoch"
+      },
+      "host_clock_id": "receiver",
+      "map_binding": {
+        "generation": 0,
+        "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+        "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "map_generation": 0,
+      "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+      "producer": "c4-fixture",
+      "receipt_clock_id": "receiver",
+      "received_monotonic_ns": 1000000000,
+      "received_ns": 1000000000,
+      "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "sensor_origin_m": [
+        0.2,
+        0.1,
+        0.3
+      ],
+      "sequence": 1,
+      "source_epoch": "epoch",
+      "source_id": "lidar",
+      "stamp_ns": "1000000000",
+      "tf_epoch": "tf-a"
+    }
+  ],
+  "map_binding": {
+    "generation": 0,
+    "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+    "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "observation_only": true,
+  "obstacles": [
+    {
+      "class_name": "unknown",
+      "class_score": null,
+      "first_seen_ns": "1000000000",
+      "geometry": {
+        "center": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "extent": [
+          0.06,
+          0.06,
+          0.06
+        ],
+        "observed_bounds": [
+          [
+            0.0,
+            0.0,
+            1.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "orientation_xyzw": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      "last_seen_ns": "1000000000",
+      "novelty": "UNRESOLVED",
+      "provenance": {
+        "field_layout": [
+          {
+            "count": 1,
+            "datatype": 7,
+            "name": "x",
+            "offset": 0
+          },
+          {
+            "count": 1,
+            "datatype": 7,
+            "name": "y",
+            "offset": 4
+          },
+          {
+            "count": 1,
+            "datatype": 7,
+            "name": "z",
+            "offset": 8
+          }
+        ],
+        "motion_compensated": false,
+        "point_count": 1,
+        "source_ref": 0
+      },
+      "sensor_support": "LIDAR",
+      "state": "OBSERVED",
+      "track_id": "track-1-1",
+      "uncertainty": {
+        "bound_m": 0.03,
+        "kind": "configured_bound_not_covariance"
+      }
+    }
+  ],
+  "producer": "d2.offline",
+  "published_to_nav2": false,
+  "received_monotonic_ns": 1000000000,
+  "schema_version": "0.1",
+  "sequence": 1,
+  "source_epoch": "epoch",
+  "stamp_ns": "1000000000"
+}

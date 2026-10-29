@@ -520,9 +520,24 @@ class Tracker:
             m["frame_key"]["frame_id"],
             m["clock_domain"],
             tuple(sorted(m["map_binding"].items())),
+            m.get("calibration_id"),
+            m.get("tf_epoch"),
         )
         if generation in self.retired:
             raise ValueError("RETIRED_GENERATION")
+        if self.generation is not None:
+            if (
+                generation[0] == self.generation[0]
+                and self.last is not None
+                and (stamp <= self.last[0] or m["sequence"] <= self.last[1])
+            ):
+                raise ValueError("REORDERED_OR_DUPLICATE_FRAME")
+            previous_binding = dict(self.generation[3])
+            if (
+                m["map_binding"] != previous_binding
+                and m["map_binding"]["generation"] <= previous_binding["generation"]
+            ):
+                raise ValueError("MAP_GENERATION_NOT_ADVANCED")
         if generation != self.generation:
             if self.generation is not None:
                 if len(self.retired) >= 64:

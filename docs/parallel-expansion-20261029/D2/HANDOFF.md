@@ -1,3 +1,7 @@
+# Latest follow-up
+
+See [ROUND2.md](ROUND2.md) for current C1/C4 exact-SHA integration, 16 KiB service budgeting, calibration fences and actual test evidence. The original round below is historical.
+
 # D2 perception handoff — offline candidate, no runtime integration
 
 ## Pins / publication
