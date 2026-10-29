@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 
 from robot_dashboard.collision_geometry_core import assess, transform
-from .fixtures import frame, model, obstacle, scenarios, state
+from .fixtures import frame, model, obstacle, scenarios, state, coverage_evidence
 from .preflight import probe
 
 
@@ -54,7 +54,7 @@ def main():
             path,
             now_stamp_ns=1_000_000_000,
             now_clock_domain="fixture-clock",
-            coverage="COMPLETE_SYNTHETIC",
+            coverage=coverage_evidence(),
         )
         results.append(dict(name=name, assessment=result))
     report = dict(

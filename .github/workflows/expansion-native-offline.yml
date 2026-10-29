@@ -1,0 +1,62 @@
+name: D3 expansion native offline
+
+on:
+  push:
+    branches: [review/20261029-x-d3-collision-sim]
+    paths:
+      - robot_dashboard/collision_geometry_core/**
+      - tests/expansion_d3/**
+      - experiments/expansion_20261029/d3_collision_sim/**
+      - .github/workflows/expansion-native-offline.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: d3-expansion-native-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  native:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Record temporary hosted runner
+        run: |
+          mkdir -p "$RUNNER_TEMP/d3-native"
+          git rev-parse HEAD > "$RUNNER_TEMP/d3-native/source-sha.txt"
+          docker version > "$RUNNER_TEMP/d3-native/docker-version.txt"
+          uname -a > "$RUNNER_TEMP/d3-native/runner.txt"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Exact-pin actual D2 C1 C4 core compatibility (not ROS)
+        run: |
+          python -m pip install 'numpy>=1.24,<3' 'scipy>=1.10,<2'
+          git fetch --no-tags origin cb8ccc68be8d96a44b0d38adcff8186893ba2b08 b9d700d754f0d3d43b9afdcffcb86e9deb7b1020 7313f0a31c00ae87ae216b84ca41a23804e91917 c0d266e290a2d29c173d3b83520f8c96efea9447
+          mkdir -p "$RUNNER_TEMP/c1" "$RUNNER_TEMP/c4" "$RUNNER_TEMP/d2" "$RUNNER_TEMP/d2-old"
+          git archive cb8ccc68be8d96a44b0d38adcff8186893ba2b08 robot_dashboard/expansion_contracts | tar -x -C "$RUNNER_TEMP/c1"
+          git archive b9d700d754f0d3d43b9afdcffcb86e9deb7b1020 robot_dashboard/obstacle_runtime_adapter | tar -x -C "$RUNNER_TEMP/c4"
+          git archive 7313f0a31c00ae87ae216b84ca41a23804e91917 robot_dashboard/obstacle_fusion_core | tar -x -C "$RUNNER_TEMP/d2"
+          git archive c0d266e290a2d29c173d3b83520f8c96efea9447 robot_dashboard/obstacle_fusion_core | tar -x -C "$RUNNER_TEMP/d2-old"
+          python -m unittest discover -s tests/expansion_d3 -v
+          python -m experiments.expansion_20261029.d3_collision_sim.round2_compatibility --c1-root "$RUNNER_TEMP/c1" --c4-root "$RUNNER_TEMP/c4" --d2-root "$RUNNER_TEMP/d2" --output "$RUNNER_TEMP/d3-native/compatibility.json"
+          python -m experiments.expansion_20261029.d3_collision_sim.round2_compatibility --c1-root "$RUNNER_TEMP/c1" --c4-root "$RUNNER_TEMP/c4" --d2-root "$RUNNER_TEMP/d2-old" --d2-sha c0d266e290a2d29c173d3b83520f8c96efea9447 --output "$RUNNER_TEMP/d3-native/compatibility-old-d2.json"
+      - name: Actual Humble Nav2 1.1.20 minimum and gated short extension
+        timeout-minutes: 30
+        run: |
+          python3 experiments/expansion_20261029/d3_collision_sim/native_ci.py --output "$RUNNER_TEMP/d3-native"
+      - name: Preserve native evidence on success or failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d3-native-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/d3-native/
+            !${{ runner.temp }}/d3-native/source/**
+            !${{ runner.temp }}/d3-native/**/*.pgm
+          if-no-files-found: error
+          retention-days: 14

@@ -1,3 +1,4 @@
+from experiments.expansion_20261029.d3_collision_sim.fixtures import coverage_evidence
 import copy
 import math
 import unittest
@@ -144,7 +145,7 @@ class AssessmentTests(unittest.TestCase):
     def test_empty_sparse_unknown_complete_fixture_clear(self):
         self.assertEqual(self.run_assess()["severity"], "UNKNOWN")
         self.assertEqual(
-            self.run_assess(coverage="COMPLETE_SYNTHETIC")["severity"], "CLEAR"
+            self.run_assess(coverage=coverage_evidence())["severity"], "CLEAR"
         )
 
     def test_padded_and_unpadded_overlap_distinct(self):
@@ -165,12 +166,12 @@ class AssessmentTests(unittest.TestCase):
         s = state()
         end = transform((0, 0, 0.3), (0, 0, math.pi / 2)).tolist()
         self.assertEqual(
-            self.run_assess(f=f, coverage="COMPLETE_SYNTHETIC")["severity"], "CLEAR"
+            self.run_assess(f=f, coverage=coverage_evidence())["severity"], "CLEAR"
         )
         s2 = copy.deepcopy(s)
         s2["pose"] = end
         self.assertEqual(
-            self.run_assess(s=s2, f=f, coverage="COMPLETE_SYNTHETIC")["severity"],
+            self.run_assess(s=s2, f=f, coverage=coverage_evidence())["severity"],
             "CLEAR",
         )
         p = {
@@ -247,7 +248,7 @@ class AssessmentTests(unittest.TestCase):
             frame(),
             now_stamp_ns=1_000_000_000,
             now_clock_domain="fixture-clock",
-            coverage="COMPLETE_SYNTHETIC",
+            coverage=coverage_evidence(),
             support_surfaces=[support],
         )
         self.assertEqual(a["severity"], "CLEAR")

@@ -121,7 +121,10 @@ def command_prediction(root_pose, command):
 
 
 def _reference(message):
-    return {k: message.get(k) for k in META}
+    ref = {k: message.get(k) for k in META}
+    if ref.get("received_monotonic_ns") is not None:
+        ref["received_monotonic_ns"] = str(ref["received_monotonic_ns"])
+    return ref
 
 
 def assess(
@@ -139,17 +142,17 @@ def assess(
     support_surfaces=(),
     resolution=0.005,
 ):
-    """Return C1 v0.1-compatible dict. Numeric validity is fail-closed.
+    """Return C1 v0.2-shaped numeric result; host interval requires C1 binding. Numeric validity is fail-closed.
 
     State: metadata + pose (4x4), joints dict, joint_stamp_ns,
     calibration_known bool, pose_uncertainty_m, joint_uncertainty_m.
     Path: {ref: dict, poses: [{time_s, pose}]}; this is NOT a controller.
-    Coverage COMPLETE_SYNTHETIC is only allowed for synthetic scene fixtures.
+    Coverage must be an explicit bounded generated-scene certificate; a label is insufficient.
     """
     state = stamped_robot_state
     out = {k: state.get(k) for k in META}
     out.update(
-        schema_version="0.1",
+        schema_version="0.2",
         producer="d3.collision_geometry_core",
         robot_pose_ref=_reference(state),
         joint_state_ref={"stamp_ns": state.get("joint_stamp_ns")},
@@ -167,6 +170,7 @@ def assess(
         severity="UNKNOWN",
         recommendation="HOLD_FOR_VALID_INPUT",
     )
+    out["received_monotonic_ns"] = str(out["received_monotonic_ns"])
     issues = []
     try:
         if (
@@ -274,8 +278,12 @@ def assess(
         first = None
         current = math.inf
         supports = []
+        volume_min, volume_max = np.full(3, math.inf), np.full(3, -math.inf)
         for time_s, pose in samples:
             for p in robot_geometry.fk(pose, state["joints"]):
+                extent = p.radius + margin + bound
+                volume_min = np.minimum(volume_min, p.pose[:3, 3] - extent)
+                volume_max = np.maximum(volume_max, p.pose[:3, 3] + extent)
                 distances = [clearance(p, o) for o in obs]
                 for surface in support_surfaces:
                     d = plane_clearance(p, surface["normal"], surface["offset"])
@@ -332,9 +340,15 @@ def assess(
         out["modeled_ttc"] = (
             first  # first conservative sampled risk, NOT exact physical contact time
         )
-        out["validity_interval"] = {
+        out["freshness"]["source_validity_interval"] = {
             "clock_domain": now_clock_domain,
-            "from_ns": str(now_stamp_ns),
+            "from_ns": str(
+                max(
+                    int(state["stamp_ns"]),
+                    int(state["joint_stamp_ns"]),
+                    int(obstacles["stamp_ns"]),
+                )
+            ),
             "until_ns": str(
                 min(
                     int(state["stamp_ns"]),
@@ -344,6 +358,25 @@ def assess(
                 + int(max_age_s * 1e9)
             ),
         }
+        from .coverage import qualifies
+
+        qualified = qualifies(
+            coverage,
+            state,
+            volume_min=volume_min,
+            volume_max=volume_max,
+            horizon_s=float(path[-1]["time_s"]),
+        )
+        out["freshness"]["coverage"] = dict(
+            complete_for_motion=qualified,
+            horizon_s=float(path[-1]["time_s"]),
+            swept_volume_min=volume_min.tolist(),
+            swept_volume_max=volume_max.tolist(),
+            evidence=coverage if isinstance(coverage, dict) else None,
+            status="QUALIFIED_SYNTHETIC"
+            if qualified
+            else "MOTION_COVERAGE_NOT_QUALIFIED",
+        )
         if current <= 0:
             out.update(
                 reason="MODEL_OVERLAP",
@@ -356,8 +389,8 @@ def assess(
                 severity="STOP_REQUIRED",
                 recommendation="SIMULATED_COMMAND_STOP_CONTACT_UNCONFIRMED",
             )
-        elif coverage != "COMPLETE_SYNTHETIC" or state["evidence_kind"] != "SYNTHETIC":
-            out["freshness"]["issues"] = ["SPARSE_COVERAGE_NOT_FREE_SPACE"]
+        elif not qualified:
+            out["freshness"]["issues"] = ["MOTION_COVERAGE_NOT_QUALIFIED"]
         elif robot_geometry.unmodeled:
             out.update(
                 reason="UNKNOWN",

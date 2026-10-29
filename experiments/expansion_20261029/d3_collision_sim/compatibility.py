@@ -38,7 +38,10 @@ def main():
     a = assess(
         model(), s, f, now_stamp_ns=1_000_000_000, now_clock_domain="fixture-clock"
     )
-    CollisionAssessment.from_dict(a)
+    legacy = dict(
+        a, schema_version="0.1", received_monotonic_ns=int(a["received_monotonic_ns"])
+    )
+    CollisionAssessment.from_dict(legacy)
     assert a["severity"] == "UNKNOWN"  # sparse cloud does not establish free space
     assert a["min_clearance"] is not None
     print(

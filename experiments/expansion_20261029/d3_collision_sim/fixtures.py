@@ -155,3 +155,22 @@ def oracle_circle_box(center, radius, pose_xy_yaw, half=(0.358, 0.162)):
     u = abs(math.cos(yaw) * dx + math.sin(yaw) * dy) - half[0]
     v = abs(-math.sin(yaw) * dx + math.cos(yaw) * dy) - half[1]
     return math.hypot(max(u, 0), max(v, 0)) + min(max(u, v), 0) - radius
+
+
+def coverage_evidence(s=None, horizon_s=5.0):
+    s = state() if s is None else s
+    return dict(
+        kind="GENERATED_CLOSED_SCENE_VOLUME",
+        complete_for_motion=True,
+        evidence_kind="SYNTHETIC",
+        source_refs=[{"generator": "d3.fixtures.closed_scene.v1"}],
+        **{
+            k: copy.deepcopy(s[k])
+            for k in ("source_epoch", "clock_domain", "frame_key", "map_binding")
+        },
+        horizon_s=horizon_s,
+        volume_min=[-10, -10, -10],
+        volume_max=[10, 10, 10],
+        valid_from_ns=s["stamp_ns"],
+        valid_until_ns=str(int(s["stamp_ns"]) + int(horizon_s * 1e9)),
+    )
