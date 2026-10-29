@@ -28,7 +28,7 @@ resolution avoids a self-referential SHA editing loop.
 [Branch source](https://github.com/Phjrab/robot-scope-ros2-dashboard/tree/review/20261029-x-c4-runtime),
 [tested implementation](https://github.com/Phjrab/robot-scope-ros2-dashboard/commit/7919e84141ec5cebc6842f2891274b69f82bf0aa),
 [integration points](INTEGRATION_POINTS.md),
-[machine-readable validation](../../../../experiments/expansion_20261029/c4_runtime/results/validation.json).
+[machine-readable validation](../../../experiments/expansion_20261029/c4_runtime/results/validation.json).
 
 Independent normal clone: `/home/desktop1/Documents/ChatGPT/robot/c4-runtime-20261029`.
 The shared empty repository's branch/index/remote was not changed. The actual

@@ -139,7 +139,30 @@ in `tests/e2e/slam_presentation.spec.mjs:87`, 390px light layout top difference:
 expected `<1`, received `25.5` (Ubuntu 22.04 / Python 3.10). CI workflow bytes are
 unchanged between inspected main and C4. This baseline failure is recorded, not
 waived or attributed to C4 without evidence. No criterion or test was relaxed.
-New C4 publication CI and tested source SHA are recorded below after publication.
+Tested source/test-code SHA: **`ba60767ee6f90f20c911bcf3ea033118a820f31e`**.
+After commit, the 20 actual-core/HTTP focused checks passed again in 0.731 s.
+The full run above used exactly the same source/test bytes; its new-source
+manifest was checked against this commit. See
+[source_validation.json](../../../experiments/expansion_20261029/c4_runtime/round2/source_validation.json)
+for exact Python/package versions and verification.
+
+Remote full CI for this tested code is
+[40838588432](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40838588432).
+At preparation of this documentation follow-up, static checks, offline
+integration, Python and JavaScript had passed in both matrix environments;
+browser E2E was still running. **No full CI pass is inferred from those partial
+results.** The delivery message reports the latest observed run outcome. The
+previous C4 full run took approximately 19–22 minutes, so elapsed time alone is
+not interpreted as failure or success. CI is unmodified and no rerun/waiver was
+used. Required local owner composition is separate: the normal remote workflow
+does not fetch the new C1/D2/D3 pins, and visibly skips those 16 real-composition
+tests (the four local binding tests still run).
+
+Final submission HEAD is the commit containing this documentation follow-up;
+its exact immutable SHA and remote-head equality are given in the delivery
+message. This follow-up changes only C4 docs and the small verification record,
+not the tested source or tests. The previous HANDOFF result link was corrected.
+Source SHA and final documentation HEAD are deliberately distinguished.
 
 **Next one connection:** C1/C3 owners agree and publish the real scene display +
 canonical validity consumer contract, then replay this exact C4-produced C1

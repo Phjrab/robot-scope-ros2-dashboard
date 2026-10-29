@@ -1,0 +1,29 @@
+{
+  "tested_source_SHA": "ba60767ee6f90f20c911bcf3ea033118a820f31e",
+  "post_commit_focused_tests": 20,
+  "post_commit_focused_status": "PASS",
+  "post_commit_focused_seconds": 0.731,
+  "source_manifest_matches_committed_files": true,
+  "foreign_implementation_copied": false,
+  "changed_prefixes": [
+    "robot_dashboard/expansion_runtime",
+    "tests/expansion_runtime",
+    "experiments/expansion_20261029/c4_runtime/round2",
+    "docs/parallel-expansion-20261029/C4"
+  ],
+  "environment": {
+    "python": "3.12.3",
+    "numpy": "2.5.4",
+    "scipy": "1.18.1",
+    "fastapi": "0.162.0",
+    "pydantic": "2.14.1",
+    "httpx": "0.28.1",
+    "PyYAML": "6.0.3",
+    "jsonschema": "4.26.0",
+    "ruff": "0.17.3"
+  },
+  "tested_source_CI_run": 40838588432,
+  "tested_source_CI_url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40838588432",
+  "CI_at_document_preparation": "IN_PROGRESS_BROWSER_E2E; not a full pass claim",
+  "remote_core_composition": "NOT_RUN_WITHOUT_EXTERNAL_OWNER_PINS; local required-mode tests PASS"
+}
