@@ -1,0 +1,53 @@
+{
+  "base_sha": "f469155c2b0c505f3e472e878f75029d7b8d39df",
+  "status": [
+    "UI_MODULE_TESTED",
+    "PRODUCT_WIRING_DEFERRED",
+    "DEVICE_NOT_RUN"
+  ],
+  "dependencies": {
+    "C1": "54629c793ad4ae0ea88127f00ed1b7f8805fc4e2",
+    "D1": "cbedd05ba6f97dad5506e8003302f689ed8fcb4c"
+  },
+  "checks": {
+    "C2_UNIT": {
+      "pass": 20,
+      "fail": 0,
+      "skip": 0
+    },
+    "UI_FIXTURE_AND_SYNTHETIC_E2E": {
+      "pass": 18,
+      "fail": 0
+    },
+    "JS_BASELINE_UNIT": {
+      "pass": 699,
+      "fail": 0,
+      "skip": 0
+    },
+    "PYTHON_FULL_UNIT_SYNTHETIC": {
+      "run": 3116,
+      "pass": 3114,
+      "fail": 0,
+      "skip": 2,
+      "seconds": 97.137
+    },
+    "FORBIDDEN_MUTATIONS": 0
+  },
+  "skipped": [
+    "optional SVG plotting dependency absent: test_inspect_se3_pair.PairInspectionTests.test_overlay_artifacts_label_synthetic_and_not_operational",
+    "optional rosbags backend not installed: test_isaac_vslam_inspect_bag.RosbagsBackendTests.test_real_humble_cdr_serialization_is_decoded_offline"
+  ],
+  "not_run": [
+    "REPLAY_REAL",
+    "NATIVE_NAV2_SIM",
+    "DEVICE",
+    "PRODUCT_WIRING",
+    "DEPLOYMENT"
+  ],
+  "environment_attempts": [
+    "System Node 18: 70/77 test files pass, 7 existing ESM/CommonJS import failures; final Node 24.22.1 has 699/699 subtests PASS.",
+    "System Python without project dependencies: 1522 tests attempted, 115 dependency errors, 11 skipped. Final isolated /tmp venv passes full discovery.",
+    "Sandbox denied loopback bind and stalled some subprocess/async teardown; final loopback/browser/full regression ran with local execution approval and bounded timeout.",
+    "A repeated exact service test reused an immutable export name and correctly received 409; final test generates a new per-run name."
+  ]
+}

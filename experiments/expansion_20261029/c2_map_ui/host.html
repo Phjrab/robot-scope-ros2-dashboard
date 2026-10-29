@@ -1,0 +1,17 @@
+<!doctype html><html lang="ko" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>C2 · Synthetic multimap test host</title>
+<link rel="stylesheet" href="/robot_dashboard/static/styles.css"><link rel="stylesheet" href="/robot_dashboard/static/features/multimap_fusion/style.css">
+<style>body{display:block;margin:0;padding:20px;background:var(--bg);min-width:320px}.test-banner{display:flex;justify-content:space-between;align-items:center;max-width:1600px;margin:auto;border-bottom:1px solid var(--line);padding-bottom:10px;font:12px var(--font-ui,system-ui);color:var(--muted)}.test-banner button{background:var(--panel);color:var(--text);padding:6px 12px;border:1px solid var(--line);border-radius:6px}@media(max-width:600px){body{padding:10px}}</style></head><body>
+<div class="test-banner"><span>SYNTHETIC / UI_FIXTURE · TEST-ONLY HOST · PRODUCT_WIRING_DEFERRED</span><button id="theme" type="button">Dark / Light</button></div><div id="host"></div>
+<script src="/robot_dashboard/static/scene3d.js"></script><script type="module">
+import {mount,createRobotSceneRenderer} from '/robot_dashboard/static/features/multimap_fusion/index.js';
+import {createC1Ports} from '/robot_dashboard/static/features/multimap_fusion/c1_ports.js';
+import {createC1Fixture} from '/experiments/expansion_20261029/c2_map_ui/c1_host.mjs';
+import {createFixture} from '/experiments/expansion_20261029/c2_map_ui/fixture.mjs';
+const query=new URLSearchParams(location.search);
+const transport=async(path,{method,body})=>{const r=await fetch(path,{method,headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined});if(!r.ok)throw new Error(`C1 HTTP ${r.status}`);return r.json();};
+const fixture=query.get('scenario')==='c1-service' ? {...createC1Ports(transport),calls:[]} : query.get('scenario')==='c1-exact' ? createC1Fixture(await (await fetch('/c1-exact.json')).json()) : createFixture({scenario:query.get('scenario')||'normal',delay:Number(query.get('delay')||40)});
+if(query.get('scenario')==='c1-service')document.querySelector('.test-banner span').textContent='SYNTHETIC / EXACT C1 + D1 · TEST-ONLY HOST · PRODUCT_WIRING_DEFERRED';
+window.fixture=fixture;window.reviews=[];
+window.module=mount(document.querySelector('#host'),{catalogue:fixture.catalogue,jobs:fixture.jobs,renderer:createRobotSceneRenderer(window.RobotScene3D),onReview:r=>window.reviews.push(r),pollMs:80});
+document.querySelector('#theme').onclick=()=>{document.documentElement.dataset.theme=document.documentElement.dataset.theme==='light'?'dark':'light';};
+</script></body></html>
