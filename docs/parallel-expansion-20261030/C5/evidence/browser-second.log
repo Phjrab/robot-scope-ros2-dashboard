@@ -1,0 +1,68 @@
+PASS chromium: goal coordinates/yaw and explicit payload are identical before/after; cancel and resize
+PASS chromium: alignment pending/rejected/complete and API disconnect/reconnect remain authoritative
+PASS chromium: C2 selection/edit/compare/review/save and failed job; no operating-map apply
+PASS chromium: C2 loading/empty/error/retry/disconnected result retain original reasons
+PASS chromium: C3 obstacles/costmap/path generations, risk keyboard inspector, stale and reconnect
+FAIL chromium: helper lifecycle, keyboard focus, 200% root text and long Korean/SHA: false == true
+PASS webkit: goal coordinates/yaw and explicit payload are identical before/after; cancel and resize
+PASS webkit: alignment pending/rejected/complete and API disconnect/reconnect remain authoritative
+PASS webkit: C2 selection/edit/compare/review/save and failed job; no operating-map apply
+PASS webkit: C2 loading/empty/error/retry/disconnected result retain original reasons
+PASS webkit: C3 obstacles/costmap/path generations, risk keyboard inspector, stale and reconnect
+FAIL webkit: helper lifecycle, keyboard focus, 200% root text and long Korean/SHA: false == true
+{
+  "matrix": {
+    "PASS": 36
+  },
+  "checks": [
+    {
+      "name": "chromium: goal coordinates/yaw and explicit payload are identical before/after; cancel and resize",
+      "result": "PASS"
+    },
+    {
+      "name": "chromium: alignment pending/rejected/complete and API disconnect/reconnect remain authoritative",
+      "result": "PASS"
+    },
+    {
+      "name": "chromium: C2 selection/edit/compare/review/save and failed job; no operating-map apply",
+      "result": "PASS"
+    },
+    {
+      "name": "chromium: C2 loading/empty/error/retry/disconnected result retain original reasons",
+      "result": "PASS"
+    },
+    {
+      "name": "chromium: C3 obstacles/costmap/path generations, risk keyboard inspector, stale and reconnect",
+      "result": "PASS"
+    },
+    {
+      "name": "chromium: helper lifecycle, keyboard focus, 200% root text and long Korean/SHA",
+      "result": "FAIL"
+    },
+    {
+      "name": "webkit: goal coordinates/yaw and explicit payload are identical before/after; cancel and resize",
+      "result": "PASS"
+    },
+    {
+      "name": "webkit: alignment pending/rejected/complete and API disconnect/reconnect remain authoritative",
+      "result": "PASS"
+    },
+    {
+      "name": "webkit: C2 selection/edit/compare/review/save and failed job; no operating-map apply",
+      "result": "PASS"
+    },
+    {
+      "name": "webkit: C2 loading/empty/error/retry/disconnected result retain original reasons",
+      "result": "PASS"
+    },
+    {
+      "name": "webkit: C3 obstacles/costmap/path generations, risk keyboard inspector, stale and reconnect",
+      "result": "PASS"
+    },
+    {
+      "name": "webkit: helper lifecycle, keyboard focus, 200% root text and long Korean/SHA",
+      "result": "FAIL"
+    }
+  ],
+  "errors": []
+}

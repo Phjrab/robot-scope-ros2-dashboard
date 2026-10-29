@@ -1,0 +1,122 @@
+[WebServer] (node:84671) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 54 tests using 1 worker
+
+(node:84680) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/54] tests/e2e/dashboard.spec.mjs:25:1 › offline viewer keeps saved maps available while live telemetry fails closed
+[2/54] tests/e2e/dashboard.spec.mjs:35:1 › Saved Maps shows storage size and downloads the selected map bundle
+[3/54] tests/e2e/dashboard.spec.mjs:47:1 › 2D map editor previews and saves an operator-selected arbitrary rotation
+[4/54] tests/e2e/dashboard.spec.mjs:80:1 › camera and pointcloud reconnect, then release transports on page switch
+[5/54] tests/e2e/dashboard.spec.mjs:95:1 › Sensors camera observability shows Wi-Fi, source, transport, decode and clock domain
+[6/54] tests/e2e/dashboard.spec.mjs:112:1 › RealSense resolution selection survives polling and applies exactly once
+[7/54] tests/e2e/dashboard.spec.mjs:131:1 › Cockpit enter, leave, resize, and 20 reentries keep one scene and one PointCloud owner
+[8/54] tests/e2e/dashboard.spec.mjs:182:1 › Cockpit full-window launcher reuses one named target, cleans the opener, and handles popup blocking
+  1) tests/e2e/dashboard.spec.mjs:182:1 › Cockpit full-window launcher reuses one named target, cleans the opener, and handles popup blocking
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "http://127.0.0.1:4173"
+    Received: "http://127.0.0.1:4275"
+
+      208 |   const [url, name, features] = launch.calls[0];
+      209 |   const target = new URL(url);
+    > 210 |   expect(target.origin).toBe(`http://127.0.0.1:${process.env.UI_REGRESSION_PORT || 4173}`);
+          |                         ^
+      211 |   expect(target.search).toBe('?workspace=cockpit');
+      212 |   expect(target.hash).toBe('#cockpit');
+      213 |   expect(name).toBe('robot-scope-cockpit-workspace');
+        at /Users/hajoonpark/자율설계/robot-scope-c5-ui-usability-20261030/tests/e2e/dashboard.spec.mjs:210:25
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../private/tmp/c5-regression-artifacts/dashboard-Cockpit-full-win-019a8--and-handles-popup-blocking/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../private/tmp/c5-regression-artifacts/dashboard-Cockpit-full-win-019a8--and-handles-popup-blocking/error-context.md
+
+
+(node:84774) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[9/54] tests/e2e/dashboard.spec.mjs:230:1 › Cockpit standalone page fills each browser viewport and requests native fullscreen only on click
+[10/54] tests/e2e/dashboard.spec.mjs:360:1 › Cockpit competition status locks configuration and separates SHADOW, network, model and dataset state
+[11/54] tests/e2e/dashboard.spec.mjs:409:1 › Cockpit point quality switches LOW, MEDIUM, HIGH and exposes adaptive scene controls
+[12/54] tests/e2e/dashboard.spec.mjs:428:1 › Cockpit map panel shows revision-pinned localization and toggles the bounded 3D overlay
+[13/54] tests/e2e/dashboard.spec.mjs:469:1 › Competition Route Planner completes the software-only workflow without motion authority
+[14/54] tests/e2e/dashboard.spec.mjs:511:1 › standalone dashboard Route Planner is reachable and releases polling when closed
+[15/54] tests/e2e/dashboard.spec.mjs:581:1 › Route Planner stores eight sheets with five menu items each
+[16/54] tests/e2e/dashboard.spec.mjs:603:1 › Route Planner destination start survives polling and missing graph is explained
+[17/54] tests/e2e/dashboard.spec.mjs:624:1 › locked Route Planner order stays server-synchronized and offers an isolated new-order draft
+[18/54] tests/e2e/dashboard.spec.mjs:657:1 › locked Route Planner order can be explicitly unlocked without control or navigation authority
+[19/54] tests/e2e/dashboard.spec.mjs:677:1 › Route Planner rehearsal replays competition scenarios and mission dry-run with zero side effects
+[20/54] tests/e2e/dashboard.spec.mjs:750:1 › Cockpit manual to Nav2 to explicit takeover stays mutually exclusive and never auto-arms
+[21/54] tests/e2e/dashboard.spec.mjs:789:1 › Cockpit runs a server-owned two-waypoint mission and restores it after reload
+[22/54] tests/e2e/dashboard.spec.mjs:847:1 › Cockpit mission pause, failure retry, and skips remain explicit and fail closed
+[23/54] tests/e2e/dashboard.spec.mjs:901:1 › Cockpit panels drag, resize, focus, lock, close, and recover without orbiting the scene
+[24/54] tests/e2e/dashboard.spec.mjs:1005:1 › Cockpit Sensor Launcher is keyboard accessible and snap, dock, tile, and cascade stay bounded
+[25/54] tests/e2e/dashboard.spec.mjs:1093:1 › Cockpit camera panels share catalog-owned streams through dual open, focus swap, resize, compact, stale, and close
+[26/54] tests/e2e/dashboard.spec.mjs:1158:1 › Cockpit disables camera launchers that are absent from the active catalog profile
+[27/54] tests/e2e/dashboard.spec.mjs:1169:1 › control status and software STOP belong only to Settings while Cockpit layout editing stays available
+[28/54] tests/e2e/dashboard.spec.mjs:1228:1 › active manual lease auto-locks Layout Edit and cancels an in-flight pointer operation
+[29/54] tests/e2e/dashboard.spec.mjs:1263:1 › Settings control status clears stale cached values and keeps STOP usable on narrow and short viewports
+[30/54] tests/e2e/dashboard.spec.mjs:1302:1 › Cockpit preset saves normalized geometry, restores after reload, and imports only after preview apply
+[31/54] tests/e2e/dashboard.spec.mjs:1365:1 › Xbox Cockpit shortcuts select panels edge-wise and disconnect fails closed
+[32/54] tests/e2e/dashboard.spec.mjs:1429:1 › mapping start, save and stop preserve one mutation per operator action
+[33/54] tests/e2e/dashboard.spec.mjs:1446:1 › navigation starts with pinned revisions, exposes active progress, and cancels once
+[34/54] tests/e2e/dashboard.spec.mjs:1463:1 › an active map revision conflict blocks navigation pose and goal controls
+[35/54] tests/e2e/dashboard.spec.mjs:1479:1 › map annotations use exact revisions and point goals reuse the Nav safety gate
+[36/54] tests/e2e/dashboard.spec.mjs:1507:1 › annotation edits are disabled during Nav2 and publish a full CAS document while idle
+[37/54] tests/e2e/dashboard.spec.mjs:1525:1 › dataset start/finalize is lifecycle-owned and duplicate clicks do not duplicate mutations
+[38/54] tests/e2e/dashboard.spec.mjs:1552:1 › finalized dataset export downloads once and model registry remains read only
+[39/54] tests/e2e/dashboard.spec.mjs:1571:1 › software E-stop remains latched until explicit local confirmation clears it
+[40/54] tests/e2e/dashboard.spec.mjs:1583:1 › service lifecycle blockers remain server-authoritative in the browser
+[41/54] tests/e2e/dashboard.spec.mjs:1592:1 › Settings exports one bounded diagnostics download without robot-work confirmation
+[42/54] tests/e2e/dashboard.spec.mjs:1603:1 › cross-origin browser WebSocket handshakes are rejected before acceptance
+  2) tests/e2e/dashboard.spec.mjs:1603:1 › cross-origin browser WebSocket handshakes are rejected before acceptance
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:4174/
+    Call log:
+      - navigating to "http://127.0.0.1:4174/", waiting until "load"
+
+
+      1602 |
+      1603 | test('cross-origin browser WebSocket handshakes are rejected before acceptance', async ({ page, request }) => {
+    > 1604 |   await page.goto(`http://127.0.0.1:${process.env.UI_PROBE_PORT || 4174}/`);
+           |              ^
+      1605 |   const outcome = await page.evaluate((port) => new Promise((resolve) => {
+      1606 |     const socket = new WebSocket(`ws://127.0.0.1:${port}/api/v1/ws/pose`);
+      1607 |     socket.onopen = () => resolve('opened');
+        at /Users/hajoonpark/자율설계/robot-scope-c5-ui-usability-20261030/tests/e2e/dashboard.spec.mjs:1604:14
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../../../private/tmp/c5-regression-artifacts/dashboard-cross-origin-bro-a9e52--rejected-before-acceptance/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../../../private/tmp/c5-regression-artifacts/dashboard-cross-origin-bro-a9e52--rejected-before-acceptance/error-context.md
+
+
+(node:85470) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[43/54] tests/e2e/dashboard.spec.mjs:1617:1 › retired manual and experiment routes return to observation without acquiring control
+[44/54] tests/e2e/dashboard.spec.mjs:1637:1 › Nav2 distinguishes sensor connectivity from a stopped control bridge and keeps Settings service controls reachable
+[45/54] tests/e2e/goal_precision.spec.mjs:4:1 › success keeps real offset separate and never offers corrective motion
+[46/54] tests/e2e/goal_precision.spec.mjs:19:1 › Navigation shows pending and rejected 3D refinement without enabling Goal
+[47/54] tests/e2e/goal_precision.spec.mjs:36:1 › Navigation initial pose uses the real URDF asset and never sends a pose just by dragging
+[48/54] tests/e2e/navigation_goal_urdf.spec.mjs:65:1 › Navigation initial and goal share official URDF; explicit send, actual states and stale map defense remain intact
+[49/54] tests/e2e/navigation_goal_urdf.spec.mjs:122:1 › unloaded official asset uses fallback then automatically redraws Goal URDF
+[50/54] tests/e2e/navigation_goal_urdf.spec.mjs:136:1 › asset failure keeps editable goal marker and never sends a goal
+[51/54] tests/e2e/navigation_goal_urdf.spec.mjs:148:3 › rotated nonsquare map on narrow HiDPI screen › goal front follows the drag in light theme after resize
+[52/54] tests/e2e/ui_themes.spec.mjs:35:1 › theme switching persists across reload and windows without recreating sensors or controlling the robot
+[53/54] tests/e2e/ui_themes.spec.mjs:71:1 › both themes keep readable text and STOP usable across routes and mobile with real fixture captures
+[54/54] tests/e2e/ui_themes.spec.mjs:135:1 › invalid or unavailable storage falls back safely and offline experiments share the theme
+  2 failed
+    tests/e2e/dashboard.spec.mjs:182:1 › Cockpit full-window launcher reuses one named target, cleans the opener, and handles popup blocking
+    tests/e2e/dashboard.spec.mjs:1603:1 › cross-origin browser WebSocket handshakes are rejected before acceptance
+  52 passed (2.2m)

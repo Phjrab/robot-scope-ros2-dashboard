@@ -1,0 +1,29 @@
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+ExpectError: expect(received).toBe(expected) // Object.is equality
+
+Expected: "STALE"
+Received: ""
+
+Call Log:
+- Timeout 5000ms exceeded while waiting on the predicate
+    at captureRawStack (/Users/hajoonpark/자율설계/robot-scope-c5-ui-usability-20261030/node_modules/playwright-core/lib/coreBundle.js:9681:17)
+    at callMatcherAsStep (/Users/hajoonpark/자율설계/robot-scope-c5-ui-usability-20261030/node_modules/playwright/lib/matchers/expect.js:13310:57)
+    at Object.toBe (/Users/hajoonpark/자율설계/robot-scope-c5-ui-usability-20261030/node_modules/playwright/lib/matchers/expect.js:13300:23)
+    at /Users/hajoonpark/자율설계/robot-scope-c5-ui-usability-20261030/tests/expansion_c5/peer_review.mjs:52:94 {
+  matcherResult: {
+    pass: false,
+    message: 'expect(received).toBe(expected) // Object.is equality\n' +
+      '\n' +
+      'Expected: "STALE"\n' +
+      'Received: ""\n' +
+      '\n' +
+      'Call Log:\n' +
+      '- Timeout 5000ms exceeded while waiting on the predicate',
+    name: 'toBe'
+  }
+}
+
+Node.js v22.17.1

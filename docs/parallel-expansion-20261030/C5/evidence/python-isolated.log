@@ -1,0 +1,72 @@
+test_course_regions (unittest.loader._FailedTest.test_course_regions) ... ERROR
+test_full_reference_candidate_and_server_rate_and_busy (tests.test_observation_alignment.AlignmentTests.test_full_reference_candidate_and_server_rate_and_busy) ... ok
+test_grid_and_dense_search_budget (tests.test_observation_alignment.AlignmentTests.test_grid_and_dense_search_budget) ... ok
+test_grid_exact_within_original_gate_and_ties (tests.test_observation_alignment.AlignmentTests.test_grid_exact_within_original_gate_and_ties) ... ok
+test_local_plane_cannot_be_qualified_by_full_3d_reference (tests.test_observation_alignment.AlignmentTests.test_local_plane_cannot_be_qualified_by_full_3d_reference) ... ok
+test_registered_cloud_is_not_transformed_twice_and_raw_uses_inverse (tests.test_observation_alignment.AlignmentTests.test_registered_cloud_is_not_transformed_twice_and_raw_uses_inverse) ... ok
+test_source_and_map_change_during_worker_never_publish_candidate (tests.test_observation_alignment.AlignmentTests.test_source_and_map_change_during_worker_never_publish_candidate) ... ok
+test_stale_pair_missing_identity_and_body_frame_fail_closed (tests.test_observation_alignment.AlignmentTests.test_stale_pair_missing_identity_and_body_frame_fail_closed) ... ok
+test_worker_holds_lock_until_computation_returns_and_releases_on_failure (tests.test_observation_alignment.AlignmentTests.test_worker_holds_lock_until_computation_returns_and_releases_on_failure) ... ok
+test_gid_reversal_gap_and_missing_metadata (tests.test_observation_alignment.IdentityTests.test_gid_reversal_gap_and_missing_metadata) ... ok
+test_invalid_replacement_and_inflight_pose_after_reset_clear_previous_origin (tests.test_observation_alignment.IdentityTests.test_invalid_replacement_and_inflight_pose_after_reset_clear_previous_origin) ... ok
+test_stalled_source_does_not_stay_observed (tests.test_observation_alignment.IdentityTests.test_stalled_source_does_not_stay_observed) ... ok
+test_supported_callback_receives_message_info_and_fences_destroyed_subscription (tests.test_observation_alignment.IdentityTests.test_supported_callback_receives_message_info_and_fences_destroyed_subscription) ... ok
+test_origin_bounds_and_cached_only_numerical_request (tests.test_observation_alignment.ObservationApiTests.test_origin_bounds_and_cached_only_numerical_request) ... ok
+test_actual_callbacks_join_image_calibration_observations_and_corrected_optical_pose (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_actual_callbacks_join_image_calibration_observations_and_corrected_optical_pose) ... ok
+test_actual_pixel_history_selects_completed_quartet_without_restamping_or_changing_latest_pose (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_actual_pixel_history_selects_completed_quartet_without_restamping_or_changing_latest_pose) ... ok
+test_cleanup_failure_retains_owned_session (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_cleanup_failure_retains_owned_session) ... ok
+test_effective_parameter_readback_rejects_operational_tf (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_effective_parameter_readback_rejects_operational_tf) ... ok
+test_expired_pair_cannot_approve_fresh_unmatched_inputs (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_expired_pair_cannot_approve_fresh_unmatched_inputs) ... ok
+test_feature_json_releases_runtime_lock_without_mixing_new_pixels (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_feature_json_releases_runtime_lock_without_mixing_new_pixels) ... ok
+test_frame_copies_only_media_pose_and_detaches_mutable_pose_values (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_frame_copies_only_media_pose_and_detaches_mutable_pose_values) ... ok
+test_log_reader_drains_beyond_raw_cap_and_keeps_only_bounded_event_codes (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_log_reader_drains_beyond_raw_cap_and_keeps_only_bounded_event_codes) ... ok
+test_lost_tracking_disables_ready (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_lost_tracking_disables_ready) ... ok
+test_missing_timestamped_optical_transform_never_exports_body_pose_as_camera_view (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_missing_timestamped_optical_transform_never_exports_body_pose_as_camera_view) ... ok
+test_missing_visualization_and_optical_tf_do_not_block_input_pose_tracking (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_missing_visualization_and_optical_tf_do_not_block_input_pose_tracking) ... ok
+test_native_failure_diagnostics_keep_bool_authority_and_private_request_identity (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_native_failure_diagnostics_keep_bool_authority_and_private_request_identity) ... ok
+test_native_localize_timeout_quarantines_inflight_frames_until_owned_cleanup (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_native_localize_timeout_quarantines_inflight_frames_until_owned_cleanup) ... ok
+test_official_localize_completion_without_fresh_pose_does_not_claim_success (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_official_localize_completion_without_fresh_pose_does_not_claim_success) ... ok
+test_official_localize_uses_hint_and_changes_feature_epoch_without_load_path_shortcut (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_official_localize_uses_hint_and_changes_feature_epoch_without_load_path_shortcut) ... ok
+test_official_save_checks_service_result_and_real_native_artifact (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_official_save_checks_service_result_and_real_native_artifact) ... ok
+test_official_save_success_without_native_file_is_failure (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_official_save_success_without_native_file_is_failure) ... ok
+test_old_wrong_frame_or_wrong_epoch_output_cannot_confirm_localization (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_old_wrong_frame_or_wrong_epoch_output_cannot_confirm_localization) ... ok
+test_pair_matching_preserves_five_millisecond_limit (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_pair_matching_preserves_five_millisecond_limit) ... ok
+test_pixel_history_is_bounded_by_count_and_bytes_and_expired_pixels_do_not_align (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_pixel_history_is_bounded_by_count_and_bytes_and_expired_pixels_do_not_align) ... ok
+test_real_cloud_callback_feeds_global_map_not_overlay (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_real_cloud_callback_feeds_global_map_not_overlay) ... ok
+test_received_stereo_pair_survives_a_newer_unmatched_left_callback (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_received_stereo_pair_survives_a_newer_unmatched_left_callback) ... ok
+test_service_timeout_retains_structured_private_evidence_without_exception_text (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_service_timeout_retains_structured_private_evidence_without_exception_text) ... ok
+test_small_feature_wire_budget_preserves_runtime_image_pose_and_geometry_without_diagnostics (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_small_feature_wire_budget_preserves_runtime_image_pose_and_geometry_without_diagnostics) ... ok
+test_stale_generation_cannot_observe_or_stop (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_stale_generation_cannot_observe_or_stop) ... ok
+test_stereo_pair_cache_keeps_only_bounded_metadata (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_stereo_pair_cache_keeps_only_bounded_metadata) ... ok
+test_stop_without_owned_job_is_idempotent (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_stop_without_owned_job_is_idempotent) ... ok
+test_success_log_cannot_promote_failed_official_service (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_success_log_cannot_promote_failed_official_service) ... ok
+test_tracking_mode_reads_mapping_disabled_truthfully (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_tracking_mode_reads_mapping_disabled_truthfully) ... ok
+test_wrong_pose_child_frame_is_rejected (tests.test_slam_ros_runtime.RuntimeCallbackTests.test_wrong_pose_child_frame_is_rejected) ... ok
+test_cloud_cap_and_bad_field_rejected (tests.test_slam_ros_runtime.RuntimeValidationTests.test_cloud_cap_and_bad_field_rejected) ... ok
+test_cloud_short_payload_rejected (tests.test_slam_ros_runtime.RuntimeValidationTests.test_cloud_short_payload_rejected) ... ok
+test_decodes_padding_endianness_and_omits_nonfinite (tests.test_slam_ros_runtime.RuntimeValidationTests.test_decodes_padding_endianness_and_omits_nonfinite) ... ok
+test_disabled_capability_never_starts_ros (tests.test_slam_ros_runtime.RuntimeValidationTests.test_disabled_capability_never_starts_ros) ... ok
+test_environment_config_and_default_are_explicit (tests.test_slam_ros_runtime.RuntimeValidationTests.test_environment_config_and_default_are_explicit) ... ok
+test_environment_selects_broker_without_connecting_or_importing_ros (tests.test_slam_ros_runtime.RuntimeValidationTests.test_environment_selects_broker_without_connecting_or_importing_ros) ... ok
+test_optical_composition_rotates_observed_offset (tests.test_slam_ros_runtime.RuntimeValidationTests.test_optical_composition_rotates_observed_offset) ... ok
+test_png_fallback_uses_actual_pixels_with_row_padding (tests.test_slam_ros_runtime.RuntimeValidationTests.test_png_fallback_uses_actual_pixels_with_row_padding) ... ok
+test_private_config_refuses_world_readable_and_symlink (tests.test_slam_ros_runtime.RuntimeValidationTests.test_private_config_refuses_world_readable_and_symlink) ... ok
+test_static_compatibility_reads_installed_package_and_contract_hashes_without_ros_start (tests.test_slam_ros_runtime.RuntimeValidationTests.test_static_compatibility_reads_installed_package_and_contract_hashes_without_ros_start) ... ok
+
+======================================================================
+ERROR: test_course_regions (unittest.loader._FailedTest.test_course_regions)
+----------------------------------------------------------------------
+ImportError: Failed to import test module: test_course_regions
+Traceback (most recent call last):
+  File "/Users/hajoonpark/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/loader.py", line 137, in loadTestsFromName
+    module = __import__(module_name)
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/hajoonpark/자율설계/robot-scope-c5-ui-usability-20261030/tests/test_course_regions.py", line 19, in <module>
+    from test_navigation_presets import LocalASGIClient
+ModuleNotFoundError: No module named 'test_navigation_presets'
+
+
+----------------------------------------------------------------------
+Ran 54 tests in 0.352s
+
+FAILED (errors=1)

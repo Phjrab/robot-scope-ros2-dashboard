@@ -1,0 +1,138 @@
+[
+  {
+    "engine": "chromium",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "model": {
+      "state": "ready",
+      "enabled": true,
+      "url": "/robot_dashboard/static/assets/go2/go2-official-lite.json",
+      "model": "Unitree Go2",
+      "source": {
+        "project": "Unitree Robotics unitree_ros / go2_description",
+        "repository": "https://github.com/unitreerobotics/unitree_ros",
+        "commit": "f3772ce54c56ef2d34c6aee8100bc768896c7d19",
+        "package": "go2_description",
+        "license": "BSD-3-Clause",
+        "license_file": "/static/assets/go2/LICENSE.txt",
+        "files": [
+          "urdf/go2_description.urdf",
+          "dae/base.dae",
+          "dae/hip.dae",
+          "dae/thigh.dae",
+          "dae/thigh_mirror.dae",
+          "dae/calf.dae",
+          "dae/calf_mirror.dae",
+          "dae/foot.dae"
+        ],
+        "modifications": "DAE transforms applied; meshes simplified by deterministic vertex clustering; positions quantized to 0.01 mm; textures omitted."
+      },
+      "error": null
+    },
+    "result": "PASS",
+    "name": "chromium-c3-full-1440-dark"
+  },
+  {
+    "engine": "chromium",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "model": {
+      "state": "ready",
+      "enabled": true,
+      "url": "/robot_dashboard/static/assets/go2/go2-official-lite.json",
+      "model": "Unitree Go2",
+      "source": {
+        "project": "Unitree Robotics unitree_ros / go2_description",
+        "repository": "https://github.com/unitreerobotics/unitree_ros",
+        "commit": "f3772ce54c56ef2d34c6aee8100bc768896c7d19",
+        "package": "go2_description",
+        "license": "BSD-3-Clause",
+        "license_file": "/static/assets/go2/LICENSE.txt",
+        "files": [
+          "urdf/go2_description.urdf",
+          "dae/base.dae",
+          "dae/hip.dae",
+          "dae/thigh.dae",
+          "dae/thigh_mirror.dae",
+          "dae/calf.dae",
+          "dae/calf_mirror.dae",
+          "dae/foot.dae"
+        ],
+        "modifications": "DAE transforms applied; meshes simplified by deterministic vertex clustering; positions quantized to 0.01 mm; textures omitted."
+      },
+      "error": null
+    },
+    "result": "PASS",
+    "name": "chromium-c3-full-390-light"
+  },
+  {
+    "engine": "webkit",
+    "width": 1440,
+    "theme": "dark",
+    "dpr": 2,
+    "model": {
+      "state": "ready",
+      "enabled": true,
+      "url": "/robot_dashboard/static/assets/go2/go2-official-lite.json",
+      "model": "Unitree Go2",
+      "source": {
+        "project": "Unitree Robotics unitree_ros / go2_description",
+        "repository": "https://github.com/unitreerobotics/unitree_ros",
+        "commit": "f3772ce54c56ef2d34c6aee8100bc768896c7d19",
+        "package": "go2_description",
+        "license": "BSD-3-Clause",
+        "license_file": "/static/assets/go2/LICENSE.txt",
+        "files": [
+          "urdf/go2_description.urdf",
+          "dae/base.dae",
+          "dae/hip.dae",
+          "dae/thigh.dae",
+          "dae/thigh_mirror.dae",
+          "dae/calf.dae",
+          "dae/calf_mirror.dae",
+          "dae/foot.dae"
+        ],
+        "modifications": "DAE transforms applied; meshes simplified by deterministic vertex clustering; positions quantized to 0.01 mm; textures omitted."
+      },
+      "error": null
+    },
+    "result": "PASS",
+    "name": "webkit-c3-full-1440-dark"
+  },
+  {
+    "engine": "webkit",
+    "width": 390,
+    "theme": "light",
+    "dpr": 2,
+    "model": {
+      "state": "ready",
+      "enabled": true,
+      "url": "/robot_dashboard/static/assets/go2/go2-official-lite.json",
+      "model": "Unitree Go2",
+      "source": {
+        "project": "Unitree Robotics unitree_ros / go2_description",
+        "repository": "https://github.com/unitreerobotics/unitree_ros",
+        "commit": "f3772ce54c56ef2d34c6aee8100bc768896c7d19",
+        "package": "go2_description",
+        "license": "BSD-3-Clause",
+        "license_file": "/static/assets/go2/LICENSE.txt",
+        "files": [
+          "urdf/go2_description.urdf",
+          "dae/base.dae",
+          "dae/hip.dae",
+          "dae/thigh.dae",
+          "dae/thigh_mirror.dae",
+          "dae/calf.dae",
+          "dae/calf_mirror.dae",
+          "dae/foot.dae"
+        ],
+        "modifications": "DAE transforms applied; meshes simplified by deterministic vertex clustering; positions quantized to 0.01 mm; textures omitted."
+      },
+      "error": null
+    },
+    "result": "PASS",
+    "name": "webkit-c3-full-390-light"
+  }
+]

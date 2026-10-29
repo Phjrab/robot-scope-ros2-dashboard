@@ -1,0 +1,9 @@
+{
+  "node": "v22.17.1",
+  "playwright": "1.62.1",
+  "platform": "darwin",
+  "arch": "arm64",
+  "chromium": "/Users/hajoonpark/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+  "webkit": "/Users/hajoonpark/Library/Caches/ms-playwright/webkit-2336/pw_run.sh",
+  "python": "Python 3.12.14"
+}

@@ -1,0 +1,137 @@
+{
+  "classification": "C3 archived HTTP-byte replay; no current service/core/native execution",
+  "replay": [
+    {
+      "engine": "chromium",
+      "name": "PREDICTED_CONTACT",
+      "sha256": "8d44348905dcf573644da67af1b69a6f4c5b30b7ca66646983df975253e92f61",
+      "risk": "STOP_REQUIRED · PREDICTED_CONTACT · PREDICTED_COLLISION · clearance -0.252 m · coverage MOTION_COVERAGE_NOT_QUALIFIED / complete_for_motion=false · protection ADVISORY_ONLY · SIMULATED_COMMAND_STOP_CONTACT_UNCONFIRMED · envelope geometry UNAVAILABLE",
+      "mode": "SOURCE MODE: ACTUAL_C1_SERVICE · SYNTHETIC · 표시 PAUSED · 실장비 관측 아님",
+      "result": "PASS",
+      "adapter": {
+        "reason": ""
+      },
+      "requests": 12
+    },
+    {
+      "engine": "chromium",
+      "name": "ACTIVE_UNKNOWN",
+      "sha256": "5c28a536c82ae3e5bed6ff1afe8f02631c7ce60f42b7a64eb267ccef0cae628f",
+      "risk": "UNKNOWN · CONTACT_UNCONFIRMED · UNKNOWN · clearance 1.5719999999999996 m · coverage MOTION_COVERAGE_NOT_QUALIFIED / complete_for_motion=false · protection ACTIVE_CONSTRAINT · HOLD_FOR_VALID_INPUT · envelope geometry UNAVAILABLE",
+      "mode": "SOURCE MODE: ACTUAL_C1_SERVICE · SYNTHETIC · 표시 PAUSED · 실장비 관측 아님",
+      "result": "PASS",
+      "adapter": {
+        "reason": ""
+      },
+      "requests": 12
+    },
+    {
+      "engine": "chromium",
+      "name": "EXPIRED",
+      "sha256": "d35b7d00ca99e4594c165edd8f1dc7e99b468dafef0bbe392cf7b6bbb9a57a78",
+      "risk": "데이터 불충분 · UNKNOWN · POSE_JOINT_OR_SOURCE_INSUFFICIENT · last reported protection UNAVAILABLE · UNAVAILABLE · 현재 근거 UNAVAILABLE",
+      "mode": "SOURCE MODE: ACTUAL_C1_SERVICE · SYNTHETIC · 표시 PAUSED · 실장비 관측 아님",
+      "result": "PASS",
+      "adapter": {
+        "reason": ""
+      },
+      "requests": 12
+    },
+    {
+      "engine": "chromium",
+      "name": "NATIVE_REPLAY",
+      "sha256": "3915a5f6ead1013d825850f348014ee045f7bb4a31b69094dd2eaa78d1ecbc40",
+      "risk": "데이터 불충분 · UNKNOWN · POSE_JOINT_OR_SOURCE_INSUFFICIENT · last reported protection UNAVAILABLE · UNAVAILABLE · 현재 근거 UNAVAILABLE · costmap_snapshot:DISPLAY_ASSET_UNAVAILABLE",
+      "mode": "SOURCE MODE: ACTUAL_C1_SERVICE · REPLAY · 표시 PAUSED · 실장비 관측 아님",
+      "result": "PASS",
+      "adapter": {
+        "reason": ""
+      },
+      "requests": 12
+    },
+    {
+      "engine": "webkit",
+      "name": "PREDICTED_CONTACT",
+      "sha256": "8d44348905dcf573644da67af1b69a6f4c5b30b7ca66646983df975253e92f61",
+      "risk": "STOP_REQUIRED · PREDICTED_CONTACT · PREDICTED_COLLISION · clearance -0.252 m · coverage MOTION_COVERAGE_NOT_QUALIFIED / complete_for_motion=false · protection ADVISORY_ONLY · SIMULATED_COMMAND_STOP_CONTACT_UNCONFIRMED · envelope geometry UNAVAILABLE",
+      "mode": "SOURCE MODE: ACTUAL_C1_SERVICE · SYNTHETIC · 표시 PAUSED · 실장비 관측 아님",
+      "result": "PASS",
+      "adapter": {
+        "reason": ""
+      },
+      "requests": 12
+    },
+    {
+      "engine": "webkit",
+      "name": "ACTIVE_UNKNOWN",
+      "sha256": "5c28a536c82ae3e5bed6ff1afe8f02631c7ce60f42b7a64eb267ccef0cae628f",
+      "risk": "UNKNOWN · CONTACT_UNCONFIRMED · UNKNOWN · clearance 1.5719999999999996 m · coverage MOTION_COVERAGE_NOT_QUALIFIED / complete_for_motion=false · protection ACTIVE_CONSTRAINT · HOLD_FOR_VALID_INPUT · envelope geometry UNAVAILABLE",
+      "mode": "SOURCE MODE: ACTUAL_C1_SERVICE · SYNTHETIC · 표시 PAUSED · 실장비 관측 아님",
+      "result": "PASS",
+      "adapter": {
+        "reason": ""
+      },
+      "requests": 12
+    },
+    {
+      "engine": "webkit",
+      "name": "EXPIRED",
+      "sha256": "d35b7d00ca99e4594c165edd8f1dc7e99b468dafef0bbe392cf7b6bbb9a57a78",
+      "risk": "데이터 불충분 · UNKNOWN · POSE_JOINT_OR_SOURCE_INSUFFICIENT · last reported protection UNAVAILABLE · UNAVAILABLE · 현재 근거 UNAVAILABLE",
+      "mode": "SOURCE MODE: ACTUAL_C1_SERVICE · SYNTHETIC · 표시 PAUSED · 실장비 관측 아님",
+      "result": "PASS",
+      "adapter": {
+        "reason": ""
+      },
+      "requests": 12
+    },
+    {
+      "engine": "webkit",
+      "name": "NATIVE_REPLAY",
+      "sha256": "3915a5f6ead1013d825850f348014ee045f7bb4a31b69094dd2eaa78d1ecbc40",
+      "risk": "데이터 불충분 · UNKNOWN · POSE_JOINT_OR_SOURCE_INSUFFICIENT · last reported protection UNAVAILABLE · UNAVAILABLE · 현재 근거 UNAVAILABLE · costmap_snapshot:DISPLAY_ASSET_UNAVAILABLE",
+      "mode": "SOURCE MODE: ACTUAL_C1_SERVICE · REPLAY · 표시 PAUSED · 실장비 관측 아님",
+      "result": "PASS",
+      "adapter": {
+        "reason": ""
+      },
+      "requests": 12
+    }
+  ],
+  "findings": [
+    {
+      "id": "C5-H1",
+      "engine": "chromium",
+      "severity": "P1",
+      "owner": "C3",
+      "result": "REPRODUCED",
+      "elapsedMs": 2600,
+      "independentC3Consumer": {
+        "pose": "STALE",
+        "collision": "POSE_JOINT_OR_SOURCE_INSUFFICIENT"
+      },
+      "poseReason": "",
+      "collisionReason": "",
+      "visibleSources": "LIDAR · OK · age 67 ms · 취득 10100000000 nsDEPTH · OK · age 67 ms · 취득 10100000000 nsPose · FRESH / Joints · FRESH / URDF · 시각화용Costmap · synthetic-local-costmap · 2D ground-plane (실제 3D 표면 아님)",
+      "visibleRisk": "CAUTION · CONTACT_UNCONFIRMED · SYNTHETIC supplied risk; no collision solver executed · clearance UNKNOWN m",
+      "robotVisible": true
+    },
+    {
+      "id": "C5-H1",
+      "engine": "webkit",
+      "severity": "P1",
+      "owner": "C3",
+      "result": "REPRODUCED",
+      "elapsedMs": 2600,
+      "independentC3Consumer": {
+        "pose": "STALE",
+        "collision": "POSE_JOINT_OR_SOURCE_INSUFFICIENT"
+      },
+      "poseReason": "",
+      "collisionReason": "",
+      "visibleSources": "LIDAR · OK · age 88 ms · 취득 10100000000 nsDEPTH · OK · age 88 ms · 취득 10100000000 nsPose · FRESH / Joints · FRESH / URDF · 시각화용Costmap · synthetic-local-costmap · 2D ground-plane (실제 3D 표면 아님)",
+      "visibleRisk": "CAUTION · CONTACT_UNCONFIRMED · SYNTHETIC supplied risk; no collision solver executed · clearance UNKNOWN m",
+      "robotVisible": true
+    }
+  ]
+}

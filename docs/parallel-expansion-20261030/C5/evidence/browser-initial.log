@@ -1,0 +1,180 @@
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ 'SOURCE MODE: FIXTURE · SYNTHETIC · 표시 PAUSED · 실장비 관측 아님'
+- 'SOURCE MODE: FIXTURE · SYNTHETIC · 표시 진행 · 실장비 관측 아님'
+
+    at file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-c5-ui-usability-20261030/tests/expansion_c5/browser.mjs:90:14
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ 'SOURCE MODE: FIXTURE · SYNTHETIC · 표시 PAUSED · 실장비 관측 아님'
+- 'SOURCE MODE: FIXTURE · SYNTHETIC · 표시 진행 · 실장비 관측 아님'
+
+    at file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-c5-ui-usability-20261030/tests/expansion_c5/browser.mjs:90:14
+PASS chromium: goal coordinates/yaw and explicit payload are identical before/after; cancel and resize
+FAIL chromium: alignment pending/rejected/complete and API disconnect/reconnect remain authoritative: expect(locator).toContainText(expected) failed
+
+Locator: locator('#navigationSafetyMessage')
+Expected substring: "상태 API"
+Received string:    "정적 지도와 위치추정 상태를 확인한 뒤 목표를 전송하세요."
+Timeout: 5000ms
+
+Call log:
+  - Expect "to.have.text" with timeout 5000ms
+  - waiting for locator('#navigationSafetyMessage')
+    14 × locator resolved to <p title="" data-state="" id="navigationSafetyMessage">정적 지도와 위치추정 상태를 확인한 뒤 목표를 전송하세요.</p>
+       - unexpected value "정적 지도와 위치추정 상태를 확인한 뒤 목표를 전송하세요."
+
+FAIL chromium: C2 selection/edit/compare/review/save and failed job; no operating-map apply: expect(locator).toContainText(expected) failed
+
+Locator: locator('[data-slot=saved]')
+Expected substring: "운영"
+Received string:    ""
+Timeout: 5000ms
+
+Call log:
+  - Expect "to.have.text" with timeout 5000ms
+  - waiting for locator('[data-slot=saved]')
+    14 × locator resolved to <p data-slot="saved"></p>
+       - unexpected value ""
+
+PASS chromium: C2 loading/empty/error/retry/disconnected result retain original reasons
+PASS chromium: C3 obstacles/costmap/path generations, risk keyboard inspector, stale and reconnect
+FAIL chromium: helper lifecycle, keyboard focus, 200% root text and long Korean/SHA: expect(locator).toHaveText(expected) failed
+
+Locator:  locator('#navigationSafetyMessage')
+Expected: "미검증_정합거절_원본유지_미검증_정합거절_원본유지_미검증_정합거절_원본유지_미검증_정합거절_원본유지_미검증_정합거절_원본유지_미검증_정합거절_원본유지_미검증_정합거절_원본유지_미검증_정합거절_원본유지_미검증_정합거절_원본유지_미검증_정합거절_원본유지_미검증_정합거절_원본유지_미검증_정합거절_원본유지_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+Received: "정적 지도와 tuned parameter revision을 확인한 뒤 Nav2를 시작하세요."
+Timeout:  5000ms
+
+Call log:
+  - Expect "to.have.text" with timeout 5000ms
+  - waiting for locator('#navigationSafetyMessage')
+    5 × locator resolved to <p title="" data-state="" id="navigationSafetyMessage">정적 지도와 위치추정 상태를 확인한 뒤 목표를 전송하세요.</p>
+      - unexpected value "정적 지도와 위치추정 상태를 확인한 뒤 목표를 전송하세요."
+    9 × locator resolved to <p title="" data-state="" id="navigationSafetyMessage">정적 지도와 tuned parameter revision을 확인한 뒤 Nav2를 시작하세…</p>
+      - unexpected value "정적 지도와 tuned parameter revision을 확인한 뒤 Nav2를 시작하세요."
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ 'SOURCE MODE: FIXTURE · SYNTHETIC · 표시 PAUSED · 실장비 관측 아님'
+- 'SOURCE MODE: FIXTURE · SYNTHETIC · 표시 진행 · 실장비 관측 아님'
+
+    at file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-c5-ui-usability-20261030/tests/expansion_c5/browser.mjs:90:14
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ 'SOURCE MODE: FIXTURE · SYNTHETIC · 표시 PAUSED · 실장비 관측 아님'
+- 'SOURCE MODE: FIXTURE · SYNTHETIC · 표시 진행 · 실장비 관측 아님'
+
+    at file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-c5-ui-usability-20261030/tests/expansion_c5/browser.mjs:90:14
+AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
++ actual - expected
+
++ 'SOURCE MODE: FIXTURE · SYNTHETIC · 표시 PAUSED · 실장비 관측 아님'
+- 'SOURCE MODE: FIXTURE · SYNTHETIC · 표시 진행 · 실장비 관측 아님'
+
+    at file:///Users/hajoonpark/%EC%9E%90%EC%9C%A8%EC%84%A4%EA%B3%84/robot-scope-c5-ui-usability-20261030/tests/expansion_c5/browser.mjs:90:14
+PASS webkit: goal coordinates/yaw and explicit payload are identical before/after; cancel and resize
+FAIL webkit: alignment pending/rejected/complete and API disconnect/reconnect remain authoritative: expect(locator).toContainText(expected) failed
+
+Locator: locator('#navigationSafetyMessage')
+Expected substring: "상태 API"
+Received string:    "정적 지도와 위치추정 상태를 확인한 뒤 목표를 전송하세요."
+Timeout: 5000ms
+
+Call log:
+  - Expect "to.have.text" with timeout 5000ms
+  - waiting for locator('#navigationSafetyMessage')
+    14 × locator resolved to <p title="" data-state="" id="navigationSafetyMessage">정적 지도와 위치추정 상태를 확인한 뒤 목표를 전송하세요.</p>
+       - unexpected value "정적 지도와 위치추정 상태를 확인한 뒤 목표를 전송하세요."
+
+FAIL webkit: C2 selection/edit/compare/review/save and failed job; no operating-map apply: expect(locator).toContainText(expected) failed
+
+Locator: locator('[data-slot=saved]')
+Expected substring: "운영"
+Received string:    ""
+Timeout: 5000ms
+
+Call log:
+  - Expect "to.have.text" with timeout 5000ms
+  - waiting for locator('[data-slot=saved]')
+    14 × locator resolved to <p data-slot="saved"></p>
+       - unexpected value ""
+
+PASS webkit: C2 loading/empty/error/retry/disconnected result retain original reasons
+PASS webkit: C3 obstacles/costmap/path generations, risk keyboard inspector, stale and reconnect
+FAIL webkit: helper lifecycle, keyboard focus, 200% root text and long Korean/SHA: expect(locator).toHaveText(expected) failed
+
+Locator:  locator('#navigationSafetyMessage')
+Expected: "미검증_정합거절_원본유지_미검증_정합거절_원본유지_미검증_정합거절_원본유지_미검증_정합거절_원본유지_미검증_정합거절_원본유지_미검증_정합거절_원본유지_미검증_정합거절_원본유지_미검증_정합거절_원본유지_미검증_정합거절_원본유지_미검증_정합거절_원본유지_미검증_정합거절_원본유지_미검증_정합거절_원본유지_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+Received: "정적 지도와 tuned parameter revision을 확인한 뒤 Nav2를 시작하세요."
+Timeout:  5000ms
+
+Call log:
+  - Expect "to.have.text" with timeout 5000ms
+  - waiting for locator('#navigationSafetyMessage')
+    5 × locator resolved to <p title="" data-state="" id="navigationSafetyMessage">정적 지도와 위치추정 상태를 확인한 뒤 목표를 전송하세요.</p>
+      - unexpected value "정적 지도와 위치추정 상태를 확인한 뒤 목표를 전송하세요."
+    9 × locator resolved to <p title="" data-state="" id="navigationSafetyMessage">정적 지도와 tuned parameter revision을 확인한 뒤 Nav2를 시작하세…</p>
+      - unexpected value "정적 지도와 tuned parameter revision을 확인한 뒤 Nav2를 시작하세요."
+
+{
+  "matrix": {
+    "PASS": 31,
+    "FAIL": 5
+  },
+  "checks": [
+    {
+      "name": "chromium: goal coordinates/yaw and explicit payload are identical before/after; cancel and resize",
+      "result": "PASS"
+    },
+    {
+      "name": "chromium: alignment pending/rejected/complete and API disconnect/reconnect remain authoritative",
+      "result": "FAIL"
+    },
+    {
+      "name": "chromium: C2 selection/edit/compare/review/save and failed job; no operating-map apply",
+      "result": "FAIL"
+    },
+    {
+      "name": "chromium: C2 loading/empty/error/retry/disconnected result retain original reasons",
+      "result": "PASS"
+    },
+    {
+      "name": "chromium: C3 obstacles/costmap/path generations, risk keyboard inspector, stale and reconnect",
+      "result": "PASS"
+    },
+    {
+      "name": "chromium: helper lifecycle, keyboard focus, 200% root text and long Korean/SHA",
+      "result": "FAIL"
+    },
+    {
+      "name": "webkit: goal coordinates/yaw and explicit payload are identical before/after; cancel and resize",
+      "result": "PASS"
+    },
+    {
+      "name": "webkit: alignment pending/rejected/complete and API disconnect/reconnect remain authoritative",
+      "result": "FAIL"
+    },
+    {
+      "name": "webkit: C2 selection/edit/compare/review/save and failed job; no operating-map apply",
+      "result": "FAIL"
+    },
+    {
+      "name": "webkit: C2 loading/empty/error/retry/disconnected result retain original reasons",
+      "result": "PASS"
+    },
+    {
+      "name": "webkit: C3 obstacles/costmap/path generations, risk keyboard inspector, stale and reconnect",
+      "result": "PASS"
+    },
+    {
+      "name": "webkit: helper lifecycle, keyboard focus, 200% root text and long Korean/SHA",
+      "result": "FAIL"
+    }
+  ],
+  "errors": []
+}

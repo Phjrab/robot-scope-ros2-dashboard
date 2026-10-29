@@ -1,0 +1,924 @@
+[
+  {
+    "surface": "main-readout",
+    "metrics": {
+      "text": "X 0.651 · Y 1.549 · YAW 1.601 · 목표 정지 자세 미리보기 (URDF 또는 방향 마커)",
+      "width": 334,
+      "scroll": 578,
+      "whiteSpace": "nowrap"
+    }
+  },
+  {
+    "surface": "main",
+    "errors": [],
+    "metrics": {
+      "width": 390,
+      "scrollWidth": 390,
+      "text": "ROBOT SCOPE\n메뉴 접기\n☀ 화이트 모드\n새로고침\n직접 ROS/DDS 인터페이스 준비\nGo2 Bridge 연결\n관측\n지도 만들기\n저장 지도\n주행\n카메라·수집\nJetson 자원\n더 보기\n주행\n◇\nNAV2 RUNNING · SAFETY READY\n\n정적 지도와 위치추정 상태를 확인한 뒤 목표를 전송하세요.\n\nPIPELINE\nRUNNING\npipeline idle\nROBOT\nONLINE\n로봇 상태 수신 중\nLOCALIZATION\nLOCALIZED\nmap frame pose ready\nGOAL\nIDLE\n목표 없음\nNAV2 · STATIC MAP\n초기 위치·목표 설정\nSTATIC MAP\n정적 2D 지도\ne2e_static_map\nSTART NAV2\nSTOP\n진행 방향으로 드래그한 뒤 SEND 버튼으로 확인하세요.\n① INITIAL POSE\n② GOAL POSE\nGOAL · STAGED\nX 0.651 · Y 1.549 · YAW 1.601 · 목표 정지 자세 미리보기 (URDF 또는 방향 마커)\n지도 좌표계 map · 드래그 화살표 방향\nDISCARD\nSEND GOAL\nMAP PLACES\n음식점·배달 장소 이름 지정\n1 ITEMS\n\n주석은 원본 PGM/YAML과 분리해 저장됩니다. KEEP OUT·SLOW·WAIT 영역은 현재 표시·미션 선택용이며 Nav2 costmap을 자동 변경하지 않습니다.\n\n종류\n음식점 / 일반 장소 (POI)\n배달 장소 (DOCK)\n로봇 기준 출발점 (HOME)\n점검 장소\nKEEP OUT ZONE\nSLOW ZONE\nWAIT ZONE\n이름\nDRAW POINT\nFINISH ZONE\nCANCEL DRAW\nE2E Home\nHOME · X 0.50 · Y 0.50\nGO\nREMOVE\n주석 revision cccccccccc · 원본 지도와 별도 저장\nDISCARD CHANGES\nSAVE ANNOTATIONS\nMISSION CONTROL\n주행 진행 상태\nJOB —\nMAP SERVER\nBLOCKED\nLOCALIZATION\nNEED POSE\nPLANNER\nBLOCKED\nCONTROLLER\nBLOCKED\nCMD BRIDGE\nREADY\nXT16 /SCAN\nBLOCKED\nPATH REMAINING\n—\nm · 실제 목표 오차와 별도\nELAPSED\n—\nnavigation time\nRECOVERIES\n0\nbehavior attempts\n\nNav2를 시작하고 초기 위치를 지정한 뒤 목표를 보낼 수 있습니다.\n\n목표 위치·방향 오차와 정지 기록\nNav2 결과: IDLE · 남은 경로 거리 0은 좌표 오차 0을 뜻하지 않습니다.\n목표 오차·정지 증거: 미확인\n\n저장 설정: XY 미확인 m / yaw 미확인 rad\njob 생성 YAML: XY 미확인 m / yaw 미확인 rad · job 미확인\n실행 ROS readback (미확인): XY 미확인 m / yaw 미확인 rad · age 미확인 s\nCANCEL GOAL\nCLEAR COSTMAPS\n\n로봇 연결이 끊겨도 STOP과 CANCEL은 서버측 작업 정리를 위해 사용할 수 있습니다. 대시보드의 SOFTWARE STOP은 물리 E-stop이 아니므로 주행 중에는 물리 리모컨을 반드시 손에 들고 주변을 비워 두세요.\n\nBOUNDED TELEMETRY · NO SCORE\n위치추정·TF 상태\nUNAVAILABLE\n\nTELEMETRY_UNAVAILABLE · Navigation runtime telemetry를 기다리고 있습니다.\n\nPOINTCLOUD\n—\njitter — · age — · health —\nODOMETRY\n—\njitter — · age —\nTF AGE\n—\nmap→odom — · odom→base —\nFAST-LIO JUMPS\n0 / 0\ntranslation / heading\nSCAN POINTS\n0 / 0\naccepted / input\nGOAL PROGRESS\n—\nremaining — · stall —\nCOSTMAP CLEARS\n0\nfresh sequence 0\nREAD-ONLY ASSISTANT\n보정 상태 확인\n설정 변경 없음\n고정 frame·clock·extrinsic 계약을 확인하고 있습니다.\nREAD-ONLY · SANITIZED EVENTS\n주행 로그\nAUTO-SCROLL\nCLEAR VIEW\nPHASE\nIDLE\nSTATE\nRUNNING\nLAST EVENT\n—\n표시할 Navigation 로그가 없습니다.\n\n서버가 공개한 고정·정제 로그만 표시합니다. CLEAR VIEW는 이 브라우저 화면만 비웁니다.\n\nNAVIGATION SETTINGS\n주행 설정값\nAPPLIED\nPreset\nPDF 11 · Go2 indoor tuned\nE2E\nLOAD PRESET\nRESET CHANGES\nAPPLY\nNO CHANGES\n새 팀 공용 프리셋 이름\nSAVE AS PRESET\nREFRESH LIST\n\n팀 공용 프리셋 목록을 불러왔습니다. 저장은 현재 Nav2 설정을 바꾸지 않습니다.\n\nController\n속도, 전방주시와 회전 응답\nDesired linear velocity · m/s\n전후진 상한 1.0 m/s. 목표 속도와 실제 속도는 다르므로 증속 전 현장 검증이 필요합니다.\nController frequency · Hz\n200 ms watchdog보다 충분히 빠른 10–20 Hz 범위입니다.\nLookahead time · s\n작을수록 경로에 더 밀착합니다.\nMinimum lookahead · m\n저속에서도 유지할 최소 전방주시 거리입니다.\nVelocity-scaled lookahead\n속도에 따라 전방주시 거리를 바꿉니다.\nTRUE\nFALSE\nRotate angular velocity · rad/s\nPDF 기준 0.9 rad/s 대신 bridge 안전 상한 0.50 rad/s를 적용합니다.\nMaximum angular acceleration · rad/s²\nPDF 기준 2.0 rad/s² 대신 bridge 안전 상한 1.2 rad/s²를 적용합니다.\nTransform tolerance · s\nTF 지터를 허용할 시간 여유입니다.\nRotation Shim closed loop · LOCKED\nGo2 odometry 특성상 open-loop 회전을 사용합니다. Go2 안전 profile 고정값입니다.\nTRUE\nFALSE\nShim angular threshold · rad\n이 각도 이상 차이나면 제자리 방향 정렬을 시작합니다.\nCore behavior\nRotation Shim과 목표 방향 정렬\nRPP rotate-to-heading · LOCKED\n제자리 회전 고착을 줄이기 위해 RPP 기능은 끕니다. Go2 안전 profile 고정값입니다.\nTRUE\nFALSE\nRotation Shim controller · LOCKED\n주행 전 방향 정렬은 별도 Shim이 담당합니다. Go2 안전 profile 고정값입니다.\nTRUE\nFALSE\nRotate at goal · LOCKED\n도착 위치에서 목표 yaw까지 정렬합니다. Go2 안전 profile 고정값입니다.\nTRUE\nFALSE\nGoal & progress\n도착 판정과 진행 정체 감지\nXY goal tolerance · m\n4족보행 위치 오차를 고려한 도착 반경입니다.\nYaw goal tolerance · rad\n마지막 방향 hunting을 줄이는 허용 오차입니다.\nRequired movement radius · m\n진행 검사에서 움직임으로 인정할 거리입니다.\nPlanner & bridge\nNavFn A*와 cmd_vel 호환\nNavFn A*\n전역 planner에서 A*를 사용합니다.\nTRUE\nFALSE\nStamped cmd_vel · LOCKED\nGo2 cmd_vel bridge와 호환되는 plain Twist를 사용합니다. 고정값입니다.\nTRUE\nFALSE\nCostmaps\nGo2 차체 반경, 감지 범위와 완충\nRobot radius · m\nGo2 몸통 크기에 맞춘 원형 반경입니다.\nInflation radius · m\n좁은 통로를 과도하게 막지 않는 완충 반경입니다.\nCost scaling factor\n장애물에서 멀어질수록 비용이 감소하는 곡선입니다.\nXT16 slice lower Z · m\nPointCloud2를 LaserScan으로 투영하기 전에 유지할 라이다 기준 아래쪽 높이입니다.\nXT16 slice upper Z · m\nPointCloud2를 LaserScan으로 투영하기 전에 유지할 라이다 기준 위쪽 높이입니다.\nObstacle maximum range · m\n장애물로 표시할 최대 거리입니다.\nRaytrace maximum range · m\n광선으로 자유공간을 지울 최대 거리입니다.\nAlways send full costmap\n증분 누락 없이 전체 costmap을 발행합니다.\nTRUE\nFALSE\nTrack unknown space\n전역 지도에서 미탐색 영역을 구분합니다.\nTRUE\nFALSE\nSCAN BINDING\n/scan\n서버 고정 · 임의 토픽 입력 불가\nODOMETRY BINDING\n/utlidar/robot_odom\n서버 고정 · 실행 중 변경 불가\n\n서버 저장값입니다. 다음 Nav2 시작에 사용되며 실행 중 ROS 적용값과는 별도입니다.\n\nLast update 3시 15분 48초",
+      "overflow": [
+        {
+          "tag": "NAV",
+          "id": "",
+          "class": "",
+          "text": "\n            상태 요약\n            ROS 토픽\n            경로·미션\n            경로 계획\n            설정\n          ",
+          "width": 220
+        },
+        {
+          "tag": "A",
+          "id": "",
+          "class": "nav-item",
+          "text": "상태 요약",
+          "width": 202
+        },
+        {
+          "tag": "I",
+          "id": "",
+          "class": "",
+          "text": "",
+          "width": 26
+        },
+        {
+          "tag": "svg",
+          "id": "",
+          "class": {},
+          "text": "",
+          "width": 22
+        },
+        {
+          "tag": "rect",
+          "id": "",
+          "class": {},
+          "text": "",
+          "width": 6.416664123535156
+        },
+        {
+          "tag": "rect",
+          "id": "",
+          "class": {},
+          "text": "",
+          "width": 6.416664123535156
+        },
+        {
+          "tag": "rect",
+          "id": "",
+          "class": {},
+          "text": "",
+          "width": 6.416664123535156
+        },
+        {
+          "tag": "rect",
+          "id": "",
+          "class": {},
+          "text": "",
+          "width": 6.416664123535156
+        },
+        {
+          "tag": "SPAN",
+          "id": "",
+          "class": "",
+          "text": "상태 요약",
+          "width": 57.0625
+        },
+        {
+          "tag": "B",
+          "id": "",
+          "class": "",
+          "text": "상태 요약",
+          "width": 57.0625
+        },
+        {
+          "tag": "A",
+          "id": "",
+          "class": "nav-item",
+          "text": "ROS 토픽",
+          "width": 202
+        },
+        {
+          "tag": "I",
+          "id": "",
+          "class": "",
+          "text": "",
+          "width": 26
+        },
+        {
+          "tag": "svg",
+          "id": "",
+          "class": {},
+          "text": "",
+          "width": 22
+        },
+        {
+          "tag": "circle",
+          "id": "",
+          "class": {},
+          "text": "",
+          "width": 3.6666641235351562
+        },
+        {
+          "tag": "circle",
+          "id": "",
+          "class": {},
+          "text": "",
+          "width": 3.6666717529296875
+        },
+        {
+          "tag": "circle",
+          "id": "",
+          "class": {},
+          "text": "",
+          "width": 3.6666717529296875
+        },
+        {
+          "tag": "path",
+          "id": "",
+          "class": {},
+          "text": "",
+          "width": 8.25
+        },
+        {
+          "tag": "SPAN",
+          "id": "",
+          "class": "",
+          "text": "ROS 토픽",
+          "width": 59.609375
+        },
+        {
+          "tag": "B",
+          "id": "",
+          "class": "",
+          "text": "ROS 토픽",
+          "width": 59.609375
+        },
+        {
+          "tag": "A",
+          "id": "",
+          "class": "nav-item",
+          "text": "경로·미션",
+          "width": 202
+        },
+        {
+          "tag": "I",
+          "id": "",
+          "class": "",
+          "text": "",
+          "width": 26
+        },
+        {
+          "tag": "svg",
+          "id": "",
+          "class": {},
+          "text": "",
+          "width": 22
+        },
+        {
+          "tag": "path",
+          "id": "",
+          "class": {},
+          "text": "",
+          "width": 11.916664123535156
+        },
+        {
+          "tag": "SPAN",
+          "id": "",
+          "class": "",
+          "text": "경로·미션",
+          "width": 58.875
+        },
+        {
+          "tag": "B",
+          "id": "",
+          "class": "",
+          "text": "경로·미션",
+          "width": 58.875
+        },
+        {
+          "tag": "A",
+          "id": "",
+          "class": "nav-item",
+          "text": "경로 계획",
+          "width": 202
+        },
+        {
+          "tag": "I",
+          "id": "",
+          "class": "",
+          "text": "",
+          "width": 26
+        },
+        {
+          "tag": "svg",
+          "id": "",
+          "class": {},
+          "text": "",
+          "width": 22
+        },
+        {
+          "tag": "circle",
+          "id": "",
+          "class": {},
+          "text": "",
+          "width": 3.6666641235351562
+        },
+        {
+          "tag": "circle",
+          "id": "",
+          "class": {},
+          "text": "",
+          "width": 3.6666641235351562
+        }
+      ],
+      "small": [
+        {
+          "id": "navigationToggle",
+          "text": "메뉴 접기",
+          "font": "16px",
+          "height": 44
+        },
+        {
+          "id": "themeToggle",
+          "text": "☀ 화이트 모드",
+          "font": "15px",
+          "height": 40.5
+        },
+        {
+          "id": "refreshButton",
+          "text": "새로고침",
+          "font": "15px",
+          "height": 44
+        },
+        {
+          "id": "navigationSafetyBanner",
+          "text": "\n          ◇\n          NAV2 RUNNING · SAFETY READY정적 지도와 위치추정 상태를 확인한 뒤 목표를 전송하세요.\n          정지·안전 설",
+          "font": "16px",
+          "height": 96.671875
+        },
+        {
+          "id": "",
+          "text": "정적 2D 지도e2e_static_map",
+          "font": "16px",
+          "height": 68.84375
+        },
+        {
+          "id": "navigationStartButton",
+          "text": "START NAV2",
+          "font": "15px",
+          "height": 39.75
+        },
+        {
+          "id": "navigationStopButton",
+          "text": "STOP",
+          "font": "15px",
+          "height": 39.75
+        },
+        {
+          "id": "navigationInitialPoseTool",
+          "text": "① INITIAL POSE",
+          "font": "15px",
+          "height": 39.75
+        },
+        {
+          "id": "navigationGoalPoseTool",
+          "text": "② GOAL POSE",
+          "font": "15px",
+          "height": 39.75
+        },
+        {
+          "id": "navigationPoseDiscard",
+          "text": "DISCARD",
+          "font": "15px",
+          "height": 39.75
+        },
+        {
+          "id": "navigationPoseSend",
+          "text": "SEND GOAL",
+          "font": "15px",
+          "height": 39.75
+        },
+        {
+          "id": "",
+          "text": "종류\n                  음식점 / 일반 장소 (POI)배달 장소 (DOCK)로봇 기준 출발점 (HOME)점검 장소\n                  KEEP OUT Z",
+          "font": "16px",
+          "height": 68
+        },
+        {
+          "id": "",
+          "text": "이름",
+          "font": "16px",
+          "height": 68
+        },
+        {
+          "id": "mapAnnotationDraw",
+          "text": "DRAW POINT",
+          "font": "15px",
+          "height": 59.5
+        },
+        {
+          "id": "mapAnnotationFinish",
+          "text": "FINISH ZONE",
+          "font": "15px",
+          "height": 59.5
+        },
+        {
+          "id": "mapAnnotationCancel",
+          "text": "CANCEL DRAW",
+          "font": "15px",
+          "height": 59.5
+        },
+        {
+          "id": "",
+          "text": "GO",
+          "font": "15px",
+          "height": 37.75
+        },
+        {
+          "id": "",
+          "text": "REMOVE",
+          "font": "15px",
+          "height": 37.75
+        },
+        {
+          "id": "mapAnnotationDiscard",
+          "text": "DISCARD CHANGES",
+          "font": "15px",
+          "height": 59.5
+        },
+        {
+          "id": "mapAnnotationSave",
+          "text": "SAVE ANNOTATIONS",
+          "font": "15px",
+          "height": 59.5
+        },
+        {
+          "id": "navigationCancelGoal",
+          "text": "CANCEL GOAL",
+          "font": "15px",
+          "height": 39.75
+        },
+        {
+          "id": "navigationClearCostmaps",
+          "text": "CLEAR COSTMAPS",
+          "font": "15px",
+          "height": 39.75
+        },
+        {
+          "id": "",
+          "text": "AUTO-SCROLL",
+          "font": "14px",
+          "height": 36
+        },
+        {
+          "id": "navigationLogClear",
+          "text": "CLEAR VIEW",
+          "font": "15px",
+          "height": 37.75
+        },
+        {
+          "id": "",
+          "text": "PresetPDF 11 · Go2 indoor tunedE2E",
+          "font": "16px",
+          "height": 68.84375
+        },
+        {
+          "id": "navigationPresetLoad",
+          "text": "LOAD PRESET",
+          "font": "15px",
+          "height": 39.75
+        },
+        {
+          "id": "navigationParameterReset",
+          "text": "RESET CHANGES",
+          "font": "15px",
+          "height": 39.75
+        },
+        {
+          "id": "navigationParameterApply",
+          "text": "APPLY",
+          "font": "15px",
+          "height": 39.75
+        },
+        {
+          "id": "",
+          "text": "새 팀 공용 프리셋 이름",
+          "font": "16px",
+          "height": 68.84375
+        },
+        {
+          "id": "navigationPresetSave",
+          "text": "SAVE AS PRESET",
+          "font": "15px",
+          "height": 39.75
+        },
+        {
+          "id": "navigationPresetRefresh",
+          "text": "REFRESH LIST",
+          "font": "15px",
+          "height": 39.75
+        },
+        {
+          "id": "navigationPresetMessage",
+          "text": "팀 공용 프리셋 목록을 불러왔습니다. 저장은 현재 Nav2 설정을 바꾸지 않습니다.",
+          "font": "15px",
+          "height": 46.5
+        },
+        {
+          "id": "",
+          "text": "Desired linear velocity · m/s전후진 상한 1.0 m/s. 목표 속도와 실제 속도는 다르므로 증속 전 현장 검증이 필요합니다.",
+          "font": "16px",
+          "height": 154.1875
+        },
+        {
+          "id": "",
+          "text": "Controller frequency · Hz200 ms watchdog보다 충분히 빠른 10–20 Hz 범위입니다.",
+          "font": "16px",
+          "height": 154.1875
+        },
+        {
+          "id": "",
+          "text": "Lookahead time · s작을수록 경로에 더 밀착합니다.",
+          "font": "16px",
+          "height": 130.9375
+        },
+        {
+          "id": "",
+          "text": "Minimum lookahead · m저속에서도 유지할 최소 전방주시 거리입니다.",
+          "font": "16px",
+          "height": 130.9375
+        },
+        {
+          "id": "",
+          "text": "Velocity-scaled lookahead속도에 따라 전방주시 거리를 바꿉니다.TRUEFALSE",
+          "font": "16px",
+          "height": 130.9375
+        },
+        {
+          "id": "",
+          "text": "Rotate angular velocity · rad/sPDF 기준 0.9 rad/s 대신 bridge 안전 상한 0.50 rad/s를 적용합니다.",
+          "font": "16px",
+          "height": 154.1875
+        },
+        {
+          "id": "",
+          "text": "Maximum angular acceleration · rad/s²PDF 기준 2.0 rad/s² 대신 bridge 안전 상한 1.2 rad/s²를 적용합니다.",
+          "font": "16px",
+          "height": 154.1875
+        },
+        {
+          "id": "",
+          "text": "Transform tolerance · sTF 지터를 허용할 시간 여유입니다.",
+          "font": "16px",
+          "height": 130.9375
+        },
+        {
+          "id": "",
+          "text": "Rotation Shim closed loop · LOCKEDGo2 odometry 특성상 open-loop 회전을 사용합니다. Go2 안전 profile 고정값입니다.TRUEFA",
+          "font": "16px",
+          "height": 154.1875
+        },
+        {
+          "id": "",
+          "text": "Shim angular threshold · rad이 각도 이상 차이나면 제자리 방향 정렬을 시작합니다.",
+          "font": "16px",
+          "height": 154.1875
+        },
+        {
+          "id": "",
+          "text": "RPP rotate-to-heading · LOCKED제자리 회전 고착을 줄이기 위해 RPP 기능은 끕니다. Go2 안전 profile 고정값입니다.TRUEFALSE",
+          "font": "16px",
+          "height": 154.1875
+        },
+        {
+          "id": "",
+          "text": "Rotation Shim controller · LOCKED주행 전 방향 정렬은 별도 Shim이 담당합니다. Go2 안전 profile 고정값입니다.TRUEFALSE",
+          "font": "16px",
+          "height": 154.1875
+        },
+        {
+          "id": "",
+          "text": "Rotate at goal · LOCKED도착 위치에서 목표 yaw까지 정렬합니다. Go2 안전 profile 고정값입니다.TRUEFALSE",
+          "font": "16px",
+          "height": 154.1875
+        },
+        {
+          "id": "",
+          "text": "XY goal tolerance · m4족보행 위치 오차를 고려한 도착 반경입니다.",
+          "font": "16px",
+          "height": 130.9375
+        },
+        {
+          "id": "",
+          "text": "Yaw goal tolerance · rad마지막 방향 hunting을 줄이는 허용 오차입니다.",
+          "font": "16px",
+          "height": 130.9375
+        },
+        {
+          "id": "",
+          "text": "Required movement radius · m진행 검사에서 움직임으로 인정할 거리입니다.",
+          "font": "16px",
+          "height": 130.9375
+        },
+        {
+          "id": "",
+          "text": "NavFn A*전역 planner에서 A*를 사용합니다.TRUEFALSE",
+          "font": "16px",
+          "height": 130.9375
+        },
+        {
+          "id": "",
+          "text": "Stamped cmd_vel · LOCKEDGo2 cmd_vel bridge와 호환되는 plain Twist를 사용합니다. 고정값입니다.TRUEFALSE",
+          "font": "16px",
+          "height": 154.1875
+        },
+        {
+          "id": "",
+          "text": "Robot radius · mGo2 몸통 크기에 맞춘 원형 반경입니다.",
+          "font": "16px",
+          "height": 130.9375
+        },
+        {
+          "id": "",
+          "text": "Inflation radius · m좁은 통로를 과도하게 막지 않는 완충 반경입니다.",
+          "font": "16px",
+          "height": 130.9375
+        },
+        {
+          "id": "",
+          "text": "Cost scaling factor장애물에서 멀어질수록 비용이 감소하는 곡선입니다.",
+          "font": "16px",
+          "height": 154.1875
+        },
+        {
+          "id": "",
+          "text": "XT16 slice lower Z · mPointCloud2를 LaserScan으로 투영하기 전에 유지할 라이다 기준 아래쪽 높이입니다.",
+          "font": "16px",
+          "height": 154.1875
+        },
+        {
+          "id": "",
+          "text": "XT16 slice upper Z · mPointCloud2를 LaserScan으로 투영하기 전에 유지할 라이다 기준 위쪽 높이입니다.",
+          "font": "16px",
+          "height": 154.1875
+        },
+        {
+          "id": "",
+          "text": "Obstacle maximum range · m장애물로 표시할 최대 거리입니다.",
+          "font": "16px",
+          "height": 130.9375
+        },
+        {
+          "id": "",
+          "text": "Raytrace maximum range · m광선으로 자유공간을 지울 최대 거리입니다.",
+          "font": "16px",
+          "height": 130.9375
+        },
+        {
+          "id": "",
+          "text": "Always send full costmap증분 누락 없이 전체 costmap을 발행합니다.TRUEFALSE",
+          "font": "16px",
+          "height": 130.9375
+        },
+        {
+          "id": "",
+          "text": "Track unknown space전역 지도에서 미탐색 영역을 구분합니다.TRUEFALSE",
+          "font": "16px",
+          "height": 130.9375
+        }
+      ]
+    }
+  },
+  {
+    "surface": "c2",
+    "errors": [],
+    "metrics": {
+      "width": 390,
+      "scrollWidth": 390,
+      "text": "SYNTHETIC / UI_FIXTURE · TEST-ONLY HOST · PRODUCT_WIRING_DEFERRED\nDark / Light\nC2 / OFFLINE REVIEW MODULE\n여러 지도 · 정합 검토\n\n원본 보존 · 새 PCD 후보 · 운영 지도에 적용하지 않습니다.\n\nSAMPLED PREVIEW\n01 · Source catalogue\n목록 새로고침 / Retry\nWest hall\nsynthetic-session-0 · rev r1 · 250,000 pts · m\nmap-a · frame map\nEast hall\nsynthetic-session-1 · rev r2 · 300,000 pts · m\nmap-b · frame map\nUpper wing\nsynthetic-session-2 · rev r3 · 350,000 pts · m\nmap-c · frame map\nPrevious merge\nsynthetic-session-3 · rev r4 · 400,000 pts · m\nmap-merged · frame map · merged ancestors map-a, map-b\nWest hall same revision\nsynthetic-session-0 · rev r1 · 250,000 pts · m\nmap-duplicate · frame map\n\n02 · Reference & layers\n기준 지도\nWest hall\nEast hall\nWest hall\n-5.0…4.9 / -2.0…2.0 / 0.0…1.7 m (sampled)\nEast hall\n-2.3…7.1 / -4.1…2.5 / 0.0…1.7 m (sampled)\n\nframe 이름이 같아도 session별 원점은 독립입니다. Extent는 샘플 기준입니다.\n\nOverlay · XY / m\nPrior + solved\nBefore alignment\nAfter alignment\nView yaw\n\n□ 수동 prior / ■ solved · XY drag · 오른쪽 위 yaw handle · 방향키 0.1 m · Q/E 0.05 rad. 대응점은 실제 샘플 XYZ 또는 명시적 XYZ 입력만 사용합니다.\n\n수동 보조 대상\nEast hall\nXY drag / yaw\nPick source sample XYZ\nPick anchor sample XYZ\nUndo draft\nRedo draft\nReset draft\nX m\nY m\nYaw rad\nZ m (advanced)\nRoll rad (advanced)\nPitch rad (advanced)\n3D correspondences · XYZ / m\n03 · Server job / candidate\n자동 정합 시작 / Retry\nCancel job\n\nDRAFT · Sampled previews ready · no operation map changes.\n\nUI draft rev 2 · proposal none · stale responses ignored 0 · undo/redo restores draft only; proposal requires recompute\n\nIndependent session origins even when frame names match. Identity guesses and scale are unverified.\nUnverified source axes: inspect orientation and units.\nMerged 3D · sampled / height color\nDerived 2D candidate · gray = unknown\n자료 없음 / unsupported · 빈 점 영역은 unknown입니다.\n경고·모호성·연결 상태를 검토했습니다. 후보 수락은 운영 적용이 아닙니다.\n후보 수락\n새 PCD 이름\n새 PCD 저장",
+      "overflow": [],
+      "small": [
+        {
+          "id": "theme",
+          "text": "Dark / Light",
+          "font": "12px",
+          "height": 44
+        },
+        {
+          "id": "",
+          "text": "목록 새로고침 / Retry",
+          "font": "12px",
+          "height": 38
+        },
+        {
+          "id": "",
+          "text": "West hallsynthetic-session-0 · rev r1 · 250,000 pts · mmap-a · frame map",
+          "font": "12px",
+          "height": 89.234375
+        },
+        {
+          "id": "",
+          "text": "East hallsynthetic-session-1 · rev r2 · 300,000 pts · mmap-b · frame map",
+          "font": "12px",
+          "height": 89.234375
+        },
+        {
+          "id": "",
+          "text": "Upper wingsynthetic-session-2 · rev r3 · 350,000 pts · mmap-c · frame map",
+          "font": "12px",
+          "height": 89.234375
+        },
+        {
+          "id": "",
+          "text": "Previous mergesynthetic-session-3 · rev r4 · 400,000 pts · mmap-merged · frame map · merged ancestor",
+          "font": "12px",
+          "height": 106.28125
+        },
+        {
+          "id": "",
+          "text": "West hall same revisionsynthetic-session-0 · rev r1 · 250,000 pts · mmap-duplicate · frame map",
+          "font": "12px",
+          "height": 89.234375
+        },
+        {
+          "id": "",
+          "text": "기준 지도 West hallEast hall",
+          "font": "12px",
+          "height": 61.59375
+        },
+        {
+          "id": "",
+          "text": "frame 이름이 같아도 session별 원점은 독립입니다. Extent는 샘플 기준입니다.",
+          "font": "11px",
+          "height": 34.09375
+        },
+        {
+          "id": "",
+          "text": "View yaw ",
+          "font": "12px",
+          "height": 61.59375
+        },
+        {
+          "id": "",
+          "text": "□ 수동 prior / ■ solved · XY drag · 오른쪽 위 yaw handle · 방향키 0.1 m · Q/E 0.05 rad. 대응점은 실제 샘플 XYZ 또는 명시적",
+          "font": "11px",
+          "height": 51.140625
+        },
+        {
+          "id": "",
+          "text": "수동 보조 대상 East hall",
+          "font": "12px",
+          "height": 61.59375
+        },
+        {
+          "id": "",
+          "text": "Undo draft",
+          "font": "12px",
+          "height": 38
+        },
+        {
+          "id": "",
+          "text": "Redo draft",
+          "font": "12px",
+          "height": 38
+        },
+        {
+          "id": "",
+          "text": "Reset draft",
+          "font": "12px",
+          "height": 38
+        },
+        {
+          "id": "",
+          "text": "X m",
+          "font": "12px",
+          "height": 61.59375
+        },
+        {
+          "id": "",
+          "text": "Y m",
+          "font": "12px",
+          "height": 61.59375
+        },
+        {
+          "id": "",
+          "text": "Yaw rad",
+          "font": "12px",
+          "height": 61.59375
+        },
+        {
+          "id": "",
+          "text": "Z m (advanced)",
+          "font": "12px",
+          "height": 80.1875
+        },
+        {
+          "id": "",
+          "text": "Roll rad (advanced)",
+          "font": "12px",
+          "height": 80.1875
+        },
+        {
+          "id": "",
+          "text": "Pitch rad (advanced)",
+          "font": "12px",
+          "height": 80.1875
+        },
+        {
+          "id": "",
+          "text": "Source XYZ ",
+          "font": "12px",
+          "height": 61.59375
+        },
+        {
+          "id": "",
+          "text": "Anchor XYZ ",
+          "font": "12px",
+          "height": 61.59375
+        },
+        {
+          "id": "",
+          "text": "XYZ 쌍 추가",
+          "font": "12px",
+          "height": 38
+        },
+        {
+          "id": "",
+          "text": "쌍 지우기",
+          "font": "12px",
+          "height": 38
+        },
+        {
+          "id": "",
+          "text": "자동 정합 시작 / Retry",
+          "font": "12px",
+          "height": 38
+        },
+        {
+          "id": "",
+          "text": "Cancel job",
+          "font": "12px",
+          "height": 38
+        },
+        {
+          "id": "",
+          "text": "DRAFT · Sampled previews ready · no operation map changes.",
+          "font": "12px",
+          "height": 61.1875
+        },
+        {
+          "id": "",
+          "text": "UI draft rev 2 · proposal none · stale responses ignored 0 · undo/redo restores draft only; proposal",
+          "font": "11px",
+          "height": 34.09375
+        },
+        {
+          "id": "",
+          "text": "경고·모호성·연결 상태를 검토했습니다. 후보 수락은 운영 적용이 아닙니다.",
+          "font": "12px",
+          "height": 37.1875
+        },
+        {
+          "id": "",
+          "text": "후보 수락",
+          "font": "12px",
+          "height": 38
+        },
+        {
+          "id": "",
+          "text": "새 PCD 이름 ",
+          "font": "12px",
+          "height": 61.59375
+        },
+        {
+          "id": "",
+          "text": "새 PCD 저장",
+          "font": "12px",
+          "height": 38
+        }
+      ]
+    }
+  },
+  {
+    "surface": "c3",
+    "errors": [],
+    "metrics": {
+      "width": 390,
+      "scrollWidth": 390,
+      "text": "C3 / SYNTHETIC REPLAY LAB\nempty\ncone\ncostmap\npath-1\nreplan\ntrajectory\nmoved\noccluded\nremoved\nlidar-only\ndepth-only\nunmatched-yolo\nbad-calibration\nclock-mismatch\nsensor-skew\nstale-pose\nstale-joints\nmulti\n다음 fixture\nLight / Dark\n합성 replay 시작\nSYNTHETIC · 실장비 관측 아님\n저장 지도 대역: 런타임 생성 reference · m / map\n청록 LiDAR · 보라 Depth · 주황 geometry · 파랑 제공된 path\nCostmap은 2D ground-plane. Envelope는 합성 fixture이며 실제 로봇 collision 모델 검증 아님.\n로봇 모델: 기존 공식 URDF 파생 web asset · 합성 pose/joints · Goal marker 없음\nROBOT SCOPE / C3 · OFFLINE REVIEW\n장애물 관측창\n\n입력 geometry·경로만 표시합니다. 공식 URDF와 collision 모델은 별도입니다.\n\n표시 일시정지\n대기 패킷 1개 표시\nSOURCE MODE: FIXTURE · SYNTHETIC · 표시 진행 · 실장비 관측 아님\n표시 레이어\n저장 지도\nLiDAR\nDepth\n물체\nCostmap · 평면\n제공된 global path\n제공된 local trajectory\n공식 URDF · 시각화\n별도 collision envelope\nSYNTHETIC / synthetic-reference-A @ synthetic-r1 · map · epoch fixture-epoch-1 · #2 · 10100000000 ns (fixture_clock) · source runtime-generated reference / no recorded robot data\n\nLIDAR · OK · age 0 ms · 취득 10100000000 ns\n\nDEPTH · OK · age 0 ms · 취득 10100000000 ns\n\nPose · FRESH / Joints · FRESH / URDF · 시각화용\n\nCostmap · synthetic-local-costmap · 2D ground-plane (실제 3D 표면 아님)\n\nCAUTION · CONTACT_UNCONFIRMED · SYNTHETIC supplied risk; no collision solver executed · clearance UNKNOWN m\n\nGlobal path · fixture-plan-2 / 2D_GROUND_PLANE / 10100000000 ns / SYNTHETIC scenario event; not native Nav2 replan · history 1/3 | Local trajectory · 없음 (MISSING)\n\ncone-1 · unknown · OBSERVED · LIDAR+DEPTH · NEW_TO_REFERENCE\ncone-2 · unknown · OBSERVED · LIDAR · NEW_TO_REFERENCE\ncone-3 · unknown · OBSERVED · DEPTH · NEW_TO_REFERENCE\n물체 또는 위험 상태를 선택하면 source·geometry·frame·time·provenance가 표시됩니다.\n\n수신 2 · 표시 13 · coalesced/drop 0 · 대기 0/1 · retained history 1/3\n\n표시 일시정지는 이 브라우저에만 적용됩니다. 장비 제어 정지를 의미하지 않습니다.\n\nLOCAL ONLY · ROS / goal / cmd / service 연결 없음 · 고정된 합성 입력 · renderer cache 공유",
+      "overflow": [],
+      "small": [
+        {
+          "id": "next",
+          "text": "다음 fixture",
+          "font": "14px",
+          "height": 36
+        },
+        {
+          "id": "theme",
+          "text": "Light / Dark",
+          "font": "14px",
+          "height": 35
+        },
+        {
+          "id": "replay",
+          "text": "합성 replay 시작",
+          "font": "14px",
+          "height": 36
+        },
+        {
+          "id": "",
+          "text": "표시 일시정지",
+          "font": "12px",
+          "height": 36.59375
+        },
+        {
+          "id": "",
+          "text": "대기 패킷 1개 표시",
+          "font": "12px",
+          "height": 36.59375
+        },
+        {
+          "id": "",
+          "text": "저장 지도",
+          "font": "12px",
+          "height": 19
+        },
+        {
+          "id": "",
+          "text": "LiDAR",
+          "font": "12px",
+          "height": 19
+        },
+        {
+          "id": "",
+          "text": "Depth",
+          "font": "12px",
+          "height": 19
+        },
+        {
+          "id": "",
+          "text": "물체",
+          "font": "12px",
+          "height": 19
+        },
+        {
+          "id": "",
+          "text": "Costmap · 평면",
+          "font": "12px",
+          "height": 19
+        },
+        {
+          "id": "",
+          "text": "제공된 global path",
+          "font": "12px",
+          "height": 19
+        },
+        {
+          "id": "",
+          "text": "제공된 local trajectory",
+          "font": "12px",
+          "height": 19
+        },
+        {
+          "id": "",
+          "text": "공식 URDF · 시각화",
+          "font": "12px",
+          "height": 19
+        },
+        {
+          "id": "",
+          "text": "별도 collision envelope",
+          "font": "12px",
+          "height": 19
+        },
+        {
+          "id": "",
+          "text": "SYNTHETIC / synthetic-reference-A @ synthetic-r1 · map · epoch fixture-epoch-1 · #2 · 10100000000 ns",
+          "font": "12px",
+          "height": 74.375
+        },
+        {
+          "id": "",
+          "text": "CAUTION · CONTACT_UNCONFIRMED · SYNTHETIC supplied risk; no collision solver executed · clearance UN",
+          "font": "14px",
+          "height": 87.0625
+        },
+        {
+          "id": "",
+          "text": "cone-1 · unknown · OBSERVED · LIDAR+DEPTH · NEW_TO_REFERENCE",
+          "font": "12px",
+          "height": 55.1875
+        },
+        {
+          "id": "",
+          "text": "cone-2 · unknown · OBSERVED · LIDAR · NEW_TO_REFERENCE",
+          "font": "12px",
+          "height": 55.1875
+        },
+        {
+          "id": "",
+          "text": "cone-3 · unknown · OBSERVED · DEPTH · NEW_TO_REFERENCE",
+          "font": "12px",
+          "height": 55.1875
+        }
+      ]
+    }
+  }
+]

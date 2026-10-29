@@ -1,0 +1,130 @@
+TAP version 13
+# Subtest: published exact C1 descriptors survive UI request and strict external Python DTO validation
+ok 1 - published exact C1 descriptors survive UI request and strict external Python DTO validation
+  ---
+  duration_ms: 90.902292
+  type: 'test'
+  ...
+# Subtest: C1 HTTP normalization preserves full sources, advances reviewed revision, verifies exported reload
+ok 2 - C1 HTTP normalization preserves full sources, advances reviewed revision, verifies exported reload
+  ---
+  duration_ms: 7.053666
+  type: 'test'
+  ...
+# Subtest: C1 review revision bump cannot be forged without candidate identity
+ok 3 - C1 review revision bump cannot be forged without candidate identity
+  ---
+  duration_ms: 16.874125
+  type: 'test'
+  ...
+# Subtest: source descriptors pin identity and reject missing units / session / hash
+ok 4 - source descriptors pin identity and reject missing units / session / hash
+  ---
+  duration_ms: 3.438167
+  type: 'test'
+  ...
+# Subtest: SE3 contract uses column vectors, radians and row-major translation; scale/reflection rejected
+ok 5 - SE3 contract uses column vectors, radians and row-major translation; scale/reflection rejected
+  ---
+  duration_ms: 0.838916
+  type: 'test'
+  ...
+# Subtest: rotated non-square projection and CSS pixel inverse preserve meters without x/y scale distortion
+ok 6 - rotated non-square projection and CSS pixel inverse preserve meters without x/y scale distortion
+  ---
+  duration_ms: 0.59725
+  type: 'test'
+  ...
+# Subtest: preview LOD bounds buffers and refuses stale pinned identity and unsupported schema
+ok 7 - preview LOD bounds buffers and refuses stale pinned identity and unsupported schema
+  ---
+  duration_ms: 14.082959
+  type: 'test'
+  ...
+# Subtest: duplicate session revisions and merged ancestors remain explicit warnings
+ok 8 - duplicate session revisions and merged ancestors remain explicit warnings
+  ---
+  duration_ms: 0.34475
+  type: 'test'
+  ...
+# Subtest: 3D correspondence validation rejects 2D, insufficient, collinear, duplicate, clustered; advises extra spread
+ok 9 - 3D correspondence validation rejects 2D, insufficient, collinear, duplicate, clustered; advises extra spread
+  ---
+  duration_ms: 1.38125
+  type: 'test'
+  ...
+# Subtest: manual changes, undo, redo, reset and source switch invalidate late proposals without restoring identity
+ok 10 - manual changes, undo, redo, reset and source switch invalidate late proposals without restoring identity
+  ---
+  duration_ms: 822.459
+  type: 'test'
+  ...
+# Subtest: only newest job ticket can replace candidate; source pins and job revision checked
+ok 11 - only newest job ticket can replace candidate; source pins and job revision checked
+  ---
+  duration_ms: 164.616
+  type: 'test'
+  ...
+# Subtest: solved candidate requires complete transforms and connectivity, anchor identity
+ok 12 - solved candidate requires complete transforms and connectivity, anchor identity
+  ---
+  duration_ms: 496.11325
+  type: 'test'
+  ...
+# Subtest: disconnected 3-map components block accept; ambiguous warnings preserved
+ok 13 - disconnected 3-map components block accept; ambiguous warnings preserved
+  ---
+  duration_ms: 330.108375
+  type: 'test'
+  ...
+# Subtest: requests contain full descriptors / pins, priors and XYZ without any preview or runtime control
+ok 14 - requests contain full descriptors / pins, priors and XYZ without any preview or runtime control
+  ---
+  duration_ms: 0.367583
+  type: 'test'
+  ...
+# Subtest: accept and export verify server identity; originals immutable and catalogue refresh independent
+ok 15 - accept and export verify server identity; originals immutable and catalogue refresh independent
+  ---
+  duration_ms: 330.256167
+  type: 'test'
+  ...
+# Subtest: stale review/save and server reuse of original identity fail closed
+ok 16 - stale review/save and server reuse of original identity fail closed
+  ---
+  duration_ms: 574.411292
+  type: 'test'
+  ...
+# Subtest: cancel invalidates in-flight response, failure remains retryable
+ok 17 - cancel invalidates in-flight response, failure remains retryable
+  ---
+  duration_ms: 165.298708
+  type: 'test'
+  ...
+# Subtest: HTTP adapter centralizes only extension paths; no calls until explicit actions
+ok 18 - HTTP adapter centralizes only extension paths; no calls until explicit actions
+  ---
+  duration_ms: 1.875542
+  type: 'test'
+  ...
+# Subtest: diagnostic NEEDS_PRIOR / DISCONNECTED retain partial transforms and warnings without acceptance
+ok 19 - diagnostic NEEDS_PRIOR / DISCONNECTED retain partial transforms and warnings without acceptance
+  ---
+  duration_ms: 9.96175
+  type: 'test'
+  ...
+# Subtest: frontend imports create no network or runtime process
+ok 20 - frontend imports create no network or runtime process
+  ---
+  duration_ms: 7.645292
+  type: 'test'
+  ...
+1..20
+# tests 20
+# suites 0
+# pass 20
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3032.363667

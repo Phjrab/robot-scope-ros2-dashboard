@@ -1,0 +1,149 @@
+{
+  "classification": "read-only source pins; remote branches fetched once by fresh clone",
+  "pins": {
+    "main": "5154761bba6fa4f171881e61f986901e2b415ed9",
+    "c2": "7625c87ede2489143c44862d883e10fc1791df28",
+    "c3": "5bf58097f4a67806f5515b931a3b8013d65bf01e",
+    "c1": "50600c7bce6f5fae743cd836ca1d8ee68d91b05a"
+  },
+  "files": [
+    {
+      "role": "main",
+      "path": "AGENTS.md",
+      "sha256": "946364996d0a9986ac873d2b15562e3d388b94c4b8f51193aad0a4e59981eadc",
+      "matches_git_blob": true
+    },
+    {
+      "role": "main",
+      "path": "docs/navigation-goal-urdf-preview/HANDOFF.md",
+      "sha256": "b503ed65fe8932d05cf6b686580b7fa6d23a0e02f9a9e3b8308dc08575a1b59a",
+      "matches_git_blob": true
+    },
+    {
+      "role": "main",
+      "path": "docs/operational-3d-navigation/HANDOFF.md",
+      "sha256": "3a6b2acc61f0fb97bf4a3e9bcbeec17bf1a9631152d4e953a3ad62aff075ad46",
+      "matches_git_blob": true
+    },
+    {
+      "role": "main",
+      "path": "docs/ui-themes/README.md",
+      "sha256": "33b7a6f589dc195ab01f97dcc3f8c27f9b8d87746bcba2d751c25f8d5d2f0074",
+      "matches_git_blob": true
+    },
+    {
+      "role": "main",
+      "path": "docs/ui-typography/VALIDATION.md",
+      "sha256": "cb3bf8589771ae0ee3842aea1b42bfd5d76d5909ecba8ab9d3920c8e85aebfcd",
+      "matches_git_blob": true
+    },
+    {
+      "role": "main",
+      "path": "docs/ui-readability/AUDIT.md",
+      "sha256": "b74b1b203d5b31ebb7b51c4e8be483a6473495cb7a16e1aa0dc0083804f38916",
+      "matches_git_blob": true
+    },
+    {
+      "role": "main",
+      "path": "docs/ui-readability/INTEGRATION_HANDOFF.md",
+      "sha256": "c7cadd89693ceaee6483e6d59926405c316cad7bf1f407454dd882609a4477b4",
+      "matches_git_blob": true
+    },
+    {
+      "role": "c2",
+      "path": "docs/parallel-expansion-20261029/C2/ROUND2_LATEST.md",
+      "sha256": "966cd1ad161cbc3e6ade112206220d8a24c5d0b4786020de7f5e9df5d0e26c5f",
+      "matches_git_blob": true
+    },
+    {
+      "role": "c2",
+      "path": "robot_dashboard/static/features/multimap_fusion/session.js",
+      "sha256": "ff7977f5e00dd343f7818d5f988302cae695519f680b2347ceaff3b1d28a36ce",
+      "matches_git_blob": true
+    },
+    {
+      "role": "c2",
+      "path": "robot_dashboard/static/features/multimap_fusion/c1_contract.js",
+      "sha256": "77e68fb9fa9d293a07f2b405d12a3d967828c7687043d0355220f7be8be8a6ef",
+      "matches_git_blob": true
+    },
+    {
+      "role": "c2",
+      "path": "robot_dashboard/static/features/multimap_fusion/c1_ports.js",
+      "sha256": "77d000f0fb12f88f3889f3b7e5adcc85a67a3931053ac6e62c9e49dc0ecf47de",
+      "matches_git_blob": true
+    },
+    {
+      "role": "c2",
+      "path": "robot_dashboard/static/features/multimap_fusion/overlay.js",
+      "sha256": "77ded2b6207d96ba9785df3ae33f298a9b1660036998986d08eba5d01ebdadd4",
+      "matches_git_blob": true
+    },
+    {
+      "role": "c2",
+      "path": "robot_dashboard/static/features/multimap_fusion/index.js",
+      "sha256": "be495c25a3728f31d833f59d791e1d70405a5997b773f8e429fce15dfeed8b57",
+      "matches_git_blob": true
+    },
+    {
+      "role": "c2",
+      "path": "robot_dashboard/static/features/multimap_fusion/contract.js",
+      "sha256": "fd7e3c49ffb7028da5a7644ee97314a31f72e07f4347e909ff2aa89b4f0bb235",
+      "matches_git_blob": true
+    },
+    {
+      "role": "c2",
+      "path": "robot_dashboard/static/features/multimap_fusion/style.css",
+      "sha256": "48f20dc1a6d9c838685af874abcd4057e2dc5ac3ab02a654b2d16d1bee34fad6",
+      "matches_git_blob": true
+    },
+    {
+      "role": "c3",
+      "path": "docs/parallel-expansion-20261029/C3/ROUND2_V02.md",
+      "sha256": "5ee7ee6d47d435e6006aa9b6a086792f463f1325bdb59aeea482274edc077e5b",
+      "matches_git_blob": true
+    },
+    {
+      "role": "c3",
+      "path": "robot_dashboard/static/features/obstacle_scene/c1_adapter.js",
+      "sha256": "6f4dd8f6c25441e8df14620c41430a1d2816c361bf2e87619950436294d83edc",
+      "matches_git_blob": true
+    },
+    {
+      "role": "c3",
+      "path": "robot_dashboard/static/features/obstacle_scene/index.js",
+      "sha256": "3462f4e6d42fbc2c1fb252fda2f36f89fafe7863d4c742f59e5cad9e5853a9b8",
+      "matches_git_blob": true
+    },
+    {
+      "role": "c3",
+      "path": "robot_dashboard/static/features/obstacle_scene/c1_assets.js",
+      "sha256": "7b39c2a79dcfa2397db08f71673cc162aafc2fa03974b4070421d93f475d2a96",
+      "matches_git_blob": true
+    },
+    {
+      "role": "c3",
+      "path": "robot_dashboard/static/features/obstacle_scene/draw.js",
+      "sha256": "ef62fe72665ea799249fe28b8b341b363364d6b1f0bb8bc66df3ad295543ffa0",
+      "matches_git_blob": true
+    },
+    {
+      "role": "c3",
+      "path": "robot_dashboard/static/features/obstacle_scene/obstacle_scene.css",
+      "sha256": "a7e30d9ac7d91d3c81b0aa104134d9c1c546630cecadb5b4564e519fc700fb3b",
+      "matches_git_blob": true
+    },
+    {
+      "role": "c3",
+      "path": "robot_dashboard/static/features/obstacle_scene/consumer.js",
+      "sha256": "6914363f2bdc83cac796c0933a464d6e36f6239f20481d0abd398603d131048f",
+      "matches_git_blob": true
+    },
+    {
+      "role": "c1",
+      "path": "docs/parallel-expansion-20261029/C1/ROUND2_CONTRACT.md",
+      "sha256": "25f2abb76afac22130c19b146c2ec6c99918e903033291043abae5a5492d537c",
+      "matches_git_blob": true
+    }
+  ]
+}

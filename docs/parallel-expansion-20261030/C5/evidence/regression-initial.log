@@ -1,0 +1,20 @@
+[WebServer] node:internal/modules/cjs/loader:1404
+[WebServer]   throw err;
+[WebServer]   ^
+[WebServer]
+[WebServer] Error: Cannot find module '/Users/hajoonpark/자율설계/robot-scope-c5-ui-usability-20261030/tests/expansion_c5/tests/e2e/static_server.mjs'
+[WebServer]     at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)
+[WebServer]     at defaultResolveImpl (node:internal/modules/cjs/loader:1057:19)
+[WebServer]     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1062:22)
+[WebServer]     at Function._load (node:internal/modules/cjs/loader:1211:37)
+[WebServer]     at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+[WebServer]     at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+[WebServer]     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+[WebServer]     at node:internal/main/run_main_module:36:49 {
+[WebServer]   code: 'MODULE_NOT_FOUND',
+[WebServer]   requireStack: []
+[WebServer] }
+[WebServer]
+[WebServer] Node.js v22.17.1
+
+Error: Process from config.webServer was not able to start. Exit code: 1
