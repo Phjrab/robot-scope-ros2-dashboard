@@ -1,0 +1,78 @@
+{
+  "dependencies": {
+    "c1": "54629c793ad4ae0ea88127f00ed1b7f8805fc4e2",
+    "d2": "c0d266e290a2d29c173d3b83520f8c96efea9447",
+    "d3": "09b68b692fa4b7ccdea39b1a16e3ff150794e12d",
+    "c3": "92658bccc253f31552415f9c9d667bbd28957a06"
+  },
+  "contract_version": "C1 0.1 at 54629c793ad4ae0ea88127f00ed1b7f8805fc4e2",
+  "canonical_snapshot_sha256": "936f34912b2433864ee665e710397dd9f7d3bebb86579688ad9d63a88fa9d05f",
+  "source_file_sha256": {
+    "robot_dashboard/expansion_runtime/__init__.py": "62cf3982a8298708f0a3902a0fe830b5a34e8519f02b0755269712d0e8ad2aaf",
+    "robot_dashboard/expansion_runtime/binding.py": "074ef5ab4fd3a3276d0e38e940b4cc110004508cceee513c933b8ea3d92a06a6",
+    "robot_dashboard/expansion_runtime/composition.py": "c596e713dff46f29095f18f09ab319285bd2e01385df74653d7dc207d430f3fd",
+    "robot_dashboard/expansion_runtime/intent.py": "9367933450e09095a5ba2d0e498fc2dd6c8161b72a1c7b6ec82175632fe1b937",
+    "robot_dashboard/expansion_runtime/ports.py": "03b9343ec7f159f23a8f7a21c70a58aa1c71e12bc41b2683bc07f908d328ecbb",
+    "robot_dashboard/expansion_runtime/sensor.py": "e38d536ac3306d1a0133a2dd1ce5028d5a0e5608eea4d140be3920a9d05e406d"
+  },
+  "actual_core_composition": {
+    "scoped_clear": {
+      "severity": "CLEAR",
+      "reason": "CLEAR",
+      "min_clearance": 1.5619999999999998,
+      "actual_cores": true
+    },
+    "model_overlap": {
+      "severity": "STOP_REQUIRED",
+      "reason": "MODEL_OVERLAP",
+      "min_clearance": -0.232,
+      "actual_cores": true
+    },
+    "sparse_positive_distance": {
+      "severity": "UNKNOWN",
+      "reason": "UNKNOWN",
+      "min_clearance": 1.5619999999999998,
+      "actual_cores": true
+    },
+    "empty_sparse": {
+      "severity": "UNKNOWN",
+      "reason": "UNKNOWN",
+      "min_clearance": null,
+      "actual_cores": true
+    }
+  },
+  "actual_C1_snapshot": "PASS",
+  "C3_actual_consumer": {
+    "status": "FAIL",
+    "reason": "C1_DISPLAY_PROFILE_REQUIRED",
+    "exit_code": 2
+  },
+  "final_sink": "MOCK_ONLY",
+  "mock_clear_velocity": [
+    0.1,
+    0.0,
+    0.0
+  ],
+  "ROS_modules": {
+    "rclpy": false,
+    "sensor_msgs": false,
+    "tf2_ros": false,
+    "nav2_msgs": false
+  },
+  "ROS_lifecycle": "NOT_RUN_MISSING_ROS",
+  "native_costmap_mark_clear": "NOT_RUN",
+  "physical_contact": "NOT_RUN",
+  "device": "DEVICE_NOT_RUN",
+  "latency": "NOT_BENCHMARK_DETERMINISTIC_FIXTURE_CLOCK",
+  "timing": {
+    "c4_received_monotonic_ns": 1010000000,
+    "observation_stamp_ns": "1000000000",
+    "observation_received_monotonic_ns": 1001000000,
+    "source_clock_domain": "fixture-clock",
+    "d2_started_monotonic_ns": 1010000000,
+    "d2_finished_monotonic_ns": 1010000000,
+    "d3_started_monotonic_ns": 1010000000,
+    "d3_finished_monotonic_ns": 1010000000,
+    "c4_converted_monotonic_ns": 1010000000
+  }
+}

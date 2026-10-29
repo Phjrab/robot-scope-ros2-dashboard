@@ -1,0 +1,57 @@
+{
+  "python_full": {
+    "status": "PASS",
+    "tests": 3149,
+    "seconds": 106.4,
+    "skipped": 6,
+    "unfiltered": true,
+    "actual_C4_dependencies_required": true
+  },
+  "focused_round2": {
+    "status": "PASS",
+    "tests": 20,
+    "skipped": 0,
+    "included_in_full": true
+  },
+  "prior_C4": {
+    "tests": 46,
+    "skipped": 1,
+    "included_in_full": true
+  },
+  "skips": [
+    "setUpClass (competition_native.test_inference_binding.InferenceBindingTests) ... skipped 'NOT_RUN: fetch pinned dependency 9e9ebcc0cbc613d5b0a7f50a27a7b256c3f829bd (robot_dashboard/competition_traffic/config.py) before cross tests'",
+    "setUpClass (competition_native.test_round3_cross_contract.C1RuntimeCrossTests) ... skipped 'NOT_RUN: fetch pinned dependency 380800ca9e211495769fe60ee8221e3f4fb40f16 (robot_dashboard/competition_traffic/config.py) before cross tests'",
+    "setUpClass (competition_native.test_round3_cross_contract.C4CrossTests) ... skipped 'NOT_RUN: fetch pinned dependency 380800ca9e211495769fe60ee8221e3f4fb40f16 (robot_dashboard/competition_traffic/config.py) before cross tests'",
+    "test_generated_ros_message_roundtrip (expansion_c4.test_evidence_profile_isolation.NativeAvailabilityTests.test_generated_ros_message_roundtrip) ... skipped 'NOT_RUN: ROS Humble/native Nav2 1.1.20 not installed; no DDS init'",
+    "test_overlay_artifacts_label_synthetic_and_not_operational (test_inspect_se3_pair.PairInspectionTests.test_overlay_artifacts_label_synthetic_and_not_operational) ... skipped 'optional SVG plotting dependency absent'",
+    "test_real_humble_cdr_serialization_is_decoded_offline (test_isaac_vslam_inspect_bag.RosbagsBackendTests.test_real_humble_cdr_serialization_is_decoded_offline) ... skipped 'optional rosbags backend not installed'"
+  ],
+  "javascript": {
+    "status": "PASS",
+    "tests": 77,
+    "skipped": 0,
+    "node": "24.22.1",
+    "syntax_modules": 112
+  },
+  "static": {
+    "ruff": "PASS",
+    "tracked_secret_scan": "PASS",
+    "diff_check": "PASS"
+  },
+  "C1_HTTP": {
+    "status": "PASS",
+    "transport": "in-process ASGI TestClient",
+    "router": "actual pinned C1",
+    "authorization": "synthetic host fixture",
+    "TCP_listener": false
+  },
+  "baseline_CI": {
+    "main_SHA": "5c1ffe3ba3c070e67e143d39b65650cc8dba5f2e",
+    "run": 40832553004,
+    "status": "FAIL",
+    "first_error": "tests/e2e/slam_presentation.spec.mjs:87: 390px light top expected <1, received25.5; ubuntu22.04 Python3.10",
+    "prior_C4_SHA": "b9d700d754f0d3d43b9afdcffcb86e9deb7b1020",
+    "prior_C4_run": 40828844706,
+    "prior_C4_status": "PASS"
+  }
+}

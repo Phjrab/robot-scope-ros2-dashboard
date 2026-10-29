@@ -1,3 +1,48 @@
+# Round 2 current boundary
+
+The authoritative actual-owner ports are now `robot_dashboard/expansion_runtime/`.
+See [ROUND2.md](ROUND2.md) for pins, limits and execution evidence. The old
+fixture contract below is retained only as first-round history; do not use its
+`clock_id/valid_from_ns/valid_until_ns` proposal for new traffic.
+
+- `CorePorts.from_installed(geometry)` resolves the pinned actual D2
+  `obstacle_fusion_core` and D3 `collision_geometry_core`; the package name in the
+  follow-up prompt differs from the actual D2 tree at the supplied SHA.
+- Existing owner normalizes raw PointCloud2 with the first-round `pointcloud2`
+  reader. `sensor.packet_from_pointcloud` accepts that Sample plus an exact
+  stamped, verified sensor-to-local transform and range/FOV metadata. It keeps
+  raw frame/layout/reference/origin separate, performs only a frame transform,
+  and creates **no clearing rays**. No latest-TF lookup or sensor subscription.
+- Invoke `Runtime.process` serially in the existing bounded worker/harness with
+  a trusted context, robot state, command sequence/velocity, clock mapping and
+  explicit authority result. Pure synchronous entrypoint; do not call heavy
+  cores in a ROS subscription callback. `Runtime.rebind` is serialized with
+  processing and requires a newer runtime generation; the host must also retire
+  queued old work and rebind/reset its C1 scene and final consumer.
+- `ports.ingest_scene(actual_c1_service, result)` validates real C1 payloads,
+  checks both ingest return values, and reads the actual snapshot. It does not
+  synthesize a C3 display profile. That consumer presently rejects the response.
+- `FinalIntentPort` demonstrates final arbitration using **MockCommandSink only**.
+  Default ADVISORY_ONLY never writes a command. Explicit ACTIVE_CONSTRAINT uses
+  the first-round CommandGate, including STOP/UNKNOWN latching and independent
+  tick expiry; CAUTION without an owner speed policy rejects to zero. An active
+  instance cannot silently downgrade mode. A new gate is not authority to clear
+  a product stop: the existing arbiter owns STOP/estop/lease state and resume.
+  Product hook remains the exact existing Go2BridgeCore.tick location below.
+
+D3 local harness handoff: `Runtime.process` is the real-core wrapper;
+`packet_from_pointcloud` is the packet entrypoint. Packet examples are executable
+in `tests/expansion_runtime/fixtures.py` and the normalized-PointCloud2 composition
+test. The existing review launch/config and ReviewRosPort remain opt-in,
+unchanged, and **NOT_RUN** in this ROS-less environment. ReviewRosPort's runtime
+interface is the first-round `offer_raw` worker interface, not the new synchronous
+Runtime: a harness must schedule the new entrypoint through that owner worker;
+passing the new Runtime directly as ReviewRosPort.runtime is unsupported. Raw
+LiDAR/depth publication must retain the original Sample and actual per-sensor
+ray proof; no D2 bounding box/centroid may be used to fabricate a free ray.
+
+## Historical first-round integration proposal
+
 # C4 integration proposal — default OFF
 
 This document records future changes only. No product file, Nav2 production

@@ -1,3 +1,7 @@
+# Latest follow-up
+
+See [ROUND2.md](ROUND2.md) for the actual pinned D2/D3/C1 composition, canonical validity conversion, explicit advisory/active modes, and the recorded C1→C3 failure. The first-round evidence below is retained as historical evidence.
+
 # C4 runtime ports — fixed offline candidate
 
 Implemented and locally verified on 2026-10-29 KST. This is a new C4 expansion
