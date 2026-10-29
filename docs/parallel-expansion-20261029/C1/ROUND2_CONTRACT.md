@@ -31,8 +31,8 @@ python -m unittest tests.expansion_contracts.test_time_binding -v
 
 | Role / pinned SHA | Actual contract | Current compatibility |
 |---|---|---|
-| D1 cbedd05ba6f97dad5506e8003302f689ed8fcb4c | solve_contract, map 0.1 | retained; real composition next |
-| C2 5eed1a9959ca25a4f30bd5b5712806a5ad660c51 | map HTTP 0.1 | retained; short compatibility check then frozen |
+| D1 cbedd05ba6f97dad5506e8003302f689ed8fcb4c | solve_contract, map 0.1 | PASS: actual D1 + C2 HTTP; frozen |
+| C2 5eed1a9959ca25a4f30bd5b5712806a5ad660c51 | map HTTP 0.1 | PASS: actual C2 HTTP ports; frozen |
 | D2 c0d266e290a2d29c173d3b83520f8c96efea9447 | Tracker.step()['obstacle_frame'], observation 0.1 | explicit envelope upgrade to 0.2 |
 | D3 09b68b692fa4b7ccdea39b1a16e3ff150794e12d | source-clock string interval; full metadata refs | explicit clock-bound converter; refs retained |
 | C4 b9d700d754f0d3d43b9afdcffcb86e9deb7b1020 | C1ObstacleProjection emits 0.1; C1SceneSink forwards obstacle only | service may opt in to 0.2 upgrade; assessment is not forwarded by this sink |
@@ -40,7 +40,7 @@ python -m unittest tests.expansion_contracts.test_time_binding -v
 | C3 92658bccc253f31552415f9c9d667bbd28957a06 | only 0.1, requires sources.display profile and valid_until_ns | FAIL with actual C1 snapshot; consumer follow-up required |
 
 No counterpart files are modified or copied into this branch. Scene locations,
-actual composition results and measured byte limits will be added in ROUND2.md.
+actual composition results and measured byte limits are recorded in [ROUND2.md](ROUND2.md).
 
 Round-2 implementation additionally migrates receipt ns inside provenance/full refs
 losslessly, and defines actual scene locations/limits in [ROUND2.md](ROUND2.md).

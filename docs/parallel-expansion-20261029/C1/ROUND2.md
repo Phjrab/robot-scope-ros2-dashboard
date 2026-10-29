@@ -7,7 +7,9 @@ Canonical contract was published first at
 `cb8ccc68be8d96a44b0d38adcff8186893ba2b08`, after 3,106 Python tests
 (5 existing skips) and 77 JavaScript test files passed locally.
 
-Final implementation SHA and remote CI receipt are recorded below after publication.
+Tested implementation / test-code SHA: `4b9c02b2119c984d0bf4322bc292007df90fd032`.
+The final handoff update changes documentation only; source and test code remain
+identical to that SHA. Remote CI receipt is recorded below.
 The final delivery HEAD is the commit containing this finalized report; resolve
 with `git ls-remote origin refs/heads/review/20261029-x-c1-services`.
 The final chat receipt supplies its exact hash (a commit cannot contain its own SHA).
@@ -207,3 +209,28 @@ Artifact file SHA-256 (including final newline):
 - `round2-contract-example.json`: `255316ee5218598d2789ab73bb354b1774eda47023522127b5ac6fdc0d210a08`
 - `round2-scene-examples.json`: `61b272fb825a7b2b8b8d4c899128c5b16c97bf7f1c3708a20d785266394952b2`
 - `ROUND2_EVIDENCE.json`: `d4a8446a477efb4e75108a433b2fbc962e46d42075b9c8266add2f3b881d88df`
+
+## Remote CI receipt — tested implementation
+
+[Run 40839979383](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40839979383)
+completed **SUCCESS** for exact implementation/test-code SHA
+`4b9c02b2119c984d0bf4322bc292007df90fd032`.
+
+| Job | Result / actual counts |
+|---|---|
+| ubuntu-22.04 / Python 3.10.22, job 123333717249 | PASS: Python 3,146 / 2 existing skips; JS 699 / 0 failures; browser 227; mission API fixture 10 |
+| ubuntu-24.04 / Python 3.12.15, job 123333717201 | PASS: Python 3,146 / 2 existing skips; JS 699 / 0 failures; browser 227; mission API fixture 10 |
+| competition-offline-integration, job 123333716916 | PASS |
+
+Both matrix jobs also passed the unchanged Ruff/mypy, credential scan,
+dependency audits and JS syntax steps. The former missing-httpx2 error is gone;
+no criteria, workflow, assertion or skip was relaxed. Browser suites took
+15.1/15.2 minutes; their success was awaited rather than inferred from local
+focused tests. These browser results concern the existing product regression
+suite; they do not erase the actual C3/C4 composition FAIL above.
+
+The subsequent final handoff commit changes only this report and the consumer
+matrix wording. Its source/test tree is identical to 4b9c02b. Its own automatic
+CI run is separate from the completed implementation run; the final chat receipt
+reports the final HEAD, remote equality and that run's actual status. No claim
+that an uncompleted documentation-HEAD CI run has passed is made here.
