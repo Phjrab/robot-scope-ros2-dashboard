@@ -1,0 +1,15 @@
+Python:
+Ran 3116 tests in 102.500s
+
+OK (skipped=2)
+
+JavaScript:
+✔ navigation blockers identify only their reported condition and a relevant check (1.346835ms)
+ℹ tests 699
+ℹ suites 0
+ℹ pass 699
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1418.949681

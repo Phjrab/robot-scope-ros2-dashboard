@@ -69,6 +69,10 @@ def main(output):
                 assert result["operational_installed"] is False
                 assert result["id"] not in ids and result["id"] in c.catalogue.list_ids()
                 assert c.store.get(result["id"]) == result
+                listing = http.get(base + "/exports")
+                assert listing.status_code == 200, listing.text
+                assert any(v["id"] == result["id"] and v["revision"] == result["revision"]
+                           and v["operational_installed"] is False for v in listing.json()["exports"])
                 assert hashlib.sha256(c.store.reload(result["id"]).asset.path.read_bytes()).hexdigest() == result["output_hashes"]["map.pcd"]
                 return result, duplicate
 
@@ -116,7 +120,7 @@ def main(output):
             zero = metrics(points, points, np.eye(4), .05)
             assert zero["rmse_m"] == 0.0
             zero.pop("residual_samples", None)
-            report["zero_residual"] = {"classification": "ACTUAL_CORE_METRIC; not end-to-end zero-candidate ranking", "metrics": zero, "d1_ranking_fix": "NOT_AVAILABLE_AT_PINNED_HEAD"}
+            report["zero_residual"] = {"classification": "ACTUAL_CORE_METRIC; end-to-end zero candidate checked separately by C2_EXACT_ZERO_ONLY browser run", "metrics": zero}
             report["ui_fixture"] = {"request": two_request, "proposal": two["proposal"], "zero_metrics": zero, "manifest": ab_c}
     Path(output).write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps({"checks": report["checks"], "source_bytes_unchanged": True, "zero_rmse": 0.0}, indent=2))

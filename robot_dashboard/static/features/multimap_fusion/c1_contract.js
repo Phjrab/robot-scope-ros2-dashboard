@@ -1,6 +1,6 @@
 // Translation of published C1 v0.1 wire DTOs only; no service or solver.
 import {SCHEMA,clone,sourceDescriptor,pin,rigidMatrix} from './contract.js';
-export const C1_CONTRACT_SHA='54629c793ad4ae0ea88127f00ed1b7f8805fc4e2';
+export const C1_CONTRACT_SHA='4e1dd519a707169da5f88cf2a92a20ed3e701cc7';
 export const sourceKey=s=>`${s.map_id}:${s.revision}:${s.frame_id}`;
 export function fromC1Source(wire,{name,ancestors=[]}={}) {
   if(wire?.schema_version!=='0.1'||!['SYNTHETIC','REPLAY'].includes(wire.evidence_kind)||wire.asset_role!=='full_source')throw new Error('C1 offline full-source v0.1 required.');

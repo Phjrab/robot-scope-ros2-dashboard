@@ -1,0 +1,18 @@
+{
+  "classification": "ACTUAL_TCP_HTTP + ACTUAL_CORE / SYNTHETIC",
+  "results": [
+    {
+      "name": "exact-zero actual candidate/core/TCP HTTP/UI/review/export",
+      "result": "PASS",
+      "classification": "ACTUAL_CORE + ACTUAL_TCP_HTTP / SYNTHETIC; no solver or metric patch",
+      "rmse_m": 0,
+      "p95_m": 0,
+      "point_count": 250,
+      "output_hash": "f3665d7a38da6c61faa7e3eec6e0ca9f2fb6a1b122f5fe1676daaf14870d10fa"
+    }
+  ],
+  "errors": [],
+  "violations": [],
+  "post_count": 3,
+  "product_ros_native": "NOT_RUN"
+}

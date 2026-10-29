@@ -3,7 +3,8 @@ import {readFile,writeFile} from 'node:fs/promises';
 import {startServer} from '../../experiments/expansion_20261029/c2_map_ui/server.mjs';
 const {chromium}=await import(process.env.C2_PLAYWRIGHT_MODULE||'playwright');
 assert.ok(process.env.C2_C1_SERVICE_URL,'Start exact_service_host.py --round2');
-const evidence=JSON.parse(await readFile(process.env.C2_ROUND2_SERVICE_REPORT,'utf8'));
+const zeroOnly=process.env.C2_EXACT_ZERO_ONLY==='1';
+const evidence=zeroOnly?null:JSON.parse(await readFile(process.env.C2_ROUND2_SERVICE_REPORT,'utf8'));
 const server=await startServer(0),origin=`http://127.0.0.1:${server.address().port}`;
 const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
 const results=[],violations=[],errors=[],posts=[];
@@ -27,6 +28,16 @@ async function save(p,name){
 }
 try{
  const ids=[1,2,3].map(i=>i.toString(16).padStart(24,'0'));
+ if(zeroOnly){
+  const p=await page();await select(p,ids.slice(0,2));await solve(p);
+  const state=await snapshot(p),metric=state.proposal.metrics.pairwise[0];
+  assert.equal(metric.rmse_m,0);assert.equal(metric.distance_p95_m,0);
+  assert.equal(state.proposal.accepted_edges.length,1);assert.equal(state.proposal.rejected_edges.length,0);
+  assert.match(await p.locator('[data-slot=diagnostics]').textContent(),/0\.0000 p95 \/ 0\.0000 RMSE/);
+  const manifest=await save(p,`exact_zero_${Date.now()}`);assert.equal(manifest.point_count,250);
+  const wireMetric=manifest.pairwise_edges[0].metrics;assert.equal(wireMetric.rmse_m,0);
+  await p.close();results.push({name:'exact-zero actual candidate/core/TCP HTTP/UI/review/export',result:'PASS',classification:'ACTUAL_CORE + ACTUAL_TCP_HTTP / SYNTHETIC; no solver or metric patch',rmse_m:metric.rmse_m,p95_m:metric.distance_p95_m,point_count:manifest.point_count,output_hash:manifest.output_hashes['map.pcd']});
+ }else{
  const b={x:.35,y:-.2,z:.15,roll:.06,pitch:-.04,yaw:.18},c={x:-.3,y:.15,z:-.1,roll:-.03,pitch:.08,yaw:-.13};
  let p=await page();await select(p,ids.slice(0,2));await prior(p,ids[1],b);await solve(p);const ab=await save(p,`round2_AB_${Date.now()}`);assert.equal(ab.point_count,800);await p.close();
  results.push({name:'2-map actual TCP HTTP/core + offline save/refresh',result:'PASS'});
@@ -42,9 +53,10 @@ try{
  await p.evaluate(metrics=>{const get=window.fixture.jobs.get;window.fixture.jobs.get=async(...args)=>{const value=await get(...args);if(value.state==='SOLVED_CANDIDATE')value.metrics={pairwise:[{pair:['map-a','map-b'],overlap:1,rmse_m:metrics.rmse_m,distance_p95_m:metrics.distance_p95_m}]};return value;};},evidence.zero_residual.metrics);
  await solve(p);assert.match(await p.locator('[data-slot=diagnostics]').textContent(),/0\.0000 p95 \/ 0\.0000 RMSE/);assert.equal((await snapshot(p)).proposal.metrics.pairwise[0].rmse_m,0);await p.close();
  results.push({name:'exact zero residual displayed as 0.0000',result:'PASS',classification:'UI_FIXTURE with ACTUAL_CORE_METRIC; not corrected D1 candidate ranking'});
+ }
  assert.deepEqual(errors,[]);assert.deepEqual(violations,[]);
 }finally{
  await browser.close();await new Promise(r=>server.close(r));
- await writeFile(process.env.C2_ROUND2_BROWSER_REPORT,JSON.stringify({classification:'ACTUAL_TCP_HTTP + ACTUAL_CORE / SYNTHETIC, plus separately labeled UI_FIXTURE',results,errors,violations,post_count:posts.length,product_ros_native:'NOT_RUN'},null,2)+'\n');
+ await writeFile(process.env.C2_ROUND2_BROWSER_REPORT,JSON.stringify({classification:zeroOnly?'ACTUAL_TCP_HTTP + ACTUAL_CORE / SYNTHETIC':'ACTUAL_TCP_HTTP + ACTUAL_CORE / SYNTHETIC, plus separately labeled UI_FIXTURE',results,errors,violations,post_count:posts.length,product_ros_native:'NOT_RUN'},null,2)+'\n');
 }
 console.log(JSON.stringify(results,null,2));

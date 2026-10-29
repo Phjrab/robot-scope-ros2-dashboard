@@ -1,0 +1,14 @@
+[
+  {
+    "sha": "4e1dd519a707169da5f88cf2a92a20ed3e701cc7",
+    "file_count": 15,
+    "git_blob_equality": "PASS",
+    "read_only_mode": "PASS"
+  },
+  {
+    "sha": "203c144f6b4a90966839c34b603ae12ee676cb12",
+    "file_count": 17,
+    "git_blob_equality": "PASS",
+    "read_only_mode": "PASS"
+  }
+]

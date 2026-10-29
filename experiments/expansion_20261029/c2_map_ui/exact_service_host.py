@@ -21,12 +21,23 @@ from robot_dashboard.expansion_services.router import create_router
 from robot_dashboard.expansion_services.scene import SceneSnapshotService
 from robot_dashboard.pcd_editing.store import SourceAsset
 from robot_dashboard.multimap_core.contract_adapter import solve_contract
-from experiments.expansion_20261029.d1_multimap.generate import fixture
+from experiments.expansion_20261029.d1_multimap.generate import fixture, write_cloud
 
 
-def compose(root, *, source_count=2, include_bundles=False):
+def compose(root, *, source_count=2, include_bundles=False, exact_zero=False):
     """External modules remain untouched; optional catalogue contains offline bundles only."""
-    raw, resolver, poses = fixture(root, count=400)
+    if exact_zero:
+        # Dyadic coordinates make identity residual exactly zero, without patched
+        # solver/metrics. Independent source IDs retain identical synthetic bytes.
+        lattice = np.array([(x*.5, y*.75, z) for x in range(-2,3)
+                            for y in range(-2,3) for z in range(-2,3)], dtype=float)
+        paths = [root / f"zero{i}.pcd" for i in range(source_count)]
+        raw = [write_cloud(path, lattice) for path in paths]
+        by_id = {d['map_id']: p for d, p in zip(raw, paths)}
+        resolver = lambda d: by_id[d['map_id']]
+        poses = [np.eye(4) for _ in paths]
+    else:
+        raw, resolver, poses = fixture(root, count=400)
     resolved, points = {}, {}
     for i, descriptor in enumerate(raw[:source_count]):
         path = resolver(descriptor)
@@ -87,10 +98,11 @@ def main():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--round2', action='store_true')
+    parser.add_argument('--exact-zero', action='store_true')
     args = parser.parse_args()
     with tempfile.TemporaryDirectory(prefix="c2-exact-synthetic-") as temporary:
         composition = compose(Path(temporary), source_count=3 if args.round2 else 2,
-                              include_bundles=args.round2)
+                              include_bundles=args.round2, exact_zero=args.exact_zero)
         with socket.socket() as listener:
             listener.bind(('127.0.0.1',0));listener.listen(16)
             print('C2_EXACT_URL=http://127.0.0.1:'+str(listener.getsockname()[1]),flush=True)

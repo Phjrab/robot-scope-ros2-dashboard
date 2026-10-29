@@ -1,0 +1,53 @@
+{
+  "status": "C2_COMPATIBLE_FROZEN",
+  "starting_c2_sha": "47a1d031d797c098c38a0147894523d07d30db8f",
+  "c1_sha": "4e1dd519a707169da5f88cf2a92a20ed3e701cc7",
+  "d1_sha": "203c144f6b4a90966839c34b603ae12ee676cb12",
+  "production_change": "diagnostic C1 SHA metadata only; no map behavior change",
+  "contracts": {
+    "map": "0.1",
+    "scene_observation": "0.2; outside C2 consumption",
+    "ui": "robot-scope.multimap-ui.v1",
+    "export": "robot-scope.multimap-fusion.v1",
+    "canonical_scene_example_file_sha256": "255316ee5218598d2789ab73bb354b1774eda47023522127b5ac6fdc0d210a08",
+    "map_request_canonical_sha256": "c7c82d1e42dc24154548715013c60b7efedd39791ae550a012d39f436d65b013"
+  },
+  "tests": {
+    "c2_unit_pass": 20,
+    "regression_browser_pass": 18,
+    "round2_browser_pass": 5,
+    "actual_service_pass": 5,
+    "actual_zero_candidate_browser_pass": 1,
+    "d1_readonly_zero_residual_regressions_pass": 7,
+    "full_python": {
+      "run": 3116,
+      "pass": 3114,
+      "skip": 2,
+      "fail": 0,
+      "seconds": 102.5
+    },
+    "full_js": {
+      "pass": 699,
+      "skip": 0,
+      "fail": 0
+    },
+    "frontend_syntax_modules": 118,
+    "secret_scan": "PASS"
+  },
+  "prior_c2_ci": {
+    "sha": "47a1d031d797c098c38a0147894523d07d30db8f",
+    "run_id": 40838306845,
+    "result": "SUCCESS",
+    "each_hardware_matrix": {
+      "python_run": 3116,
+      "python_skip": 2,
+      "js_pass": 699,
+      "browser_pass": 227,
+      "mission_real_api_fixture_pass": 10
+    },
+    "competition_offline": "PASS"
+  },
+  "remaining_one": "C1 HTTP should preserve specific duplicate-ancestor refusal and trusted catalogue lineage; current generic error is displayed unchanged.",
+  "ros_native_robot_deployment": "NOT_RUN",
+  "real_venue_maps": "INPUT_REQUIRED"
+}

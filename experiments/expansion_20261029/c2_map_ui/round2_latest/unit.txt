@@ -1,0 +1,28 @@
+✔ published exact C1 descriptors survive UI request and strict external Python DTO validation (41.624113ms)
+✔ C1 HTTP normalization preserves full sources, advances reviewed revision, verifies exported reload (1.283251ms)
+✔ C1 review revision bump cannot be forged without candidate identity (3.228257ms)
+✔ source descriptors pin identity and reject missing units / session / hash (0.248365ms)
+✔ SE3 contract uses column vectors, radians and row-major translation; scale/reflection rejected (0.26185ms)
+✔ rotated non-square projection and CSS pixel inverse preserve meters without x/y scale distortion (0.271442ms)
+✔ preview LOD bounds buffers and refuses stale pinned identity and unsupported schema (5.438717ms)
+✔ duplicate session revisions and merged ancestors remain explicit warnings (0.204432ms)
+✔ 3D correspondence validation rejects 2D, insufficient, collinear, duplicate, clustered; advises extra spread (0.427773ms)
+✔ manual changes, undo, redo, reset and source switch invalidate late proposals without restoring identity (803.568753ms)
+✔ only newest job ticket can replace candidate; source pins and job revision checked (160.994297ms)
+✔ solved candidate requires complete transforms and connectivity, anchor identity (482.171417ms)
+✔ disconnected 3-map components block accept; ambiguous warnings preserved (321.709868ms)
+✔ requests contain full descriptors / pins, priors and XYZ without any preview or runtime control (0.246171ms)
+✔ accept and export verify server identity; originals immutable and catalogue refresh independent (321.677968ms)
+✔ stale review/save and server reuse of original identity fail closed (562.659568ms)
+✔ cancel invalidates in-flight response, failure remains retryable (160.913685ms)
+✔ HTTP adapter centralizes only extension paths; no calls until explicit actions (0.580203ms)
+✔ diagnostic NEEDS_PRIOR / DISCONNECTED retain partial transforms and warnings without acceptance (7.484693ms)
+✔ frontend imports create no network or runtime process (1.222648ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2891.01984
