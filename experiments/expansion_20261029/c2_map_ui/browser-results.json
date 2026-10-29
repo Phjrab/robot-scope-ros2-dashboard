@@ -116,14 +116,16 @@
             "000000000000000000000001",
             "000000000000000000000002"
           ],
+          "overlap": "1.00 source / 1.00 target",
           "rmse_m": 0.002431879284260114,
+          "distance_p95_m": 0.003887927457660127,
           "warning": "Review accepted edge"
         }
       ]
     },
     "reviewed_revision": 2,
-    "export_confirmation": "새 identity 확인: 63fac8e671db4ac9b32541a8 · rev d5f7486ab37a61a78fc6aaaa303c6bd6a937a4a64f5e66f0991a2ff2d1ea7713 · SHA-256 46be1a0ec38166fc78e7d0344d3e241d57e3c29807f22e819e22e04d1ec9dbde · 원본 유지 · 운영 미적용",
-    "catalogue_status": "SAVED · New PCD identity verified; refreshing catalogue."
+    "export_confirmation": "새 identity 확인: ebef29fe6a9e4e2b811e6d6d · rev 8198857d9d05b10a75e7fd6ebab5759086bcb66f8853bbc4b74d38b79cffe288 · SHA-256 46be1a0ec38166fc78e7d0344d3e241d57e3c29807f22e819e22e04d1ec9dbde · 원본 유지 · 운영 미적용",
+    "catalogue_status": "SAVED · Saved identity verified; catalogue has not returned it yet. Retry refresh."
   },
   "exact_dependency_http_operations": [
     {
@@ -147,19 +149,19 @@
       "method": "POST"
     },
     {
-      "path": "/api/v1/extensions/multimap/jobs/1dbe38a9cc984577888659a3",
+      "path": "/api/v1/extensions/multimap/jobs/8ce4c82b7aa84097b26340f3",
       "method": "GET"
     },
     {
-      "path": "/api/v1/extensions/multimap/jobs/1dbe38a9cc984577888659a3/review",
+      "path": "/api/v1/extensions/multimap/jobs/8ce4c82b7aa84097b26340f3/review",
       "method": "POST"
     },
     {
-      "path": "/api/v1/extensions/multimap/jobs/1dbe38a9cc984577888659a3/exports",
+      "path": "/api/v1/extensions/multimap/jobs/8ce4c82b7aa84097b26340f3/exports",
       "method": "POST"
     },
     {
-      "path": "/api/v1/extensions/multimap/exports/63fac8e671db4ac9b32541a8",
+      "path": "/api/v1/extensions/multimap/exports/ebef29fe6a9e4e2b811e6d6d",
       "method": "GET"
     },
     {
