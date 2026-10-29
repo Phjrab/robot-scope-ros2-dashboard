@@ -18,3 +18,9 @@ test('missing, late foreign evidence and stale current sample are labelled unkno
   assert.doesNotMatch(goalPrecisionText(g),/0.000 m/);
   g.goal_id='old';assert.match(goalPrecisionText(g),/현재 신선도 미충족/);
 });
+
+test('missing yaw remains unknown in radians and degrees', () => {
+  const text = goalPrecisionText({state:'succeeded',goal_id:'g',precision_evidence:{goal_id:'g',current:{fresh:true,error:{xy_m:null,yaw_rad:null}}}});
+  assert.match(text,/XY 미확인 m · yaw 미확인 rad \(미확인°\)/);
+  assert.doesNotMatch(text,/0\.00°/);
+});

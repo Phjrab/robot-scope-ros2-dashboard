@@ -26,6 +26,14 @@ from .observation_alignment import ReferenceIndex, solve_prepared
 
 SCHEMA = "robot-scope.operational-3d-bundle.v1"
 
+# A fresh stationary Navigation click is a rough seed, not a tracking result.
+# These bounds apply only before the first correction, never during tracking.
+INITIAL_REFINEMENT_M = .5
+INITIAL_REFINEMENT_RAD = .3
+INITIAL_CONFIRMATIONS = 3
+INITIAL_CONSISTENCY_M = .05
+INITIAL_CONSISTENCY_RAD = .05
+
 
 def digest(path):
     result = hashlib.sha256()
@@ -164,6 +172,8 @@ class OperationalLocalizer:
         self.body_velocity = None
         self.metrics = {}
         self.initial_pose_receipt = None
+        self.initializing = False
+        self.initial_candidates = []
         self.reason = 'WAITING_EXACT_STAMP_PAIR'
         self.future = None
         self.pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix='stored-map-fit')
@@ -174,6 +184,8 @@ class OperationalLocalizer:
         self.correction = None
         self.seed = None
         self.stopped_since = None
+        self.initializing = False
+        self.initial_candidates = []
         self.reason = reason
 
     def reseed(self, nav_base):
@@ -192,8 +204,12 @@ class OperationalLocalizer:
         staged_body[:3, :3] = np.array([[c, -s, 0.], [s, c, 0.], [0., 0., 1.]]) @ staged_body[:3, :3]
         staged_body[:2, 3] = requested[:2, 3]
         seed = inverse(self.nav_map) @ staged_body @ inverse(self.imu_base)
+        stopped_since = self.stopped_since
         self.invalidate('WAITING_MAP_CORRECTION')
+        # Preserve the already observed dwell only for this explicit reseed.
+        self.stopped_since = stopped_since
         self.seed = validate_transform(seed)
+        self.initializing = True
 
     def observe_odometry(self, stamp, odom_imu, receipt=None):
         now = self.clock() if receipt is None else receipt
@@ -290,6 +306,7 @@ class OperationalLocalizer:
         try:
             token, stamp, receipt, odom, result, transform = future.result()
         except Exception as exc:
+            self.initial_candidates = []
             self.reason = str(exc)[:120] or 'REGISTRATION_FAILED'
             return
         if token != self.generation:
@@ -297,15 +314,46 @@ class OperationalLocalizer:
         self.metrics = result['metrics']
         policy = self.bundle['policy']
         if not 0 <= self.clock() - receipt <= policy['max_correction_age_s']:
+            self.initial_candidates = []
             self.reason = 'CORRECTION_EXPIRED_BEFORE_APPLY'
             return
         if result['status'] != 'CANDIDATE' or self.metrics['rmse_m'] > policy['max_rmse_m']:
+            self.initial_candidates = []
             self.reason = result['reason'] if result['status'] != 'CANDIDATE' else 'OPERATIONAL_RESIDUAL_LIMIT'
             return
         prior = self.correction if self.correction is not None else self.seed @ inverse(odom)
         before, after = prior @ odom @ self.imu_base, transform @ odom @ self.imu_base
-        if (np.linalg.norm(after[:3, 3] - before[:3, 3]) > policy['max_translation_step_m']
-                or rotation_error_rad(after, before) > policy['max_rotation_step_rad']):
+        translation_step = float(np.linalg.norm(after[:3, 3] - before[:3, 3]))
+        rotation_step = rotation_error_rad(after, before)
+        self.metrics.update(correction_translation_m=translation_step, correction_rotation_rad=rotation_step)
+        if self.initializing:
+            if self.stopped_seconds() < 2.:
+                self.invalidate('INITIAL_REFINEMENT_REQUIRES_STOP')
+                return
+            if translation_step > INITIAL_REFINEMENT_M or rotation_step > INITIAL_REFINEMENT_RAD:
+                self.invalidate('INITIAL_REFINEMENT_OUT_OF_BOUNDS')
+                return
+            if self.metrics['overlap_ratio'] < .85:
+                self.initial_candidates = []
+                self.reason = 'INITIAL_REFINEMENT_LOW_OVERLAP'
+                return
+            # Independent fresh scans must agree with every retained correction.
+            # Compare them at the same body pose to account for the IMU lever arm.
+            if self.initial_candidates and self.clock() - self.initial_candidates[-1][1] > policy['max_correction_age_s']:
+                self.initial_candidates = []
+            if any(np.linalg.norm((candidate @ odom @ self.imu_base)[:3, 3] - after[:3, 3]) > INITIAL_CONSISTENCY_M
+                   or rotation_error_rad(candidate @ odom @ self.imu_base, after) > INITIAL_CONSISTENCY_RAD
+                   for candidate, _ in self.initial_candidates):
+                self.initial_candidates = []
+            self.initial_candidates.append((transform.copy(), receipt))
+            self.metrics['initial_confirmations'] = len(self.initial_candidates)
+            if len(self.initial_candidates) < INITIAL_CONFIRMATIONS:
+                self.reason = 'INITIAL_REFINEMENT_CONFIRMING'
+                return
+            self.initializing = False
+            self.initial_candidates = []
+        elif (translation_step > policy['max_translation_step_m']
+                or rotation_step > policy['max_rotation_step_rad']):
             self.invalidate('CORRECTION_JUMP_RESEED_REQUIRED')
             return
         self.correction = transform

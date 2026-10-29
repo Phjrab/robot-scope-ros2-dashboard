@@ -61,10 +61,41 @@
   const PIPELINE_ACTIVE_STATES = Object.freeze(['starting', 'running', 'stopping']);
   const GOAL_ACTIVE_STATES = Object.freeze(['pending', 'active', 'canceling']);
 
+  function operationalLocalizationStatus(snapshot) {
+    const source = snapshot?.operational_localization;
+    if (!source) return null;
+    if (!source.fresh) return {label: 'WAIT', note: '3D 위치추정 상태 수신 대기', tone: 'waiting'};
+    if (source.ready) return {label: 'READY', note: '저장 3D 지도 정합 완료', tone: 'ok'};
+    const state = source.state;
+    if (['WAITING_MAP_CORRECTION', 'WAITING_EXACT_STAMP_PAIR', 'INITIAL_REFINEMENT_CONFIRMING'].includes(state)) {
+      const count = source.metrics?.initial_confirmations || 0;
+      return {label: 'ALIGNING', note: `초기 위치 접수 · 정지 상태에서 3D 정합 확인 중 (${count}/3)`, tone: 'waiting'};
+    }
+    if (state === 'WAITING_EXPLICIT_INITIAL_POSE') return {label: 'NEED POSE', note: '주행 지도에서 현재 위치와 방향을 지정하세요.', tone: 'waiting'};
+    const reasons = {
+      CORRECTION_JUMP_RESEED_REQUIRED: '추적 위치 보정 한도 초과 · 초기 위치 재지정 필요',
+      INITIAL_REFINEMENT_OUT_OF_BOUNDS: '초기 정합이 클릭 위치에서 너무 벗어남 · 초기 위치 재지정 필요',
+      INITIAL_REFINEMENT_REQUIRES_STOP: '초기 정합 중 움직임 감지 · 정지 후 초기 위치 재지정 필요',
+      INITIAL_REFINEMENT_LOW_OVERLAP: '지도와 겹치는 점 부족 · 초기 정합 대기',
+      MAP_CORRECTION_STALE: '3D 정합 결과가 오래됨 · Goal 전송 대기',
+    };
+    return {label: 'BLOCKED', note: reasons[state] || `3D 정합 대기: ${state || '상태 미확인'}`, tone: 'error'};
+  }
+
   function finiteNumber(value, name) {
     const number = Number(value);
     if (!Number.isFinite(number)) throw new TypeError(`${name} must be a finite number`);
     return number;
+  }
+
+  function initialPoseModelLabel(scene, context, layout, pose) {
+    if (pose.mode !== 'initial') return 'GOAL · STAGED';
+    try {
+      if (scene?.drawRobotMapPreview?.(context, pose, point => worldToCanvas(layout, point))) return 'INITIAL · URDF';
+    } catch (error) {
+      console.warn('Initial pose model preview unavailable:', error);
+    }
+    return 'INITIAL · STAGED';
   }
 
   function normalizeYaw(value) {
@@ -285,7 +316,9 @@
     const number = (value, digits = 3) => typeof value === 'number' && Number.isFinite(value) ? value.toFixed(digits) : '미확인';
     const sample = (label, value) => {
       if (!value?.error) return `${label}: 미확인`;
-      return `${label}: XY ${number(value.error.xy_m)} m · yaw ${number(value.error.yaw_rad)} rad (${number(value.error.yaw_rad * 180 / Math.PI, 2)}°)`;
+      const yaw = value.error.yaw_rad;
+      const degrees = typeof yaw === 'number' && Number.isFinite(yaw) ? yaw * 180 / Math.PI : null;
+      return `${label}: XY ${number(value.error.xy_m)} m · yaw ${number(yaw)} rad (${number(degrees, 2)}°) · source ns ${value.stamp_ns || '미확인'}`;
     };
     lines.push(sample(evidence.current?.fresh ? '현재 오차' : '마지막 오차 (현재 신선도 미충족)', evidence.current));
     lines.push(sample('결과 수신 부근 표본', evidence.near_result));
@@ -364,5 +397,7 @@
     manualControlActive,
     goalPrecisionText,
     parameterEvidenceText,
+    operationalLocalizationStatus,
+    initialPoseModelLabel,
   });
 }));

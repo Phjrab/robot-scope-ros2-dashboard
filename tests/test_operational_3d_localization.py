@@ -257,7 +257,8 @@ class Operational3DLocalizationTests(unittest.TestCase):
         staged = from_translation_rpy([.5, .2, .6], [.08, -.15, .4])
         engine = self.make_engine(correction=staged, nav_map=nav_map, imu_base=imu_base)
         engine.observe_odometry(self.stamp, np.eye(4), self.clock())
-        for _ in range(23): self.observe(engine, np.eye(4))
+        for _ in range(23):
+            self.observe(engine, np.eye(4))
         before = nav_map @ staged @ imu_base
         yaw = math.atan2(before[1, 0], before[0, 0]) + .6
         requested = from_translation_rpy([before[0, 3]+.8, before[1, 3]-.4, 0.], [0., 0., yaw])
@@ -284,6 +285,68 @@ class Operational3DLocalizationTests(unittest.TestCase):
         np.testing.assert_allclose(angular, [0, 0, .5], atol=1e-10)
         self.assertGreater(engine.speed, .2)
         self.assertEqual(engine.stopped_seconds(), 0.)
+
+    def stationary_reseed(self, engine, pose):
+        engine.observe_odometry(self.stamp, np.eye(4), self.clock())
+        for _ in range(23):
+            self.observe(engine, np.eye(4))
+        engine.reseed(pose)
+
+    def inject_initial_result(self, engine, transform, *, overlap=1., rmse=.03):
+        from concurrent.futures import Future
+        engine.future = Future()
+        engine.future.set_result((engine.generation, self.stamp, self.clock(), np.eye(4),
+            {'status': 'CANDIDATE', 'metrics': {'rmse_m': rmse, 'overlap_ratio': overlap}}, transform))
+        engine.poll()
+
+    def test_explicit_stationary_click_refines_height_over_tracking_limit_after_three_scans(self):
+        engine = self.make_engine(correction=from_translation_rpy([0, 0, .2], [0, 0, 0]))
+        engine.bundle['policy']['max_translation_step_m'] = .15
+        self.stationary_reseed(engine, from_translation_rpy([.1, 0, 0], [0, 0, .08]))
+        for index in range(3):
+            for _ in range(6):
+                self.observe(engine, np.eye(4))
+            self.assertTrue(engine.submit(self.points, self.stamp, np.eye(4), self.clock()))
+            self.finish(engine)
+            self.assertEqual(engine.status()['ready'], index == 2)
+            self.assertEqual(engine.metrics['initial_confirmations'], index + 1)
+        np.testing.assert_allclose(engine.correction, np.eye(4), atol=2e-6)
+        # Initial refinement does not relax any subsequent tracking jump gate.
+        self.inject_initial_result(engine, from_translation_rpy([.16, 0, 0], [0, 0, 0]))
+        self.assertFalse(engine.status()['ready'])
+        self.assertEqual(engine.reason, 'CORRECTION_JUMP_RESEED_REQUIRED')
+
+    def test_initial_refinement_rejects_out_of_bounds_and_motion(self):
+        for pose in (from_translation_rpy([.51, 0, 0], [0, 0, 0]),
+                     from_translation_rpy([0, 0, 0], [0, 0, .31])):
+            engine = self.make_engine()
+            self.stationary_reseed(engine, np.eye(4))
+            self.inject_initial_result(engine, pose)
+            self.assertEqual(engine.reason, 'INITIAL_REFINEMENT_OUT_OF_BOUNDS')
+            self.assertIsNone(engine.nav_odom())
+        engine = self.make_engine()
+        self.stationary_reseed(engine, np.eye(4))
+        self.observe(engine, from_translation_rpy([.01, 0, 0], [0, 0, 0]))
+        self.inject_initial_result(engine, np.eye(4))
+        self.assertEqual(engine.reason, 'INITIAL_REFINEMENT_REQUIRES_STOP')
+
+    def test_initial_confirmations_reset_on_low_quality_disagreement_or_source_replacement(self):
+        engine = self.make_engine()
+        self.stationary_reseed(engine, np.eye(4))
+        self.inject_initial_result(engine, np.eye(4))
+        self.assertEqual(len(engine.initial_candidates), 1)
+        self.inject_initial_result(engine, np.eye(4), overlap=.8)
+        self.assertEqual(engine.initial_candidates, [])
+        self.inject_initial_result(engine, np.eye(4))
+        self.inject_initial_result(engine, np.eye(4), rmse=.11)
+        self.assertEqual(engine.initial_candidates, [])
+        self.inject_initial_result(engine, np.eye(4))
+        self.inject_initial_result(engine, from_translation_rpy([.06, 0, 0], [0, 0, 0]))
+        self.assertEqual(len(engine.initial_candidates), 1)
+        self.assertFalse(engine.status()['ready'])
+        engine.invalidate('SOURCE_CHANGED')
+        self.assertFalse(engine.initializing)
+        self.assertEqual(engine.initial_candidates, [])
 
     def test_duplicate_query_stamp_and_stale_capture_do_not_launch_another_fit(self):
         engine = self.make_engine()

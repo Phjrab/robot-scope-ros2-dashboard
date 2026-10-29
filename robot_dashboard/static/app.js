@@ -785,6 +785,7 @@ async function applyRobotModel(profile = activeRobotProfile()) {
     await Promise.all(renderers.map(({ renderer }) => renderer.loadOfficialRobotModel(assetUrl)));
     if (generation !== robotModelLoadGeneration) return;
     robotModelsReady = true;
+    scheduleNavigationMapDraw();
     ui.savedModelState.textContent = modelBadgeLabel(profile);
     ui.savedModelState.classList.add('ready');
     updateLiveModelBadge();
@@ -3641,7 +3642,7 @@ function drawNavigationMap() {
         layout,
         navigationStagedPose,
         navigationStagedPose.mode === 'initial' ? '#5dded8' : '#ffc66d',
-        navigationStagedPose.mode === 'initial' ? 'INITIAL · STAGED' : 'GOAL · STAGED',
+        navigationEngine.initialPoseModelLabel(savedScene3d, context, layout, navigationStagedPose),
         ratio,
       );
     }
@@ -3696,7 +3697,7 @@ function renderNavigationPoseSelection() {
     ? `${staged.mode === 'initial' ? 'INITIAL' : 'GOAL'} · STAGED`
     : navigationMapTool ? `${navigationMapTool === 'initial' ? 'INITIAL' : 'GOAL'} · DRAW ON MAP` : 'NO TOOL';
   ui.navigationPoseCoordinates.textContent = staged
-    ? `X ${staged.x.toFixed(3)} · Y ${staged.y.toFixed(3)} · YAW ${staged.yaw.toFixed(3)}`
+    ? `X ${staged.x.toFixed(3)} · Y ${staged.y.toFixed(3)} · YAW ${staged.yaw.toFixed(3)}${staged.mode === 'initial' ? ' · URDF 기본 자세 미리보기' : ''}`
     : 'X — · Y — · YAW —';
   const stagedAllowed = staged && navigationPoseToolAllowed(staged.mode);
   ui.navigationPoseDiscard.disabled = !staged || navigationOperationBusy;
@@ -3988,13 +3989,13 @@ function renderNavigationStatus() {
     robotOnline ? 'ONLINE' : bridgeSetupRequired ? 'TELEMETRY ONLY' : 'OFFLINE',
     robotOnline ? '로봇 상태 수신 중' : bridgeSetupRequired ? '센서 수신 중 · 제어 브리지 미준비' : '새 주행 명령 잠김',
   );
+  const operationalLocalization = navigationEngine.operationalLocalizationStatus(snapshot);
   navigationStatusCard(
-    ui.navigationLocalizationState,
-    ui.navigationLocalizationNote,
-    localizationState === 'localized' ? 'ok' : ['lost', 'error'].includes(localizationState) ? 'error' : 'waiting',
-    localizationState.toUpperCase(),
-    startupPending ? startup.message : localizationState === 'localized' ? 'map frame pose ready' : localizationState === 'lost' ? '초기 위치 재설정 필요' :
-      pipelineActive ? '초기 위치 필요' : 'START NAV2 후 초기 위치 필요',
+    ui.navigationLocalizationState, ui.navigationLocalizationNote,
+    operationalLocalization?.tone || (localizationState === 'localized' ? 'ok' : ['lost', 'error'].includes(localizationState) ? 'error' : 'waiting'),
+    operationalLocalization?.label || localizationState.toUpperCase(),
+    operationalLocalization?.note || (startupPending ? startup.message : localizationState === 'localized' ? 'map frame pose ready' : localizationState === 'lost' ? '초기 위치 재설정 필요' :
+      pipelineActive ? '초기 위치 필요' : 'START NAV2 후 초기 위치 필요'),
   );
   navigationStatusCard(
     ui.navigationGoalState,
@@ -4014,6 +4015,7 @@ function renderNavigationStatus() {
     element.classList.toggle('is-ok', value === true);
     element.classList.toggle('is-error', navigationApiAvailable === true && blocked);
     element.querySelector('strong').textContent = value === true ? 'READY' : needsInitialPose ? 'NEED POSE' : blocked ? 'BLOCKED' : 'WAIT';
+    if (needsInitialPose && operationalLocalization) element.querySelector('strong').textContent = operationalLocalization.label;
   });
   const bindings = snapshot.bindings || {};
   ui.navigationScanBinding.textContent = bindings.scan || '/scan · XT16 360°';
@@ -4181,7 +4183,7 @@ async function sendNavigationPose() {
   if (staged.mode === 'goal') body.confirmed = true;
   const response = await runNavigationMutation(endpoint, {
     ...body,
-  }, staged.mode === 'goal' ? 'Nav2 목표를 전송했습니다.' : '초기 위치를 전송했습니다.');
+  }, staged.mode === 'goal' ? 'Nav2 목표를 전송했습니다.' : '초기 위치를 접수했습니다. 정합 완료 후 Goal Pose가 활성화됩니다.');
   if (response) {
     navigationMapTool = '';
     discardNavigationPose();

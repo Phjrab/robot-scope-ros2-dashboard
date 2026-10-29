@@ -2400,6 +2400,15 @@ class NavigationCoordinator:
         if isinstance(calibration, Mapping):
             result["calibration_assistant"] = dict(calibration)
         diagnostics = (runtime.get("runtime_health") or {}).get("localization_diagnostics")
+        runtime_health = runtime.get("runtime_health") or {}
+        operational = runtime_health.get("operational_3d")
+        if isinstance(operational, Mapping):
+            result["operational_localization"] = {
+                "fresh": runtime_health.get("fresh") is True,
+                "state": operational.get("state"),
+                "ready": operational.get("ready") is True,
+                "metrics": dict(operational.get("metrics") or {}),
+            }
         result["localization_diagnostics"] = dict(diagnostics) if isinstance(diagnostics, Mapping) else None
         result["localization_diagnostics_unavailable_reason"] = None if isinstance(diagnostics, Mapping) else "unobservable"
         deactivation_reason = runtime.get("deactivation_reason")

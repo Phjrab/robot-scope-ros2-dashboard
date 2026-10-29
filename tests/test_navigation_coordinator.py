@@ -365,6 +365,17 @@ class NavigationCoordinatorTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.coordinator.internal_start_state()["token"], token)
         self.assertIsInstance(self.coordinator.state_lock, type(threading.RLock()))
 
+    async def test_operational_status_is_visible_without_changing_goal_admission(self):
+        self.agent.runtime['runtime_health'] = {'fresh': True, 'operational_3d': {
+            'ready': False, 'state': 'INITIAL_REFINEMENT_CONFIRMING',
+            'metrics': {'initial_confirmations': 2}}}
+        self.agent.runtime['safety']['can_send_goal'] = False
+        view = self.coordinator.view()
+        self.assertEqual(view['operational_localization'], {
+            'fresh': True, 'ready': False, 'state': 'INITIAL_REFINEMENT_CONFIRMING',
+            'metrics': {'initial_confirmations': 2}})
+        self.assertFalse(view['safety']['can_send_goal'])
+
     async def test_stop_fence_prevents_commit_and_replacement_start(self):
         token = self.coordinator.begin_start()
         self.assertEqual(self.coordinator.request_start_cancel(), token)

@@ -121,6 +121,18 @@ class OperationalRuntimeBindingTests(unittest.TestCase):
         self.engine.future.result(timeout=5.)
         self.node._poll_operational()
 
+    def establish_tracking(self):
+        for index in range(3):
+            if index:
+                for _ in range(6):
+                    self.tick()
+            self.node._on_registered(self.registered())
+            self.complete_fit()
+            self.assertEqual(self.engine.status()['ready'], index == 2)
+            if index < 2:
+                edges = [(m.header.frame_id, m.child_frame_id) for m in self.node._tf_broadcaster.messages]
+                self.assertNotIn(('map', 'odom'), edges)
+
     def test_job_loads_real_reference_but_staged_seed_cannot_auto_initialize(self):
         self.assertEqual(self.engine.bundle['localization_3d']['sha256'], self.sha)
         self.assertEqual(self.engine.full_count, len(self.points))
@@ -135,8 +147,7 @@ class OperationalRuntimeBindingTests(unittest.TestCase):
         self.assertIsNone(self.engine.future, 'a stop alone must not activate the staged seed')
         self.confirm_initial()
         self.assertIsNotNone(self.engine.seed)
-        self.node._on_registered(self.registered())
-        self.complete_fit()
+        self.establish_tracking()
         self.assertTrue(self.engine.status()['ready'], self.engine.status())
 
     def test_early_initialpose_is_rejected_until_observed_stop(self):
@@ -164,6 +175,10 @@ class OperationalRuntimeBindingTests(unittest.TestCase):
     def test_registered_cloud_waits_for_exact_source_stamp_not_nearest_receipt(self):
         self.observe_stop()
         self.confirm_initial()
+        self.establish_tracking()
+        for _ in range(6):
+            self.tick()
+        previous_sequence = self.engine.sequence
         source_stamp = self.node.now_ns + 10_000_000
         self.node._on_registered(self.registered(source_stamp))
         self.assertIsNone(self.engine.future)
@@ -176,7 +191,7 @@ class OperationalRuntimeBindingTests(unittest.TestCase):
         self.node._poll_operational()
         self.complete_fit()
         self.assertEqual(self.engine.last_accepted_stamp, source_stamp)
-        self.assertEqual(self.engine.sequence, 1)
+        self.assertEqual(self.engine.sequence, previous_sequence + 1)
 
     def test_unpaired_registered_cloud_expires_without_retiming_or_fit(self):
         self.observe_stop()
@@ -204,8 +219,7 @@ class OperationalRuntimeBindingTests(unittest.TestCase):
     def test_fit_is_consumed_by_existing_tf_and_pose_publishers_at_source_stamp(self):
         self.observe_stop()
         self.confirm_initial()
-        self.node._on_registered(self.registered())
-        self.complete_fit()
+        self.establish_tracking()
         self.tick()
         map_tf = [message for message in self.node._tf_broadcaster.messages
                   if (message.header.frame_id, message.child_frame_id) == ('map', 'odom')][-1]
@@ -218,8 +232,7 @@ class OperationalRuntimeBindingTests(unittest.TestCase):
     def test_registered_publisher_replacement_invalidates_existing_map_correction(self):
         self.observe_stop()
         self.confirm_initial()
-        self.node._on_registered(self.registered())
-        self.complete_fit()
+        self.establish_tracking()
         self.assertIsNotNone(self.engine.correction)
         self.node.gids['/cloud_registered'] = b'\x06' * 16
         self.node._on_registered(self.registered())

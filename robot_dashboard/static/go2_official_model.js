@@ -471,6 +471,28 @@
       };
     };
 
+    // Reuse the saved-map URDF mesh at a proposed base_link pose on a 2D map.
+    // Orthographic metric projection; no scene, telemetry or control state write.
+    prototype.drawRobotMapPreview = function drawRobotMapPreview(ctx, pose, project, color = '#5dded8') {
+      const config = this._ensureGo2OfficialConfig();
+      const runtime = this._go2OfficialRuntime;
+      if (!config.enabled || !runtime || this._go2OfficialLoadedUrl !== config.assetUrl
+          || !['x', 'y', 'yaw'].every(key => Number.isFinite(pose?.[key]))) return false;
+      const view = {
+        ctx, width: ctx.canvas.width, height: ctx.canvas.height, _go2OfficialConfig: config,
+        _project: point => {
+          const pixel = project({x: point[0], y: point[1]});
+          return pixel && {x: pixel.x, y: pixel.y, depth: -point[2]};
+        },
+      };
+      drawOfficialRobot(view, runtime, {
+        pose: {...pose, z: 0, roll: 0, pitch: 0, preview: true},
+        joints: runtime.asset.skeleton.default_joint_positions || {},
+        suppressLabel: true, tint: parseHex(color),
+      });
+      return true;
+    };
+
     prototype._drawRobot = function drawGo2OfficialOrFallback(previewPose = null, previewLabel = null, previewColor = null) {
       const config = this._ensureGo2OfficialConfig();
       if (!config.enabled) return fallbackDrawRobot.call(this, previewPose, previewLabel);
