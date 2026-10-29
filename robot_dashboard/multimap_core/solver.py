@@ -139,6 +139,25 @@ def refine(a, b, seed, resolution, canceled):
     return T
 
 
+def residual_rank(value):
+    """Zero is exact, None is missing, malformed residuals fail closed.
+
+    A tuple separates missing data from any finite valid metric. This ranking
+    never alters overlap priority. Transform values break exact ties in both
+    candidate stages, independent of candidate enumeration order.
+    """
+    if value is None:
+        return (1, 0.0)
+    value = float(value)
+    if not np.isfinite(value) or value < 0:
+        raise ValueError("residual must be finite and nonnegative or None")
+    return (0, value)
+
+
+def _transform_tie(transform):
+    return tuple(np.asarray(transform).ravel())
+
+
 def coarse(a, b):
     """Fixed CPU baseline: local distance signatures + seeded deterministic RANSAC.
 
@@ -173,8 +192,13 @@ def coarse(a, b):
             continue
         T = _rigid_fit(b[ids], a[match[ids]])
         d, _ = tree.query(transform_points(T, b))
-        scored.append((float(np.quantile(d, 0.5)), T))
-    out.extend(t for _, t in sorted(scored, key=lambda x: x[0])[:6])
+        scored.append((np.quantile(d, 0.5), T))
+    out.extend(
+        t
+        for _, t in sorted(
+            scored, key=lambda x: (residual_rank(x[0]), _transform_tie(x[1]))
+        )[:6]
+    )
     return out
 
 
@@ -188,7 +212,8 @@ def pair(a, b, seeds, resolution, canceled):
     candidates.sort(
         key=lambda x: (
             -min(x[1]["overlap_target"], x[1]["overlap_source"]),
-            x[1]["rmse_m"] or 1e9,
+            residual_rank(x[1]["rmse_m"]),
+            _transform_tie(x[0]),
         )
     )
     T, m = candidates[0]
@@ -205,7 +230,10 @@ def pair(a, b, seeds, resolution, canceled):
         if min(q["overlap_target"], q["overlap_source"])
         >= min(m["overlap_target"], m["overlap_source"]) - 0.03
         and q["rmse_m"] is not None
-        and q["rmse_m"] < max(resolution, m["rmse_m"] * 1.2)
+        and q["rmse_m"]
+        < max(
+            resolution, (m["rmse_m"] if m["rmse_m"] is not None else float("inf")) * 1.2
+        )
     ]
     return T, m, accepted and not alternatives, alternatives
 

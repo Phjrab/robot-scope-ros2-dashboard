@@ -12,7 +12,7 @@ import numpy as np
 from .solver import solve, source_key
 from robot_dashboard.relocalization.experimental_se3 import inverse
 
-C1_TESTED_SHA = "2402c02c6f91ba54064894b21735e01b98610acd"
+C1_TESTED_SHA = "54629c793ad4ae0ea88127f00ed1b7f8805fc4e2"
 
 
 def to_core_request(request, *, job_id, proposal_revision=1):

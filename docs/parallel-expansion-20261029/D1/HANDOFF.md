@@ -1,5 +1,9 @@
 # D1 handoff — offline multimap candidate
 
+**Latest: [ROUND2.md](ROUND2.md) — D1_ZERO_RMSE_FIXED, current exact-SHA
+C1 actual solver/full-source storage compatibility.** First-round evidence below
+is retained as historical evidence, not overwritten.
+
 - Branch: `review/20261029-x-d1-multimap`.
 - Fixed BASE_SHA: `f469155c2b0c505f3e472e878f75029d7b8d39df` (fresh ordinary
   clone of then-current remote main; no reset/shared checkout).

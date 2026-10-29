@@ -1,0 +1,21 @@
+{
+  "classification": "SYNTHETIC actual core/storage; HTTP/UI NOT_RUN in this check",
+  "c1_sha": "54629c793ad4ae0ea88127f00ed1b7f8805fc4e2",
+  "c2_inspected_sha": "5eed1a9959ca25a4f30bd5b5712806a5ad660c51",
+  "input_hashes": {
+    "000000000000000000000001": "5a501d26741196765823c05d816df8d1ab171dd9bdf10e9f6abc7da99b1e8a8f",
+    "000000000000000000000002": "6d8385d3772a00e58e1b13335c782a9e1e4caeb13e55cdb9d1d28bc17a5a2869"
+  },
+  "output_hashes": {
+    "map.pcd": "46be1a0ec38166fc78e7d0344d3e241d57e3c29807f22e819e22e04d1ec9dbde",
+    "occupancy.pgm": "0f99d8759571beb4e73558bf36391d2e081cea53e99ef764494aa4b55105cbf7",
+    "occupancy.yaml": "266e51a3f2dad9b78c41e698df7eb882fd4b9ac7c6e9fedaec1135bf3b2ef965"
+  },
+  "point_count": 800,
+  "proposal_state": "SOLVED_CANDIDATE",
+  "review_revision": 2,
+  "operational_installed": false,
+  "full_record_xyz_normal_scalar_checks": "PASS",
+  "stale_revision_rejected": true,
+  "source_hashes_preserved": true
+}
