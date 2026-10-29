@@ -1,4 +1,11 @@
-# Round 2 current boundary
+# Current owner profile
+
+Use the explicit `CanonicalCorePorts` factory and C1 0.2 service described in
+[FOLLOWUP.md](FOLLOWUP.md) and the [reproduction/host example](../../../experiments/expansion_20261029/c4_runtime/followup/README.md).
+The prior `CorePorts` and worker proposals below remain pinned historical
+interfaces, not automatic aliases. The 0.2 → C3 boundary currently fails.
+
+# Historical round 2 boundary
 
 The authoritative actual-owner ports are now `robot_dashboard/expansion_runtime/`.
 See [ROUND2.md](ROUND2.md) for pins, limits and execution evidence. The old
@@ -188,9 +195,3 @@ product profile is registered. To roll back a review harness, stop its isolated
 nodes and discard the temporary generated profile; there is no product config
 to restore. Product integration, main merge, deployment and device tests require
 the user's later instruction after the ongoing validation work concludes.
-# Current owner profile
-
-Use the explicit `CanonicalCorePorts` factory and C1 0.2 service described in
-[FOLLOWUP.md](FOLLOWUP.md) and the [reproduction/host example](../../../experiments/expansion_20261029/c4_runtime/followup/README.md).
-The prior `CorePorts` and worker proposals below remain pinned historical
-interfaces, not automatic aliases. The 0.2 → C3 boundary currently fails.
