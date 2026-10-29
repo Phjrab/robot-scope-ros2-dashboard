@@ -8,7 +8,10 @@ prevents new robot work while either local service is transitioning.
 
 from __future__ import annotations
 
+import asyncio
+import logging
 import os
+import threading
 from typing import Any, Callable, Mapping, Protocol, Sequence
 
 from ..control_bridge_lifecycle import (
@@ -100,6 +103,8 @@ class LifecycleCoordinator:
         self._service_lifecycle = service_lifecycle
         self._control_bridge_lifecycle = control_bridge_lifecycle
         self._control_bridge_autostart = control_bridge_autostart is True
+        self._bridge_autostart_finished = False
+        self._bridge_autostart_lock = threading.RLock()
         self._observation_activity: Callable[[], bool] = lambda: False
 
     def set_observation_activity(self, provider: Callable[[], bool]) -> None:
@@ -310,7 +315,10 @@ class LifecycleCoordinator:
     def schedule_control_bridge_start(
         self, *, confirmed: bool
     ) -> dict[str, Any]:
-        return self.control_bridge_lifecycle.schedule_start(confirmed=confirmed)
+        with self._bridge_autostart_lock:
+            if confirmed:
+                self._bridge_autostart_finished = True
+            return self.control_bridge_lifecycle.schedule_start(confirmed=confirmed)
 
     def ensure_control_bridge_started(self) -> dict[str, Any]:
         """Start the fixed bridge when the configured service is inactive.
@@ -320,22 +328,54 @@ class LifecycleCoordinator:
         preflight and immutable-service checks still run in ``schedule_start``.
         """
 
-        snapshot = self.control_bridge_snapshot()
-        if not self._control_bridge_autostart:
-            return snapshot
-        systemd = (
-            snapshot.get("systemd")
-            if isinstance(snapshot.get("systemd"), Mapping)
-            else {}
-        )
-        if systemd.get("active_state") == "active" or not snapshot.get("can_start"):
-            return snapshot
-        return self.control_bridge_lifecycle.schedule_start(confirmed=True)
+        with self._bridge_autostart_lock:
+            snapshot = self.control_bridge_snapshot()
+            if not self._control_bridge_autostart or self._bridge_autostart_finished:
+                return snapshot
+            systemd = snapshot.get("systemd") if isinstance(snapshot.get("systemd"), Mapping) else {}
+            if systemd.get("active_state") == "active":
+                self._bridge_autostart_finished = True
+                return snapshot
+            if not snapshot.get("can_start"):
+                return snapshot
+            # Dispatch once. Service failures keep their existing systemd
+            # recovery policy; startup must not defeat a deliberate STOP.
+            self._bridge_autostart_finished = True
+            return self.control_bridge_lifecycle.schedule_start(confirmed=True)
+
+    def cancel_control_bridge_autostart(self) -> None:
+        with self._bridge_autostart_lock:
+            self._bridge_autostart_finished = True
+
+    def start_control_bridge_autostart(self) -> asyncio.Task:
+        """Keep startup orchestration with the lifecycle owner, outside the UI."""
+        try:
+            self.ensure_control_bridge_started()
+        except Exception:
+            # Observability stays available when a bridge start is refused.
+            logging.getLogger(__name__).exception('Go2 bridge automatic startup failed')
+        return asyncio.create_task(self.wait_for_control_bridge_startup())
+
+    async def wait_for_control_bridge_startup(self, *, attempts=30, interval_s=1.0) -> None:
+        """Bounded startup-only readiness wait, never an always-rearm loop."""
+        for _ in range(attempts):
+            if not self._control_bridge_autostart or self._bridge_autostart_finished:
+                return
+            await asyncio.sleep(interval_s)
+            try:
+                await asyncio.to_thread(self.ensure_control_bridge_started)
+            except Exception:
+                logging.getLogger(__name__).exception('Go2 bridge automatic startup failed')
+                return
+        self.cancel_control_bridge_autostart()
 
     def schedule_control_bridge_stop(
         self, *, confirmed: bool
     ) -> dict[str, Any]:
-        return self.control_bridge_lifecycle.schedule_stop(confirmed=confirmed)
+        with self._bridge_autostart_lock:
+            if confirmed:
+                self._bridge_autostart_finished = True
+            return self.control_bridge_lifecycle.schedule_stop(confirmed=confirmed)
 
     def require_idle(self) -> None:
         """Prevent new work while either service transition is active."""
@@ -350,6 +390,7 @@ class LifecycleCoordinator:
     def close(self) -> None:
         """Cancel observers only; neither manager dispatches from ``close``."""
 
+        self.cancel_control_bridge_autostart()
         try:
             self.control_bridge_lifecycle.close()
         finally:

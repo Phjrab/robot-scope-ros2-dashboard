@@ -300,6 +300,43 @@ class LifecycleCoordinatorTests(unittest.TestCase):
         self.assertEqual(coordinator.schedule_control_bridge_start(confirmed=True)["action"], "start")
         self.assertIn(("bridge_start", True), self.events)
 
+    def test_startup_waits_for_readiness_once_without_rearming_after_stop(self):
+        import asyncio
+        from unittest.mock import patch
+        self.bridge.can_start = False
+        self.coordinator.ensure_control_bridge_started()
+        async def become_ready(_):
+            self.bridge.can_start = True
+        with patch('robot_dashboard.application.lifecycle_coordinator.asyncio.sleep', become_ready):
+            asyncio.run(self.coordinator.wait_for_control_bridge_startup(attempts=3))
+        self.assertEqual(self.events.count(('bridge_start', True)), 1)
+        self.coordinator.schedule_control_bridge_stop(confirmed=True)
+        asyncio.run(self.coordinator.wait_for_control_bridge_startup(attempts=3, interval_s=0))
+        self.assertEqual(self.events.count(('bridge_start', True)), 1)
+
+    def test_operator_stop_during_startup_wait_cancels_pending_automatic_start(self):
+        import asyncio
+        from unittest.mock import patch
+        self.bridge.can_start = False
+        async def operator_stop(_):
+            self.coordinator.schedule_control_bridge_stop(confirmed=True)
+            self.bridge.can_start = True
+        with patch('robot_dashboard.application.lifecycle_coordinator.asyncio.sleep', operator_stop):
+            asyncio.run(self.coordinator.wait_for_control_bridge_startup(attempts=3))
+        self.assertNotIn(('bridge_start', True), self.events)
+
+    def test_startup_wait_is_bounded_and_close_prevents_later_start(self):
+        import asyncio
+        self.bridge.can_start = False
+        asyncio.run(self.coordinator.wait_for_control_bridge_startup(attempts=3, interval_s=0))
+        self.bridge.can_start = True
+        self.coordinator.ensure_control_bridge_started()
+        self.assertNotIn(('bridge_start', True), self.events)
+        other = self.make_coordinator()
+        other.close()
+        other.ensure_control_bridge_started()
+        self.assertNotIn(('bridge_start', True), self.events)
+
     def test_new_work_gate_reports_the_exact_busy_lifecycle(self):
         self.coordinator.require_idle()
 

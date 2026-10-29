@@ -77,7 +77,8 @@ class ControlBridgeLifecycleAppContractTests(unittest.TestCase):
     def test_dashboard_lifespan_ensures_fixed_bridge_start_without_motion_calls(self):
         lifespan_node = function_node("lifespan")
         attributes = attribute_names(lifespan_node)
-        self.assertIn("ensure_control_bridge_started", attributes)
+        self.assertIn("start_control_bridge_autostart", attributes)
+        self.assertIn("cancel_control_bridge_autostart", attributes)
         for forbidden in ("arm", "acquire_lease", "set_deadman", "send_velocity"):
             self.assertNotIn(forbidden, attributes)
 
