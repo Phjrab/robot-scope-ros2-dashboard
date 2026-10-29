@@ -1,3 +1,5 @@
+> ROUND1 historical reference. ROUND2 supersedes time/coverage/native status: see [ROUND2.md](ROUND2.md) and [ROUND2_RESULTS.md](ROUND2_RESULTS.md).
+
 # D3 integration points — proposals only
 
 No common files, services, UI, ROS adapter, controller, bridge or operational

@@ -1,6 +1,6 @@
 # Latest: ROUND2
 
-See [ROUND2.md](ROUND2.md) for the canonical time/coverage corrections and the new isolated hosted-native workflow. The original first-round result below is retained as historical evidence.
+See [ROUND2_RESULTS.md](ROUND2_RESULTS.md) for actual **5/5 native PASS**, canonical consumer tests and first-blocker evidence; [ROUND2.md](ROUND2.md) documents the corrected boundaries. The original first-round result below is retained as historical evidence.
 
 # D3 collision geometry and isolated-simulation handoff
 
