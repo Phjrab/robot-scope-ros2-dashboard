@@ -9,7 +9,7 @@ import unittest
 from unittest.mock import patch
 
 import numpy as np
-from fastapi.testclient import TestClient
+from tests.expansion_services.http_client import TestClient
 
 from robot_dashboard.expansion_contracts import ContractError, CollisionAssessment
 from robot_dashboard.expansion_contracts.fixtures import (

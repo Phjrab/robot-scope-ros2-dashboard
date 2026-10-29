@@ -1,0 +1,964 @@
+{
+  "ready_partial": {
+    "collision_assessment": {
+      "clock_domain": "fixture-clock",
+      "evidence_kind": "SYNTHETIC",
+      "frame_key": {
+        "frame_id": "odom",
+        "source_epoch": "synthetic-1"
+      },
+      "freshness": {
+        "issues": [
+          "SPARSE_COVERAGE_NOT_FREE_SPACE"
+        ],
+        "joint_age_s": 0.0,
+        "obstacle_age_s": 0.0,
+        "pose_age_s": 0.0,
+        "time_conversion": {
+          "binding_id": "explicit-synthetic-shared-time",
+          "offset_ns": "0",
+          "original_interval": {
+            "clock_domain": "fixture-clock",
+            "from_ns": "1000000000",
+            "until_ns": "1250000000"
+          },
+          "source_epoch": "synthetic-1",
+          "uncertainty_ns": "0"
+        }
+      },
+      "host_clock_id": "fixture-host",
+      "joint_state_ref": {
+        "stamp_ns": "1000000000"
+      },
+      "map_binding": {
+        "generation": 0,
+        "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+        "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "min_clearance": 0.47533330631256104,
+      "modeled_ttc": null,
+      "obstacle_frame_ref": {
+        "clock_domain": "fixture-clock",
+        "evidence_kind": "SYNTHETIC",
+        "frame_key": {
+          "frame_id": "odom",
+          "source_epoch": "synthetic-1"
+        },
+        "host_clock_id": "fixture-host",
+        "map_binding": {
+          "generation": 0,
+          "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+          "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "received_monotonic_ns": "1000000000",
+        "sequence": 1,
+        "source_epoch": "synthetic-1",
+        "stamp_ns": "1000000000"
+      },
+      "padded_envelope": {
+        "command_arc_approximation_bound_m": 0.0,
+        "continuous_clearance_lower_bound": 0.47533330631256104,
+        "future_joints": "HELD_CURRENT_NOT_GAIT_PREDICTION",
+        "future_obstacles": "HELD_CURRENT_NOT_MOTION_PREDICTION",
+        "gait_margin_m": 0.0,
+        "joint_uncertainty_m": 0.0,
+        "mesh_backend": "NOT_RUN",
+        "min_clearance": 0.47533330631256104,
+        "overlap": false,
+        "padding_m": 0.03,
+        "pose_uncertainty_m": 0.01,
+        "samples": 1,
+        "support_pairs": [],
+        "sweep_displacement_bound_m": 0.0,
+        "unmodeled": []
+      },
+      "path_ref": null,
+      "predicted_overlap": false,
+      "producer": "d3.collision_geometry_core",
+      "reason": "UNKNOWN",
+      "received_monotonic_ns": "1000000000",
+      "recommendation": "HOLD_FOR_VALID_INPUT",
+      "robot_geometry_hash": "a45dbb26da3573a33855c9a38fbcf68fedea2087ce1648f33d64bafc948a21df",
+      "robot_pose_ref": {
+        "clock_domain": "fixture-clock",
+        "evidence_kind": "SYNTHETIC",
+        "frame_key": {
+          "frame_id": "odom",
+          "source_epoch": "synthetic-1"
+        },
+        "host_clock_id": "fixture-host",
+        "map_binding": {
+          "generation": 0,
+          "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+          "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "received_monotonic_ns": "1000000000",
+        "sequence": 1,
+        "source_epoch": "synthetic-1",
+        "stamp_ns": "1000000000"
+      },
+      "schema_version": "0.2",
+      "sequence": 1,
+      "severity": "UNKNOWN",
+      "source_epoch": "synthetic-1",
+      "stamp_ns": "1000000000",
+      "unpadded_envelope": {
+        "distance_kind": "conservative_signed_lower_bound_m",
+        "geometry_source_hash": "d594ed0c3497b641cf09993a04029ba472abac659bbf11d8ac187cad38e33f1d",
+        "min_clearance": 0.515333306312561,
+        "overlap": false,
+        "provenance": "SYNTHETIC_standing_envelope_not_measured_gait"
+      },
+      "validity_interval": {
+        "end_monotonic_ns": "1250000000",
+        "host_clock_id": "fixture-host",
+        "start_monotonic_ns": "1000000000"
+      }
+    },
+    "controller_local_trajectory": null,
+    "costmap_snapshot": null,
+    "evidence_kind": "SYNTHETIC",
+    "global_path": null,
+    "map_binding": {
+      "generation": 0,
+      "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+      "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "obstacle_frame": {
+      "calibration_id": "synthetic-lidar-calibration",
+      "clock_domain": "fixture-clock",
+      "controller_consumption_observed": false,
+      "costmap_ingestion_observed": false,
+      "dropped_counts": {
+        "ground": 984,
+        "invalid_or_range": 0,
+        "object_budget": 0,
+        "self": 0
+      },
+      "evidence_kind": "SYNTHETIC",
+      "frame_key": {
+        "frame_id": "odom",
+        "source_epoch": "synthetic-1"
+      },
+      "health": {
+        "age_status": "UNKNOWN",
+        "c4_diagnostics": [],
+        "c4_runtime": {
+          "dropped": 0,
+          "executing_capacity": 1,
+          "invalid": 0,
+          "late_results": 0,
+          "latency": {
+            "processing_ms": 0.0,
+            "queue_ms": 0.0,
+            "receipt_to_done_ms": 9.999999974752427e-06
+          },
+          "queue_capacity": 1,
+          "rejected": 0,
+          "sources": {
+            "lidar": {
+              "age_ns": 10,
+              "fusion_time": "SOURCE_CLOCK_ONLY",
+              "source_stamp_ns": "1000000000",
+              "stale": false
+            }
+          },
+          "worker_error": null
+        },
+        "c4_source_identity": {
+          "provenance": null,
+          "receipt_clock_id": null,
+          "received_ns": null,
+          "source_id": null,
+          "tf_epoch": null
+        },
+        "c4_source_observation": {
+          "frame_id": "odom",
+          "kind": "PointCloud2",
+          "metadata": {},
+          "origin_m": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "source_id": "lidar"
+        },
+        "coverage": "PARTIAL",
+        "motion_compensated": false,
+        "reasons": [
+          "SELF_GEOMETRY_UNKNOWN"
+        ],
+        "source_age_ns": null
+      },
+      "host_clock_id": "fixture-host",
+      "input_sources": [
+        {
+          "calibration_id": "synthetic-lidar-calibration",
+          "clock_domain": "fixture-clock",
+          "evidence_kind": "SYNTHETIC",
+          "field_layout": [
+            "x:float32",
+            "y:float32",
+            "z:float32"
+          ],
+          "frame_key": {
+            "frame_id": "odom",
+            "source_epoch": "synthetic-1"
+          },
+          "host_clock_id": "fixture-host",
+          "map_binding": {
+            "generation": 0,
+            "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+            "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          },
+          "received_monotonic_ns": "1000000000",
+          "sequence": 1,
+          "source_epoch": "synthetic-1",
+          "stamp_ns": "1000000000"
+        }
+      ],
+      "map_binding": {
+        "generation": 0,
+        "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+        "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "observation_only": true,
+      "obstacles": [
+        {
+          "class_name": "unknown",
+          "class_score": null,
+          "first_seen_ns": "1000000000",
+          "geometry": {
+            "center": [
+              1.0,
+              0.0,
+              0.3100000023841858
+            ],
+            "extent": [
+              0.2533333873748779,
+              0.25333332777023315,
+              0.30000000953674316
+            ],
+            "observed_bounds": [
+              [
+                0.903333306312561,
+                -0.09666666388511658,
+                0.1899999976158142
+              ],
+              [
+                1.096666693687439,
+                0.09666666388511658,
+                0.4300000071525574
+              ]
+            ],
+            "orientation_xyzw": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          },
+          "last_seen_ns": "1000000000",
+          "novelty": "UNRESOLVED",
+          "provenance": {
+            "field_layout": [
+              "x:float32",
+              "y:float32",
+              "z:float32"
+            ],
+            "motion_compensated": false,
+            "point_count": 192,
+            "source": {
+              "calibration_id": "synthetic-lidar-calibration",
+              "clock_domain": "fixture-clock",
+              "evidence_kind": "SYNTHETIC",
+              "field_layout": [
+                "x:float32",
+                "y:float32",
+                "z:float32"
+              ],
+              "frame_key": {
+                "frame_id": "odom",
+                "source_epoch": "synthetic-1"
+              },
+              "host_clock_id": "fixture-host",
+              "map_binding": {
+                "generation": 0,
+                "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+                "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+              },
+              "received_monotonic_ns": "1000000000",
+              "sequence": 1,
+              "source_epoch": "synthetic-1",
+              "stamp_ns": "1000000000"
+            }
+          },
+          "sensor_support": "LIDAR",
+          "state": "OBSERVED",
+          "track_id": "track-1-1",
+          "uncertainty": {
+            "bound_m": 0.03,
+            "kind": "configured_bound_not_covariance"
+          }
+        },
+        {
+          "class_name": "unknown",
+          "class_score": null,
+          "first_seen_ns": "1000000000",
+          "geometry": {
+            "center": [
+              2.799999952316284,
+              -0.019999980926513672,
+              0.9800000190734863
+            ],
+            "extent": [
+              0.06,
+              1.4200000143051148,
+              1.0200000381469727
+            ],
+            "observed_bounds": [
+              [
+                2.799999952316284,
+                -0.699999988079071,
+                0.5
+              ],
+              [
+                2.799999952316284,
+                0.6600000262260437,
+                1.4600000381469727
+              ]
+            ],
+            "orientation_xyzw": [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          },
+          "last_seen_ns": "1000000000",
+          "novelty": "UNRESOLVED",
+          "provenance": {
+            "field_layout": [
+              "x:float32",
+              "y:float32",
+              "z:float32"
+            ],
+            "motion_compensated": false,
+            "point_count": 875,
+            "source": {
+              "calibration_id": "synthetic-lidar-calibration",
+              "clock_domain": "fixture-clock",
+              "evidence_kind": "SYNTHETIC",
+              "field_layout": [
+                "x:float32",
+                "y:float32",
+                "z:float32"
+              ],
+              "frame_key": {
+                "frame_id": "odom",
+                "source_epoch": "synthetic-1"
+              },
+              "host_clock_id": "fixture-host",
+              "map_binding": {
+                "generation": 0,
+                "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+                "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+              },
+              "received_monotonic_ns": "1000000000",
+              "sequence": 1,
+              "source_epoch": "synthetic-1",
+              "stamp_ns": "1000000000"
+            }
+          },
+          "sensor_support": "LIDAR",
+          "state": "OBSERVED",
+          "track_id": "track-1-2",
+          "uncertainty": {
+            "bound_m": 0.03,
+            "kind": "configured_bound_not_covariance"
+          }
+        }
+      ],
+      "producer": "d2.offline",
+      "published_to_nav2": false,
+      "received_monotonic_ns": "1000000000",
+      "schema_version": "0.2",
+      "sequence": 1,
+      "source_epoch": "synthetic-1",
+      "stamp_ns": "1000000000"
+    },
+    "producer": "c1-scene",
+    "robot_pose": null,
+    "schema_version": "0.2",
+    "sequence": 2,
+    "source_epoch": "scene-0",
+    "sources": {
+      "assets": [],
+      "collision_assessment": {
+        "calibration_status": "SUPPLIED",
+        "clock_domain": "fixture-clock",
+        "empty_result": null,
+        "evidence_kind": "SYNTHETIC",
+        "health": {
+          "issues": [
+            "SPARSE_COVERAGE_NOT_FREE_SPACE"
+          ],
+          "joint_age_s": 0.0,
+          "obstacle_age_s": 0.0,
+          "pose_age_s": 0.0,
+          "time_conversion": {
+            "binding_id": "explicit-synthetic-shared-time",
+            "offset_ns": "0",
+            "original_interval": {
+              "clock_domain": "fixture-clock",
+              "from_ns": "1000000000",
+              "until_ns": "1250000000"
+            },
+            "source_epoch": "synthetic-1",
+            "uncertainty_ns": "0"
+          }
+        },
+        "host_clock_id": "fixture-host",
+        "received_age_ms": 1e-05,
+        "sensor_age_ms": null,
+        "sequence": 1,
+        "source_epoch": "synthetic-1",
+        "stamp_ns": "1000000000",
+        "status": "ready",
+        "validity_interval": {
+          "end_monotonic_ns": "1250000000",
+          "host_clock_id": "fixture-host",
+          "start_monotonic_ns": "1000000000"
+        }
+      },
+      "controller_local_trajectory": {
+        "reason": "NO_CURRENT_INPUT",
+        "status": "unavailable"
+      },
+      "costmap_snapshot": {
+        "reason": "NO_CURRENT_INPUT",
+        "status": "unavailable"
+      },
+      "global_path": {
+        "reason": "NO_CURRENT_INPUT",
+        "status": "unavailable"
+      },
+      "obstacle_frame": {
+        "calibration_status": "SUPPLIED",
+        "clock_domain": "fixture-clock",
+        "empty_result": false,
+        "evidence_kind": "SYNTHETIC",
+        "health": {
+          "age_status": "UNKNOWN",
+          "c4_diagnostics": [],
+          "c4_runtime": {
+            "dropped": 0,
+            "executing_capacity": 1,
+            "invalid": 0,
+            "late_results": 0,
+            "latency": {
+              "processing_ms": 0.0,
+              "queue_ms": 0.0,
+              "receipt_to_done_ms": 9.999999974752427e-06
+            },
+            "queue_capacity": 1,
+            "rejected": 0,
+            "sources": {
+              "lidar": {
+                "age_ns": 10,
+                "fusion_time": "SOURCE_CLOCK_ONLY",
+                "source_stamp_ns": "1000000000",
+                "stale": false
+              }
+            },
+            "worker_error": null
+          },
+          "c4_source_identity": {
+            "provenance": null,
+            "receipt_clock_id": null,
+            "received_ns": null,
+            "source_id": null,
+            "tf_epoch": null
+          },
+          "c4_source_observation": {
+            "frame_id": "odom",
+            "kind": "PointCloud2",
+            "metadata": {},
+            "origin_m": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "source_id": "lidar"
+          },
+          "coverage": "PARTIAL",
+          "motion_compensated": false,
+          "reasons": [
+            "SELF_GEOMETRY_UNKNOWN"
+          ],
+          "source_age_ns": null
+        },
+        "host_clock_id": "fixture-host",
+        "received_age_ms": 1e-05,
+        "sensor_age_ms": null,
+        "sequence": 1,
+        "source_epoch": "synthetic-1",
+        "stamp_ns": "1000000000",
+        "status": "ready"
+      },
+      "robot_pose": {
+        "reason": "NO_CURRENT_INPUT",
+        "status": "unavailable"
+      }
+    },
+    "stream_epoch": "scene-0"
+  },
+  "expired": {
+    "collision_assessment": null,
+    "controller_local_trajectory": null,
+    "costmap_snapshot": null,
+    "evidence_kind": "SYNTHETIC",
+    "global_path": null,
+    "map_binding": {
+      "generation": 0,
+      "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+      "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "obstacle_frame": null,
+    "producer": "c1-scene",
+    "robot_pose": null,
+    "schema_version": "0.2",
+    "sequence": 3,
+    "source_epoch": "scene-0",
+    "sources": {
+      "assets": [],
+      "collision_assessment": {
+        "calibration_status": "SUPPLIED",
+        "clock_domain": "fixture-clock",
+        "empty_result": null,
+        "evidence_kind": "SYNTHETIC",
+        "health": {
+          "issues": [
+            "SPARSE_COVERAGE_NOT_FREE_SPACE"
+          ],
+          "joint_age_s": 0.0,
+          "obstacle_age_s": 0.0,
+          "pose_age_s": 0.0,
+          "time_conversion": {
+            "binding_id": "explicit-synthetic-shared-time",
+            "offset_ns": "0",
+            "original_interval": {
+              "clock_domain": "fixture-clock",
+              "from_ns": "1000000000",
+              "until_ns": "1250000000"
+            },
+            "source_epoch": "synthetic-1",
+            "uncertainty_ns": "0"
+          }
+        },
+        "host_clock_id": "fixture-host",
+        "received_age_ms": 1000.0,
+        "sensor_age_ms": null,
+        "sequence": 1,
+        "source_epoch": "synthetic-1",
+        "stamp_ns": "1000000000",
+        "status": "expired",
+        "validity_interval": {
+          "end_monotonic_ns": "1250000000",
+          "host_clock_id": "fixture-host",
+          "start_monotonic_ns": "1000000000"
+        }
+      },
+      "controller_local_trajectory": {
+        "reason": "NO_CURRENT_INPUT",
+        "status": "unavailable"
+      },
+      "costmap_snapshot": {
+        "reason": "NO_CURRENT_INPUT",
+        "status": "unavailable"
+      },
+      "global_path": {
+        "reason": "NO_CURRENT_INPUT",
+        "status": "unavailable"
+      },
+      "obstacle_frame": {
+        "calibration_status": "SUPPLIED",
+        "clock_domain": "fixture-clock",
+        "empty_result": false,
+        "evidence_kind": "SYNTHETIC",
+        "health": {
+          "age_status": "UNKNOWN",
+          "c4_diagnostics": [],
+          "c4_runtime": {
+            "dropped": 0,
+            "executing_capacity": 1,
+            "invalid": 0,
+            "late_results": 0,
+            "latency": {
+              "processing_ms": 0.0,
+              "queue_ms": 0.0,
+              "receipt_to_done_ms": 1.0000000088439265e-05
+            },
+            "queue_capacity": 1,
+            "rejected": 1,
+            "sources": {
+              "lidar": {
+                "age_ns": 10,
+                "fusion_time": "SOURCE_CLOCK_ONLY",
+                "source_stamp_ns": "1000000020",
+                "stale": false
+              }
+            },
+            "worker_error": null
+          },
+          "c4_source_identity": {
+            "provenance": null,
+            "receipt_clock_id": null,
+            "received_ns": null,
+            "source_id": null,
+            "tf_epoch": null
+          },
+          "c4_source_observation": {
+            "frame_id": "odom",
+            "kind": "PointCloud2",
+            "metadata": {},
+            "origin_m": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "source_id": "lidar"
+          },
+          "coverage": "PARTIAL",
+          "motion_compensated": false,
+          "reasons": [
+            "SELF_GEOMETRY_UNKNOWN"
+          ],
+          "source_age_ns": null
+        },
+        "host_clock_id": "fixture-host",
+        "received_age_ms": 999.99998,
+        "sensor_age_ms": null,
+        "sequence": 2,
+        "source_epoch": "synthetic-1",
+        "stamp_ns": "1000000020",
+        "status": "expired"
+      },
+      "robot_pose": {
+        "reason": "NO_CURRENT_INPUT",
+        "status": "unavailable"
+      }
+    },
+    "stream_epoch": "scene-0"
+  },
+  "pending_restart": {
+    "collision_assessment": null,
+    "controller_local_trajectory": null,
+    "costmap_snapshot": null,
+    "evidence_kind": "SYNTHETIC",
+    "global_path": null,
+    "map_binding": {
+      "generation": 0,
+      "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+      "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "obstacle_frame": null,
+    "producer": "c1-scene",
+    "robot_pose": null,
+    "schema_version": "0.2",
+    "sequence": 3,
+    "source_epoch": "scene-0",
+    "sources": {
+      "assets": [],
+      "collision_assessment": {
+        "reason": "NO_CURRENT_INPUT",
+        "status": "unavailable"
+      },
+      "controller_local_trajectory": {
+        "reason": "NO_CURRENT_INPUT",
+        "status": "unavailable"
+      },
+      "costmap_snapshot": {
+        "reason": "NO_CURRENT_INPUT",
+        "status": "unavailable"
+      },
+      "global_path": {
+        "reason": "NO_CURRENT_INPUT",
+        "status": "unavailable"
+      },
+      "obstacle_frame": {
+        "reason": "NO_CURRENT_INPUT",
+        "status": "pending"
+      },
+      "robot_pose": {
+        "reason": "NO_CURRENT_INPUT",
+        "status": "unavailable"
+      }
+    },
+    "stream_epoch": "scene-0"
+  },
+  "unavailable_new_map": {
+    "collision_assessment": null,
+    "controller_local_trajectory": null,
+    "costmap_snapshot": null,
+    "evidence_kind": "SYNTHETIC",
+    "global_path": null,
+    "map_binding": {
+      "generation": 1,
+      "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+      "revision": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    "obstacle_frame": null,
+    "producer": "c1-scene",
+    "robot_pose": null,
+    "schema_version": "0.2",
+    "sequence": 0,
+    "source_epoch": "map-2",
+    "sources": {
+      "assets": [],
+      "collision_assessment": {
+        "reason": "NO_CURRENT_INPUT",
+        "status": "unavailable"
+      },
+      "controller_local_trajectory": {
+        "reason": "NO_CURRENT_INPUT",
+        "status": "unavailable"
+      },
+      "costmap_snapshot": {
+        "reason": "NO_CURRENT_INPUT",
+        "status": "unavailable"
+      },
+      "global_path": {
+        "reason": "NO_CURRENT_INPUT",
+        "status": "unavailable"
+      },
+      "obstacle_frame": {
+        "reason": "NO_CURRENT_INPUT",
+        "status": "unavailable"
+      },
+      "robot_pose": {
+        "reason": "NO_CURRENT_INPUT",
+        "status": "unavailable"
+      }
+    },
+    "stream_epoch": "map-2"
+  },
+  "generated_display_assets_and_plans": {
+    "collision_assessment": null,
+    "controller_local_trajectory": {
+      "clock_domain": "fixture-clock",
+      "data": {
+        "origin": "GENERATED_DISPLAY_EXAMPLE",
+        "points_m": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ]
+        ]
+      },
+      "evidence_kind": "SYNTHETIC",
+      "frame_key": {
+        "frame_id": "odom",
+        "source_epoch": "synthetic-1"
+      },
+      "health": {
+        "state": "SYNTHETIC"
+      },
+      "host_clock_id": "fixture-host",
+      "map_binding": {
+        "generation": 0,
+        "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+        "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "producer": "d2.offline",
+      "received_monotonic_ns": "1000000000",
+      "schema_version": "0.2",
+      "sequence": 1,
+      "source_epoch": "synthetic-1",
+      "stamp_ns": "1000000000"
+    },
+    "costmap_snapshot": {
+      "clock_domain": "fixture-clock",
+      "data": {
+        "asset_ref": {
+          "bytes": 50,
+          "id": "c259dad08e48677937266b96",
+          "media_type": "application/json",
+          "revision": "7323648d6cdbb417bb74b1a4aa335363b6d400ed7b6fb9f1401a30a3d77de263",
+          "role": "costmap",
+          "source": "synthetic-display",
+          "usage": "DISPLAY_ONLY"
+        },
+        "origin": "GENERATED_DISPLAY_EXAMPLE_NOT_NAV2"
+      },
+      "evidence_kind": "SYNTHETIC",
+      "frame_key": {
+        "frame_id": "odom",
+        "source_epoch": "synthetic-1"
+      },
+      "health": {
+        "state": "SYNTHETIC"
+      },
+      "host_clock_id": "fixture-host",
+      "map_binding": {
+        "generation": 0,
+        "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+        "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "producer": "d2.offline",
+      "received_monotonic_ns": "1000000000",
+      "schema_version": "0.2",
+      "sequence": 1,
+      "source_epoch": "synthetic-1",
+      "stamp_ns": "1000000000"
+    },
+    "evidence_kind": "SYNTHETIC",
+    "global_path": {
+      "clock_domain": "fixture-clock",
+      "data": {
+        "origin": "GENERATED_DISPLAY_EXAMPLE",
+        "points_m": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ]
+        ]
+      },
+      "evidence_kind": "SYNTHETIC",
+      "frame_key": {
+        "frame_id": "odom",
+        "source_epoch": "synthetic-1"
+      },
+      "health": {
+        "state": "SYNTHETIC"
+      },
+      "host_clock_id": "fixture-host",
+      "map_binding": {
+        "generation": 0,
+        "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+        "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "producer": "d2.offline",
+      "received_monotonic_ns": "1000000000",
+      "schema_version": "0.2",
+      "sequence": 1,
+      "source_epoch": "synthetic-1",
+      "stamp_ns": "1000000000"
+    },
+    "map_binding": {
+      "generation": 0,
+      "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+      "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "obstacle_frame": null,
+    "producer": "c1-scene",
+    "robot_pose": null,
+    "schema_version": "0.2",
+    "sequence": 6,
+    "source_epoch": "scene-0",
+    "sources": {
+      "assets": [
+        {
+          "bytes": 50,
+          "id": "7534b692efc603d52ac0b429",
+          "media_type": "application/json",
+          "revision": "7323648d6cdbb417bb74b1a4aa335363b6d400ed7b6fb9f1401a30a3d77de263",
+          "role": "saved_reference_cloud",
+          "source": "synthetic-display",
+          "usage": "DISPLAY_ONLY"
+        },
+        {
+          "bytes": 50,
+          "id": "5c0cdfb0613fec641292036a",
+          "media_type": "application/json",
+          "revision": "7323648d6cdbb417bb74b1a4aa335363b6d400ed7b6fb9f1401a30a3d77de263",
+          "role": "live_cloud",
+          "source": "synthetic-display",
+          "usage": "DISPLAY_ONLY"
+        },
+        {
+          "bytes": 50,
+          "id": "c259dad08e48677937266b96",
+          "media_type": "application/json",
+          "revision": "7323648d6cdbb417bb74b1a4aa335363b6d400ed7b6fb9f1401a30a3d77de263",
+          "role": "costmap",
+          "source": "synthetic-display",
+          "usage": "DISPLAY_ONLY"
+        }
+      ],
+      "collision_assessment": {
+        "reason": "NO_CURRENT_INPUT",
+        "status": "unavailable"
+      },
+      "controller_local_trajectory": {
+        "calibration_status": "SUPPLIED",
+        "clock_domain": "fixture-clock",
+        "empty_result": null,
+        "evidence_kind": "SYNTHETIC",
+        "health": {
+          "state": "SYNTHETIC"
+        },
+        "host_clock_id": "fixture-host",
+        "received_age_ms": 1e-05,
+        "sensor_age_ms": null,
+        "sequence": 1,
+        "source_epoch": "synthetic-1",
+        "stamp_ns": "1000000000",
+        "status": "ready"
+      },
+      "costmap_snapshot": {
+        "calibration_status": "SUPPLIED",
+        "clock_domain": "fixture-clock",
+        "empty_result": null,
+        "evidence_kind": "SYNTHETIC",
+        "health": {
+          "state": "SYNTHETIC"
+        },
+        "host_clock_id": "fixture-host",
+        "received_age_ms": 1e-05,
+        "sensor_age_ms": null,
+        "sequence": 1,
+        "source_epoch": "synthetic-1",
+        "stamp_ns": "1000000000",
+        "status": "ready"
+      },
+      "global_path": {
+        "calibration_status": "SUPPLIED",
+        "clock_domain": "fixture-clock",
+        "empty_result": null,
+        "evidence_kind": "SYNTHETIC",
+        "health": {
+          "state": "SYNTHETIC"
+        },
+        "host_clock_id": "fixture-host",
+        "received_age_ms": 1e-05,
+        "sensor_age_ms": null,
+        "sequence": 1,
+        "source_epoch": "synthetic-1",
+        "stamp_ns": "1000000000",
+        "status": "ready"
+      },
+      "obstacle_frame": {
+        "reason": "NO_CURRENT_INPUT",
+        "status": "unavailable"
+      },
+      "robot_pose": {
+        "reason": "NO_CURRENT_INPUT",
+        "status": "unavailable"
+      }
+    },
+    "stream_epoch": "scene-0"
+  }
+}

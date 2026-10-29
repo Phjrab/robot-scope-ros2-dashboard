@@ -25,7 +25,12 @@ from robot_dashboard.expansion_contracts import (
     canonical,
     digest,
 )
-from robot_dashboard.expansion_contracts.messages import ID, token, validate_transform
+from robot_dashboard.expansion_contracts.messages import (
+    ID,
+    token,
+    integer,
+    validate_transform,
+)
 from robot_dashboard.pcd_editing.pcd import _read_header
 from robot_dashboard.pcd_editing.store import (
     _safe_path,
@@ -36,7 +41,7 @@ from robot_dashboard.pcd_editing.store import (
     _sync_directory,
     SourceAsset,
 )
-from .catalogue import Conflict, ResolvedSource, validate_dag
+from .catalogue import Busy, Conflict, ResolvedSource, validate_dag
 
 _NAME = re.compile(r"[A-Za-z0-9_-]{1,64}\Z")
 
@@ -417,6 +422,34 @@ class BundleStore:
             if _digest(directory / filename, self.max_bytes) != sha:
                 raise Conflict("output checksum mismatch")
         return m
+
+    def list(self, limit=128):
+        """Bounded verified private catalogue; no product registration."""
+        integer(limit, "bundle list limit", 1, 128)
+        if not self.root.exists():
+            return []
+        values = []
+        with _registry_lock(self.root, fcntl.LOCK_SH):
+            for directory in self.root.iterdir():
+                if not ID.fullmatch(directory.name):
+                    continue
+                if len(values) >= limit:
+                    raise Busy("bundle catalogue limit; narrow private store")
+                _safe_path(directory)
+                manifest = self._read(directory)
+                values.append(
+                    {
+                        k: manifest[k]
+                        for k in (
+                            "id",
+                            "name",
+                            "revision",
+                            "point_count",
+                            "operational_installed",
+                        )
+                    }
+                )
+        return sorted(values, key=lambda value: value["id"])
 
     def get(self, result_id):
         token(result_id, "export ID", ID)

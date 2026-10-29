@@ -1,0 +1,219 @@
+{
+  "pins": {
+    "C2": "5eed1a9959ca25a4f30bd5b5712806a5ad660c51",
+    "C3": "92658bccc253f31552415f9c9d667bbd28957a06",
+    "C4": "b9d700d754f0d3d43b9afdcffcb86e9deb7b1020",
+    "D1": "cbedd05ba6f97dad5506e8003302f689ed8fcb4c",
+    "D2": "c0d266e290a2d29c173d3b83520f8c96efea9447",
+    "D3": "09b68b692fa4b7ccdea39b1a16e3ff150794e12d"
+  },
+  "evidence_kind": "SYNTHETIC",
+  "map": {
+    "job_id": "ddf3b65b5f1e4926a858c773",
+    "proposal_revision": 2,
+    "export_id": "dbf795e0917e4bb8889a64b5",
+    "state": "SOLVED_CANDIDATE",
+    "c2": "ACTUAL_PORTS_HTTP_PASS",
+    "points": 800,
+    "attributes": [
+      "x",
+      "y",
+      "z",
+      "normal_x",
+      "normal_y",
+      "normal_z",
+      "intensity"
+    ],
+    "source_hashes": {
+      "000000000000000000000001": "5a501d26741196765823c05d816df8d1ab171dd9bdf10e9f6abc7da99b1e8a8f",
+      "000000000000000000000002": "6d8385d3772a00e58e1b13335c782a9e1e4caeb13e55cdb9d1d28bc17a5a2869"
+    },
+    "output_hashes": {
+      "map.pcd": "46be1a0ec38166fc78e7d0344d3e241d57e3c29807f22e819e22e04d1ec9dbde",
+      "occupancy.pgm": "0f99d8759571beb4e73558bf36391d2e081cea53e99ef764494aa4b55105cbf7",
+      "occupancy.yaml": "266e51a3f2dad9b78c41e698df7eb882fd4b9ac7c6e9fedaec1135bf3b2ef965"
+    },
+    "shared_root": "REJECTED",
+    "stale_apply": "REJECTED",
+    "cancel": "CANCELED",
+    "solver": "d1-rigid-0.1",
+    "list_reload": "PASS",
+    "frozen": true
+  },
+  "observation": {
+    "actual_core": "D2/D3 PASS on SYNTHETIC points",
+    "actual_c4_observation": "PASS",
+    "c4_assessment_forwarding": "FAIL: current C1SceneSink forwards obstacle only",
+    "c4_constraint": "FAIL: D3_COMMAND_CONTEXT_MISMATCH",
+    "c3_consumers": [
+      {
+        "packet": null,
+        "reason": "C1_DISPLAY_PROFILE_REQUIRED"
+      },
+      {
+        "packet": null,
+        "reason": "C1_VERSION_UNSUPPORTED"
+      }
+    ],
+    "full_chain": "FAIL",
+    "cases": {
+      "calibration_unknown": {
+        "pose_age_s": 0.0,
+        "joint_age_s": 0.0,
+        "obstacle_age_s": 0.0,
+        "issues": [
+          "CALIBRATION_UNKNOWN"
+        ]
+      },
+      "stale": {
+        "pose_age_s": 1.0,
+        "joint_age_s": 1.0,
+        "obstacle_age_s": 1.0,
+        "issues": [
+          "STALE_OR_FUTURE_INPUT"
+        ]
+      },
+      "map_revision": {
+        "pose_age_s": 0.0,
+        "joint_age_s": 0.0,
+        "obstacle_age_s": 0.0,
+        "issues": [
+          "MISMATCH_map_binding"
+        ]
+      },
+      "wrong_clock": {
+        "pose_age_s": 0.0,
+        "joint_age_s": 0.0,
+        "obstacle_age_s": 0.0,
+        "issues": [
+          "CLOCK_MAPPING_UNKNOWN"
+        ]
+      },
+      "calibration_change": {
+        "old_assessment_pairing": "REJECTED",
+        "physical_accuracy": "NOT_RUN"
+      }
+    },
+    "input_points": 2051,
+    "safety_input_points": 2051,
+    "severity": "UNKNOWN",
+    "freshness": {
+      "pose_age_s": 0.0,
+      "joint_age_s": 0.0,
+      "obstacle_age_s": 0.0,
+      "issues": [
+        "SPARSE_COVERAGE_NOT_FREE_SPACE"
+      ]
+    },
+    "original_interval": {
+      "clock_domain": "fixture-clock",
+      "from_ns": "1000000000",
+      "until_ns": "1250000000"
+    },
+    "canonical_interval": {
+      "end_monotonic_ns": "1250000000",
+      "host_clock_id": "fixture-host",
+      "start_monotonic_ns": "1000000000"
+    },
+    "assessment_bytes": 2820,
+    "c4_packet_bytes": 5129,
+    "snapshot_bytes": 9663,
+    "sizes": [
+      {
+        "requested_cones": 0,
+        "input_points": 984,
+        "objects": 0,
+        "frame_bytes": 1372,
+        "snapshot_bytes": 2616,
+        "outcome": "ACCEPTED"
+      },
+      {
+        "requested_cones": 1,
+        "input_points": 1176,
+        "objects": 1,
+        "frame_bytes": 2544,
+        "snapshot_bytes": 3791,
+        "outcome": "ACCEPTED"
+      },
+      {
+        "requested_cones": 4,
+        "input_points": 1752,
+        "objects": 4,
+        "frame_bytes": 6030,
+        "snapshot_bytes": 7283,
+        "outcome": "ACCEPTED"
+      },
+      {
+        "requested_cones": 12,
+        "input_points": 3288,
+        "objects": 12,
+        "frame_bytes": 15314,
+        "snapshot_bytes": 16583,
+        "outcome": "ACCEPTED"
+      },
+      {
+        "requested_cones": 16,
+        "input_points": 4056,
+        "objects": 16,
+        "frame_bytes": 19988,
+        "snapshot_bytes": 886,
+        "outcome": "document exceeds byte limit"
+      }
+    ],
+    "native_ros": "NOT_RUN",
+    "actual_robot": "NOT_RUN"
+  },
+  "ci_import_reproduction": {
+    "ascii": {
+      "python": "3.12.3",
+      "filesystem_encoding": "ascii",
+      "locale": "C",
+      "base_test": "ABSENT",
+      "old": "FAIL: The starlette.testclient module requires the httpx2 package to be installed.",
+      "current": "PASS"
+    },
+    "utf8": {
+      "python": "3.12.3",
+      "filesystem_encoding": "utf-8",
+      "locale": "LC_CTYPE=C.UTF-8;LC_NUMERIC=C;LC_TIME=C;LC_COLLATE=C;LC_MONETARY=C;LC_MESSAGES=C;LC_PAPER=C;LC_NAME=C;LC_ADDRESS=C;LC_TELEPHONE=C;LC_MEASUREMENT=C;LC_IDENTIFICATION=C",
+      "base_test": "ABSENT",
+      "old": "FAIL: The starlette.testclient module requires the httpx2 package to be installed.",
+      "current": "PASS"
+    }
+  },
+  "execution": {
+    "core": "ACTUAL D1/D2/D3 implementations, generated SYNTHETIC input",
+    "http": "ACTUAL loopback uvicorn/urllib and C2 JavaScript fetch",
+    "ros": "NOT_RUN",
+    "native_nav2_controller_plant": "NOT_RUN",
+    "weights_recordings_real_maps": "INPUT_REQUIRED",
+    "product_mount": "NOT_RUN"
+  },
+  "local_checks": {
+    "full_python": {
+      "tests": 3146,
+      "existing_skips": 2,
+      "result": "PASS",
+      "C2_CROSS_REQUIRED": "1"
+    },
+    "focused_python": {
+      "tests": 28,
+      "result": "PASS"
+    },
+    "historical_cross": {
+      "tests": 33,
+      "result": "PASS"
+    },
+    "javascript_test_files": {
+      "files": 77,
+      "result": "PASS"
+    },
+    "javascript_syntax": {
+      "modules": 112,
+      "result": "PASS"
+    },
+    "ruff": "PASS",
+    "secret_scan": "PASS",
+    "mypy": "NOT_RUN locally: module absent; unchanged remote CI owns this check"
+  }
+}

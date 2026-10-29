@@ -41,3 +41,7 @@ python -m unittest tests.expansion_contracts.test_time_binding -v
 
 No counterpart files are modified or copied into this branch. Scene locations,
 actual composition results and measured byte limits will be added in ROUND2.md.
+
+Round-2 implementation additionally migrates receipt ns inside provenance/full refs
+losslessly, and defines actual scene locations/limits in [ROUND2.md](ROUND2.md).
+No nested reference identity or original source expiry is discarded.

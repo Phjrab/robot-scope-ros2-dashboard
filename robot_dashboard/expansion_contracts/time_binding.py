@@ -13,7 +13,28 @@ def upgrade_observation(payload):
     version = out.get("schema_version")
     if version not in {"0.1", "0.2"}:
         raise ContractError("unsupported observation version")
-    out["received_monotonic_ns"] = str(host_ns(out["received_monotonic_ns"], version))
+    host_ns(out["received_monotonic_ns"], version)
+
+    def migrate(value):
+        if isinstance(value, list):
+            return [migrate(v) for v in value]
+        if isinstance(value, dict):
+            result = {k: migrate(v) for k, v in value.items()}
+            for key in ("received_monotonic_ns", "received_ns"):
+                if key in result and result[key] is not None:
+                    original = result[key]
+                    result[key] = str(
+                        host_ns(original, "0.2" if isinstance(original, str) else "0.1")
+                    )
+            if (
+                result.get("schema_version") == "0.1"
+                and "received_monotonic_ns" in result
+            ):
+                result["schema_version"] = "0.2"
+            return result
+        return value
+
+    out = migrate(out)
     out["schema_version"] = "0.2"
     return out
 

@@ -3,7 +3,7 @@
 import asyncio
 import json
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from robot_dashboard.expansion_contracts import ContractError
 from robot_dashboard.expansion_contracts.messages import MAX_DOCUMENT_BYTES
@@ -117,6 +117,10 @@ def create_router(manager, catalogue, scene, store, *, authorize, require_origin
             manager.export, job_id, value["name"], value["expected_proposal_revision"]
         )
 
+    @router.get("/multimap/exports")
+    async def list_exports():
+        return {"exports": await call(store.list)}
+
     @router.get("/multimap/exports/{export_id}")
     async def get_export(export_id: str):
         return await call(store.get, export_id)
@@ -124,5 +128,18 @@ def create_router(manager, catalogue, scene, store, *, authorize, require_origin
     @router.get("/scene/snapshot")
     async def snapshot():
         return await call(scene.snapshot)
+
+    @router.get("/scene/assets/{asset_id}/{revision}")
+    async def asset(asset_id: str, revision: str):
+        content, media_type = await call(scene.get_asset, asset_id, revision)
+        return Response(
+            content,
+            media_type=media_type,
+            headers={
+                "ETag": f'"{revision}"',
+                "Cache-Control": "private, no-cache",
+                "X-Content-Type-Options": "nosniff",
+            },
+        )
 
     return router

@@ -70,7 +70,9 @@ class TimeBindingTests(unittest.TestCase):
             out["validity_interval"]["start_monotonic_ns"], str(2**53 + 102)
         )
         self.assertEqual(out["validity_interval"]["end_monotonic_ns"], str(2**53 + 198))
-        self.assertEqual(out["obstacle_frame_ref"], raw["obstacle_frame_ref"])
+        self.assertEqual(
+            out["obstacle_frame_ref"], upgrade_observation(raw["obstacle_frame_ref"])
+        )
         self.assertEqual(
             out["freshness"]["time_conversion"]["original_interval"],
             raw["validity_interval"],
