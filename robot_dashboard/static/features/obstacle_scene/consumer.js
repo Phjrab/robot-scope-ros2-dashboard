@@ -11,7 +11,7 @@ const stamp = x => typeof x === 'string' && /^\d{1,24}$/.test(x);
 const sequence = x => Number.isSafeInteger(x) && x >= 0;
 const quaternion = q => vector(q, 4) && Math.abs(Math.hypot(...q) - 1) < 0.001;
 const key = c => c ? [c.map_id, c.revision, c.frame_id, c.source_epoch,
-  c.stream_epoch, c.clock_domain, c.calibration_id, c.units].join('|') : '';
+  c.stream_epoch, c.clock_domain, c.calibration_id, c.units, c.generation].join('|') : '';
 const mapMatches = (a, b) => a && b && ['map_id', 'revision', 'frame_id'].every(k => a[k] === b[k]);
 const withinSkew = values => values.every(a => values.every(b => {
   const delta = BigInt(a.stamp_ns) - BigInt(b.stamp_ns);
@@ -24,7 +24,8 @@ const metadata = value => ({ producer: text(value.producer), evidence_kind: text
   stamp_ns: text(value.stamp_ns), clock_domain: text(value.clock_domain), source_epoch: text(value.source_epoch),
   calibration_id: text(value.calibration_id), sequence: value.sequence,
   frame_key: value.frame_key ? { map_id: text(value.frame_key.map_id), revision: text(value.frame_key.revision), frame_id: text(value.frame_key.frame_id) } : null,
-  provenance: strings(value.provenance) });
+  provenance: value.canonical ? structuredClone(value.provenance) : strings(value.provenance),
+  sensor_age_ms: value.sensor_age_ms ?? null, host_clock_id: text(value.host_clock_id), receipt_source_ns: text(value.receipt_source_ns) });
 function copyGeometry(g) {
   if (!g || !vector(g.center_m, 3) || !vector(g.extent_m, 3)
     || !g.extent_m.every(x => x > 0) || !quaternion(g.orientation_xyzw)) return null;
@@ -38,13 +39,16 @@ function points(value, limit, dimensions = 3) {
 export function createSceneConsumer({ getMap, clock = () => performance.now() }) {
   if (typeof getMap !== 'function') throw new TypeError('getMap must return trusted display context');
   let context = null, contextKey = '', latest = null, history = [], lastSequence = -1;
+  const anchors = new Map(), geometryCache = new Map(); let geometryCopies = 0;
+  let retiredCollisionSequence = -1;
+  let protection = {mode:'UNAVAILABLE',transition:'',recommendation:'UNAVAILABLE'};
   let destroyed = false, receipt = 0, error = 'WAITING', accepted = 0, rejected = 0, resets = 0;
   function syncContext() {
     const next = getMap();
     const nextKey = contextValid(next) ? key(next) : '';
     if (nextKey !== contextKey || !nextKey && latest) {
       contextKey = nextKey; context = nextKey ? { ...next } : null;
-      latest = null; history = []; lastSequence = -1; resets++; error = 'CONTEXT_CHANGED';
+      latest = null; history = []; lastSequence = -1; anchors.clear(); geometryCache.clear(); retiredCollisionSequence=-1; protection={mode:'UNAVAILABLE',transition:'',recommendation:'UNAVAILABLE'}; resets++; error = 'CONTEXT_CHANGED';
       return true;
     }
     context = nextKey ? { ...next } : null;
@@ -53,6 +57,7 @@ export function createSceneConsumer({ getMap, clock = () => performance.now() })
   function reject(reason) { rejected++; error = reason; return false; }
   function guard(value, packet, ttl, requireCalibration = false) {
     if (!value) return 'MISSING';
+    if (value.canonical && (!finite(value.age_ms) || value.age_ms < 0)) return 'HOST_AGE_UNKNOWN';
     if (!mapMatches(value.frame_key, context)) return 'FRAME_OR_MAP_MISMATCH';
     if (value.source_epoch !== context.source_epoch) return 'EPOCH_MISMATCH';
     if (value.clock_domain !== context.clock_domain || !stamp(value.stamp_ns)) return 'CLOCK_UNKNOWN';
@@ -62,12 +67,23 @@ export function createSceneConsumer({ getMap, clock = () => performance.now() })
     if (delta > BigInt(ttl) * 1000000n) return 'STALE';
     return '';
   }
-  function layer(value, packet, ttl, calibration, copy) {
+  function layer(value, packet, ttl, calibration, copy, slot) {
     const reason = guard(value, packet, ttl, calibration);
     if (reason) return { value: null, reason, ttl };
-    const copied = copy(value);
+    let age = Number(BigInt(packet.stamp_ns) - BigInt(value.stamp_ns)) / 1e6;
+    let copied;
+    if (packet.canonical) {
+      const id = slot;
+      const previous = anchors.get(id);
+      age = Math.max(age, value.age_ms, previous?.stamp === value.stamp_ns ? previous.age + Math.max(0,receipt-previous.receipt) : 0);
+      anchors.set(id,{stamp:value.stamp_ns,age,receipt});
+      const revision = `${value.source_epoch}:${value.producer}:${value.id || ''}:${value.sequence}`;
+      const cached = geometryCache.get(id);
+      copied = id !== 'collision' && cached?.revision === revision ? cached.value : copy(value);
+      if (cached?.revision !== revision) { geometryCopies++; geometryCache.set(id,{revision,value:copied}); }
+    } else copied = copy(value);
     return { value: copied, reason: copied ? '' : 'GEOMETRY_OR_LIMIT_INVALID', ttl,
-      age_ms: Number(BigInt(packet.stamp_ns) - BigInt(value.stamp_ns)) / 1e6, receipt };
+      age_ms: age, receipt };
   }
   function ingest(packet) {
     if (destroyed) return false;
@@ -77,25 +93,28 @@ export function createSceneConsumer({ getMap, clock = () => performance.now() })
       || !['SYNTHETIC', 'REPLAY', 'LIVE'].includes(packet.evidence_kind)
       || !sequence(packet.sequence) || !stamp(packet.stamp_ns)) return reject('PACKET_INVALID');
     if (!mapMatches(packet.map_identity, context) || packet.map_identity.units !== 'm') return reject('MAP_OR_UNITS_MISMATCH');
+    if (packet.canonical && packet.map_identity.generation !== context.generation) return reject('MAP_GENERATION_MISMATCH');
     if (packet.source_epoch !== context.source_epoch || packet.stream_epoch !== context.stream_epoch) return reject('LATE_EPOCH_OR_STREAM');
     if (packet.clock_domain !== context.clock_domain) return reject('CLOCK_MISMATCH');
-    if (packet.sequence <= lastSequence) return reject('OUT_OF_ORDER');
-    if (latest && BigInt(packet.stamp_ns) < BigInt(latest.stamp_ns)) return reject('STAMP_ROLLBACK');
+    if (packet.sequence < lastSequence || packet.sequence === lastSequence && !packet.canonical) return reject('OUT_OF_ORDER');
+    if (latest && packet.stamp_ns !== '0' && BigInt(packet.stamp_ns) < BigInt(latest.stamp_ns)) return reject('STAMP_ROLLBACK');
     receipt = clock();
+    if (packet.canonical && packet.invalidated_assessment?.source_epoch === context.source_epoch
+      && sequence(packet.invalidated_assessment.sequence)) retiredCollisionSequence=Math.max(retiredCollisionSequence,packet.invalidated_assessment.sequence);
     const pose = layer(packet.robot_pose, packet, TTL_MS.pose, true, v =>
       vector(v.position_m, 3) && vector(v.rpy_rad, 3) && text(v.ref)
-        ? { ...metadata(v), ref: text(v.ref), position_m: v.position_m.slice(), rpy_rad: v.rpy_rad.slice() } : null);
+        ? { ...metadata(v), ref: text(v.ref), position_m: v.position_m.slice(), rpy_rad: v.rpy_rad.slice() } : null, 'pose');
     const joints = layer(packet.joint_state, packet, TTL_MS.joints, true, v =>
       text(v.ref) && v.positions_rad && Object.keys(v.positions_rad).length === 12
         && ['FR', 'FL', 'RR', 'RL'].every(leg => ['hip', 'thigh', 'calf'].every(j => finite(v.positions_rad[`${leg}_${j}_joint`])))
-        ? { ...metadata(v), ref: text(v.ref), positions_rad: { ...v.positions_rad } } : null);
+        ? { ...metadata(v), ref: text(v.ref), positions_rad: { ...v.positions_rad } } : null, 'joints');
     const sources = [];
     if (Array.isArray(packet.sources) && packet.sources.length <= LIMITS.sources) {
       for (const source of packet.sources) {
         const normalized = layer(source, packet, TTL_MS.source, true, v => {
           const xyz = points(v.points_m, LIMITS.points);
-          return xyz ? { ...metadata(v), id: text(v.id), kind: text(v.kind), points_m: xyz, health: text(v.health) } : null;
-        });
+          return xyz ? { ...metadata(v), id: text(v.id), kind: text(v.kind), points_m: xyz, origin_m: vector(v.origin_m,3) ? v.origin_m.slice() : null, health: text(v.health) } : null;
+        }, `sensor:${sources.length}`);
         sources.push({ id: text(source.id), kind: text(source.kind), ...normalized });
       }
     }
@@ -106,19 +125,19 @@ export function createSceneConsumer({ getMap, clock = () => performance.now() })
       for (const o of v.obstacles) {
         const geometry = copyGeometry(o.geometry);
         const support = strings(o.sensor_support);
-        if (!geometry || !text(o.track_id) || !support.length || !support.every(sourceHealthy)
+        if (!geometry || !text(o.track_id) || !support.length || (!v.canonical && !support.every(sourceHealthy))
           || !['OBSERVED', 'OCCLUDED', 'STALE'].includes(o.state)) continue;
-        const supported = sources.filter(s => support.includes(s.id));
+        const supported = sources.filter(s => support.includes(s.id) && s.value);
         if (!withinSkew([v, ...supported.map(s => s.value)])) continue;
         objects.push({ track_id: text(o.track_id), class_name: text(o.class_name) || 'unknown',
           class_score: finite(o.class_score) ? o.class_score : null, state: o.state,
-          novelty: text(o.novelty), sensor_support: support, geometry, provenance: strings(o.provenance) });
+          novelty: text(o.novelty), sensor_support: support, geometry, provenance: v.canonical ? structuredClone(o.provenance) : strings(o.provenance) });
       }
       return { ...metadata(v), obstacles: objects,
         suppressed: v.obstacles.length - objects.length, published_to_nav2: v.published_to_nav2 === true,
         costmap_ingestion_observed: v.costmap_ingestion_observed === true,
-        controller_consumption_observed: v.controller_consumption_observed === true };
-    });
+        controller_consumption_observed: v.controller_consumption_observed === true, canonical:v.canonical };
+    }, 'obstacles');
     function copyPath(v) {
       const xyz = points(v.points_m, LIMITS.pathPoints, v.dimensions === 2 ? 2 : 3);
       if (!xyz || !text(v.generation) || ![2,3].includes(v.dimensions)
@@ -127,8 +146,8 @@ export function createSceneConsumer({ getMap, clock = () => performance.now() })
       return { ...metadata(v), generation: text(v.generation), reason: text(v.replanning_reason),
         representation: v.representation, points_m: xyz.map(p => p.length === 2 ? [p[0], p[1], v.plane_z_m] : p) };
     }
-    const path = layer(packet.global_path, packet, TTL_MS.path, false, copyPath);
-    const local = layer(packet.local_trajectory, packet, TTL_MS.path, false, copyPath);
+    const path = layer(packet.global_path, packet, TTL_MS.path, false, copyPath, 'global_path');
+    const local = layer(packet.local_trajectory, packet, TTL_MS.path, false, copyPath, 'local_trajectory');
     const costmaps = [];
     for (const value of Array.isArray(packet.costmaps) ? packet.costmaps.slice(0, 2) : []) {
       costmaps.push(layer(value, packet, TTL_MS.costmap, false, v => {
@@ -138,9 +157,19 @@ export function createSceneConsumer({ getMap, clock = () => performance.now() })
           || v.cells.length !== v.width * v.height || !v.cells.every(x => Number.isInteger(x) && x >= -1 && x <= 255)) return null;
         return { ...metadata(v), id: text(v.id), width: v.width, height: v.height, origin: v.origin.slice(),
           resolution_m: v.resolution_m, plane_z_m: v.plane_z_m, representation: v.representation, cells: v.cells.slice() };
-      }));
+      }, `costmap:${costmaps.length}`));
     }
     let collision = layer(packet.collision_assessment, packet, TTL_MS.collision, true, v => {
+      if (v.canonical) {
+        if (v.sequence <= retiredCollisionSequence || !['CLEAR','CAUTION','STOP_REQUIRED','UNKNOWN'].includes(v.severity) || !v.references_verified
+          || !finite(v.remaining_ms) || v.remaining_ms < 0 || !pose.value || !joints.value || !obstacles.value) return null;
+        return {...metadata(v), canonical:true, severity:v.severity,reason:text(v.reason),contact_state:v.contact_state,
+          min_clearance_m:v.min_clearance_m,modeled_ttc_s:v.modeled_ttc_s,robot_geometry_hash:v.robot_geometry_hash,
+          validity_interval:structuredClone(v.validity_interval),freshness:structuredClone(v.freshness),
+          coverage:structuredClone(v.coverage),protection_mode:v.protection_mode,recommendation:v.recommendation,
+          padded_envelope:structuredClone(v.padded_envelope),unpadded_envelope:structuredClone(v.unpadded_envelope),
+          envelopes:[],envelope_geometry_status:v.envelope_geometry_status};
+      }
       if (!['CLEAR', 'CAUTION', 'STOP_REQUIRED', 'UNKNOWN'].includes(v.severity)
         || !['MODEL_OVERLAP', 'PREDICTED_COLLISION', 'CONTACT_UNCONFIRMED'].includes(v.contact_state)
         || !text(v.robot_geometry_hash) || !pose.value || !joints.value || !obstacles.value
@@ -157,13 +186,25 @@ export function createSceneConsumer({ getMap, clock = () => performance.now() })
         path_ref: text(v.path_ref), robot_geometry_hash: text(v.robot_geometry_hash), valid_until_ns: v.valid_until_ns,
         min_clearance_m: finite(v.min_clearance_m) ? v.min_clearance_m : null,
         modeled_ttc_s: finite(v.modeled_ttc_s) ? v.modeled_ttc_s : null, envelopes };
-    });
+    }, 'collision');
+    if (packet.canonical && packet.collision_assessment?.sequence <= retiredCollisionSequence) collision={value:null,reason:'SERVER_INVALIDATED',ttl:TTL_MS.collision};
+    if (packet.canonical && collision.value) {
+      const previous = anchors.get('collision-expiry'), value=packet.collision_assessment;
+      collision.expires = Math.min(receipt + value.remaining_ms, previous?.stamp === value.stamp_ns ? previous.expires : Infinity);
+      anchors.set('collision-expiry',{stamp:value.stamp_ns,expires:collision.expires});
+    }
     if (!pose.value || !joints.value || obstacles.value?.suppressed) collision = { value: null, reason: 'POSE_JOINT_OR_SOURCE_INSUFFICIENT', ttl: TTL_MS.collision };
     if (path.value && history.at(-1)?.value.generation !== path.value.generation) {
       history = history.filter(p => p.value.generation !== path.value.generation);
       history.push(path); history = history.slice(-LIMITS.pathHistory);
     }
+    const mode=packet.collision_assessment?.protection_mode;
+    if (packet.canonical && ['ADVISORY_ONLY','ACTIVE_CONSTRAINT'].includes(mode)) {
+      const transition=protection.mode==='ACTIVE_CONSTRAINT' && mode==='ADVISORY_ONLY' ? 'REPORTED_DOWNGRADE_REQUIRES_HOST_CONFIRMATION' : protection.transition;
+      protection={mode,transition,recommendation:packet.collision_assessment.recommendation};
+    }
     latest = { ...metadata(packet), sequence: packet.sequence, stream_epoch: text(packet.stream_epoch),
+      protection:{...protection}, source_mode:packet.source_mode || 'FIXTURE', availability:packet.availability || null,
       map_identity: { ...context }, pose, joints, sources, obstacles, path, local, costmaps, collision };
     lastSequence = packet.sequence; error = ''; accepted++; return true;
   }
@@ -183,20 +224,24 @@ export function createSceneConsumer({ getMap, clock = () => performance.now() })
     const sources = latest.sources.map(s => ({ ...s, ...fresh(s, now) }));
     const obstacles = fresh(latest.obstacles, now);
     if (obstacles.value) {
-      const kept = obstacles.value.obstacles.filter(o => o.sensor_support.every(id => sources.some(s => s.id === id && s.value)));
+      const kept = obstacles.value.obstacles.filter(o => obstacles.value.canonical || o.sensor_support.every(id => sources.some(s => s.id === id && s.value)));
       obstacles.value = { ...obstacles.value, obstacles: kept, suppressed: obstacles.value.suppressed + obstacles.value.obstacles.length - kept.length };
     }
     let collision = fresh(latest.collision, now);
     if (!pose.value || !joints.value || !obstacles.value || obstacles.value.suppressed) collision = { value: null, reason: 'POSE_JOINT_OR_SOURCE_INSUFFICIENT' };
     if (collision.value) {
+      if (collision.value.canonical) {
+        if (now > collision.expires) collision = {value:null,reason:'VALIDITY_EXPIRED'};
+      } else {
       const remaining = Number(BigInt(collision.value.valid_until_ns) - BigInt(latest.stamp_ns)) / 1e6;
       if (now - receipt > remaining) collision = { value: null, reason: 'VALIDITY_EXPIRED' };
+      }
     }
     return { ...latest, ready: true, contextKey, pose, joints, sources, obstacles, collision,
       path: fresh(latest.path, now), local: fresh(latest.local, now), costmaps: latest.costmaps.map(c => fresh(c, now)),
       history: history.map(p => fresh(p, now)).filter(p => p.value), lastRejection: error };
   }
   return { ingest, snapshot, syncContext,
-    diagnostics: () => ({ accepted, rejected, resets, history: history.length, retainedPackets: latest ? 1 : 0, lastSequence, error }),
-    destroy() { destroyed = true; latest = null; history = []; } };
+    diagnostics: () => ({ accepted, rejected, resets, history: history.length, retainedPackets: latest ? 1 : 0, lastSequence, error, geometryCopies, cachedLayers:geometryCache.size }),
+    destroy() { destroyed = true; latest = null; history = []; anchors.clear(); geometryCache.clear(); } };
 }

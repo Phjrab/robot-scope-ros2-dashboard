@@ -70,7 +70,7 @@ export function mountObstacleScene(host, { scene, subscribe, getMap, theme = 'da
   listen(risk, 'keydown', event => { if (['Enter',' '].includes(event.key)) { event.preventDefault(); selected = '@risk'; dirty = true; } });
   function renderPanel(view) {
     const kind = view.evidence_kind || 'WAITING';
-    mode.textContent = `${kind} · ${paused ? '표시 PAUSED' : '표시 진행'} · ${kind === 'LIVE' ? 'LIVE 입력' : '실장비 관측 아님'}`;
+    mode.textContent = `SOURCE MODE: ${view.source_mode || 'FIXTURE'} · ${kind} · ${paused ? '표시 PAUSED' : '표시 진행'} · ${kind === 'LIVE' ? 'LIVE 입력' : '실장비 관측 아님'}`;
     pauseButton.textContent = paused ? '표시 재개' : '표시 일시정지'; pauseButton.setAttribute('aria-pressed', String(paused));
     stepButton.disabled = !pending;
     root.dataset.ready = String(view.ready); root.dataset.sequence = String(view.sequence ?? '');
@@ -92,9 +92,14 @@ export function mountObstacleScene(host, { scene, subscribe, getMap, theme = 'da
       if (view.obstacles.value?.suppressed) sourceRows.append(make('p', '', `${view.obstacles.value.suppressed}개 geometry 차단 · source stale / calibration / sensor time skew`));
       if (!view.obstacles.value) sourceRows.append(make('p', '', `ObstacleFrame · ${view.obstacles.reason}`));
       for (const c of view.costmaps) sourceRows.append(make('p', '', `Costmap · ${c.value ? `${c.value.id} · 2D ground-plane (실제 3D 표면 아님)` : c.reason}`));
+      if (view.availability) sourceRows.append(make('p','',`Sensor clouds/origins · ${view.availability.sensor_clouds} / ${view.availability.sensor_origins} · Reference · ${view.availability.reference_cloud} · sensor age UNKNOWN (C1 미제공)`));
       const assessment = view.collision.value;
       risk.textContent = assessment ? `${assessment.severity} · ${assessment.contact_state} · ${assessment.reason} · clearance ${assessment.min_clearance_m ?? 'UNKNOWN'} m`
         : `데이터 불충분 · UNKNOWN · ${view.collision.reason}`;
+      if (assessment?.canonical) risk.textContent += ` · coverage ${typeof assessment.coverage === 'string' ? assessment.coverage : JSON.stringify(assessment.coverage)} · protection ${assessment.protection_mode} · ${assessment.recommendation} · envelope geometry ${assessment.envelope_geometry_status}`;
+      if (view.source_mode==='ACTUAL_C1_SERVICE' && !assessment) risk.textContent += ` · last reported protection ${view.protection.mode} · ${view.protection.recommendation} · 현재 근거 UNAVAILABLE`;
+      if (view.protection?.transition) risk.textContent += ' · '+view.protection.transition;
+      if (view.availability?.errors.length) risk.textContent += ' · ' + view.availability.errors.join(', ');
       risk.dataset.severity = assessment?.severity || 'UNKNOWN';
       const path = view.path.value;
       paths.textContent = `Global path · ${path ? `${path.generation} / ${path.representation} / ${path.stamp_ns} ns / ${path.reason || 'replanning 이유 미제공'}` : view.path.reason} · history ${view.history.length}/${LIMITS.pathHistory} | Local trajectory · ${view.local.value ? `${view.local.value.generation} / ${view.local.value.representation}` : `없음 (${view.local.reason})`}`;

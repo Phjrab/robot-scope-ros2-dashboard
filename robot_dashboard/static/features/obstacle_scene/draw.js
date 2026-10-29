@@ -67,6 +67,10 @@ export function createOverlayPainter(canvas, scene) {
     for (const source of view.sources) {
       if (!layers[source.id] || !source.value || source.value.health !== 'OK') continue;
       ctx.fillStyle = source.kind === 'DEPTH' ? '#c296ff' : '#45cfc5';
+      if (source.value.origin_m) {
+        const p=scene.project(source.value.origin_m);
+        if (p) { ctx.fillRect(p.x-4,p.y-4,8,8); ctx.font='11px system-ui'; ctx.fillText(`${source.id} origin`,p.x+7,p.y); }
+      }
       for (const xyz of source.value.points_m) { const p = scene.project(xyz); if (p) ctx.fillRect(p.x-1.5,p.y-1.5,3,3); }
     }
     if (layers.obstacles) for (const object of view.obstacles.value?.obstacles || []) {

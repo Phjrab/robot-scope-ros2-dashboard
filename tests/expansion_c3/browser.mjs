@@ -110,22 +110,8 @@ try{
   // Bound trace size: functional scenarios, screenshots, DOM snapshots and all
   // associated requests are captured. Stress uses the measured report below.
   await context.tracing.stop({path:resolve(out,'browser-trace.zip')});
-  if(process.env.C3_C1_WIRE) await check('exact exported C1 validated synthetic packet renders via real consumer adapter',async()=>{
-    const wire=JSON.parse(await readFile(process.env.C3_C1_WIRE,'utf8'));
-    await page.evaluate(async wire=>{
-      const f=window.c3Fixture;
-      const context=f.makeContext({map_id:wire.map_binding.map_id,revision:wire.map_binding.revision,generation:wire.map_binding.generation});
-      f.setContext(context);
-      const {adaptC1ScenePacket}=await import('/robot_dashboard/static/features/obstacle_scene/c1_adapter.js');
-      const adapted=adaptC1ScenePacket(wire,context);if(!adapted.packet)throw new Error(adapted.reason);
-      f.emitPacket(adapted.packet);
-    },wire);
-    await page.waitForFunction(()=>window.c3Fixture.feature.snapshot()?.map_identity?.map_id==='111111111111111111111111');
-    assert.equal((await state()).obstacles.value.obstacles.length,3);
-    assert.equal((await state()).collision.value.contact_state,'CONTACT_UNCONFIRMED');
-    await page.screenshot({path:resolve(out,'c1-validated-synthetic.png'),fullPage:true});
-  });
-  else report.cases.push({name:'exact exported C1 packet',result:'NOT_RUN',reason:'C3_C1_WIRE not supplied'});
+  // Canonical producer/HTTP checks live in actual_browser.mjs. This runner
+  // remains explicitly UI_FIXTURE and cannot substitute its results for them.
   await check('1200 packets at >=10Hz with bounded retention, UI response and burst coalescing',async()=>{
     const cdp=await context.newCDPSession(page);await cdp.send('HeapProfiler.collectGarbage');
     const heapBefore=(await cdp.send('Runtime.getHeapUsage')).usedSize;

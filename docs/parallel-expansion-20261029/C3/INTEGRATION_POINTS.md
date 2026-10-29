@@ -24,7 +24,7 @@ feature.destroy();     // idempotent unsubscribe, cancel rAF, clear owned UI
 - `setRobot(null | {pose,joints,evidence_kind})`: an explicitly delegated **current robot display slot**. Never a goal/initialization preview slot. Clear/hide on null; render only this pinned pose and joints and label provenance. Fresh display is bounded by pose/joint TTL and pair skew. The port must not send ROS commands or fall back to a standing robot/goal pose.
 - `setReferenceVisible(boolean)`: optional presentation-only toggle for the existing pinned map/cache. The host owns map loading, content-hash validation and map-change clearing. C3 restores visibility on destroy; host should scope this port to the feature's display slot. Missing this optional port means the map toggle cannot change the reference (fixture supplies it).
 - `subscribe(callback) -> unsubscribe`: read-only, prevalidated C1 ScenePacket feed. The callback owns immutable packet references until the next rAF; one pending packet is retained and newer arrivals coalesce. Never inject API mutation methods. Unsubscribe must detach the actual transport listener. Reconnect updates the trusted context **before** publishing packets.
-- `getMap()` is the trusted authority: `{map_id,revision,frame_id,units:'m',source_epoch,stream_epoch,clock_domain,calibration_id,source_identity?}`. These pins are not adopted from incoming packets. Change pins when selecting a map, changing calibration or reconnecting, including while paused. C3 discards paths, tracks, selected objects, robot and collision state on the next rAF; old-context packets cannot revive them. The host must synchronously clear old reference map data before publishing new pins. `source_identity` should include merged/reference asset hash and source lineage; missing source identity is explicitly displayed.
+- `getMap()` is the trusted authority: `{map_id,revision,generation,frame_id,units:'m',source_epoch,stream_epoch,clock_domain,calibration_id,source_identity?}`. These pins are not adopted from incoming packets. Change pins when selecting a map, changing calibration or reconnecting, including while paused. C3 discards paths, tracks, selected objects, robot and collision state on the next rAF; old-context packets cannot revive them. The host must synchronously clear old reference map data before publishing new pins. `source_identity` should include merged/reference asset hash and source lineage; missing source identity is explicitly displayed.
 - `clock() -> monotonic milliseconds` is only for local receipt aging. `theme` is `'dark'|'light'` or a zero-argument getter. Source stamps remain decimal ns strings/BigInt and are never subtracted from host clocks.
 
 The only actual mounted host in this submission is `experiments/expansion_20261029/c3_scene_ui/host.js`, served by its loopback-only static server. It instantiates the existing renderer, preloads the existing public Go2 asset once, and injects these ports with entirely generated synthetic packets.
@@ -40,13 +40,13 @@ The only actual mounted host in this submission is `experiments/expansion_202610
 
 Feature remains default OFF: neither `app.js`, `navigation.js`, `index.html`, nor any renderer, application, configuration, package manifest or CI file is modified. Removing the explicit mount and stylesheet returns the host to its existing behavior. Destroy the mount before the host renderer.
 
-## Display profile and C1 boundary
+## Internal fixture/display profile (wire mapping updated in round 2)
 
-`consumer.js` implements fail-closed display guards and bounded presentation copies; it is **not** a second authoritative schema validator. C1 owns the common wire validators. The design pack leaves ScenePacket optional fields unresolved; this consumer profile uses the fixture's explicit fields until a published C1 SHA can be checked. Integration must inject C1 validation/adaptation at `subscribe`, with exact pinned mapping, rather than assuming field names are already a published common API.
+`consumer.js` implements fail-closed display guards and bounded presentation copies; it is **not** a second authoritative schema validator. C1 owns the common wire validators. The following is the retained internal fixture profile, not a second public wire version. Current actual C1 snapshot mapping is documented below; it no longer requires sources.display. Integration must inject C1 validation/adaptation at `subscribe`, with exact pinned mapping, rather than assuming field names are already a published common API.
 
 The executable field reference is `fixture.js:makePacket`:
 
-- `schema_version:'robot-scope.scene-packet.v1'`, `evidence_kind`, `producer`, safe integer `sequence`, decimal string `stamp_ns`, `source_epoch`, `stream_epoch`, `clock_domain`, `map_identity:{map_id,revision,frame_id,units:'m'}`.
+- `schema_version:'robot-scope.scene-packet.v1'`, `evidence_kind`, `producer`, safe integer `sequence`, decimal string `stamp_ns`, `source_epoch`, `stream_epoch`, `clock_domain`, `map_identity:{map_id,revision,generation,frame_id,units:'m'}`.
 - Every displayed sublayer carries `frame_key:{map_id,revision,frame_id}`, `stamp_ns`, `clock_domain`, `source_epoch`, `calibration_id` where sensor/body geometry requires it, and bounded string-array `provenance`.
 - `robot_pose:{ref,position_m:[x,y,z],rpy_rad:[roll,pitch,yaw]}` and `joint_state:{ref,positions_rad:{12 named Go2 joints}}`. Missing/stale joints hide the robot; no goal pose is substituted.
 - `sources:[{id:'LIDAR'|'DEPTH',kind,health:'OK',points_m:[[x,y,z],...]...}]`; points are already transformed using the pinned producer calibration. Disabled display, missing receipt, stale data and bad health are distinct. No local association is attempted.
@@ -59,16 +59,70 @@ Current explicit display budgets (not safety thresholds): 4 sources × 4096 poin
 
 Pausing freezes the displayed snapshot, explicitly labeled PAUSED; new input stays latest-only. Step consumes that one pending packet, not a hidden unbounded replay queue. The external replay producer owns the timeline. Map/context changes still clear a paused display. No control/safety stop is invoked.
 
-## Published C1 bootstrap compatibility
+## Current exact C1 service boundary
 
-`review/20261029-x-c1-services@2402c02c6f91ba54064894b21735e01b98610acd` was exported read-only with `git archive` into `/tmp/c3-c1-export-2402c02`. Its `ObstacleFrame`, `CollisionAssessment` and `ScenePacket.from_dict` were actually called; its code was not copied/merged into this submission. This is the bootstrap contract commit, not C1 service completion.
+Round 2 uses C1 `54629c793ad4ae0ea88127f00ed1b7f8805fc4e2`, D2
+`c0d266e290a2d29c173d3b83520f8c96efea9447` and D3
+`09b68b692fa4b7ccdea39b1a16e3ff150794e12d` as verified read-only imports.
+The previous bootstrap experiment is historical evidence in HANDOFF; its
+`sources.display` assumptions are superseded. See [ROUND2.md](ROUND2.md).
 
-`c1_adapter.js:adaptC1ScenePacket(wire, context) -> {packet,reason}` maps validated C1 **0.1** fields to the display profile. It checks trusted `map_binding.generation` as well as ID/revision; the host must change `source_epoch` or `stream_epoch` on any generation change so the existing consumer also resets. An odom layer without a map transform is withheld; it never becomes map-frame geometry by renaming the frame. Missing source clock metadata or C3 profile yields a reason and no packet.
+At the eventual authorized transport boundary:
 
-C1 bootstrap intentionally leaves nested pose/path/sources dictionaries open. The tested optional `sources.display` extension is an explicit C3 presentation profile (`schema_version:'robot-scope.c3-display.v1'`, decimal `stamp_ns`, `clock_domain`, producer-asserted `calibration_id`, `joint_state`, `sensors`, `provenance`). Those nested observations retain C1 `map_binding` and `{source_epoch,frame_id}` pins. C1 collision references use `{ref}` / `{sequence}` / `{generation}`, `validity_interval.valid_until_ns`, and `padded_envelope.envelopes` / `unpadded_envelope.envelopes`. The adapter maps these explicitly, including clearance/TTC field names, without running collision work. This nested profile is a tested consumer extension, **not** a claim that C1 has standardized these optional fields or that arbitrary producer payloads already fit it. The upstream C1 validator's 128KiB document bound applies before C3's geometry budgets.
+```js
+const started = performance.now();
+const raw = await response.text();
+const wire = parseC1SceneJSON(raw); // preserve integer ns tokens exactly
+const {packet, reason} = adaptC1ScenePacket(wire, trustedContext, {
+  transportAgeMs: performance.now() - started,
+});
+if (packet) publishToDisplay(packet); // read-only subscription callback
+```
 
-`tests/expansion_c3/c1_compatibility.py` constructs a generated 15KiB packet using the exact exported classes; `check_c1.mjs` ingests the validated wire through the real adapter. The browser runner optionally reads the resulting `/tmp/c3-c1-wire.json` using `C3_C1_WIRE` and mounts it in the same synthetic renderer. It checks rejection of wrong map generation, non-map geometry and missing profile. This limited check does not include a D2/D3 solver or native Nav2 replay.
+Start timing before the HTTP request, as the isolated host does; transport elapsed
+is a conservative added age. C1 still owns canonical validation. The JavaScript
+parser bounds the document and preserves integer nanoseconds before Number
+rounding; it is not a replacement schema validator. Unsafe already-parsed Number
+values are withheld. The public wire remains C1 **0.1** with Python integer host
+nanoseconds. Do not publish the internal scene-packet display shape as a new
+producer contract.
+
+C1 uses `sources[slot]` age/epoch/sequence metadata and generic observation
+`data` envelopes. Its stream epoch is not the sensor source epoch. Map generation
+is now part of the consumer context key. C1's interval is exactly
+`{host_clock_id,start_monotonic_ns,end_monotonic_ns}`. Remaining time is computed
+from the same-host producer receipt plus C1's received age, never by subtracting
+browser and server monotonic clocks. Original interval/host/domain/receipt stay
+in the inspector. Absolute sensor age remains UNKNOWN where C1 provides null.
+Repeated HTTP scene sequence is permitted for server invalidation/age updates;
+per-layer frozen source stamps cannot restart TTL. C1-invalidated assessment
+sequence stays tombstoned even if an earlier HTTP response arrives late.
+
+Actual D2 `geometry.center/extent/orientation_xyzw` maps to display metre fields.
+Objects retain structured provenance even when a visual cloud is unavailable.
+Optional `input_sources` geometry is used only when explicitly supplied with
+matching identity/clock/calibration; it is not an automatic C1 cloud service.
+There is no joint-state slot or standard generic geometry sub-schema in this
+C1 SHA. The isolated runner supplies pose/path/costmap dictionaries and synthetic
+visual joints explicitly. Missing reference/merged cloud, local trajectory and
+bulk resolver remain UNAVAILABLE. The 16 KiB/slot, 80 KiB latest set and 128 KiB
+wire bounds remain intact. C3 reuses immutable slot revisions and does not fetch
+uncontracted URLs or parse geometry on animation frames.
+
+D3 raw validity still fails C1's validator. The C3-owned runner records the exact
+failure and applies only an explicit synthetic clock correspondence, preserving
+its original interval; it is not production clock synchronization. D3 scalar
+envelope summaries are inspected as evidence, never invented as drawable boxes.
+UNKNOWN and positive clearance are retained together. Coverage, reported protection
+mode, recommendation and actual evidence level are separate. Missing active input
+retains the last reported ACTIVE_CONSTRAINT/HOLD state; an upstream downgrade is
+explicitly flagged, never silently treated as verified protection.
 
 ## One next action
 
-Pin D3's new published SHA and run one bounded read-only map-bound native replay compatibility check through the pinned C1/display adapter. Product wiring and equipment validation still require the user's later integration instruction.
+Supply one producer-owned canonical scene replay bundle at an exact SHA, including
+its source-to-host clock correspondence and real merged-map/native/bulk references.
+That single input enables the remaining actual-payload check. The current result
+is actual offline core + HTTP execution on synthetic inputs, with production
+clock/geometry profiles and ROS/native replay still unverified. Product wiring
+and equipment validation remain outside this branch's authorization.
