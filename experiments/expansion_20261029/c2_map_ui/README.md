@@ -61,3 +61,13 @@ D1's existing `solve_contract`; it invokes the D1 generator to create two 400-po
 synthetic sources. Known transforms are entered through the UI as manual priors.
 C1 performs full-source export and GET verifies the manifest/hash. Product source
 registration remains deferred by C1 and is displayed honestly by C2.
+
+
+Round 2 reuses this composition. `exact_service_host.py --round2` exposes three
+synthetic originals and locally reloaded **offline BundleStore** exports through
+the injected catalogue. It does not register anything with the product catalogue.
+See [ROUND2.md](../../../docs/parallel-expansion-20261029/C2/ROUND2.md) for pinned
+SHAs, the actual core/HTTP checks, zero-metric UI evidence and its ranking-fix
+limitation, and the protected CI comparison. Set `C2_SKIP_SCREENSHOTS=1` and
+`C2_REPORT_PATH=/tmp/report.json` to retain round-1 screenshots and reports when
+rerunning the original browser checks.
