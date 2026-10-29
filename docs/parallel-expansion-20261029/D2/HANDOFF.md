@@ -108,3 +108,16 @@ points and D3 usage. No shared file modifications are proposed for this branch.
 
 **Next one action:** C4 supplies one calibrated, timestamped recorded sensor
 packet through this core in an isolated fixture, retaining observation-only mode.
+
+## Publication / static-check follow-through
+
+Initial remote publication `8b47a3fb05a983a9f22b738b959afcdd63980ea9` was fetched
+back: all 14 changed blobs and complete tree matched local bytes. Push triggered
+CI run 40829033258. The subsequent formatting-only follow-up removes E701/E702
+violations; **AST equality was asserted for all three core Python files**, then
+23 focused tests, CLI and pinned C1 validation passed again. Full repository
+`ruff check robot_dashboard scripts` and tracked-source secret scan both PASS.
+Ruff 0.11.13 was installed only under `/tmp/d2-quality`, not in repository or
+shared dependencies. Earlier numerical/full-safe-regression results remain for
+identical ASTs. Final CI outcome and immutable follow-up SHA are in the delivery
+message; no workflow/shared-file changes were made to obtain a green result.
