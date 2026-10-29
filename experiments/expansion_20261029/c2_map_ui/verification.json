@@ -49,5 +49,7 @@
     "System Python without project dependencies: 1522 tests attempted, 115 dependency errors, 11 skipped. Final isolated /tmp venv passes full discovery.",
     "Sandbox denied loopback bind and stalled some subprocess/async teardown; final loopback/browser/full regression ran with local execution approval and bounded timeout.",
     "A repeated exact service test reused an immutable export name and correctly received 409; final test generates a new per-run name."
-  ]
+  ],
+  "tested_code_sha": "94d460f3dcf95d59e6661c59f96164c41eb3a284",
+  "tested_module_tree": "49f5b4052fdaa963c60ab85da6473c17cdf3413d"
 }
