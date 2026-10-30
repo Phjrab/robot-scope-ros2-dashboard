@@ -1,0 +1,30 @@
+{
+  "result": "REPRODUCED_SHARED_FIXTURE_TIMER_LEAK",
+  "sha": "5154761bba6fa4f171881e61f986901e2b415ed9",
+  "playwright": "1.62.1",
+  "browser": "151.0.7922.34",
+  "rounds": [
+    {
+      "round": 1,
+      "contextClosed": true,
+      "socketCloseCallbacks": 0,
+      "unclearedIntervals": 1,
+      "callbacksAfterContextClose": 2
+    },
+    {
+      "round": 2,
+      "contextClosed": true,
+      "socketCloseCallbacks": 0,
+      "unclearedIntervals": 2,
+      "callbacksAfterContextClose": 5
+    },
+    {
+      "round": 3,
+      "contextClosed": true,
+      "socketCloseCallbacks": 0,
+      "unclearedIntervals": 3,
+      "callbacksAfterContextClose": 8
+    }
+  ],
+  "cleanup": "All intervals captured by this probe are cleared in finally."
+}

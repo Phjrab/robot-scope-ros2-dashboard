@@ -1,0 +1,42 @@
+{
+  "artifacts": [
+    {
+      "id": 12924402324,
+      "name": "browser-evidence-ubuntu-22.04-python-3.10",
+      "size_in_bytes": 12776185,
+      "url": "https://api.github.com/repos/Phjrab/robot-scope-ros2-dashboard/actions/artifacts/12924402324",
+      "archive_download_url": "https://api.github.com/repos/Phjrab/robot-scope-ros2-dashboard/actions/artifacts/12924402324/zip",
+      "expired": false,
+      "created_at": "2026-10-29T18:58:23Z",
+      "expires_at": "2027-01-27T18:39:50Z",
+      "updated_at": "2026-10-29T18:58:23Z",
+      "digest": "sha256:d11bb2cb5140ccd9d15291d2b6146aedac1a9a7ae04463873804c7f77c5d4251",
+      "workflow_run": {
+        "id": 40932918269,
+        "repository_id": 1326271247,
+        "head_repository_id": 1326271247,
+        "head_branch": "review/20261030-x-c7-capacity-diagnostics",
+        "head_sha": "3d77ac29e34205d8173085dae950bb999cfdf816"
+      }
+    },
+    {
+      "id": 12924267721,
+      "name": "browser-evidence-ubuntu-24.04-python-3.12",
+      "size_in_bytes": 28806102,
+      "url": "https://api.github.com/repos/Phjrab/robot-scope-ros2-dashboard/actions/artifacts/12924267721",
+      "archive_download_url": "https://api.github.com/repos/Phjrab/robot-scope-ros2-dashboard/actions/artifacts/12924267721/zip",
+      "expired": false,
+      "created_at": "2026-10-29T18:59:22Z",
+      "expires_at": "2027-01-27T18:39:50Z",
+      "updated_at": "2026-10-29T18:59:22Z",
+      "digest": "sha256:780f4f12585d539c1acad47b55b00f634f3b3b7fbd66b9d186465a4c22697306",
+      "workflow_run": {
+        "id": 40932918269,
+        "repository_id": 1326271247,
+        "head_repository_id": 1326271247,
+        "head_branch": "review/20261030-x-c7-capacity-diagnostics",
+        "head_sha": "3d77ac29e34205d8173085dae950bb999cfdf816"
+      }
+    }
+  ]
+}

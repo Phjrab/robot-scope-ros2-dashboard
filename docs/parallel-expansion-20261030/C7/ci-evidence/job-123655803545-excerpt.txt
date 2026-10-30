@@ -1,0 +1,97 @@
+1: ﻿2026-10-29T18:39:53.5597677Z Current runner version: '2.338.0'
+2: 2026-10-29T18:39:53.5636223Z ##[group]Runner Image Provisioner
+3: 2026-10-29T18:39:53.5637560Z Hosted Compute Agent
+4: 2026-10-29T18:39:53.5639032Z Version: 20261021.618
+5: 2026-10-29T18:39:53.5640177Z Commit: 21505ad2541d5be6135ed84fc33697146cf75b8e
+6: 2026-10-29T18:39:53.5641642Z Build Date: 2026-10-21T00:45:21Z
+7: 2026-10-29T18:39:53.5642875Z Worker ID: {d66e6e62-f672-4e43-ad61-9b475f71e652}
+8: 2026-10-29T18:39:53.5643984Z Region: centralus
+9: 2026-10-29T18:39:53.5644780Z Cloud: Azure
+10: 2026-10-29T18:39:53.5645637Z ##[endgroup]
+11: 2026-10-29T18:39:53.5647634Z ##[group]Operating System
+12: 2026-10-29T18:39:53.5648700Z Ubuntu
+13: 2026-10-29T18:39:53.5649525Z 24.04.5
+14: 2026-10-29T18:39:53.5650250Z LTS
+15: 2026-10-29T18:39:53.5651292Z ##[endgroup]
+16: 2026-10-29T18:39:53.5652226Z ##[group]Runner Image
+17: 2026-10-29T18:39:53.5653228Z Image: ubuntu-24.04
+18: 2026-10-29T18:39:53.5654121Z Version: 20261025.353.1
+19: 2026-10-29T18:39:53.5656146Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261025.353/images/ubuntu/Ubuntu2404-Readme.md
+20: 2026-10-29T18:39:53.5658649Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261025.353
+21: 2026-10-29T18:39:53.5660294Z ##[endgroup]
+22: 2026-10-29T18:39:53.5662146Z ##[group]GITHUB_TOKEN Permissions
+23: 2026-10-29T18:39:53.5664508Z Contents: read
+24: 2026-10-29T18:39:53.5665075Z Metadata: read
+25: 2026-10-29T18:39:53.5665596Z ##[endgroup]
+26: 2026-10-29T18:39:53.5667777Z Secret source: Actions
+27: 2026-10-29T18:39:53.5668656Z Cache mode: write
+28: 2026-10-29T18:39:53.5669679Z Prepare workflow directory
+29: 2026-10-29T18:39:53.6000685Z Prepare all required actions
+30: 2026-10-29T18:39:53.6056253Z Getting action download info
+31: 2026-10-29T18:39:53.9033731Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+32: 2026-10-29T18:39:54.0036064Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+33: 2026-10-29T18:39:54.0944058Z Download action repository 'actions/setup-node@v4' (SHA:49933ea5288caeca8642d1e84afbd3f7d6820020)
+34: 2026-10-29T18:39:54.2131007Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+35: 2026-10-29T18:39:54.6458443Z Complete job name: hardware-free-tests (ubuntu-24.04, 3.12)
+36: 2026-10-29T18:39:54.7670574Z ##[group]Run actions/checkout@v4
+37: 2026-10-29T18:39:54.7672144Z with:
+38: 2026-10-29T18:39:54.7673122Z   repository: Phjrab/robot-scope-ros2-dashboard
+39: 2026-10-29T18:39:54.7682144Z   token: ***
+40: 2026-10-29T18:39:54.7682984Z   ssh-strict: true
+7752: 2026-10-29T18:44:19.6998360Z Running 227 tests using 1 worker
+7806: 2026-10-29T18:47:35.1450774Z [53/227] tests/e2e/global_observation_history.spec.mjs:63:1 › explicit saved-result open survives a page reload without any mutation or automatic tracking
+7807: 2026-10-29T18:47:40.2939125Z [54/227] tests/e2e/global_observation_history.spec.mjs:90:1 › typed historical ID and refresh only read; changed input clears previous output before a missing result
+7808: 2026-10-29T18:47:43.2079735Z [55/227] tests/e2e/global_observation_history.spec.mjs:110:1 › old generation remains historical display only and mismatched context cannot reappear after refresh
+7895: 2026-10-29T18:55:03.4029380Z [142/227] tests/e2e/mount_calibration.spec.mjs:329:3 › Settings mount calibration · SYNTHETIC mocked integration › server validation errors stay visible without stale success or an enabled export
+7896: 2026-10-29T18:55:07.0103716Z [143/227] tests/e2e/mount_calibration.spec.mjs:343:3 › Settings mount calibration · SYNTHETIC mocked integration › imports saved SYNTHETIC artifacts into the existing image canvas, selects native pixels and exports relative-only input
+7897: 2026-10-29T18:55:32.1665881Z   1) tests/e2e/mount_calibration.spec.mjs:343:3 › Settings mount calibration · SYNTHETIC mocked integration › imports saved SYNTHETIC artifacts into the existing image canvas, selects native pixels and exports relative-only input
+7898: 2026-10-29T18:55:32.1667996Z
+7899: 2026-10-29T18:55:32.1668519Z     Test timeout of 20000ms exceeded.
+7900: 2026-10-29T18:55:32.1668909Z
+7901: 2026-10-29T18:55:32.1669171Z     Error: expect(locator).toBeVisible() failed
+7902: 2026-10-29T18:55:32.1669461Z
+7903: 2026-10-29T18:55:32.1669753Z     Locator:  locator('#mount-calibration-results-content')
+7904: 2026-10-29T18:55:32.1670188Z     Expected: visible
+7905: 2026-10-29T18:55:32.1670518Z     Received: hidden
+7906: 2026-10-29T18:55:32.1670731Z
+7907: 2026-10-29T18:55:32.1670911Z     Call log:
+7908: 2026-10-29T18:55:32.1671703Z       - Expect "toBeVisible" with timeout 5000ms
+7909: 2026-10-29T18:55:32.1672417Z       - waiting for locator('#mount-calibration-results-content')
+7910: 2026-10-29T18:55:32.1673163Z         7 × locator resolved to <div hidden="" id="mount-calibration-results-content">…</div>
+7911: 2026-10-29T18:55:32.1673623Z           - unexpected value "hidden"
+7912: 2026-10-29T18:55:32.1673928Z       - Test timeout of 20000ms exceeded.
+7913: 2026-10-29T18:55:32.1674121Z
+7914: 2026-10-29T18:55:32.1674129Z
+7915: 2026-10-29T18:55:32.1674270Z       140 | async function estimate(page) {
+7916: 2026-10-29T18:55:32.1674639Z       141 |   await field(page, 'estimate-button').click();
+7917: 2026-10-29T18:55:32.1675087Z     > 142 |   await expect(field(page, 'results-content')).toBeVisible();
+7918: 2026-10-29T18:55:32.1675499Z           |                                                ^
+7919: 2026-10-29T18:55:32.1675891Z       143 |   await expect(field(page, 'export-button')).toBeEnabled();
+7920: 2026-10-29T18:55:32.1676229Z       144 | }
+7921: 2026-10-29T18:55:32.1676428Z       145 |
+7922: 2026-10-29T18:55:32.1677394Z         at estimate (/home/runner/work/robot-scope-ros2-dashboard/robot-scope-ros2-dashboard/tests/e2e/mount_calibration.spec.mjs:142:48)
+7923: 2026-10-29T18:55:32.1678346Z         at /home/runner/work/robot-scope-ros2-dashboard/robot-scope-ros2-dashboard/tests/e2e/mount_calibration.spec.mjs:369:36
+7924: 2026-10-29T18:55:32.1678791Z
+7925: 2026-10-29T18:55:32.1679207Z     attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+7926: 2026-10-29T18:55:32.1679892Z     test-results/mount_calibration-Settings-baef7-exports-relative-only-input/test-failed-1.png
+7927: 2026-10-29T18:55:32.1680613Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+7928: 2026-10-29T18:55:32.1680887Z
+7929: 2026-10-29T18:55:32.1681595Z     Error Context: test-results/mount_calibration-Settings-baef7-exports-relative-only-input/error-context.md
+7930: 2026-10-29T18:55:32.1682062Z
+7931: 2026-10-29T18:55:32.1682490Z     attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+7932: 2026-10-29T18:55:32.1683205Z     test-results/mount_calibration-Settings-baef7-exports-relative-only-input/trace.zip
+7933: 2026-10-29T18:55:32.1683687Z     Usage:
+7934: 2026-10-29T18:55:32.1683839Z
+7935: 2026-10-29T18:55:32.1684296Z         npx playwright show-trace test-results/mount_calibration-Settings-baef7-exports-relative-only-input/trace.zip
+7936: 2026-10-29T18:55:32.1684774Z
+7937: 2026-10-29T18:55:32.1685167Z     ────────────────────────────────────────────────────────────────────────────────────────────────
+7938: 2026-10-29T18:55:32.1685468Z
+7939: 2026-10-29T18:55:32.1685475Z
+7940: 2026-10-29T18:55:33.3455820Z [144/227] tests/e2e/mount_calibration.spec.mjs:390:3 › Settings mount calibration · SYNTHETIC mocked integration › unavailable and changed saved artifacts stay unimportable and invalidate old results
+7941: 2026-10-29T18:55:36.7077688Z [145/227] tests/e2e/mount_calibration.spec.mjs:413:3 › Settings mount calibration · SYNTHETIC mocked integration › saved frame or timestamp mismatch cannot display a mismatched click image
+7942: 2026-10-29T18:55:38.2243227Z [146/227] tests/e2e/mount_calibration.spec.mjs:426:3 › Settings mount calibration · SYNTHETIC mocked integration › a late saved artifact cannot replace a newer demo or restore its previous result
+7943: 2026-10-29T18:55:40.1844179Z [147/227] tests/e2e/mount_calibration.spec.mjs:445:5 › Settings mount calibration · SYNTHETIC mocked integration › native calibration stays inside the 390px viewport before and after results
+7944: 2026-10-29T18:55:42.4277394Z [148/227] tests/e2e/mount_calibration.spec.mjs:445:5 › Settings mount calibration · SYNTHETIC mocked integration › native calibration stays inside the 768px viewport before and after results
+7945: 2026-10-29T18:55:44.5700197Z [149/227] tests/e2e/mount_calibration.spec.mjs:445:5 › Settings mount calibration · SYNTHETIC mocked integration › native calibration stays inside the 1440px viewport before and after results
+7946: 2026-10-29T18:55:46.8649736Z [150/227] tests/e2e/mount_calibration.spec.mjs:472:1 › quality rejection retains 5x5 point diagnostics and never exposes an angle · SYNTHETIC
+8026: 2026-10-29T18:59:19.8580480Z   226 passed (15.0m)

@@ -1,0 +1,15 @@
+{
+  "os": "Ubuntu 24.04.5",
+  "python": "3.12.3",
+  "machine": "x86_64",
+  "node": "20.20.2",
+  "npm": "10.8.2",
+  "playwright": "1.62.1",
+  "chromium": "151.0.7922.34",
+  "browser_path": "/tmp/c3-scene-browsers",
+  "venv": "/tmp/c7-ci-runtime/venv",
+  "python_patch_matches_remote": false,
+  "hosted_runner_image_reproduced": false,
+  "ubuntu_22_standalone": "NOT_RUN; no local 22.04 runtime or container engine",
+  "resource_control": "Own browser/Python validation workloads run sequentially; other desktop/chat activity not controlled."
+}

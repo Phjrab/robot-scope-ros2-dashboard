@@ -1,0 +1,130 @@
+{
+  "c7-isolated": {
+    "exit_code": 0,
+    "summary": [
+      "  2 passed (7.2s)"
+    ],
+    "log": "c7-isolated.log",
+    "sha256": "6c0d1e2578fb771a98af4f0351007882c8cd2a91c908e43d30c5d22844a8c52b"
+  },
+  "main-isolated": {
+    "exit_code": 0,
+    "summary": [
+      "  2 passed (7.1s)"
+    ],
+    "log": "main-isolated.log",
+    "sha256": "148f009bdb546df402c3ae2cd9eb14dcb69bb2667478c3cb7000d8b970a1a422"
+  },
+  "c7-history-single": {
+    "exit_code": 0,
+    "summary": [
+      "  1 passed (3.1s)"
+    ],
+    "log": "c7-history-single.log",
+    "sha256": "b03e0f9242c85de4b8b19351c6e1f68d8014301624cfdd8589cd42d99a28b5ed"
+  },
+  "c7-mount-single": {
+    "exit_code": 0,
+    "summary": [
+      "  1 passed (5.1s)"
+    ],
+    "log": "c7-mount-single.log",
+    "sha256": "530d7638789458a4f17f699c9e881d200af08f638e18c4e4c70e921e416d16cb"
+  },
+  "main-history-single": {
+    "exit_code": 0,
+    "summary": [
+      "  1 passed (3.0s)"
+    ],
+    "log": "main-history-single.log",
+    "sha256": "4e05244ed66255cf4af9b10eff4aa975d708b94dd243e236185e6f5827b5e56f"
+  },
+  "main-mount-single": {
+    "exit_code": 0,
+    "summary": [
+      "  1 passed (4.6s)"
+    ],
+    "log": "main-mount-single.log",
+    "sha256": "404c10f29e606094264ced41b356bac8265a4405df2db0ff10e29922425892c8"
+  },
+  "c7-full": {
+    "exit_code": 0,
+    "summary": [
+      "  227 passed (7.8m)"
+    ],
+    "log": "c7-full.log",
+    "sha256": "376c2f760b6a44ecf6e61fa34a53481673f9f52758ee914ecd31b6bdcccad365"
+  },
+  "mission": {
+    "exit_code": 0,
+    "summary": [
+      "  10 passed (39.9s)"
+    ],
+    "log": "mission.log",
+    "sha256": "d38a59c3822823b9cee9e0e571c109d7cfe2787b47b5b8ee74196eb6989bcc70"
+  },
+  "c7-focused": {
+    "exit_code": 0,
+    "summary": [
+      "Ran 7 tests in 1.666s",
+      "OK"
+    ],
+    "log": "c7-focused.log",
+    "sha256": "ecd5272aba7d714768599d370ab20cc8e4f84a94079fcb430b5b73379953cbf1"
+  },
+  "c3-units": {
+    "exit_code": 0,
+    "summary": [
+      "# tests 38",
+      "# pass 38",
+      "# fail 0",
+      "# skipped 0"
+    ],
+    "log": "c3-units.log",
+    "sha256": "f3d4cd9eba22c1b7f561f6e387983ac1c63277f1622a1254e8d2add4cbdf9b08"
+  },
+  "python-full": {
+    "exit_code": 0,
+    "summary": [
+      "Ran 3139 tests in 99.227s",
+      "OK (skipped=2)"
+    ],
+    "log": "python-full.log",
+    "sha256": "40c4b32a59aa668ed6bf40c663e04d74a47d48063f70ee2524c0fd6616148f04"
+  },
+  "js-full": {
+    "exit_code": 0,
+    "summary": [
+      "# tests 700",
+      "# pass 700",
+      "# fail 0",
+      "# skipped 0"
+    ],
+    "log": "js-full.log",
+    "sha256": "33a35bcc3c383c4400ddbe1ff4ea415bcde5744285c0d987773a218522bab26c"
+  },
+  "js-syntax": {
+    "exit_code": 0,
+    "summary": [
+      "checked JavaScript syntax for 112 dashboard modules"
+    ],
+    "log": "js-syntax.log",
+    "sha256": "c36cf76ce9fbdcddace4eea32781a3431bd0ae9127e0ccf6c9926aa08ce8af8e"
+  },
+  "ruff": {
+    "exit_code": 0,
+    "summary": [
+      "All checks passed!"
+    ],
+    "log": "ruff.log",
+    "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+  },
+  "mypy": {
+    "exit_code": 0,
+    "summary": [
+      "Success: no issues found in 4 source files"
+    ],
+    "log": "mypy.log",
+    "sha256": "71144743c83babea384888a735db0c4daba3d4d7b7942b6839984bd5c21b52bb"
+  }
+}

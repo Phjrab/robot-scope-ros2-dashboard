@@ -1,0 +1,577 @@
+[
+  {
+    "artifact": "artifact-12924402324.zip",
+    "artifact_bytes": 12776185,
+    "artifact_sha256": "d11bb2cb5140ccd9d15291d2b6146aedac1a9a7ae04463873804c7f77c5d4251",
+    "trace_member": "test-results/global_observation_history-8c27b-put-before-a-missing-result/trace.zip",
+    "attachments": {
+      "test-results/global_observation_history-8c27b-put-before-a-missing-result/error-context.md": {
+        "bytes": 11366,
+        "sha256": "e55c083ae5cd2d7f872e291918671f8701bd31050d63185f79ac1059a01e156c"
+      },
+      "test-results/global_observation_history-8c27b-put-before-a-missing-result/test-failed-1.png": {
+        "bytes": 209790,
+        "sha256": "462edb46144d5a708451e862d0e6439cf851662062524f3ee703ebe4f387e9e9"
+      },
+      "test-results/global_observation_history-8c27b-put-before-a-missing-result/trace.zip": {
+        "bytes": 8444248,
+        "sha256": "97047be768b08299a201788e2e747362ff1a7b1646b6d2d523c369d231f0070c"
+      }
+    },
+    "playwright": "1.62.1",
+    "test_timeout_ms": 20000,
+    "test_trace_events": 6488,
+    "network_requests": 261,
+    "last_browser_api_event_ms": 7900.538,
+    "closed_socket_send_errors": 3078,
+    "closed_socket_error_stacks": {
+      "tests/e2e/dashboard_backend.mjs:265:16": 1539,
+      "tests/e2e/dashboard_backend.mjs:280:23": 1539
+    },
+    "actions_relative_to_test_trace_start": [
+      {
+        "title": "Navigate to \"/#maps\"",
+        "start_ms": 81.373,
+        "end_ms": 957.181
+      },
+      {
+        "title": "Select option locator('#savedGlobalHistory')",
+        "start_ms": 1879.425,
+        "end_ms": 1949.833
+      },
+      {
+        "title": "Click locator('#savedGlobalHistoryOpen')",
+        "start_ms": 1950.61,
+        "end_ms": 2081.541
+      },
+      {
+        "title": "Click locator('#savedGlobalHistoryRefresh')",
+        "start_ms": 2193.907,
+        "end_ms": 2344.705
+      },
+      {
+        "title": "Fill \"dddddddddddddddddddddddd\" locator('#savedGlobalHistoryId')",
+        "start_ms": 2346.944,
+        "end_ms": 2405.799
+      },
+      {
+        "title": "Click locator('#savedGlobalHistoryOpen')",
+        "start_ms": 2476.361,
+        "end_ms": 2650.043
+      }
+    ],
+    "relevant_http_requests": [
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 1604.093,
+        "duration_ms": 6.102
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 1607.245,
+        "duration_ms": 11.378
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 1612.429,
+        "duration_ms": 13.114
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs/cccccccccccccccccccccccc",
+        "status": 200,
+        "start_ms": 2060.635,
+        "duration_ms": 9.148
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 2104.922,
+        "duration_ms": 7.436999999999999
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 2321.579,
+        "duration_ms": 6.668
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 2610.753,
+        "duration_ms": 14.452
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 2610.96,
+        "duration_ms": 16.189
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 2611.186,
+        "duration_ms": 15.870000000000001
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 3602.757,
+        "duration_ms": 5.416
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 3606.447,
+        "duration_ms": 16.46
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 3610.738,
+        "duration_ms": 19.088
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 4603.495,
+        "duration_ms": 5.482
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 4606.187,
+        "duration_ms": 7.639
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 4609.103,
+        "duration_ms": 7.849
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 5602.818,
+        "duration_ms": 4.948
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 5606.251,
+        "duration_ms": 9.048
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 5610.291,
+        "duration_ms": 9.016
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 6604.112,
+        "duration_ms": 7.510999999999999
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 6606.246,
+        "duration_ms": 9.976
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 6611.346,
+        "duration_ms": 11.766
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 7603.3,
+        "duration_ms": 4.902
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 7605.663,
+        "duration_ms": 12.207
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 7610.246,
+        "duration_ms": 13.82
+      }
+    ],
+    "pointer_interceptions": [],
+    "interpretation_limit": "Trace evidence does not measure host CPU or prove a single sufficient cause for timeout."
+  },
+  {
+    "artifact": "artifact-12924267721.zip",
+    "artifact_bytes": 28806102,
+    "artifact_sha256": "780f4f12585d539c1acad47b55b00f634f3b3b7fbd66b9d186465a4c22697306",
+    "trace_member": "test-results/mount_calibration-Settings-baef7-exports-relative-only-input/trace.zip",
+    "attachments": {
+      "test-results/mount_calibration-Settings-baef7-exports-relative-only-input/error-context.md": {
+        "bytes": 30626,
+        "sha256": "c8c5ef27941e490444162e0adbc25df7187a754dc68d394873149a611a179ab0"
+      },
+      "test-results/mount_calibration-Settings-baef7-exports-relative-only-input/test-failed-1.png": {
+        "bytes": 116209,
+        "sha256": "09e085126f1cca1bc56edce1a1b83e4b25b85af6effa992089b2ceae4b127a6d"
+      },
+      "test-results/mount_calibration-Settings-baef7-exports-relative-only-input/trace.zip": {
+        "bytes": 24141295,
+        "sha256": "502d218b811b0ef6fda0ea951f7eb30cf13f45163384769ce73024558e543302"
+      }
+    },
+    "playwright": "1.62.1",
+    "test_timeout_ms": 20000,
+    "test_trace_events": 30225,
+    "network_requests": 299,
+    "last_browser_api_event_ms": 20247.494,
+    "closed_socket_send_errors": 14845,
+    "closed_socket_error_stacks": {
+      "tests/e2e/dashboard_backend.mjs:265:16": 3910,
+      "tests/e2e/dashboard_backend.mjs:280:23": 3910,
+      "tests/e2e/live_observation.spec.mjs:90:14": 4726,
+      "tests/e2e/dashboard_backend.mjs:244:97": 2142,
+      "tests/e2e/live_observation.spec.mjs:83:54": 157
+    },
+    "actions_relative_to_test_trace_start": [
+      {
+        "title": "Navigate to \"/#settings\"",
+        "start_ms": 105.982,
+        "end_ms": 1001.922
+      },
+      {
+        "title": "Expect \"toBeVisible\"",
+        "start_ms": 1003.419,
+        "end_ms": 1129.553
+      },
+      {
+        "title": "Expect \"toBeVisible\"",
+        "start_ms": 1130.753,
+        "end_ms": 1183.558
+      },
+      {
+        "title": "Click locator('#mount-calibration-saved-refresh')",
+        "start_ms": 1185.339,
+        "end_ms": 1299.988
+      },
+      {
+        "title": "Check locator('#mount-calibration-saved-list').locator('input[type=\"checkbox\"]').first()",
+        "start_ms": 1301.609,
+        "end_ms": 1411.477
+      },
+      {
+        "title": "Check locator('#mount-calibration-saved-list').locator('input[type=\"checkbox\"]').nth(1)",
+        "start_ms": 1412.451,
+        "end_ms": 1689.378
+      },
+      {
+        "title": "Click locator('#mount-calibration-saved-import')",
+        "start_ms": 1690.952,
+        "end_ms": 1908.658
+      },
+      {
+        "title": "Bounding box locator('#mount-calibration-depth-canvas')",
+        "start_ms": 2350.271,
+        "end_ms": 2397.66
+      },
+      {
+        "title": "Click locator('#mount-calibration-depth-canvas')",
+        "start_ms": 2398.521,
+        "end_ms": 2532.618
+      },
+      {
+        "title": "Click locator('#mount-calibration-undo-button')",
+        "start_ms": 2567.191,
+        "end_ms": 2665.627
+      },
+      {
+        "title": "Click locator('#mount-calibration-panel').locator('.manual-points summary')",
+        "start_ms": 2667.144,
+        "end_ms": 2927.173
+      },
+      {
+        "title": "Click locator('#mount-calibration-sample-list').locator('.sample-select').first()",
+        "start_ms": 2928.62,
+        "end_ms": 3046.972
+      },
+      {
+        "title": "Fill \"4\" locator('#mount-calibration-point-u')",
+        "start_ms": 3048.058,
+        "end_ms": 3151.547
+      },
+      {
+        "title": "Fill \"4\" locator('#mount-calibration-point-v')",
+        "start_ms": 3152.901,
+        "end_ms": 3322.595
+      },
+      {
+        "title": "Click locator('#mount-calibration-point-form').getByRole('button', { name: '점 추가' })",
+        "start_ms": 3323.633,
+        "end_ms": 3549.147
+      },
+      {
+        "title": "Fill \"20\" locator('#mount-calibration-point-u')",
+        "start_ms": 3550.885,
+        "end_ms": 3718.267
+      },
+      {
+        "title": "Fill \"4\" locator('#mount-calibration-point-v')",
+        "start_ms": 3720.971,
+        "end_ms": 3975.972
+      },
+      {
+        "title": "Click locator('#mount-calibration-point-form').getByRole('button', { name: '점 추가' })",
+        "start_ms": 3977.434,
+        "end_ms": 4161.585
+      },
+      {
+        "title": "Fill \"35\" locator('#mount-calibration-point-u')",
+        "start_ms": 4162.932,
+        "end_ms": 4284.523
+      },
+      {
+        "title": "Fill \"4\" locator('#mount-calibration-point-v')",
+        "start_ms": 4286.242,
+        "end_ms": 4420.086
+      },
+      {
+        "title": "Click locator('#mount-calibration-point-form').getByRole('button', { name: '점 추가' })",
+        "start_ms": 4422.712,
+        "end_ms": 4872.447
+      },
+      {
+        "title": "Fill \"4\" locator('#mount-calibration-point-u')",
+        "start_ms": 4873.602,
+        "end_ms": 5014.142
+      },
+      {
+        "title": "Fill \"25\" locator('#mount-calibration-point-v')",
+        "start_ms": 5016.795,
+        "end_ms": 5216.809
+      },
+      {
+        "title": "Click locator('#mount-calibration-point-form').getByRole('button', { name: '점 추가' })",
+        "start_ms": 5218.986,
+        "end_ms": 5527.486
+      },
+      {
+        "title": "Fill \"20\" locator('#mount-calibration-point-u')",
+        "start_ms": 5528.571,
+        "end_ms": 5731.719
+      },
+      {
+        "title": "Fill \"25\" locator('#mount-calibration-point-v')",
+        "start_ms": 5732.833,
+        "end_ms": 6049.028
+      },
+      {
+        "title": "Click locator('#mount-calibration-point-form').getByRole('button', { name: '점 추가' })",
+        "start_ms": 6051.785,
+        "end_ms": 6352.619
+      },
+      {
+        "title": "Fill \"35\" locator('#mount-calibration-point-u')",
+        "start_ms": 6354.585,
+        "end_ms": 6540.731
+      },
+      {
+        "title": "Fill \"25\" locator('#mount-calibration-point-v')",
+        "start_ms": 6541.955,
+        "end_ms": 6697.078
+      },
+      {
+        "title": "Click locator('#mount-calibration-point-form').getByRole('button', { name: '점 추가' })",
+        "start_ms": 6698.867,
+        "end_ms": 7116.833
+      },
+      {
+        "title": "Click locator('#mount-calibration-sample-list').locator('.sample-select').nth(1)",
+        "start_ms": 7118.777,
+        "end_ms": 7401.153
+      },
+      {
+        "title": "Fill \"4\" locator('#mount-calibration-point-u')",
+        "start_ms": 7403.252,
+        "end_ms": 7556.64
+      },
+      {
+        "title": "Fill \"4\" locator('#mount-calibration-point-v')",
+        "start_ms": 7558.098,
+        "end_ms": 7936.825
+      },
+      {
+        "title": "Click locator('#mount-calibration-point-form').getByRole('button', { name: '점 추가' })",
+        "start_ms": 7939.521,
+        "end_ms": 8307.213
+      },
+      {
+        "title": "Fill \"20\" locator('#mount-calibration-point-u')",
+        "start_ms": 8308.472,
+        "end_ms": 8611.177
+      },
+      {
+        "title": "Fill \"4\" locator('#mount-calibration-point-v')",
+        "start_ms": 8612.893,
+        "end_ms": 9012.041
+      },
+      {
+        "title": "Click locator('#mount-calibration-point-form').getByRole('button', { name: '점 추가' })",
+        "start_ms": 9015.495,
+        "end_ms": 9748.278
+      },
+      {
+        "title": "Fill \"35\" locator('#mount-calibration-point-u')",
+        "start_ms": 9750.038,
+        "end_ms": 10112.64
+      },
+      {
+        "title": "Fill \"4\" locator('#mount-calibration-point-v')",
+        "start_ms": 10114.984,
+        "end_ms": 10496.963
+      },
+      {
+        "title": "Click locator('#mount-calibration-point-form').getByRole('button', { name: '점 추가' })",
+        "start_ms": 10498.526,
+        "end_ms": 11435.679
+      },
+      {
+        "title": "Fill \"4\" locator('#mount-calibration-point-u')",
+        "start_ms": 11438.786,
+        "end_ms": 11780.879
+      },
+      {
+        "title": "Fill \"25\" locator('#mount-calibration-point-v')",
+        "start_ms": 11782.399,
+        "end_ms": 12503.526
+      },
+      {
+        "title": "Click locator('#mount-calibration-point-form').getByRole('button', { name: '점 추가' })",
+        "start_ms": 12506.236,
+        "end_ms": 13200.868
+      },
+      {
+        "title": "Fill \"20\" locator('#mount-calibration-point-u')",
+        "start_ms": 13202.552,
+        "end_ms": 13557.498
+      },
+      {
+        "title": "Fill \"25\" locator('#mount-calibration-point-v')",
+        "start_ms": 13560.526,
+        "end_ms": 14427.428
+      },
+      {
+        "title": "Click locator('#mount-calibration-point-form').getByRole('button', { name: '점 추가' })",
+        "start_ms": 14430.307,
+        "end_ms": 15342.781
+      },
+      {
+        "title": "Fill \"35\" locator('#mount-calibration-point-u')",
+        "start_ms": 15344.266,
+        "end_ms": 16059.629
+      },
+      {
+        "title": "Fill \"25\" locator('#mount-calibration-point-v')",
+        "start_ms": 16062.495,
+        "end_ms": 16957.777
+      },
+      {
+        "title": "Click locator('#mount-calibration-point-form').getByRole('button', { name: '점 추가' })",
+        "start_ms": 16960.892,
+        "end_ms": 18573.09
+      },
+      {
+        "title": "Check locator('#mount-calibration-stationary-check')",
+        "start_ms": 18576.591,
+        "end_ms": 20298.05
+      },
+      {
+        "title": "Check locator('#mount-calibration-wall-check')",
+        "start_ms": 20298.7,
+        "end_ms": 20446.621
+      },
+      {
+        "title": "Check locator('#mount-calibration-pitch-check')",
+        "start_ms": 20447.274,
+        "end_ms": 20515.462
+      },
+      {
+        "title": "Click locator('#mount-calibration-estimate-button')",
+        "start_ms": 20521.26,
+        "end_ms": 20578.915
+      },
+      {
+        "title": "Expect \"toBeVisible\"",
+        "start_ms": 20579.537,
+        "end_ms": 22577.615
+      }
+    ],
+    "relevant_http_requests": [],
+    "pointer_interceptions": [
+      {
+        "time_ms": 1517.0,
+        "message": "  <span class=\"cockpit-safety-summary\">ARM DISARMED · DEADMAN RELEASED · BRIDGE READY · …</span> from <aside data-tone=\"waiting\" id=\"cockpitSafetyHud\" data-expanded=\"false\" class=\"cockpit-safety-hud\" data-layout-mode=\"operate\" aria-label=\"제어 상태와 소프트웨어 정지\">…</aside> subtree intercepts pointer events"
+      },
+      {
+        "time_ms": 1565.641,
+        "message": "  <footer>…</footer> intercepts pointer events"
+      },
+      {
+        "time_ms": 2769.062,
+        "message": "  <footer>…</footer> intercepts pointer events"
+      },
+      {
+        "time_ms": 2828.005,
+        "message": "  <footer>…</footer> intercepts pointer events"
+      },
+      {
+        "time_ms": 4566.294,
+        "message": "  <div class=\"cockpit-safety-header\">…</div> from <aside data-tone=\"waiting\" id=\"cockpitSafetyHud\" data-expanded=\"false\" class=\"cockpit-safety-hud\" data-layout-mode=\"operate\" aria-label=\"제어 상태와 소프트웨어 정지\">…</aside> subtree intercepts pointer events"
+      },
+      {
+        "time_ms": 4616.54,
+        "message": "  <footer>…</footer> intercepts pointer events"
+      },
+      {
+        "time_ms": 19960.755,
+        "message": "  <strong data-state=\"disarmed\">제어 해제 · 연결 준비됨</strong> from <aside data-tone=\"waiting\" id=\"cockpitSafetyHud\" data-expanded=\"false\" class=\"cockpit-safety-hud\" data-layout-mode=\"operate\" aria-label=\"제어 상태와 소프트웨어 정지\">…</aside> subtree intercepts pointer events"
+      },
+      {
+        "time_ms": 20204.854,
+        "message": "  <footer>…</footer> intercepts pointer events"
+      }
+    ],
+    "interpretation_limit": "Trace evidence does not measure host CPU or prove a single sufficient cause for timeout."
+  }
+]

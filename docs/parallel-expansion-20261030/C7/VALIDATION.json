@@ -57,5 +57,229 @@
     "experiments/expansion_20261030/c7_capacity/",
     "docs/parallel-expansion-20261030/C7/"
   ],
-  "operational_actions": "NOT_RUN_NO_ROBOT_NO_NATIVE_NO_DEPLOYMENT"
+  "operational_actions": "NOT_RUN_NO_ROBOT_NO_NATIVE_NO_DEPLOYMENT",
+  "ci_followup_20261030": {
+    "closure_status": "BLOCKED_EXTERNAL_OWNER",
+    "repository": "Phjrab/robot-scope-ros2-dashboard",
+    "branch": "review/20261030-x-c7-capacity-diagnostics",
+    "fixed_c7_head": "3d77ac29e34205d8173085dae950bb999cfdf816",
+    "fixed_main": "5154761bba6fa4f171881e61f986901e2b415ed9",
+    "initial_remote_head_changed": false,
+    "original_run": {
+      "id": 40932918269,
+      "attempt": 1,
+      "conclusion": "failure",
+      "ubuntu_22_job": 123655803080,
+      "ubuntu_24_job": 123655803545,
+      "artifacts": [
+        12924402324,
+        12924267721
+      ],
+      "browser_each": {
+        "passed": 226,
+        "failed": 1
+      },
+      "mission_e2e": "SKIPPED_BY_PRIOR_STEP_FAILURE"
+    },
+    "main_run": {
+      "id": 40838551921,
+      "conclusion": "success",
+      "browser_passed_each": 227,
+      "mission_e2e_passed_each": 10
+    },
+    "findings": {
+      "ubuntu_22": {
+        "classification": "SHARED_HISTORY_POLL_OPEN_RACE",
+        "reproduced_on": [
+          "main",
+          "C7"
+        ],
+        "original_cause_confidence": "Strong matching trace evidence; original model state not directly instrumented",
+        "evidence": "No requested dddd detail GET; poll overlaps click; deterministic gated real controller silently drops open"
+      },
+      "ubuntu_24": {
+        "classification": "SHARED_FIXTURE_TIMER_LEAK_CONFIRMED_TIMEOUT_CAUSAL_SPLIT_UNRESOLVED",
+        "reproduced_on": [
+          "main",
+          "C7"
+        ],
+        "original_closed_socket_errors": 14845,
+        "remaining_uncertainty": "Leak versus HUD/footer interception versus runner scheduling contribution; no controlled owner-fix A/B or host CPU profile",
+        "network_recording_limit": "Browser trace ends near budget boundary; later error-context shows busy analysis, so absent recorded POST does not prove no POST was sent"
+      }
+    },
+    "local_environment": {
+      "os": "Ubuntu 24.04.5",
+      "python": "3.12.3",
+      "machine": "x86_64",
+      "node": "20.20.2",
+      "npm": "10.8.2",
+      "playwright": "1.62.1",
+      "chromium": "151.0.7922.34",
+      "browser_path": "/tmp/c3-scene-browsers",
+      "venv": "/tmp/c7-ci-runtime/venv",
+      "python_patch_matches_remote": false,
+      "hosted_runner_image_reproduced": false,
+      "ubuntu_22_standalone": "NOT_RUN; no local 22.04 runtime or container engine",
+      "resource_control": "Own browser/Python validation workloads run sequentially; other desktop/chat activity not controlled."
+    },
+    "local_checks": {
+      "c7-isolated": {
+        "exit_code": 0,
+        "summary": [
+          "  2 passed (7.2s)"
+        ],
+        "log": "c7-isolated.log",
+        "sha256": "6c0d1e2578fb771a98af4f0351007882c8cd2a91c908e43d30c5d22844a8c52b"
+      },
+      "main-isolated": {
+        "exit_code": 0,
+        "summary": [
+          "  2 passed (7.1s)"
+        ],
+        "log": "main-isolated.log",
+        "sha256": "148f009bdb546df402c3ae2cd9eb14dcb69bb2667478c3cb7000d8b970a1a422"
+      },
+      "c7-history-single": {
+        "exit_code": 0,
+        "summary": [
+          "  1 passed (3.1s)"
+        ],
+        "log": "c7-history-single.log",
+        "sha256": "b03e0f9242c85de4b8b19351c6e1f68d8014301624cfdd8589cd42d99a28b5ed"
+      },
+      "c7-mount-single": {
+        "exit_code": 0,
+        "summary": [
+          "  1 passed (5.1s)"
+        ],
+        "log": "c7-mount-single.log",
+        "sha256": "530d7638789458a4f17f699c9e881d200af08f638e18c4e4c70e921e416d16cb"
+      },
+      "main-history-single": {
+        "exit_code": 0,
+        "summary": [
+          "  1 passed (3.0s)"
+        ],
+        "log": "main-history-single.log",
+        "sha256": "4e05244ed66255cf4af9b10eff4aa975d708b94dd243e236185e6f5827b5e56f"
+      },
+      "main-mount-single": {
+        "exit_code": 0,
+        "summary": [
+          "  1 passed (4.6s)"
+        ],
+        "log": "main-mount-single.log",
+        "sha256": "404c10f29e606094264ced41b356bac8265a4405df2db0ff10e29922425892c8"
+      },
+      "c7-full": {
+        "exit_code": 0,
+        "summary": [
+          "  227 passed (7.8m)"
+        ],
+        "log": "c7-full.log",
+        "sha256": "376c2f760b6a44ecf6e61fa34a53481673f9f52758ee914ecd31b6bdcccad365"
+      },
+      "mission": {
+        "exit_code": 0,
+        "summary": [
+          "  10 passed (39.9s)"
+        ],
+        "log": "mission.log",
+        "sha256": "d38a59c3822823b9cee9e0e571c109d7cfe2787b47b5b8ee74196eb6989bcc70"
+      },
+      "c7-focused": {
+        "exit_code": 0,
+        "summary": [
+          "Ran 7 tests in 1.666s",
+          "OK"
+        ],
+        "log": "c7-focused.log",
+        "sha256": "ecd5272aba7d714768599d370ab20cc8e4f84a94079fcb430b5b73379953cbf1"
+      },
+      "c3-units": {
+        "exit_code": 0,
+        "summary": [
+          "# tests 38",
+          "# pass 38",
+          "# fail 0",
+          "# skipped 0"
+        ],
+        "log": "c3-units.log",
+        "sha256": "f3d4cd9eba22c1b7f561f6e387983ac1c63277f1622a1254e8d2add4cbdf9b08"
+      },
+      "python-full": {
+        "exit_code": 0,
+        "summary": [
+          "Ran 3139 tests in 99.227s",
+          "OK (skipped=2)"
+        ],
+        "log": "python-full.log",
+        "sha256": "40c4b32a59aa668ed6bf40c663e04d74a47d48063f70ee2524c0fd6616148f04"
+      },
+      "js-full": {
+        "exit_code": 0,
+        "summary": [
+          "# tests 700",
+          "# pass 700",
+          "# fail 0",
+          "# skipped 0"
+        ],
+        "log": "js-full.log",
+        "sha256": "33a35bcc3c383c4400ddbe1ff4ea415bcde5744285c0d987773a218522bab26c"
+      },
+      "js-syntax": {
+        "exit_code": 0,
+        "summary": [
+          "checked JavaScript syntax for 112 dashboard modules"
+        ],
+        "log": "js-syntax.log",
+        "sha256": "c36cf76ce9fbdcddace4eea32781a3431bd0ae9127e0ccf6c9926aa08ce8af8e"
+      },
+      "ruff": {
+        "exit_code": 0,
+        "summary": [
+          "All checks passed!"
+        ],
+        "log": "ruff.log",
+        "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+      },
+      "mypy": {
+        "exit_code": 0,
+        "summary": [
+          "Success: no issues found in 4 source files"
+        ],
+        "log": "mypy.log",
+        "sha256": "71144743c83babea384888a735db0c4daba3d4d7b7942b6839984bd5c21b52bb"
+      }
+    },
+    "ubuntu_22_standalone": "NOT_RUN_NO_LOCAL_RUNTIME",
+    "hosted_standalone": "NOT_RUN; existing workflow runs whole suite only",
+    "production_c7_source_changed": false,
+    "existing_c7_tests_changed": false,
+    "shared_sources_or_tests_changed": false,
+    "added_scope": [
+      "experiments/expansion_20261030/c7_capacity/ci/",
+      "docs/parallel-expansion-20261030/C7/"
+    ],
+    "source_limit_performance_data_preserved": true,
+    "sensor_to_render_latency": "UNKNOWN",
+    "owner_handoff": "CI_INVESTIGATION.md#ownership-and-minimum-follow-up",
+    "evidence_manifest": "ci-evidence/manifest.json",
+    "submission_receipt": "Final chat records literal submitted SHA, remote equality and terminal CI for that SHA. The original failure is immutable historical evidence.",
+    "no_fix_claim": "Unchanged-source replays passed locally; reproduced shared defects remain unresolved.",
+    "remote_main_advanced_during_investigation": {
+      "observed_utc": "2026-10-30T04:29:59.233835+00:00",
+      "c7_remote": "3d77ac29e34205d8173085dae950bb999cfdf816",
+      "requested_main": "5154761bba6fa4f171881e61f986901e2b415ed9",
+      "observed_main": "846121b4988ed2932d329020857925558f8f2c79",
+      "main_delta": [
+        "M\tdocs/operational-3d-navigation/GOAL_HEADING_FIELD_CHECK_20261029.md",
+        "A\tdocs/operational-3d-navigation/GOAL_HEADING_FIELD_CHECK_20261030.md"
+      ],
+      "main_commit_subject": "Record October 30 heading trials and stopped-pose residuals",
+      "comparison_base_preserved": "5154761bba6fa4f171881e61f986901e2b415ed9",
+      "merged_into_c7": false
+    }
+  }
 }

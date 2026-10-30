@@ -1,0 +1,30 @@
+{
+  "result": "REPRODUCED_SHARED_POLL_OPEN_RACE",
+  "source": "robot_dashboard/static/features/maps/global_observation_contract.js",
+  "sha": "5154761bba6fa4f171881e61f986901e2b415ed9",
+  "whilePolling": {
+    "reading": true,
+    "canOpenHistorical": false,
+    "changedNotifications": 0
+  },
+  "during": {
+    "requests": [
+      "/api/v1/observations/global-jobs"
+    ],
+    "error": ""
+  },
+  "afterPoll": {
+    "requests": [
+      "/api/v1/observations/global-jobs"
+    ],
+    "error": "",
+    "canOpenHistorical": true
+  },
+  "retry": {
+    "requests": [
+      "/api/v1/observations/global-jobs",
+      "/api/v1/observations/global-jobs/dddddddddddddddddddddddd"
+    ],
+    "error": "과거 결과 조회 실패 · synthetic job not found"
+  }
+}

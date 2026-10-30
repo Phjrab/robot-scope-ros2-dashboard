@@ -1,0 +1,102 @@
+{
+  "base": "5154761bba6fa4f171881e61f986901e2b415ed9",
+  "head": "3d77ac29e34205d8173085dae950bb999cfdf816",
+  "files": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "identical": true,
+      "sha256": "c85740167233a933bcae4340bbebb14512abfcc4768af0e3f02838ae0e755206"
+    },
+    {
+      "path": "package.json",
+      "identical": true,
+      "sha256": "dbd076aa5a5bfff43c7b7b06b6053cc45dd6072a230aa37dec387dac3433f56f"
+    },
+    {
+      "path": "package-lock.json",
+      "identical": true,
+      "sha256": "2357626e4feaa5580c4ace8ac48ac0275504882efe7ac2918ed9c3e2102911cd"
+    },
+    {
+      "path": "playwright.config.mjs",
+      "identical": true,
+      "sha256": "c71142fb6585a3cc818a38a793cca94cf09f0210903cf319e42e7d23edf0d90e"
+    },
+    {
+      "path": "requirements.txt",
+      "identical": true,
+      "sha256": "ae986d1892cbb306b2c66a864e4638624292c10cedd720015f1d498468475b58"
+    },
+    {
+      "path": "requirements-quality.txt",
+      "identical": true,
+      "sha256": "403fc8c118ec84bb129c19bd07724a95f665ff4d23769fa6a1c9a4a4465f9b12"
+    },
+    {
+      "path": "requirements-competition-offline.txt",
+      "identical": true,
+      "sha256": "500f3c5ab46f8466d3c4ac50d997b54296fdb794d941414c54c229b614135501"
+    },
+    {
+      "path": "tests/e2e/global_observation_history.spec.mjs",
+      "identical": true,
+      "sha256": "958c583260183ff7545b938154212bae329d0c5a50cd809b202c1b6b28fd3605"
+    },
+    {
+      "path": "tests/e2e/mount_calibration.spec.mjs",
+      "identical": true,
+      "sha256": "e416b576bff0862e5916f56f90c83d825d05d255e6e1042b7cd621aade088ce8"
+    },
+    {
+      "path": "tests/e2e/dashboard_backend.mjs",
+      "identical": true,
+      "sha256": "e17b3228b41b2e2525b0cf14eed5adcc7db26739a8ad459dbd3c2730f9e5391f"
+    },
+    {
+      "path": "tests/e2e/live_observation.spec.mjs",
+      "identical": true,
+      "sha256": "fe10d8301f9958c839ce6e3ac2567988663a4e2cafb8a2719c3eedf974c87493"
+    },
+    {
+      "path": "tests/e2e/static_server.mjs",
+      "identical": true,
+      "sha256": "3ae5961ab140e35ca63ac8cf942a1cb8886f739bece1114396b560c62e25ba27"
+    },
+    {
+      "path": "robot_dashboard/static/features/maps/global_observation.js",
+      "identical": true,
+      "sha256": "3b3808a334d7234410b5dcca5617420a6ebdf44f0f8e408a418ef2e297e75dab"
+    },
+    {
+      "path": "robot_dashboard/static/features/maps/global_observation_contract.js",
+      "identical": true,
+      "sha256": "142a88aa273ba4a4b96bb2ebcd065d4a178f854d99269f30334f69c32970d2f4"
+    }
+  ],
+  "all_browser_and_static_source_identical": true,
+  "changed_paths": [
+    "docs/parallel-expansion-20261030/C7/REPORT.md",
+    "docs/parallel-expansion-20261030/C7/VALIDATION.json",
+    "docs/parallel-expansion-20261030/C7/VALIDATION.md",
+    "experiments/expansion_20261030/c7_capacity/README.md",
+    "experiments/expansion_20261030/c7_capacity/baseline.json",
+    "experiments/expansion_20261030/c7_capacity/baseline.md",
+    "experiments/expansion_20261030/c7_capacity/browser.json",
+    "experiments/expansion_20261030/c7_capacity/results.json",
+    "experiments/expansion_20261030/c7_capacity/results.md",
+    "robot_dashboard/expansion_diagnostics/__init__.py",
+    "robot_dashboard/expansion_diagnostics/__main__.py",
+    "robot_dashboard/expansion_diagnostics/browser.py",
+    "robot_dashboard/expansion_diagnostics/cache.mjs",
+    "robot_dashboard/expansion_diagnostics/consumer.mjs",
+    "robot_dashboard/expansion_diagnostics/dependencies.py",
+    "robot_dashboard/expansion_diagnostics/measure.py",
+    "robot_dashboard/expansion_diagnostics/observations.py",
+    "robot_dashboard/expansion_diagnostics/report.py",
+    "robot_dashboard/expansion_diagnostics/runner.py",
+    "robot_dashboard/expansion_diagnostics/workloads.py",
+    "tests/expansion_c7/__init__.py",
+    "tests/expansion_c7/integration_check.py",
+    "tests/expansion_c7/test_diagnostics.py"
+  ]
+}

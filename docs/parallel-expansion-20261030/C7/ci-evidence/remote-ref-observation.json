@@ -1,0 +1,13 @@
+{
+  "observed_utc": "2026-10-30T04:29:59.233835+00:00",
+  "c7_remote": "3d77ac29e34205d8173085dae950bb999cfdf816",
+  "requested_main": "5154761bba6fa4f171881e61f986901e2b415ed9",
+  "observed_main": "846121b4988ed2932d329020857925558f8f2c79",
+  "main_delta": [
+    "M\tdocs/operational-3d-navigation/GOAL_HEADING_FIELD_CHECK_20261029.md",
+    "A\tdocs/operational-3d-navigation/GOAL_HEADING_FIELD_CHECK_20261030.md"
+  ],
+  "main_commit_subject": "Record October 30 heading trials and stopped-pose residuals",
+  "comparison_base_preserved": "5154761bba6fa4f171881e61f986901e2b415ed9",
+  "merged_into_c7": false
+}

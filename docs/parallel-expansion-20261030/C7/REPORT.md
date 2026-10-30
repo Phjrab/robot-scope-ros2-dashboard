@@ -1,5 +1,13 @@
 # C7 — 오프라인 처리량·지연·크기 진단
 
+2026-10-30 원격 CI 후속 조사: **검증 마감 BLOCKED_EXTERNAL_OWNER**.
+최초 실패 run `40932918269`의 로그·screenshot·trace를 보존했고, 공용 history
+조회 경합과 E2E fixture 타이머 누수를 고정 main/C7에서 재현했다.
+공용 소스는 수정하지 않았다. 아래 기존 C7 구현·성능 결과는 원본 기록이며,
+후속 재실행 결과·원인 확정 수준·담당자 인계는
+[CI_INVESTIGATION.md](CI_INVESTIGATION.md)와 [VALIDATION.md](VALIDATION.md)에 있다.
+최신 제출 commit의 원격 CI는 최초 실행 및 로컬 재실행과 구분한다.
+
 C7 전용 clone과 `review/20261030-x-c7-capacity-diagnostics`에서 재실행 가능한
 진단 CLI를 구현했다. 운영 자동 실행·서비스 변경·로봇 접속은 없다.
 보고서는 **읽기 전용 진단이며 주행 허가가 아니다**.

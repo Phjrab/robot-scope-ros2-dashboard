@@ -1,0 +1,340 @@
+{
+  "123329058351": {
+    "runner_image": [
+      "ubuntu-22.04"
+    ],
+    "image_version": [
+      "20261025.340.1"
+    ],
+    "python": [
+      "3.10.22"
+    ],
+    "node": [
+      "v20.20.2"
+    ],
+    "npm": [
+      "10.8.2"
+    ],
+    "packages": {
+      "pip": "26.2.2",
+      "Pillow": "12.3.0",
+      "PyYAML": "6.0.1",
+      "annotated-doc": "0.0.5",
+      "annotated-types": "0.8.0",
+      "anyio": "4.15.1",
+      "attrs": "26.1.0",
+      "click": "8.5.0",
+      "exceptiongroup": "1.3.1",
+      "fastapi": "0.162.0",
+      "h11": "0.16.0",
+      "idna": "3.20",
+      "jsonschema": "4.10.3",
+      "numpy": "1.26.4",
+      "opencv-python-headless": "4.10.0.84",
+      "opentelemetry-api": "1.45.1",
+      "pydantic": "2.14.1",
+      "pydantic-core": "2.50.1",
+      "pyrsistent": "0.20.0",
+      "scipy": "1.11.4",
+      "starlette": "1.7.0",
+      "typing-extensions": "4.16.0",
+      "typing-inspection": "0.4.4",
+      "uvicorn": "0.54.0",
+      "websockets": "15.0.1",
+      "CacheControl": "0.14.4",
+      "boolean.py": "5.0",
+      "certifi": "2026.10.23",
+      "charset_normalizer": "3.5.2",
+      "coverage": "7.6.4",
+      "cyclonedx-python-lib": "7.6.2",
+      "defusedxml": "0.7.1",
+      "filelock": "4.1.0",
+      "html5lib": "1.1",
+      "license-expression": "30.4.4",
+      "markdown-it-py": "4.2.0",
+      "mdurl": "0.1.2",
+      "msgpack": "1.2.4",
+      "mypy": "1.13.0",
+      "mypy-extensions": "1.1.0",
+      "packageurl-python": "0.17.6",
+      "packaging": "26.3",
+      "pip-api": "0.0.35",
+      "pip-audit": "2.7.3",
+      "pip-requirements-parser": "32.0.1",
+      "py-serializable": "1.1.2",
+      "pygments": "2.21.0",
+      "pyparsing": "3.3.3",
+      "requests": "2.34.2",
+      "rich": "15.0.0",
+      "ruff": "0.6.9",
+      "six": "1.17.0",
+      "sortedcontainers": "2.4.0",
+      "toml": "0.10.2",
+      "tomli": "2.5.0",
+      "urllib3": "2.8.0",
+      "webencodings": "0.6.1"
+    },
+    "test_summaries": [
+      "2026-10-29T07:59:22.5631928Z Ran 3132 tests in 170.643s",
+      "2026-10-29T07:59:22.5632179Z OK (skipped=2)",
+      "2026-10-29T07:59:35.3560055Z # tests 700",
+      "2026-10-29T07:59:35.3560802Z # pass 700",
+      "2026-10-29T07:59:35.3561162Z # fail 0",
+      "2026-10-29T07:59:35.3562025Z # skipped 0",
+      "2026-10-29T08:15:38.7608123Z   227 passed (15.3m)",
+      "2026-10-29T08:16:30.9402100Z   10 passed (51.0s)"
+    ]
+  },
+  "123329058380": {
+    "runner_image": [
+      "ubuntu-24.04"
+    ],
+    "image_version": [
+      "20261025.353.1"
+    ],
+    "python": [
+      "3.12.15"
+    ],
+    "node": [
+      "v20.20.2"
+    ],
+    "npm": [
+      "10.8.2"
+    ],
+    "packages": {
+      "Pillow": "12.3.0",
+      "PyYAML": "6.0.1",
+      "annotated-doc": "0.0.5",
+      "annotated-types": "0.8.0",
+      "anyio": "4.15.1",
+      "attrs": "26.1.0",
+      "click": "8.5.0",
+      "fastapi": "0.162.0",
+      "h11": "0.16.0",
+      "idna": "3.20",
+      "jsonschema": "4.10.3",
+      "numpy": "1.26.4",
+      "opencv-python-headless": "4.10.0.84",
+      "opentelemetry-api": "1.45.1",
+      "pydantic": "2.14.1",
+      "pydantic-core": "2.50.1",
+      "pyrsistent": "0.20.0",
+      "scipy": "1.11.4",
+      "starlette": "1.10.0",
+      "typing-extensions": "4.16.0",
+      "typing-inspection": "0.4.4",
+      "uvicorn": "0.54.0",
+      "websockets": "15.0.1",
+      "CacheControl": "0.14.4",
+      "boolean.py": "5.0",
+      "certifi": "2026.10.23",
+      "charset_normalizer": "3.5.2",
+      "coverage": "7.6.4",
+      "cyclonedx-python-lib": "7.6.2",
+      "defusedxml": "0.7.1",
+      "filelock": "4.2.4",
+      "html5lib": "1.1",
+      "license-expression": "30.4.4",
+      "markdown-it-py": "4.2.0",
+      "mdurl": "0.1.2",
+      "msgpack": "1.2.4",
+      "mypy": "1.13.0",
+      "mypy-extensions": "1.1.0",
+      "packageurl-python": "0.17.6",
+      "packaging": "26.3",
+      "pip-api": "0.0.35",
+      "pip-audit": "2.7.3",
+      "pip-requirements-parser": "32.0.1",
+      "py-serializable": "1.1.2",
+      "pygments": "2.21.0",
+      "pyparsing": "3.3.3",
+      "requests": "2.34.2",
+      "rich": "15.0.0",
+      "ruff": "0.6.9",
+      "six": "1.17.0",
+      "sortedcontainers": "2.4.0",
+      "toml": "0.10.2",
+      "urllib3": "2.8.0",
+      "webencodings": "0.6.1"
+    },
+    "test_summaries": [
+      "2026-10-29T07:58:52.6835302Z Ran 3132 tests in 155.014s",
+      "2026-10-29T07:58:52.6835516Z OK (skipped=2)",
+      "2026-10-29T07:59:03.0242085Z # tests 700",
+      "2026-10-29T07:59:03.0250894Z # pass 700",
+      "2026-10-29T07:59:03.0251208Z # fail 0",
+      "2026-10-29T07:59:03.0251736Z # skipped 0",
+      "2026-10-29T08:11:39.6646517Z   227 passed (12.2m)",
+      "2026-10-29T08:12:27.4677416Z   10 passed (46.9s)"
+    ]
+  },
+  "123655803080": {
+    "runner_image": [
+      "ubuntu-22.04"
+    ],
+    "image_version": [
+      "20261025.340.1"
+    ],
+    "python": [
+      "3.10.22"
+    ],
+    "node": [
+      "v20.20.2"
+    ],
+    "npm": [
+      "10.8.2"
+    ],
+    "packages": {
+      "pip": "26.2.2",
+      "Pillow": "12.3.0",
+      "PyYAML": "6.0.1",
+      "annotated-doc": "0.0.5",
+      "annotated-types": "0.8.0",
+      "anyio": "4.15.1",
+      "attrs": "26.1.0",
+      "click": "8.5.0",
+      "exceptiongroup": "1.3.1",
+      "fastapi": "0.162.0",
+      "h11": "0.16.0",
+      "idna": "3.20",
+      "jsonschema": "4.10.3",
+      "numpy": "1.26.4",
+      "opencv-python-headless": "4.10.0.84",
+      "opentelemetry-api": "1.45.2",
+      "pydantic": "2.14.2",
+      "pydantic-core": "2.50.2",
+      "pyrsistent": "0.20.0",
+      "scipy": "1.11.4",
+      "starlette": "1.7.0",
+      "typing-extensions": "4.16.0",
+      "typing-inspection": "0.4.4",
+      "uvicorn": "0.54.0",
+      "websockets": "15.0.1",
+      "CacheControl": "0.14.4",
+      "boolean.py": "5.0",
+      "certifi": "2026.10.23",
+      "charset_normalizer": "3.5.2",
+      "coverage": "7.6.4",
+      "cyclonedx-python-lib": "7.6.2",
+      "defusedxml": "0.7.1",
+      "filelock": "4.1.0",
+      "html5lib": "1.1",
+      "license-expression": "30.4.4",
+      "markdown-it-py": "4.2.0",
+      "mdurl": "0.1.2",
+      "msgpack": "1.2.4",
+      "mypy": "1.13.0",
+      "mypy-extensions": "1.1.0",
+      "packageurl-python": "0.17.6",
+      "packaging": "26.3",
+      "pip-api": "0.0.35",
+      "pip-audit": "2.7.3",
+      "pip-requirements-parser": "32.0.1",
+      "py-serializable": "1.1.2",
+      "pygments": "2.21.0",
+      "pyparsing": "3.3.3",
+      "requests": "2.34.2",
+      "rich": "15.0.0",
+      "ruff": "0.6.9",
+      "six": "1.17.0",
+      "sortedcontainers": "2.4.0",
+      "toml": "0.10.2",
+      "tomli": "2.5.0",
+      "urllib3": "2.8.0",
+      "webencodings": "0.6.1"
+    },
+    "test_summaries": [
+      "2026-10-29T18:43:39.8912886Z Ran 3139 tests in 172.512s",
+      "2026-10-29T18:43:39.8913516Z OK (skipped=3)",
+      "2026-10-29T18:43:53.0899061Z # tests 700",
+      "2026-10-29T18:43:53.0899702Z # pass 700",
+      "2026-10-29T18:43:53.0900024Z # fail 0",
+      "2026-10-29T18:43:53.0900903Z # skipped 0",
+      "2026-10-29T18:58:22.2288161Z   1 failed",
+      "2026-10-29T18:58:22.2293784Z   226 passed (14.0m)"
+    ]
+  },
+  "123655803545": {
+    "runner_image": [
+      "ubuntu-24.04"
+    ],
+    "image_version": [
+      "20261025.353.1"
+    ],
+    "python": [
+      "3.12.15"
+    ],
+    "node": [
+      "v20.20.2"
+    ],
+    "npm": [
+      "10.8.2"
+    ],
+    "packages": {
+      "Pillow": "12.3.0",
+      "PyYAML": "6.0.1",
+      "annotated-doc": "0.0.5",
+      "annotated-types": "0.8.0",
+      "anyio": "4.15.1",
+      "attrs": "26.1.0",
+      "click": "8.5.0",
+      "fastapi": "0.162.0",
+      "h11": "0.16.0",
+      "idna": "3.20",
+      "jsonschema": "4.10.3",
+      "numpy": "1.26.4",
+      "opencv-python-headless": "4.10.0.84",
+      "opentelemetry-api": "1.45.2",
+      "pydantic": "2.14.2",
+      "pydantic-core": "2.50.2",
+      "pyrsistent": "0.20.0",
+      "scipy": "1.11.4",
+      "starlette": "1.10.0",
+      "typing-extensions": "4.16.0",
+      "typing-inspection": "0.4.4",
+      "uvicorn": "0.54.0",
+      "websockets": "15.0.1",
+      "CacheControl": "0.14.4",
+      "boolean.py": "5.0",
+      "certifi": "2026.10.23",
+      "charset_normalizer": "3.5.2",
+      "coverage": "7.6.4",
+      "cyclonedx-python-lib": "7.6.2",
+      "defusedxml": "0.7.1",
+      "filelock": "4.2.4",
+      "html5lib": "1.1",
+      "license-expression": "30.4.4",
+      "markdown-it-py": "4.2.0",
+      "mdurl": "0.1.2",
+      "msgpack": "1.2.4",
+      "mypy": "1.13.0",
+      "mypy-extensions": "1.1.0",
+      "packageurl-python": "0.17.6",
+      "packaging": "26.3",
+      "pip-api": "0.0.35",
+      "pip-audit": "2.7.3",
+      "pip-requirements-parser": "32.0.1",
+      "py-serializable": "1.1.2",
+      "pygments": "2.21.0",
+      "pyparsing": "3.3.3",
+      "requests": "2.34.2",
+      "rich": "15.0.0",
+      "ruff": "0.6.9",
+      "six": "1.17.0",
+      "sortedcontainers": "2.4.0",
+      "toml": "0.10.2",
+      "urllib3": "2.8.0",
+      "webencodings": "0.6.1"
+    },
+    "test_summaries": [
+      "2026-10-29T18:43:40.5868139Z Ran 3139 tests in 178.927s",
+      "2026-10-29T18:43:40.5868529Z OK (skipped=3)",
+      "2026-10-29T18:43:52.1717143Z # tests 700",
+      "2026-10-29T18:43:52.1718399Z # pass 700",
+      "2026-10-29T18:43:52.1718716Z # fail 0",
+      "2026-10-29T18:43:52.1719387Z # skipped 0",
+      "2026-10-29T18:59:19.8578047Z   1 failed",
+      "2026-10-29T18:59:19.8580480Z   226 passed (15.0m)"
+    ]
+  }
+}
