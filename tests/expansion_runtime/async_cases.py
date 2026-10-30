@@ -126,6 +126,28 @@ class ActualAsyncComposition(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(self.adapter.offer_raw(msg,ident))
         await self.settle()
 
+    async def test_observed_humble_unknown_graph_is_not_promoted_to_identity(self):
+        # Replay the shape actually observed in native run 41033864595.
+        # This regression is UNIT evidence, not a substitute native PASS.
+        from copy import deepcopy
+        from robot_dashboard.ros.observation_identity import subscription_graph_snapshot
+        msg,ident = self.packet()
+        key = (ident.source_epoch,ident.sequence)
+        capture = self.captures[key]
+        obs = deepcopy(capture.owner_observation)
+        evidence = obs['subscription_evidence']
+        endpoints = evidence['graph']['endpoints']
+        endpoints[0]['qos'].update(history='UNKNOWN',depth=0)
+        evidence['graph'] = subscription_graph_snapshot(evidence['topic'],evidence['type_name'],
+            1,endpoints,ident.received_ns/1e9)
+        self.assertEqual(evidence['graph']['state'],'unavailable')
+        self.captures[key] = replace(capture,owner_observation=obs)
+        self.assertFalse(self.adapter.offer_raw(msg,ident))
+        self.assertEqual(self.adapter.error,'OWNER_SOURCE_IDENTITY_UNAVAILABLE')
+        self.assertEqual(self.adapter.worker.queue.qsize(),0)
+        self.assertEqual(self.adapter.delivered,0)
+        self.assertIsNone(self.adapter.scene.snapshot()['obstacle_frame'])
+
     async def test_source_loss_never_refreshes_receipt_or_clears(self):
         self.adapter.offer_raw(*self.packet()); await self.settle()
         self.clock.now += 600_000_000
@@ -152,9 +174,15 @@ class ActualAsyncComposition(unittest.IsolatedAsyncioTestCase):
 
     async def test_actual_tcp_http_to_current_c3(self):
         from experiments.expansion_20261029.c4_runtime.ros_bridge.http_probe import server,fetch
-        self.adapter.offer_raw(*self.packet()); await self.settle()
+        context = replace(self.adapter.context,runtime_generation=2,map_generation=1)
+        self.adapter.rebind(context,replace(self.adapter.mapping,source_end_ns=2**63-1))
+        msg,ident = self.packet(2**44)
+        self.clock.now = ident.received_ns+1_000_000
+        self.assertGreater(ident.received_ns,2**53)
+        self.adapter.offer_raw(msg,ident); await self.settle()
         with server(self.adapter.scene) as url:
             raw = await asyncio.to_thread(fetch,url)
+        self.assertEqual(json.loads(raw)['obstacle_frame']['received_monotonic_ns'],str(ident.received_ns))
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/'snapshot.json'; path.write_bytes(raw)
             script=Path(__file__).resolve().parents[2]/'experiments/expansion_20261029/c4_runtime/ros_bridge/consumer_check.mjs'

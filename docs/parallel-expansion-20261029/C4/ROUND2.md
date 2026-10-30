@@ -1,7 +1,8 @@
 # C4 round 2 — actual core ports and binding
 
-**Latest continuation:** [FOLLOWUP.md](FOLLOWUP.md) records current C1 0.2,
-updated exact owner SHAs, full regression and the remaining actual C3 failure.
+**Latest continuation:** [ROS_ADAPTER.md](ROS_ADAPTER.md) records async ROS/core/
+HTTP/current-C3 composition and actual hosted native evidence. [FOLLOWUP.md](FOLLOWUP.md)
+retains the previous synchronous 0.2 profile and its older C3 rejection.
 The evidence below is the preserved earlier fixed-SHA 0.1 execution.
 
 Branch: `review/20261029-x-c4-runtime`. Started clean at

@@ -1,0 +1,277 @@
+{
+  "schema": "c4-ros-adapter-evidence.v1",
+  "native_runtime_sha": "652b9bfff72e29d35447661c0d3deaebe5044331",
+  "note": "Containing commit changes tests/docs only after this native run; native runtime byte hashes below.",
+  "dependencies": {
+    "c1": "e0bc9cf8ba8bd22b406a287e1a9ef867a0cd367b",
+    "c3": "e394b090221c555cf0649021d132163596c19fe2",
+    "d2": "7313f0a31c00ae87ae216b84ca41a23804e91917",
+    "d3": "356d0a036eb62d546e159e12a0691d7f5ea278f6"
+  },
+  "native_run": 41033864595,
+  "native_artifact": 12967890428,
+  "native_artifact_sha256": "ff25a3b88299ede5261d8a57cfec23a2cdbaa701bab3597e47e7184cf672a35c",
+  "native": {
+    "dependencies": {
+      "c1": "e0bc9cf8ba8bd22b406a287e1a9ef867a0cd367b",
+      "c3": "e394b090221c555cf0649021d132163596c19fe2",
+      "d2": "7313f0a31c00ae87ae216b84ca41a23804e91917",
+      "d3": "356d0a036eb62d546e159e12a0691d7f5ea278f6"
+    },
+    "ROS": "STARTED",
+    "core": "NOT_RUN",
+    "HTTP": "NOT_RUN",
+    "marking": "NOT_RUN",
+    "clearing": "NOT_PROVEN",
+    "planner": "NOT_RUN",
+    "simulated_actuator": "NOT_RUN_NO_D3_INGRESS_HOOK",
+    "device": "DEVICE_NOT_RUN",
+    "mode": "ADVISORY_ONLY",
+    "versions": {
+      "nav2_planner": "1.1.20",
+      "nav2_costmap_2d": "1.1.20"
+    },
+    "cases": [],
+    "original_d3_config_sha256": "05ce0dd5c25f46f24a94cc7b4042aed04482dd04757005a9e440b192647b65ae",
+    "c4_overlay_sha256": "e1c32deee3b48cd9c8beca6e0973a4baa5050565fd869754f6f890a257f4aade",
+    "planner_argv": [
+      "/opt/ros/humble/lib/nav2_planner/planner_server",
+      "--ros-args",
+      "-r",
+      "__ns:=/robot_scope_review_x",
+      "--params-file",
+      "/results/probe/params.yaml",
+      "-r",
+      "/tf:=/robot_scope_review_x/tf",
+      "-r",
+      "/tf_static:=/robot_scope_review_x/tf_static"
+    ],
+    "effective_parameters": {
+      "obstacle_layer.observation_sources": {
+        "type": 4,
+        "string": "c4",
+        "bool": false,
+        "double": 0.0
+      },
+      "obstacle_layer.c4.marking": {
+        "type": 1,
+        "string": "",
+        "bool": true,
+        "double": 0.0
+      },
+      "obstacle_layer.c4.clearing": {
+        "type": 1,
+        "string": "",
+        "bool": false,
+        "double": 0.0
+      },
+      "footprint": {
+        "type": 4,
+        "string": "[[-0.358, -0.162], [0.358, -0.162], [0.358, 0.162], [-0.358, 0.162]]",
+        "bool": false,
+        "double": 0.0
+      },
+      "resolution": {
+        "type": 3,
+        "string": "",
+        "bool": false,
+        "double": 0.04
+      },
+      "obstacle_layer.c4.expected_update_rate": {
+        "type": 3,
+        "string": "",
+        "bool": false,
+        "double": 0.3
+      }
+    },
+    "status": "FAIL",
+    "error": "RuntimeError:TIMEOUT:initial actual marking input",
+    "traceback": "Traceback (most recent call last):\n  File \"/repo/experiments/expansion_20261029/c4_runtime/ros_bridge/native_probe.py\", line 213, in main\n    await wait_for(lambda:marker.published>0,'initial actual marking input',5)\n  File \"/repo/experiments/expansion_20261029/c4_runtime/ros_bridge/native_probe.py\", line 43, in wait_for\n    raise RuntimeError('TIMEOUT:'+label)\nRuntimeError: TIMEOUT:initial actual marking input\n",
+    "adapter_health": {
+      "mode": "ADVISORY_ONLY",
+      "severity": "UNKNOWN",
+      "reason": "NO_INPUT",
+      "generation": 1,
+      "delivered": 0,
+      "rejected": 0,
+      "late_results": 0,
+      "stale": true,
+      "dropped": 0,
+      "executing_capacity": 1,
+      "pending_capacity": 1,
+      "adapter_publications": 0,
+      "native_ingestion": "NOT_OBSERVED",
+      "clearing": "NOT_PROVEN",
+      "product_enforcement_connected": false
+    },
+    "callback_errors": {
+      "ValueError:OWNER_SOURCE_IDENTITY_UNAVAILABLE": 63
+    },
+    "last_owner_context": {
+      "topic": "/robot_scope_review_x/c4/input",
+      "frame_id": "review_lidar",
+      "observation": {
+        "observer_id": "aa86fe063777f48ad01390086081c4fc",
+        "publisher_epoch": "6298c9ad750e1f702590dbada1eea1a7",
+        "publisher_gid": null,
+        "publisher_implementation_identifier": null,
+        "subscription_evidence": {
+          "schema": "robot-scope.subscription-observation.v1",
+          "session_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "topic": "/robot_scope_review_x/c4/input",
+          "type_name": "sensor_msgs/msg/PointCloud2",
+          "subscription_qos": {
+            "reliability": "BEST_EFFORT",
+            "durability": "VOLATILE",
+            "history": "KEEP_LAST",
+            "liveliness": "SYSTEM_DEFAULT",
+            "depth": 5,
+            "deadline_ns": 0,
+            "lifespan_ns": 0,
+            "liveliness_lease_duration_ns": 0,
+            "avoid_ros_namespace_conventions": false
+          },
+          "graph": {
+            "state": "unavailable",
+            "reason": "GRAPH_ENDPOINT_CONTRACT_UNAVAILABLE",
+            "observed_monotonic_s": 303.028619515,
+            "endpoint_count": 1,
+            "reported_publisher_count": 1,
+            "endpoints": [
+              {
+                "node_name": "c4_existing_input_owner",
+                "node_namespace": "/robot_scope_review_x",
+                "topic_type": "sensor_msgs/msg/PointCloud2",
+                "endpoint_gid": "010f7f010100bb4e00000000000011030000000000000000",
+                "qos": {
+                  "reliability": "BEST_EFFORT",
+                  "durability": "VOLATILE",
+                  "history": "UNKNOWN",
+                  "liveliness": "AUTOMATIC",
+                  "depth": 0,
+                  "deadline_ns": 9223372036854775807,
+                  "lifespan_ns": 9223372036854775807,
+                  "liveliness_lease_duration_ns": 9223372036854775807,
+                  "avoid_ros_namespace_conventions": false
+                }
+              }
+            ],
+            "fingerprint": null
+          },
+          "per_message_publisher_verified": false,
+          "identity_basis": "LOCAL_SUBSCRIPTION_AND_ROS_GRAPH_ONLY"
+        },
+        "publisher_count": 1,
+        "identity_status": "UNAVAILABLE",
+        "identity_basis": "RMW_MESSAGE_INFO",
+        "native_session_id": null,
+        "source_stamp_ns": "1793352753852535874",
+        "source_clock": "ROS_HEADER_UNVERIFIED",
+        "received_monotonic_s": 303.028619515,
+        "receipt_clock": "OBSERVER_HOST_MONOTONIC",
+        "reset_reason": null,
+        "origin_verified": false
+      }
+    },
+    "accepted_ROS_messages": 0,
+    "raw_publications": 0
+  },
+  "container": {
+    "native_started": true,
+    "network_mode": "none",
+    "mounts": [
+      {
+        "destination": "/results",
+        "rw": true
+      },
+      {
+        "destination": "/repo",
+        "rw": false
+      },
+      {
+        "destination": "/deps",
+        "rw": false
+      }
+    ],
+    "d3_base_image": "sha256:0b206585ec999277637b7183ca00917b446adf84f62fa64412f805d4978ed2e5",
+    "image_id": "sha256:a3cfb871f6afdd4219966c9dafe7437947099c46908a0ea98fa1576b99b28e29",
+    "exit_code": 1,
+    "container_removed": true
+  },
+  "first_failures": [
+    {
+      "run": 41031221158,
+      "sha": "ddf2ce103ad6f2fc929e136a4d967a460d87f2bb",
+      "stage": "WORKFLOW_VALIDATION",
+      "reason": "job environment used runner.temp context; no job started; corrected only environment placement"
+    },
+    {
+      "run": 41032206834,
+      "sha": "0a0a7d99e079f132377eab83fd81eef9d8141c34",
+      "stage": "IMAGE_OVERLAY_BUILD",
+      "reason": "bare sha256 image ID parsed as Docker registry reference; fixed with exact-ID-verified local tag",
+      "artifact": 12966796515
+    },
+    {
+      "run": 41032870281,
+      "sha": "a82dc8c10ae842ecff687704a0848ca73ce024dd",
+      "stage": "ROS_INPUT_IDENTITY",
+      "reason": "initial marking input timeout after lifecycle ACTIVE; no accepted input",
+      "artifact": 12967210488
+    },
+    {
+      "run": 41033864595,
+      "sha": "652b9bfff72e29d35447661c0d3deaebe5044331",
+      "stage": "ROS_INPUT_IDENTITY",
+      "reason": "OWNER_SOURCE_IDENTITY_UNAVAILABLE; graph history UNKNOWN; native metadata not accepted as publisher identity",
+      "artifact": 12967890428
+    }
+  ],
+  "local": {
+    "python_tests": 3151,
+    "skips": 6,
+    "async_actual_owner_tests": 12,
+    "javascript_test_files": 77,
+    "syntax_modules": 112,
+    "actual_tcp_http": "PASS_401_THEN_200",
+    "C3_02": "PASS_EXACT_BYTES_DECIMAL_NS_GT_2_POW_53",
+    "collision_drawable": "UNAVAILABLE_POSE_JOINT_OR_SOURCE_INSUFFICIENT",
+    "python_seconds": 102.023
+  },
+  "status": {
+    "UNIT": "PASS",
+    "actual_core": "PASS_FIXTURE_TRANSPORT",
+    "actual_C1_HTTP": "PASS_LOCAL_TCP",
+    "actual_C3": "PASS_JS_CONSUMER",
+    "ROS_transport": "PASS_NATIVE_CALLBACK_RECEIVED",
+    "owner_identity": "FAIL_OWNER_SOURCE_IDENTITY_UNAVAILABLE",
+    "ROS_to_core_C1": "NOT_RUN_IDENTITY_REJECTED",
+    "Nav2_lifecycle": "PASS_ACTIVE_EFFECTIVE_PARAMETERS_AND_GRID",
+    "native_marking": "NOT_RUN_NO_ACCEPTED_INPUT",
+    "native_clearing": "NOT_RUN_NOT_PROVEN_NO_RAY_EVIDENCE",
+    "native_planner_reaction": "NOT_RUN_NO_ACCEPTED_INPUT",
+    "simulated_actuator": "NOT_RUN_NO_D3_INGRESS_HOOK",
+    "device": "DEVICE_NOT_RUN"
+  },
+  "runtime_sha256": {
+    ".github/workflows/c4-ros-isolated.yml": "1254f3366330663fded18ee660c6dd936d61b1a0051d835489e38fc3f5935d9d",
+    "experiments/expansion_20261029/c4_runtime/ros_bridge/Dockerfile": "e2a61a87efb3258d20d674d664b9a92bd9209a4b6b3b68fa2eaffc9a36812314",
+    "experiments/expansion_20261029/c4_runtime/ros_bridge/README.md": "54d86ce6135aa6c9d310007bb81d28ecb63dd3965537b8e24a7eb86c965402b1",
+    "experiments/expansion_20261029/c4_runtime/ros_bridge/consumer_check.mjs": "a64a19cb9e859305b6e0f770862ed63c1ec0d03a38d7e52ca7d68a46348f118a",
+    "experiments/expansion_20261029/c4_runtime/ros_bridge/dependencies.py": "49f1d658af6a872f5ac401b36eb04de062ada6c859a9ea0fbf37a0c554f2650a",
+    "experiments/expansion_20261029/c4_runtime/ros_bridge/http_probe.py": "12f1407a062c0d8a8be38afc6c566369153af9817a22b434a5c8e1463a42e87e",
+    "experiments/expansion_20261029/c4_runtime/ros_bridge/native_ci.py": "41a4efbd9a2b9f658eac090df17cb9ecedc71811b4cac2f9ce7535a75e3321fe",
+    "experiments/expansion_20261029/c4_runtime/ros_bridge/native_probe.py": "0bd8587c7efd5811f4a73a4e557f634acfec9252b184500c1fe64891cff6a7cd",
+    "robot_dashboard/expansion_runtime/__init__.py": "62cf3982a8298708f0a3902a0fe830b5a34e8519f02b0755269712d0e8ad2aaf",
+    "robot_dashboard/expansion_runtime/async_adapter.py": "34377ed1e089d036a58b2bda908f346f91736d177eb9a54fae7a8f04d5de0f16",
+    "robot_dashboard/expansion_runtime/binding.py": "074ef5ab4fd3a3276d0e38e940b4cc110004508cceee513c933b8ea3d92a06a6",
+    "robot_dashboard/expansion_runtime/canonical_ports.py": "f0a3929e395b25a0e80062a6e10b1dccee9617650efb0c342f0a172029a597ec",
+    "robot_dashboard/expansion_runtime/composition.py": "3a5358174374529db77d05e56adaa71c333fb77ac0014f089f9356fb5198ddbd",
+    "robot_dashboard/expansion_runtime/intent.py": "9367933450e09095a5ba2d0e498fc2dd6c8161b72a1c7b6ec82175632fe1b937",
+    "robot_dashboard/expansion_runtime/marking_ros.py": "3345e7e60afd05067f2de68957ae0de26c16ab4eb17627a8dc41bff5c361c1b3",
+    "robot_dashboard/expansion_runtime/owner_identity.py": "0877d61c28230895b9b3323bbff74760da43cdc52a18356f257d08546bcac389",
+    "robot_dashboard/expansion_runtime/ports.py": "8b5305dbb13866e74898cf275dba1e7323e4bde7618b80ada8f1e4d4c6e21f29",
+    "robot_dashboard/expansion_runtime/sensor.py": "e38d536ac3306d1a0133a2dd1ce5028d5a0e5608eea4d140be3920a9d05e406d"
+  },
+  "final_test_sha256": "481813709d2c1f6290780b22150486a709a14bbc593d7c60ad0854c5938354ec"
+}

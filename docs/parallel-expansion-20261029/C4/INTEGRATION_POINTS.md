@@ -1,9 +1,17 @@
-# Current owner profile
+# Current asynchronous ROS owner profile
 
-Use the explicit `CanonicalCorePorts` factory and C1 0.2 service described in
-[FOLLOWUP.md](FOLLOWUP.md) and the [reproduction/host example](../../../experiments/expansion_20261029/c4_runtime/followup/README.md).
-The prior `CorePorts` and worker proposals below remain pinned historical
-interfaces, not automatic aliases. The 0.2 → C3 boundary currently fails.
+Use [ROS_ADAPTER.md](ROS_ADAPTER.md) and the
+[executable host example](../../../experiments/expansion_20261029/c4_runtime/ros_bridge/README.md)
+for the opt-in `AsyncRuntimeAdapter` connecting `ReviewRosPort.handoff` to actual
+D2/D3/C1 0.2 through the existing bounded worker. It creates no subscription.
+Latest exact C3 accepts the actual C1 0.2 TCP response; missing pose/joints still
+make collision drawable unavailable. Native evidence and unproven clearing /
+actuator boundaries are recorded separately there.
+
+`CanonicalCorePorts` and the synchronous Runtime from [FOLLOWUP.md](FOLLOWUP.md)
+remain the core path. The old interfaces and old C3 rejection below are preserved
+as historical fixed-SHA evidence, not current results. Product command/lease/STOP
+owners remain unchanged; this new connection is ADVISORY_ONLY.
 
 # Historical round 2 boundary
 

@@ -1,8 +1,10 @@
 # Latest follow-up
 
-See [FOLLOWUP.md](FOLLOWUP.md) for current exact-SHA D2/D3/C1 0.2 composition,
-15 current integration checks, and the actual C3 0.2 rejection. [ROUND2.md](ROUND2.md)
-preserves the earlier 0.1 evidence. The first-round evidence below is historical.
+See [ROS_ADAPTER.md](ROS_ADAPTER.md) for the current async ROS owner → bounded
+worker → actual D2/D3 → C1 0.2 → latest C3 connection, exact SHAs, hosted native
+evidence, failure history and the remaining D3 ingress/reset handoff.
+[FOLLOWUP.md](FOLLOWUP.md) preserves the preceding synchronous-core profile and
+its older C3 rejection. [ROUND2.md](ROUND2.md) preserves earlier 0.1 evidence.
 
 # C4 runtime ports — fixed offline candidate
 

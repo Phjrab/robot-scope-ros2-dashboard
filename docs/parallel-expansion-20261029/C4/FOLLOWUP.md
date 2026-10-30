@@ -1,5 +1,9 @@
 # C4 continuation — current C1 0.2 and real owner ports
 
+**Later continuation:** [ROS_ADAPTER.md](ROS_ADAPTER.md) connects this core to the
+existing ROS handoff/worker and rechecks current C1/C3. The versions, C3 failure
+and ROS NOT_RUN below are historical results of this fixed-SHA profile.
+
 Tested source/test-code SHA: **`183dcde9f41504310019ad1a7bc1da3311e5e68d`**.
 The containing follow-up commit adds documentation and validation only; source
 hashes are checked against this exact commit in [validation.json](../../../experiments/expansion_20261029/c4_runtime/followup/validation.json).
