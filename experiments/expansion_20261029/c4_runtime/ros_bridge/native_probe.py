@@ -48,6 +48,8 @@ async def main(output):
     config=RuntimeConfig(mode='isolated_ros',domain_id=194)
     require_local_ros(config)
     paths=load()
+    native=paths['d3']/'experiments/competition_nav2'; sys.path.insert(0,str(native))
+    from humble_executor import metadata_executor_type
     import yaml
     from ament_index_python.packages import get_package_share_directory,get_package_prefix
     import xml.etree.ElementTree as ET
@@ -58,7 +60,7 @@ async def main(output):
     from robot_dashboard.expansion_services.scene import SceneSnapshotService
     import rclpy
     from rclpy.node import Node
-    from rclpy.executors import SingleThreadedExecutor
+    from rclpy.executors import SingleThreadedExecutor,await_or_execute
     from rclpy.qos import QoSProfile,DurabilityPolicy,ReliabilityPolicy,qos_profile_sensor_data
     from rclpy.action import ActionClient
     from sensor_msgs.msg import PointCloud2,PointField
@@ -72,7 +74,9 @@ async def main(output):
 
     rclpy.init(args=[],domain_id=194)
     node=Node('c4_existing_input_owner',namespace=NAMESPACE,enable_rosout=False)
-    executor=SingleThreadedExecutor(); executor.add_node(node)
+    # D3's exact Humble adapter retains native DDS MessageInfo instead of
+    # inferring per-message publisher identity from graph endpoints.
+    executor=metadata_executor_type(SingleThreadedExecutor,await_or_execute)(); executor.add_node(node)
     ros_thread=threading.Thread(target=executor.spin,daemon=True); ros_thread.start()
     planner=None; adapter=None; port=None; log=None; pump=None
     evidence=dict(dependencies=PINS,ROS='STARTED',core='NOT_RUN',HTTP='NOT_RUN',marking='NOT_RUN',
@@ -87,7 +91,7 @@ async def main(output):
         anchor=node.get_clock().now().nanoseconds; host=time.monotonic_ns()
         mapping=ClockMapping('generated-host-ros',context.source_epoch,context.clock_epoch,context.host_clock_id,
             host-anchor,2_000_000,anchor-10**9,anchor+120*10**9,'GENERATED_SAME_HOST_CLOCK_PAIR')
-        captures={}; callback_errors=[]; accepted=deque(maxlen=64); sequence=[0]
+        captures={}; callback_errors=deque(maxlen=64); accepted=deque(maxlen=64); sequence=[0]
         def factory(ctx):
             return SceneSnapshotService(ctx.map_binding,host_clock_id=ctx.host_clock_id,schema_version='0.2',
                 stream_epoch=f'c4-{ctx.runtime_generation}')
@@ -102,7 +106,7 @@ async def main(output):
         sender=node.create_publisher(PointCloud2,input_topic,qos_profile_sensor_data)
         # This single existing owner subscription serves both PointCloudHub and
         # C4 handoff. Neither AsyncRuntimeAdapter nor ReviewRosPort.start subscribes.
-        def receive(message):
+        def receive(message,message_info):
             receipt=time.monotonic_ns()
             try:
                 graph=subscription_graph_snapshot(input_topic,'sensor_msgs/msg/PointCloud2',
@@ -110,7 +114,8 @@ async def main(output):
                 owner_context=make_subscription_evidence('a'*32,input_topic,'sensor_msgs/msg/PointCloud2',qos_profile_sensor_data,graph)
                 hub.process(input_topic,message,receipt/1e9,selected_topic=lambda:input_topic,
                     stamp_ns=lambda m:m.header.stamp.sec*10**9+m.header.stamp.nanosec,
-                    robot_pose_in_frame=lambda _:None,publisher_count=1,observation_context=owner_context)
+                    robot_pose_in_frame=lambda _:None,message_info=message_info,
+                    publisher_count=node.count_publishers(input_topic),observation_context=owner_context)
                 obs=hub.raw_context_snapshot()['observation']; sequence[0]+=1
                 ctx=adapter.context
                 identity=from_owner(message,obs,context=ctx,source_id='lidar',sequence=sequence[0],receipt_ns=receipt,
@@ -130,6 +135,7 @@ async def main(output):
                 port.handoff(message,identity,pointcloud2)
             except Exception as exc: callback_errors.append(type(exc).__name__+':'+str(exc))
         subscription=node.create_subscription(PointCloud2,input_topic,receive,qos_profile_sensor_data)
+        subscription.c3_with_metadata=True
         await wait_for(lambda:node.count_subscribers(input_topic)==1,'ONE_INPUT_OWNER')
 
         transient=QoSProfile(depth=1,durability=DurabilityPolicy.TRANSIENT_LOCAL,reliability=ReliabilityPolicy.RELIABLE)
@@ -149,7 +155,6 @@ async def main(output):
         cost_sub=node.create_subscription(OccupancyGrid,NAMESPACE+'/global_costmap/costmap',lambda m:grids.append(m),10)
         # Derive a C4 transport-only overlay from D3's public config generator.
         # Its source and original config remain read-only; no controller starts.
-        native=paths['d3']/'experiments/competition_nav2'; sys.path.insert(0,str(native))
         import configure
         base=configure.candidate('rpp')
         params={k:deepcopy(base[k]) for k in ('planner_server','global_costmap')}
@@ -281,8 +286,8 @@ async def main(output):
         evidence['cases'].append(dict(name='map_source_change_and_old_packet',status='PASS',
             late_rejected=True,scene_invalidated=True,new_core_generation_accepted=True,
             new_native_publication_blocked=True,native_costmap_generation='RESET_REQUIRED_NOT_REUSED'))
-        evidence['adapter_health']=adapter.health(); evidence['callback_errors']=callback_errors
-        assert not callback_errors,callback_errors
+        evidence['adapter_health']=adapter.health(); evidence['callback_errors']=list(callback_errors)
+        assert not callback_errors,list(callback_errors)
         evidence['accepted_ROS_messages']=len(accepted); evidence['raw_publications']=marker.published
         assert len(accepted)>=2 and marker.published>0
         evidence['status']='PASS_WITH_EXPLICIT_UNPROVEN_BOUNDARIES'
@@ -292,6 +297,13 @@ async def main(output):
         evidence['traceback']=traceback.format_exc()
         raise
     finally:
+        if adapter: evidence['adapter_health']=adapter.health()
+        if 'callback_errors' in locals(): evidence['callback_errors']=list(callback_errors)
+        if 'hub' in locals(): evidence['last_owner_context']=hub.raw_context_snapshot()
+        if 'accepted' in locals(): evidence['accepted_ROS_messages']=len(accepted)
+        if 'marker' in locals(): evidence['raw_publications']=marker.published
+        if 'pump' in locals() and pump and pump.done() and not pump.cancelled():
+            evidence['input_pump_error']=str(pump.exception())
         (output/'summary.json').write_text(json.dumps(evidence,indent=2)+'\n')
         if pump: pump.cancel()
         if port: port.close()
