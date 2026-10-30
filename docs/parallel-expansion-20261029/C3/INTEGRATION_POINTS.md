@@ -13,7 +13,7 @@ const feature = mountObstacleScene(panelElement, {
   scene: { canvas, project, viewKey, setRobot, setReferenceVisible },
   subscribe, getMap, theme, clock,
 });
-feature.snapshot();     // displayed snapshot (frozen display while paused)
+feature.snapshot();     // selected frame, with freshness evaluated at read time
 feature.diagnostics();  // bounded retention/drop/draw counters
 feature.destroy();     // idempotent unsubscribe, cancel rAF, clear owned UI
 ```
@@ -23,7 +23,7 @@ feature.destroy();     // idempotent unsubscribe, cancel rAF, clear owned UI
 - `viewKey() -> string`: changes when camera, viewport or projection changes; this triggers overlay redraw. C3 otherwise refreshes at most every 100ms plus accepted packets/UI changes. One rAF loop watches freshness and camera. A fixed 192-byte box scratch buffer is reused, and no mesh/cache/history grows per render.
 - `setRobot(null | {pose,joints,evidence_kind})`: an explicitly delegated **current robot display slot**. Never a goal/initialization preview slot. Clear/hide on null; render only this pinned pose and joints and label provenance. Fresh display is bounded by pose/joint TTL and pair skew. The port must not send ROS commands or fall back to a standing robot/goal pose.
 - `setReferenceVisible(boolean)`: optional presentation-only toggle for the existing pinned map/cache. The host owns map loading, content-hash validation and map-change clearing. C3 restores visibility on destroy; host should scope this port to the feature's display slot. Missing this optional port means the map toggle cannot change the reference (fixture supplies it).
-- `subscribe(callback) -> unsubscribe`: read-only, prevalidated C1 ScenePacket feed. The callback owns immutable packet references until the next rAF; one pending packet is retained and newer arrivals coalesce. Never inject API mutation methods. Unsubscribe must detach the actual transport listener. Reconnect updates the trusted context **before** publishing packets.
+- `subscribe(callback) -> unsubscribe`: read-only, prevalidated C1 ScenePacket feed. Published packets must remain immutable while retained, including a pause; one pending packet is retained and newer accepted arrivals coalesce. Never inject API mutation methods. Unsubscribe must detach the actual transport listener. Reconnect updates the trusted context **before** publishing packets.
 - `getMap()` is the trusted authority: `{map_id,revision,generation,frame_id,units:'m',source_epoch,stream_epoch,clock_domain,calibration_id,source_identity?}`. These pins are not adopted from incoming packets. Change pins when selecting a map, changing calibration or reconnecting, including while paused. C3 discards paths, tracks, selected objects, robot and collision state on the next rAF; old-context packets cannot revive them. The host must synchronously clear old reference map data before publishing new pins. `source_identity` should include merged/reference asset hash and source lineage; missing source identity is explicitly displayed.
 - `clock() -> monotonic milliseconds` is only for local receipt aging. `theme` is `'dark'|'light'` or a zero-argument getter. Source stamps remain decimal ns strings/BigInt and are never subtracted from host clocks.
 
@@ -57,12 +57,35 @@ The executable field reference is `fixture.js:makePacket`:
 
 Current explicit display budgets (not safety thresholds): 4 sources × 4096 points, 128 objects, 2048 points/path × 3 distinct generations, 2 costmaps × 4096 cells, 64 envelope boxes, 12000 inspector characters. Over-limit geometry is blocked rather than relabeled as full data. TTLs: source/obstacle/joints 1200ms, pose/collision 500ms, path 5000ms, costmap 1500ms, pair skew 250ms. These conservative local presentation defaults need agreement with pinned C1/D3 freshness policy before future live wiring.
 
-Pausing freezes the displayed snapshot, explicitly labeled PAUSED; new input stays latest-only. Step consumes that one pending packet, not a hidden unbounded replay queue. The external replay producer owns the timeline. Map/context changes still clear a paused display. No control/safety stop is invoked.
+Pausing freezes **frame selection**, not freshness. The held frame is labeled
+`PAUSED · 과거 프레임 / 유효시간 계속 경과`. Every render and public snapshot read
+re-evaluates the original consumer TTL/validity interval. Expired pose/joints
+hide the delegated robot; expired collision becomes UNKNOWN with its reason.
+Other layers retain their own unchanged TTLs. The source evidence kind remains
+unchanged; a paused/invalid LIVE-source frame explicitly disclaims current
+observation instead of showing the unqualified `LIVE 입력` label.
+
+The subscription immediately records local monotonic receipt and checks packet
+order/context and canonical invalidations. This metadata-only `consumer.offer`
+does not copy geometry or advance the selected frame. It returns an opaque,
+single-use local arrival token, consumed by `ingest(packet, token)` on step/resume
+or the next running frame. Direct `ingest(packet)` still works. A held frame also
+honors newly received server invalidations. Coalesced same-stamp canonical input
+cannot restart age/expiry, including input never displayed before. Older invalid
+responses do not replace a valid pending packet. Queue remains one; geometry
+caches are unchanged. Map/context changes discard an old pending arrival too.
+
+Host transport time must still include HTTP/asset decode time before delivery;
+the local queue receipt adds only time after delivery. Neither source ns nor
+producer receipt/clock/epoch/validity fields are rewritten. The external replay
+producer owns its timeline. No control/safety stop is invoked. Executed pause
+regressions and exact current pins: [PAUSED_FRESHNESS](PAUSED_FRESHNESS.md).
 
 ## Current exact C1 service boundary — 0.2 continuation
 
-Current source/contract pins, evidence and remaining input are in
-[ROUND2_V02](ROUND2_V02.md). C1 `4e1dd519a707169da5f88cf2a92a20ed3e701cc7`
+Current source/contract pins and pause policy are in
+[PAUSED_FRESHNESS](PAUSED_FRESHNESS.md); the prior integration is in
+[ROUND2_V02](ROUND2_V02.md). C1 `50600c7bce6f5fae743cd836ca1d8ee68d91b05a`
 provides canonical 0.2 with decimal host ns and explicit slot status. Legacy 0.1
 continues to work through the lossless token parser. D3
 `356d0a036eb62d546e159e12a0691d7f5ea278f6` calls the actual C1 normalizer; no

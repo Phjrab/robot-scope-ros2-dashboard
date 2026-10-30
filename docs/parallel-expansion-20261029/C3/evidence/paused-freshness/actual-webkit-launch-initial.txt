@@ -1,0 +1,38 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+browserType.launch: Target page, context or browser has been closed
+Browser logs:
+
+<launching> /tmp/c3-scene-browsers/webkit-2336/pw_run.sh --inspector-pipe --headless --no-startup-window --no-sandbox
+<launched> pid=591661
+[pid=591661][err] Cannot parse arguments: Unknown option --no-sandbox
+Call log:
+[2m  - <launching> /tmp/c3-scene-browsers/webkit-2336/pw_run.sh --inspector-pipe --headless --no-startup-window --no-sandbox[22m
+[2m  - <launched> pid=591661[22m
+[2m  - [pid=591661][err] Cannot parse arguments: Unknown option --no-sandbox[22m
+[2m  - [pid=591661] <gracefully close start>[22m
+[2m  - [pid=591661] <kill>[22m
+[2m  - [pid=591661] <will force kill>[22m
+[2m  - [pid=591661] <process did exit: exitCode=1, signal=null>[22m
+[2m  - [pid=591661] starting temporary directories cleanup[22m
+[2m  - [pid=591661] finished temporary directories cleanup[22m
+[2m  - [pid=591661] <gracefully close end>[22m
+
+    at /home/desktop1/Documents/ChatGPT/robot/c3-scene-ui-20261029/tests/expansion_c3/actual_browser.mjs:10:37 {
+  log: [
+    '  - <launching> /tmp/c3-scene-browsers/webkit-2336/pw_run.sh --inspector-pipe --headless --no-startup-window --no-sandbox',
+    '  - <launched> pid=591661',
+    '  - [pid=591661][err] Cannot parse arguments: Unknown option --no-sandbox',
+    '  - [pid=591661] <gracefully close start>',
+    '  - [pid=591661] <kill>',
+    '  - [pid=591661] <will force kill>',
+    '  - [pid=591661] <process did exit: exitCode=1, signal=null>',
+    '  - [pid=591661] starting temporary directories cleanup',
+    '  - [pid=591661] finished temporary directories cleanup',
+    '  - [pid=591661] <gracefully close end>'
+  ]
+}
+
+Node.js v24.22.1

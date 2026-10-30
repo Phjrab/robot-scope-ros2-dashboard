@@ -6,7 +6,7 @@ import subprocess
 import tarfile
 
 PINS = {
-    'C1': '4e1dd519a707169da5f88cf2a92a20ed3e701cc7',
+    'C1': '50600c7bce6f5fae743cd836ca1d8ee68d91b05a',
     'D1': '203c144f6b4a90966839c34b603ae12ee676cb12',
     'D2': '7313f0a31c00ae87ae216b84ca41a23804e91917',
     'D3': '356d0a036eb62d546e159e12a0691d7f5ea278f6',

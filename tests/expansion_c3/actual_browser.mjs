@@ -3,18 +3,35 @@ import {mkdir,writeFile,readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {createHash} from 'node:crypto';
 import assert from 'node:assert/strict';
-const require=createRequire(import.meta.url),{chromium}=require(process.env.C3_PLAYWRIGHT || 'playwright');
+const require=createRequire(import.meta.url),engines=require(process.env.C3_PLAYWRIGHT || 'playwright');
+const engine=process.env.C3_BROWSER || 'chromium';
 const out=resolve(process.env.C3_EVIDENCE || '/tmp/c3-round2-results');await mkdir(out,{recursive:true});
 const base=process.env.C3_ACTUAL_URL || 'http://127.0.0.1:4184';
-const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+const browser=await engines[engine].launch({headless:true,args:engine==='chromium'?['--no-sandbox']:[]});
 const context=await browser.newContext({viewport:{width:1500,height:1100}});
-const report={source_mode:'ACTUAL_C1_SERVICE',evidence_kind:'SYNTHETIC',browser:browser.version(),cases:[],requests:[],errors:[],http:[]};
+const report={engine,source_mode:'ACTUAL_C1_SERVICE',evidence_kind:'SYNTHETIC',browser:browser.version(),cases:[],requests:[],errors:[],http:[]};
 context.on('request',r=>report.requests.push({method:r.method(),url:r.url()}));
 await context.route('**/*',route=>{
   const r=route.request(),u=new URL(r.url());
   if(r.method()!=='GET'||u.origin!==base||u.pathname.startsWith('/api/')||u.pathname.includes('/actual/')&&!(u.pathname.endsWith('/api/v1/extensions/scene/snapshot')||/\/api\/v1\/extensions\/scene\/assets\/[a-f0-9]{24}\/[a-f0-9]{64}$/.test(u.pathname)))route.abort();else route.continue();
 });
 const page=await context.newPage();page.on('pageerror',e=>report.errors.push(String(e)));
+// Observe the first completed C3 render in the page's own event loop. WebKit UI
+// clicks/round trips can exceed the producer's unchanged 250ms assessment TTL.
+// Capture the actual DOM and consumer together; never freeze the source clock.
+await page.addInitScript(()=>{
+  const observer=new MutationObserver(()=>{
+    const f=window.c3Fixture,root=document.querySelector('.obstacle-scene');
+    if(!window.c3Actual?.last || !f || root?.dataset.ready!=='true')return;
+    const view=f.feature.snapshot();
+    if(!view.ready || root.dataset.sequence!==String(view.sequence))return;
+    window.c3FirstRender={view,risk:document.querySelector('.os-risk').textContent,
+      sources:document.querySelector('.os-sources').textContent,robotVisible:f.renderer.robotVisible,
+      fingerprint:window.c3Actual.last.fingerprint,at:performance.now()};
+    observer.disconnect();
+  });
+  observer.observe(document,{subtree:true,childList:true,characterData:true,attributes:true});
+});
 try{
   for(const name of ['PREDICTED_CONTACT','NEAR','UNKNOWN_PARTIAL','SCOPED_SYNTHETIC_CLEAR','ACTIVE_UNKNOWN','EXPIRED']){
     const endpoint=`${base}/actual/${name}/api/v1/extensions/scene/snapshot`;
@@ -24,10 +41,11 @@ try{
     await writeFile(resolve(out,`${name}.json`),body+'\n');
     report.http.push({name,status:response.status(),unauthorized_status:unauth.status(),sha256:hash,bytes:Buffer.byteLength(body)});
     await page.goto(`${base}/experiments/expansion_20261029/c3_scene_ui/fixture.html?actual=${name}`);
-    await page.waitForFunction(()=>window.c3Actual?.last && window.c3Fixture.feature.snapshot()?.ready);
+    await page.waitForFunction(()=>window.c3FirstRender);
     await page.locator('[data-action=pause]').click();
     await page.evaluate(()=>window.c3Actual.stop());
-    const v=await page.evaluate(()=>window.c3Fixture.feature.snapshot());
+    const first=await page.evaluate(()=>window.c3FirstRender),v=first.view;
+    assert.equal(first.fingerprint,hash);
     assert.equal(await page.evaluate(()=>window.c3Actual.last.fingerprint),hash);
     assert.equal(v.source_mode,'ACTUAL_C1_SERVICE');assert.equal(v.evidence_kind,'SYNTHETIC');
     assert.equal(v.map_identity.generation,report.cases.length+1);
@@ -46,6 +64,7 @@ try{
     if(name==='EXPIRED') {assert.equal(v.collision.value,null);assert.equal(v.pose.reason,'SERVER_EXPIRED');}
     else {
       assert.ok(v.collision.value,JSON.stringify(v));
+      assert.ok(first.risk.includes(v.collision.value.severity));assert.equal(first.robotVisible,true);
       assert.equal(v.collision.value.severity,name==='PREDICTED_CONTACT'?'STOP_REQUIRED':name==='SCOPED_SYNTHETIC_CLEAR'?'CLEAR':'UNKNOWN');
       assert.equal(v.collision.value.protection_mode,name==='ACTIVE_UNKNOWN'?'ACTIVE_CONSTRAINT':'ADVISORY_ONLY');
       assert.equal(v.collision.value.envelopes.length,0);
@@ -62,10 +81,19 @@ try{
       await page.screenshot({path:resolve(out,`${name}.png`),fullPage:true});
     }
     const d=await page.evaluate(()=>window.c3Fixture.feature.diagnostics());
-    report.cases.push({name,result:'PASS',endpoint_sha256:hash,view:v,diagnostics:d});
+    report.cases.push({name,result:'PASS',endpoint_sha256:hash,view:v,initial_render:first,diagnostics:d});
     if(name==='UNKNOWN_PARTIAL'){
+      // Keep actual HTTP input paused for the same wall time as C5-H1.
+      await page.waitForTimeout(2600);
+      const paused=await page.evaluate(()=>({v:window.c3Fixture.feature.snapshot(),robot:window.c3Fixture.renderer.robotVisible,sources:document.querySelector('.os-sources').textContent,risk:document.querySelector('.os-risk').textContent}));
+      assert.equal(paused.v.pose.reason,'STALE');assert.equal(paused.v.joints.reason,'STALE');
+      assert.equal(paused.v.collision.value,null);assert.equal(paused.robot,false);
+      assert.match(paused.sources,/Pose · STALE \/ Joints · STALE/);assert.match(paused.risk,/UNKNOWN/);
+      report.paused_expiry={result:'PASS',elapsedMs:2600,...paused};
+      await page.screenshot({path:resolve(out,'ACTUAL_PAUSED_EXPIRED.png'),fullPage:true});
       await page.locator('[data-action=pause]').click();
       await page.evaluate(()=>window.c3Actual.start());
+      await page.waitForFunction(previous=>window.c3Fixture.feature.diagnostics().accepted>previous,d.accepted);
       await page.waitForFunction(()=>window.c3Fixture.feature.snapshot()?.pose.reason==='STALE');
       await page.waitForFunction(()=>window.c3Fixture.feature.snapshot()?.obstacles.reason==='STALE');
       const aged=await page.evaluate(()=>({v:window.c3Fixture.feature.snapshot(),d:window.c3Fixture.feature.diagnostics()}));
@@ -80,9 +108,9 @@ try{
   if(process.env.C3_NATIVE_REPLAY==='1'){
     const core=JSON.parse(await readFile(resolve(out,'core-results.json'),'utf8')),native=core.native_replay;
     await page.goto(`${base}/experiments/expansion_20261029/c3_scene_ui/fixture.html?actual=NATIVE_REPLAY`);
-    await page.waitForFunction(()=>window.c3Actual?.last && window.c3Fixture.feature.snapshot()?.ready);
+    await page.waitForFunction(()=>window.c3FirstRender);
     await page.locator('[data-action=pause]').click();await page.evaluate(()=>window.c3Actual.stop());
-    const v=await page.evaluate(()=>window.c3Fixture.feature.snapshot()),last=await page.evaluate(()=>window.c3Actual.last);
+    const v=await page.evaluate(()=>window.c3FirstRender.view),last=await page.evaluate(()=>window.c3Actual.last);
     assert.equal(v.evidence_kind,'REPLAY');assert.equal(v.source_mode,'ACTUAL_C1_SERVICE');
     assert.deepEqual(v.path.value.points_m,native.source_records.plan.points.map(p=>[...p,0]));
     assert.equal(v.path.value.stamp_ns,native.snapshot.global_path.stamp_ns);

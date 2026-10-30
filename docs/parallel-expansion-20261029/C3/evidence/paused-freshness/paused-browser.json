@@ -1,0 +1,1140 @@
+{
+  "classification": "REAL_BROWSER_RENDER; SYNTHETIC_FIXTURE / ARCHIVED_C1_0.2_BYTES",
+  "cases": [
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "name": "C5-H1: fresh → paused → 2600ms; consumer and DOM agree",
+      "result": "PASS"
+    },
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "name": "queued packet ages before first step; new packet after resume recovers",
+      "result": "PASS"
+    },
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "name": "paused revision reset and delayed old response",
+      "result": "PASS"
+    },
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "name": "paused source_epoch reset and delayed old response",
+      "result": "PASS"
+    },
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "name": "paused stream_epoch reset and delayed old response",
+      "result": "PASS"
+    },
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "name": "old packets cannot replace newer pending packets",
+      "result": "PASS"
+    },
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "name": "missing robot_pose stays unavailable",
+      "result": "PASS"
+    },
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "name": "missing joint_state stays unavailable",
+      "result": "PASS"
+    },
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "name": "source clock mismatch cannot display robot/risk",
+      "result": "PASS"
+    },
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "name": "snapshot read ages even without a subsequent animation frame",
+      "result": "PASS"
+    },
+    {
+      "engine": "chromium",
+      "version": "151.0.7922.34",
+      "name": "C1 expired notification during pause fences a coalesced late ready response",
+      "result": "PASS"
+    },
+    {
+      "engine": "webkit",
+      "version": "26.5",
+      "name": "C5-H1: fresh → paused → 2600ms; consumer and DOM agree",
+      "result": "PASS"
+    },
+    {
+      "engine": "webkit",
+      "version": "26.5",
+      "name": "queued packet ages before first step; new packet after resume recovers",
+      "result": "PASS"
+    },
+    {
+      "engine": "webkit",
+      "version": "26.5",
+      "name": "paused revision reset and delayed old response",
+      "result": "PASS"
+    },
+    {
+      "engine": "webkit",
+      "version": "26.5",
+      "name": "paused source_epoch reset and delayed old response",
+      "result": "PASS"
+    },
+    {
+      "engine": "webkit",
+      "version": "26.5",
+      "name": "paused stream_epoch reset and delayed old response",
+      "result": "PASS"
+    },
+    {
+      "engine": "webkit",
+      "version": "26.5",
+      "name": "old packets cannot replace newer pending packets",
+      "result": "PASS"
+    },
+    {
+      "engine": "webkit",
+      "version": "26.5",
+      "name": "missing robot_pose stays unavailable",
+      "result": "PASS"
+    },
+    {
+      "engine": "webkit",
+      "version": "26.5",
+      "name": "missing joint_state stays unavailable",
+      "result": "PASS"
+    },
+    {
+      "engine": "webkit",
+      "version": "26.5",
+      "name": "source clock mismatch cannot display robot/risk",
+      "result": "PASS"
+    },
+    {
+      "engine": "webkit",
+      "version": "26.5",
+      "name": "snapshot read ages even without a subsequent animation frame",
+      "result": "PASS"
+    },
+    {
+      "engine": "webkit",
+      "version": "26.5",
+      "name": "C1 expired notification during pause fences a coalesced late ready response",
+      "result": "PASS"
+    }
+  ],
+  "observations": [
+    {
+      "engine": "chromium",
+      "name": "C5-H1 measured output",
+      "elapsedMs": 2682,
+      "consumerPose": "STALE",
+      "consumerCollision": "POSE_JOINT_OR_SOURCE_INSUFFICIENT",
+      "sources": "LIDAR · STALE · age 2761 ms · 취득 — nsDEPTH · STALE · age 2761 ms · 취득 — nsPose · STALE / Joints · STALE / URDF · 표시 차단ObstacleFrame · STALECostmap · STALE",
+      "risk": "데이터 불충분 · UNKNOWN · POSE_JOINT_OR_SOURCE_INSUFFICIENT",
+      "robotVisible": false,
+      "result": "PASS"
+    },
+    {
+      "engine": "webkit",
+      "name": "C5-H1 measured output",
+      "elapsedMs": 2648,
+      "consumerPose": "STALE",
+      "consumerCollision": "POSE_JOINT_OR_SOURCE_INSUFFICIENT",
+      "sources": "LIDAR · STALE · age 2749 ms · 취득 — nsDEPTH · STALE · age 2749 ms · 취득 — nsPose · STALE / Joints · STALE / URDF · 표시 차단ObstacleFrame · STALECostmap · STALE",
+      "risk": "데이터 불충분 · UNKNOWN · POSE_JOINT_OR_SOURCE_INSUFFICIENT",
+      "robotVisible": false,
+      "result": "PASS"
+    }
+  ],
+  "errors": [],
+  "requests": [
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.html"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.html"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.html"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.html"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.html"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.html"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.html"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.html"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.html"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.html"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.html"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/c1_adapter.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.html"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.html"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.html"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.html"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.html"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.html"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.html"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.html"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.html"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.html"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.html"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/c1_adapter.js"
+    }
+  ]
+}

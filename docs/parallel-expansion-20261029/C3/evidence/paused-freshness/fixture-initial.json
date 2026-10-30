@@ -1,0 +1,77 @@
+{
+  "kind": "UI_FIXTURE",
+  "input": "SYNTHETIC only; not native Nav2 or robot replay",
+  "browser": "151.0.7922.34",
+  "cases": [
+    {
+      "name": "existing official renderer and shared model cache",
+      "result": "PASS"
+    },
+    {
+      "name": "empty → cone → costmap → supplied path generations → supplied local trajectory",
+      "result": "PASS"
+    },
+    {
+      "name": "moved, occluded, removed, lidar-only, depth-only, unmatched YOLO",
+      "result": "PASS"
+    },
+    {
+      "name": "wrong calibration, unmapped clock, sensor time skew block derived geometry/risk",
+      "result": "PASS"
+    },
+    {
+      "name": "map/epoch invalidation while paused and reconnect late packets",
+      "result": "FAIL",
+      "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-action=step]')\u001b[22m\n\u001b[2m    - locator resolved to <button disabled type=\"button\" data-action=\"step\">대기 패킷 1개 표시</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not enabled\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not enabled\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    56 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is not enabled\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\n    at /home/desktop1/Documents/ChatGPT/robot/c3-scene-ui-20261029/tests/expansion_c3/browser.mjs:63:46\n    at async check (/home/desktop1/Documents/ChatGPT/robot/c3-scene-ui-20261029/tests/expansion_c3/browser.mjs:15:34)\n    at async file:///home/desktop1/Documents/ChatGPT/robot/c3-scene-ui-20261029/tests/expansion_c3/browser.mjs:57:3"
+    }
+  ],
+  "requests": [
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.html"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4183/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    }
+  ],
+  "errors": [],
+  "stress": null,
+  "failure": "locator.click: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-action=step]')\u001b[22m\n\u001b[2m    - locator resolved to <button disabled type=\"button\" data-action=\"step\">대기 패킷 1개 표시</button>\u001b[22m\n\u001b[2m  - attempting click action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not enabled\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m    - waiting 20ms\u001b[22m\n\u001b[2m    2 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m      - element is not enabled\u001b[22m\n\u001b[2m    - retrying click action\u001b[22m\n\u001b[2m      - waiting 100ms\u001b[22m\n\u001b[2m    56 × waiting for element to be visible, enabled and stable\u001b[22m\n\u001b[2m       - element is not enabled\u001b[22m\n\u001b[2m     - retrying click action\u001b[22m\n\u001b[2m       - waiting 500ms\u001b[22m\n\n    at /home/desktop1/Documents/ChatGPT/robot/c3-scene-ui-20261029/tests/expansion_c3/browser.mjs:63:46\n    at async check (/home/desktop1/Documents/ChatGPT/robot/c3-scene-ui-20261029/tests/expansion_c3/browser.mjs:15:34)\n    at async file:///home/desktop1/Documents/ChatGPT/robot/c3-scene-ui-20261029/tests/expansion_c3/browser.mjs:57:3"
+}

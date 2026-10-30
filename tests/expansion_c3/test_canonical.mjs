@@ -108,3 +108,40 @@ test('bulk display geometry cannot replace canonical identity, receipt or eviden
   assert.equal(c.stamp_ns,w.robot_pose.stamp_ns);
   w.sources.assets=[];const retired=adaptC1ScenePacket(w,context,{displayAssets:[asset]});assert.equal(retired.packet.costmaps.length,0);assert.ok(retired.packet.availability.errors.includes('costmap_snapshot:DISPLAY_ASSET_UNAVAILABLE'));
 });
+
+for(const version of ['0.1','0.2']){
+  test(`C1 ${version}: queue/step preserves decimal ns, source age and original 250ms expiry`,()=>{
+    const h=harness(),w=version==='0.1'?fixture():v02(),p=adaptC1ScenePacket(w,context).packet;
+    const arrival=h.consumer.offer(p);h.advance(251);h.consumer.ingest(p,arrival);const v=h.consumer.snapshot();
+    assert.equal(v.pose.value.stamp_ns,'9007199254740993');
+    assert.equal(v.pose.value.receipt_source_ns,'9007199254740993');assert.equal(v.pose.age_ms,251);
+    assert.equal(v.collision.reason,'VALIDITY_EXPIRED');h.advance(250);assert.equal(h.consumer.snapshot().pose.reason,'STALE');
+    assert.equal(w.collision_assessment.validity_interval.end_monotonic_ns,'9007199504740993');
+  });
+  test(`C1 ${version}: coalesced unseen frozen source does not acquire a new TTL on resume`,()=>{
+    const h=harness(),w=version==='0.1'?fixture():v02();let p=adaptC1ScenePacket(w,context).packet;
+    h.consumer.offer(p);h.advance(2600);p=adaptC1ScenePacket(w,context).packet;
+    const arrival=h.consumer.offer(p);assert.ok(h.consumer.ingest(p,arrival));
+    assert.equal(h.consumer.snapshot().pose.reason,'STALE');assert.equal(h.consumer.snapshot().joints.reason,'STALE');assert.equal(h.consumer.snapshot().collision.value,null);
+  });
+}
+test('paused 0.2 invalidation masks held frame and survives coalescing with a late ready response',()=>{
+  const h=harness(),old=v02();h.ingest(old);const expired=v02();
+  for(const slot of ['robot_pose','obstacle_frame','collision_assessment']){expired[slot]=null;expired.sources[slot].status='expired';}
+  h.consumer.offer(adaptC1ScenePacket(expired,context).packet);
+  assert.equal(h.consumer.snapshot().pose.reason,'SERVER_INVALIDATED');assert.equal(h.consumer.snapshot().collision.value,null);
+  const late=adaptC1ScenePacket(old,context).packet,arrival=h.consumer.offer(late);h.consumer.ingest(late,arrival);
+  assert.equal(h.consumer.snapshot().pose.reason,'SERVER_INVALIDATED');assert.equal(h.consumer.snapshot().collision.value,null);
+});
+test('paused 0.1 assessment invalidation masks held collision before step/resume',()=>{
+  const h=harness(),old=fixture();h.ingest(old);const expired=fixture();
+  expired.collision_assessment=null;expired.sources.collision_assessment.health={state:'REFERENCE_OR_VALIDITY_UNKNOWN'};
+  h.consumer.offer(adaptC1ScenePacket(expired,context).packet);
+  assert.equal(h.consumer.snapshot().collision.reason,'SERVER_INVALIDATED');
+});
+test('paused receipt processing neither copies geometry nor grows the existing cache',()=>{
+  const h=harness(),w=v02();h.ingest(w);const before=h.consumer.diagnostics();
+  for(let i=0;i<300;i++){h.advance(1);h.consumer.offer(adaptC1ScenePacket(w,context).packet);}
+  assert.equal(h.consumer.diagnostics().geometryCopies,before.geometryCopies);
+  assert.equal(h.consumer.diagnostics().cachedLayers,before.cachedLayers);
+});

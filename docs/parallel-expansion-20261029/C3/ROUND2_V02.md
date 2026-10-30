@@ -1,5 +1,7 @@
 # C3 후속 검증 — C1 0.2 · bulk asset · D3 native 기록 재생
 
+최신 2026-10-30 pause/freshness 수정 및 실제 전후 검증: [PAUSED_FRESHNESS](PAUSED_FRESHNESS.md). 아래는 이전 제출의 기록입니다.
+
 2026-10-29. **최신 D1→D2→D3→C1 실제 core/저장/HTTP와 C3 표시 연결 PASS.**
 C1 0.2 변환은 생산자 소유 구현을 그대로 실행한다. D3의 실제 원격 native
 기록도 C1 HTTP를 거쳐 재생했다. 로컬 ROS/native 실행과 실장비 검증은 NOT_RUN이다.

@@ -39,6 +39,7 @@ function points(value, limit, dimensions = 3) {
 export function createSceneConsumer({ getMap, clock = () => performance.now() }) {
   if (typeof getMap !== 'function') throw new TypeError('getMap must return trusted display context');
   let context = null, contextKey = '', latest = null, history = [], lastSequence = -1;
+  let offeredSequence = -1, offeredStamp = null, lastArrival = null;
   const anchors = new Map(), geometryCache = new Map(); let geometryCopies = 0;
   let retiredCollisionSequence = -1;
   const retiredSources = new Map();
@@ -49,7 +50,7 @@ export function createSceneConsumer({ getMap, clock = () => performance.now() })
     const nextKey = contextValid(next) ? key(next) : '';
     if (nextKey !== contextKey || !nextKey && latest) {
       contextKey = nextKey; context = nextKey ? { ...next } : null;
-      latest = null; history = []; lastSequence = -1; anchors.clear(); geometryCache.clear(); retiredSources.clear(); retiredCollisionSequence=-1; protection={mode:'UNAVAILABLE',transition:'',recommendation:'UNAVAILABLE'}; resets++; error = 'CONTEXT_CHANGED';
+      latest = null; history = []; lastSequence = -1; offeredSequence = -1; offeredStamp = null; lastArrival = null; anchors.clear(); geometryCache.clear(); retiredSources.clear(); retiredCollisionSequence=-1; protection={mode:'UNAVAILABLE',transition:'',recommendation:'UNAVAILABLE'}; resets++; error = 'CONTEXT_CHANGED';
       return true;
     }
     context = nextKey ? { ...next } : null;
@@ -86,9 +87,11 @@ export function createSceneConsumer({ getMap, clock = () => performance.now() })
       if (cached?.revision !== revision) { geometryCopies++; geometryCache.set(id,{revision,value:copied}); }
     } else copied = copy(value);
     return { value: copied, reason: copied ? '' : 'GEOMETRY_OR_LIMIT_INVALID', ttl,
-      age_ms: age, receipt };
+      age_ms: age, receipt, canonical: packet.canonical === true };
   }
-  function ingest(packet) {
+  // Observe arrivals even while presentation is paused. This is metadata only:
+  // no geometry copies or hidden replay queue. A newer offer invalidates its token.
+  function offer(packet) {
     if (destroyed) return false;
     syncContext();
     if (!context) return reject('CONTEXT_UNAVAILABLE');
@@ -99,15 +102,48 @@ export function createSceneConsumer({ getMap, clock = () => performance.now() })
     if (packet.canonical && packet.map_identity.generation !== context.generation) return reject('MAP_GENERATION_MISMATCH');
     if (packet.source_epoch !== context.source_epoch || packet.stream_epoch !== context.stream_epoch) return reject('LATE_EPOCH_OR_STREAM');
     if (packet.clock_domain !== context.clock_domain) return reject('CLOCK_MISMATCH');
-    if (packet.sequence < lastSequence || packet.sequence === lastSequence && !packet.canonical) return reject('OUT_OF_ORDER');
-    if (latest && packet.stamp_ns !== '0' && BigInt(packet.stamp_ns) < BigInt(latest.stamp_ns)) return reject('STAMP_ROLLBACK');
-    receipt = clock();
+    if (packet.sequence < offeredSequence || packet.sequence === offeredSequence && !packet.canonical) return reject('OUT_OF_ORDER');
+    if (offeredStamp && packet.stamp_ns !== '0' && BigInt(packet.stamp_ns) < BigInt(offeredStamp)) return reject('STAMP_ROLLBACK');
+    const receivedAt = clock();
+    offeredSequence = packet.sequence; if (packet.stamp_ns !== '0') offeredStamp = packet.stamp_ns;
     for (const [slot,source] of Object.entries(packet.invalidated_sources || {})) {
       if (source.source_epoch === context.source_epoch && sequence(source.sequence) && ['expired','unavailable','pending'].includes(source.status)
         && source.sequence >= (retiredSources.get(slot)?.sequence ?? -1)) retiredSources.set(slot,{sequence:source.sequence,status:source.status});
     }
     if (packet.canonical && packet.invalidated_assessment?.source_epoch === context.source_epoch
       && sequence(packet.invalidated_assessment.sequence)) retiredCollisionSequence=Math.max(retiredCollisionSequence,packet.invalidated_assessment.sequence);
+    if (packet.canonical) {
+      const slots = [
+        ['pose',packet.robot_pose,TTL_MS.pose,true], ['joints',packet.joint_state,TTL_MS.joints,true],
+        ['obstacles',packet.obstacle_frame,TTL_MS.obstacles,true],
+        ['global_path',packet.global_path,TTL_MS.path,false], ['local_trajectory',packet.local_trajectory,TTL_MS.path,false],
+        ['collision',packet.collision_assessment,TTL_MS.collision,true],
+        ...(Array.isArray(packet.sources) ? packet.sources : []).slice(0,LIMITS.sources).map((v,i)=>[`sensor:${i}`,v,TTL_MS.source,true]),
+        ...(Array.isArray(packet.costmaps) ? packet.costmaps : []).slice(0,2).map((v,i)=>[`costmap:${i}`,v,TTL_MS.costmap,false]),
+      ];
+      for (const [slot,value,ttl,calibration] of slots) {
+        if (guard(value,packet,ttl,calibration)) continue;
+        const previous=anchors.get(slot);
+        const age=Math.max(Number(BigInt(packet.stamp_ns)-BigInt(value.stamp_ns))/1e6,value.age_ms,
+          previous?.stamp===value.stamp_ns ? previous.age+Math.max(0,receivedAt-previous.receipt) : 0);
+        anchors.set(slot,{stamp:value.stamp_ns,age,receipt:receivedAt});
+        if (slot==='collision' && finite(value.remaining_ms) && value.remaining_ms>=0) {
+          const previousExpiry=anchors.get('collision-expiry');
+          anchors.set('collision-expiry',{stamp:value.stamp_ns,expires:Math.min(receivedAt+value.remaining_ms,
+            previousExpiry?.stamp===value.stamp_ns ? previousExpiry.expires : Infinity)});
+        }
+      }
+    }
+    lastArrival = Object.freeze({receivedAt,contextKey,packet});
+    return lastArrival;
+  }
+  function ingest(packet, arrival = null) {
+    if (destroyed) return false;
+    syncContext();
+    arrival ||= offer(packet);
+    if (!arrival) return false;
+    if (arrival!==lastArrival || arrival.packet!==packet || arrival.contextKey!==contextKey) return reject('SUPERSEDED_ARRIVAL');
+    receipt = arrival.receivedAt; lastArrival = null;
     const pose = layer(packet.robot_pose, packet, TTL_MS.pose, true, v =>
       vector(v.position_m, 3) && vector(v.rpy_rad, 3) && text(v.ref)
         ? { ...metadata(v), ref: text(v.ref), position_m: v.position_m.slice(), rpy_rad: v.rpy_rad.slice() } : null, 'pose');
@@ -216,7 +252,12 @@ export function createSceneConsumer({ getMap, clock = () => performance.now() })
       map_identity: { ...context }, pose, joints, sources, obstacles, path, local, costmaps, collision };
     lastSequence = packet.sequence; error = ''; accepted++; return true;
   }
-  function fresh(layer, now) {
+  function fresh(layer, now, slot) {
+    const retired=retiredSources.get(slot?.startsWith('sensor:')?'obstacles':slot);
+    if (layer?.canonical && layer.value && retired
+      && layer.value.sequence<=retired.sequence) return {value:null,reason:'SERVER_INVALIDATED'};
+    if (slot==='collision' && layer?.value?.canonical && layer.value.sequence<=retiredCollisionSequence)
+      return {value:null,reason:'SERVER_INVALIDATED'};
     if (!layer?.value) return layer || { value: null, reason: 'MISSING' };
     const age_ms = layer.age_ms + Math.max(0, now - layer.receipt);
     return age_ms > layer.ttl ? { value: null, reason: 'STALE', age_ms } : { ...layer, age_ms };
@@ -225,17 +266,17 @@ export function createSceneConsumer({ getMap, clock = () => performance.now() })
     syncContext();
     if (!latest || destroyed) return { ready: false, reason: error || 'WAITING', contextKey, context, history: [] };
     const now = clock();
-    const pose = fresh(latest.pose, now), joints = fresh(latest.joints, now);
+    const pose = fresh(latest.pose, now, 'pose'), joints = fresh(latest.joints, now, 'joints');
     if (pose.value && joints.value && !withinSkew([pose.value,joints.value])) {
       joints.value = null; joints.reason = 'POSE_JOINT_TIME_SKEW';
     }
-    const sources = latest.sources.map(s => ({ ...s, ...fresh(s, now) }));
-    const obstacles = fresh(latest.obstacles, now);
+    const sources = latest.sources.map((s,i) => ({ ...s, ...fresh(s, now, `sensor:${i}`) }));
+    const obstacles = fresh(latest.obstacles, now, 'obstacles');
     if (obstacles.value) {
       const kept = obstacles.value.obstacles.filter(o => obstacles.value.canonical || o.sensor_support.every(id => sources.some(s => s.id === id && s.value)));
       obstacles.value = { ...obstacles.value, obstacles: kept, suppressed: obstacles.value.suppressed + obstacles.value.obstacles.length - kept.length };
     }
-    let collision = fresh(latest.collision, now);
+    let collision = fresh(latest.collision, now, 'collision');
     if (!pose.value || !joints.value || !obstacles.value || obstacles.value.suppressed) collision = { value: null, reason: 'POSE_JOINT_OR_SOURCE_INSUFFICIENT' };
     if (collision.value) {
       if (collision.value.canonical) {
@@ -246,10 +287,10 @@ export function createSceneConsumer({ getMap, clock = () => performance.now() })
       }
     }
     return { ...latest, ready: true, contextKey, pose, joints, sources, obstacles, collision,
-      path: fresh(latest.path, now), local: fresh(latest.local, now), costmaps: latest.costmaps.map(c => fresh(c, now)),
-      history: history.map(p => fresh(p, now)).filter(p => p.value), lastRejection: error };
+      path: fresh(latest.path, now, 'global_path'), local: fresh(latest.local, now, 'local_trajectory'), costmaps: latest.costmaps.map((c,i) => fresh(c, now, `costmap:${i}`)),
+      history: history.map(p => fresh(p, now, 'global_path')).filter(p => p.value), lastRejection: error };
   }
-  return { ingest, snapshot, syncContext,
+  return { offer, ingest, snapshot, syncContext,
     diagnostics: () => ({ accepted, rejected, resets, history: history.length, retainedPackets: latest ? 1 : 0, lastSequence, error, geometryCopies, cachedLayers:geometryCache.size }),
-    destroy() { destroyed = true; latest = null; history = []; anchors.clear(); geometryCache.clear(); retiredSources.clear(); } };
+    destroy() { destroyed = true; latest = null; lastArrival = null; history = []; anchors.clear(); geometryCache.clear(); retiredSources.clear(); } };
 }

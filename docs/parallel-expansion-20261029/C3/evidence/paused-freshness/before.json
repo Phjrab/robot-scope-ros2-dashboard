@@ -1,0 +1,38 @@
+[
+  {
+    "engine": "chromium",
+    "version": "151.0.7922.34",
+    "elapsedMs": 2675,
+    "result": "DEFECT_REPRODUCED",
+    "consumer": {
+      "pose": "STALE",
+      "joints": "STALE",
+      "collision": "POSE_JOINT_OR_SOURCE_INSUFFICIENT"
+    },
+    "snapshot": {
+      "pose": "",
+      "joints": ""
+    },
+    "sources": "LIDAR · OK · age 67 ms · 취득 10100000000 nsDEPTH · OK · age 67 ms · 취득 10100000000 nsPose · FRESH / Joints · FRESH / URDF · 시각화용Costmap · synthetic-local-costmap · 2D ground-plane (실제 3D 표면 아님)",
+    "risk": "CAUTION · CONTACT_UNCONFIRMED · SYNTHETIC supplied risk; no collision solver executed · clearance UNKNOWN m",
+    "robot": true
+  },
+  {
+    "engine": "webkit",
+    "version": "26.5",
+    "elapsedMs": 2666,
+    "result": "DEFECT_REPRODUCED",
+    "consumer": {
+      "pose": "STALE",
+      "joints": "STALE",
+      "collision": "POSE_JOINT_OR_SOURCE_INSUFFICIENT"
+    },
+    "snapshot": {
+      "pose": "",
+      "joints": ""
+    },
+    "sources": "LIDAR · OK · age 106 ms · 취득 10100000000 nsDEPTH · OK · age 106 ms · 취득 10100000000 nsPose · FRESH / Joints · FRESH / URDF · 시각화용Costmap · synthetic-local-costmap · 2D ground-plane (실제 3D 표면 아님)",
+    "risk": "CAUTION · CONTACT_UNCONFIRMED · SYNTHETIC supplied risk; no collision solver executed · clearance UNKNOWN m",
+    "robot": true
+  }
+]

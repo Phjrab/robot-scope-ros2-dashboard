@@ -32,7 +32,7 @@ Historical 0.1 results remain in ROUND2.md and Git; current `actual_service.py`
 uses the new pins below and the real owner normalization API.
 
 ```sh
-git fetch origin 4e1dd519a707169da5f88cf2a92a20ed3e701cc7 203c144f6b4a90966839c34b603ae12ee676cb12 7313f0a31c00ae87ae216b84ca41a23804e91917 356d0a036eb62d546e159e12a0691d7f5ea278f6 47a1d031d797c098c38a0147894523d07d30db8f
+git fetch origin 50600c7bce6f5fae743cd836ca1d8ee68d91b05a 203c144f6b4a90966839c34b603ae12ee676cb12 7313f0a31c00ae87ae216b84ca41a23804e91917 356d0a036eb62d546e159e12a0691d7f5ea278f6 47a1d031d797c098c38a0147894523d07d30db8f
 python3 experiments/expansion_20261029/c3_scene_ui/prepare_dependencies.py /tmp/c3-next-deps-v2
 # Optional exact native artifact (975251 bytes; no local ROS execution):
 gh api repos/Phjrab/robot-scope-ros2-dashboard/actions/artifacts/12882393645/zip > /tmp/c3-d3-native-fa8e26e.zip
@@ -91,3 +91,39 @@ recorded maximum receipt define the paused historical snapshot; no source/host
 clock equality is assumed. Local browser age continues and cannot renew frozen
 data. Native joint state, calibration and C3 collision assessment were not
 recorded and remain unavailable; UI never infers native 3D protection from them.
+
+## 2026-10-30: paused freshness regression
+
+[Current results and policy](../../../docs/parallel-expansion-20261029/C3/PAUSED_FRESHNESS.md).
+Use a **new** dependency/output directory for this run, e.g. `/tmp/c3-pause-deps`
+and `/tmp/c3-pause-results/actual`. C1 now pins `50600c7bce6f5fae743cd836ca1d8ee68d91b05a`;
+its executed service/contract blobs are unchanged from the preceding pin.
+
+With the fixture loopback host running on 4183 (or set `C3_FIXTURE_URL`):
+
+```sh
+C3_EVIDENCE=/tmp/c3-pause-results/after node tests/expansion_c3/paused_browser.mjs
+```
+
+This runs Chromium and WebKit, including **real 2600ms waits**, missing inputs,
+map revision/source epoch/reconnect, late responses, current snapshot reads and
+canonical server invalidation during pause. It uses the existing official model
+and fixture; the canonical notification case replays archived 0.2 HTTP bytes.
+It does not load C5's helper or assign C5 any timing responsibility.
+
+With `actual_service.py` running on 4184 using the current exact export:
+
+```sh
+C3_NATIVE_REPLAY=1 C3_EVIDENCE=/tmp/c3-pause-results/actual node tests/expansion_c3/actual_browser.mjs
+# Copy the same core-results.json into a distinct WebKit output directory first.
+C3_BROWSER=webkit C3_NATIVE_REPLAY=1 C3_EVIDENCE=/tmp/c3-pause-results/actual-webkit node tests/expansion_c3/actual_browser.mjs
+C3_EVIDENCE=/tmp/c3-pause-results/fixture node tests/expansion_c3/browser.mjs
+node --test tests/expansion_c3/test_consumer.mjs tests/expansion_c3/test_canonical.mjs tests/expansion_c3/test_assets.mjs
+```
+
+Set `C3_PLAYWRIGHT` and `PLAYWRIGHT_BROWSERS_PATH` for the external installation.
+Actual HTTP checks capture the first completed DOM render and consumer snapshot
+in a MutationObserver before test automation clicks can outlast the original
+250ms collision interval. They separately assert actual 2.6s pause expiry and
+no renewal by subsequent HTTP requests. No clock mocking, TTL extension, skipped
+assertions or enlarged timeouts are used. Run heavy suites sequentially.

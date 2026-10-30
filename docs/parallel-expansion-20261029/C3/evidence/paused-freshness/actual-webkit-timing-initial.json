@@ -1,0 +1,89 @@
+{
+  "engine": "webkit",
+  "source_mode": "ACTUAL_C1_SERVICE",
+  "evidence_kind": "SYNTHETIC",
+  "browser": "26.5",
+  "cases": [],
+  "requests": [
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/experiments/expansion_20261029/c3_scene_ui/fixture.html?actual=PREDICTED_CONTACT"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/obstacle_scene.css"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/scene3d.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/go2_official_model.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/experiments/expansion_20261029/c3_scene_ui/host.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/index.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/experiments/expansion_20261029/c3_scene_ui/fixture.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/consumer.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/draw.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/route_planner/spatial_editor.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/c3-context/PREDICTED_CONTACT"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/assets/go2/go2-official-lite.json"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/c1_adapter.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/robot_dashboard/static/features/obstacle_scene/c1_assets.js"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/actual/PREDICTED_CONTACT/api/v1/extensions/scene/snapshot"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/actual/PREDICTED_CONTACT/api/v1/extensions/scene/assets/2a686b5e0871ba4c647aa77d/a4f0276cfdeae49cfdcf0c5cea183f8985a899d24b911c94a8ccf6bf4ccd5690"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:4184/actual/PREDICTED_CONTACT/api/v1/extensions/scene/snapshot"
+    }
+  ],
+  "errors": [],
+  "http": [
+    {
+      "name": "PREDICTED_CONTACT",
+      "status": 200,
+      "unauthorized_status": 401,
+      "sha256": "7c70e0c5c85fb9983231ccbed9533368815592028c95838f1f6da9c51b2b8a31",
+      "bytes": 12303
+    }
+  ],
+  "status": "FAIL",
+  "error": "AssertionError [ERR_ASSERTION]: {\"producer\":\"c1-scene\",\"evidence_kind\":\"SYNTHETIC\",\"stamp_ns\":\"9007199254740993\",\"clock_domain\":\"synthetic-host-correspondence\",\"source_epoch\":\"sensor-1\",\"calibration_id\":\"synthetic-calibration\",\"sequence\":6,\"frame_key\":null,\"provenance\":{\"c1_source_epoch\":\"scene-1\"},\"sensor_age_ms\":null,\"host_clock_id\":\"\",\"receipt_source_ns\":\"\",\"stream_epoch\":\"scene-1\",\"protection\":{\"mode\":\"ADVISORY_ONLY\",\"transition\":\"\",\"recommendation\":\"SIMULATED_COMMAND_STOP_CONTACT_UNCONFIRMED\"},\"source_mode\":\"ACTUAL_C1_SERVICE\",\"availability\":{\"reference_cloud\":\"SUPPLIED_DISPLAY_ASSET\",\"sensor_clouds\":\"SUPPLIED_SYNTHETIC_OR_REPLAY\",\"sensor_origins\":\"SUPPLIED\",\"bulk_references\":\"C1_AUTHENTICATED_ASSETS\",\"asset_count\":1,\"source_status\":{\"collision_assessment\":\"ready\",\"controller_local_trajectory\":\"unavailable\",\"costmap_snapshot\":\"ready\",\"global_path\":\"ready\",\"obstacle_frame\":\"ready\",\"robot_pose\":\"ready\"},\"collision\":{\"coverage\":{\"complete_for_motion\":false,\"evidence\":null,\"horizon_s\":1,\"status\":\"MOTION_COVERAGE_NOT_QUALIFIED\",\"swept_volume_max\":[1.075154623362344,0.47515462336234393,0.775154623362344],\"swept_volume_min\":[-0.47515462336234393,-0.47515462336234393,-0.175154623362344]},\"joint_age_s\":0,\"obstacle_age_s\":0,\"pose_age_s\":0,\"protection_mode\":\"ADVISORY_ONLY\",\"source_validity_interval\":{\"clock_domain\":\"synthetic-host-correspondence\",\"from_ns\":\"9007199254740993\",\"until_ns\":\"9007199504740993\"},\"time_conversion\":{\"binding_id\":\"c3-synthetic-identity-only\",\"offset_ns\":\"0\",\"original_interval\":{\"clock_domain\":\"synthetic-host-correspondence\",\"from_ns\":\"9007199254740993\",\"until_ns\":\"9007199504740993\"},\"source_epoch\":\"sensor-1\",\"uncertainty_ns\":\"0\"}},\"errors\":[]},\"map_identity\":{\"map_id\":\"fc993a649b154c7985ab1896\",\"revision\":\"5b3b9cdd17f484b85b379aa6b10144ad32a935b99a35b9ff9187053288567292\",\"generation\":1,\"frame_id\":\"map\",\"source_epoch\":\"sensor-1\",\"stream_epoch\":\"scene-1\",\"clock_domain\":\"synthetic-host-correspondence\",\"calibration_id\":\"synthetic-calibration\",\"units\":\"m\",\"source_identity\":\"ACTUAL_D1_C1_SAVED_MERGED_SYNTHETIC\"},\"pose\":{\"value\":{\"producer\":\"c3.supplied-pose\",\"evidence_kind\":\"SYNTHETIC\",\"stamp_ns\":\"9007199254740993\",\"clock_domain\":\"synthetic-host-correspondence\",\"source_epoch\":\"sensor-1\",\"calibration_id\":\"synthetic-calibration\",\"sequence\":1,\"frame_key\":{\"map_id\":\"fc993a649b154c7985ab1896\",\"revision\":\"5b3b9cdd17f484b85b379aa6b10144ad32a935b99a35b9ff9187053288567292\",\"frame_id\":\"map\"},\"provenance\":{\"collision_model\":\"BODY_BOX\",\"visual_joints\":\"SYNTHETIC_DISPLAY_ONLY\"},\"sensor_age_ms\":null,\"host_clock_id\":\"test-host\",\"receipt_source_ns\":\"9007199254740993\",\"ref\":\"sensor-1:1\",\"position_m\":[0,0,0.3],\"rpy_rad\":[0,0,0]},\"reason\":\"\",\"ttl\":500,\"age_ms\":266,\"receipt\":469,\"canonical\":true},\"joints\":{\"value\":{\"producer\":\"c3.supplied-pose\",\"evidence_kind\":\"SYNTHETIC\",\"stamp_ns\":\"9007199254740993\",\"clock_domain\":\"synthetic-host-correspondence\",\"source_epoch\":\"sensor-1\",\"calibration_id\":\"synthetic-calibration\",\"sequence\":1,\"frame_key\":{\"map_id\":\"fc993a649b154c7985ab1896\",\"revision\":\"5b3b9cdd17f484b85b379aa6b10144ad32a935b99a35b9ff9187053288567292\",\"frame_id\":\"map\"},\"provenance\":{\"collision_model\":\"BODY_BOX\",\"visual_joints\":\"SYNTHETIC_DISPLAY_ONLY\"},\"sensor_age_ms\":null,\"host_clock_id\":\"test-host\",\"receipt_source_ns\":\"9007199254740993\",\"ref\":\"9007199254740993\",\"positions_rad\":{\"FL_calf_joint\":-1.5,\"FL_hip_joint\":0,\"FL_thigh_joint\":0.75,\"FR_calf_joint\":-1.5,\"FR_hip_joint\":0,\"FR_thigh_joint\":0.75,\"RL_calf_joint\":-1.5,\"RL_hip_joint\":0,\"RL_thigh_joint\":0.75,\"RR_calf_joint\":-1.5,\"RR_hip_joint\":0,\"RR_thigh_joint\":0.75}},\"reason\":\"\",\"ttl\":1200,\"age_ms\":266,\"receipt\":469,\"canonical\":true},\"sources\":[{\"id\":\"LIDAR\",\"kind\":\"LIDAR\",\"value\":{\"producer\":\"c3.synthetic-input\",\"evidence_kind\":\"SYNTHETIC\",\"stamp_ns\":\"9007199254740993\",\"clock_domain\":\"synthetic-host-correspondence\",\"source_epoch\":\"sensor-1\",\"calibration_id\":\"synthetic-calibration\",\"sequence\":1,\"frame_key\":{\"map_id\":\"fc993a649b154c7985ab1896\",\"revision\":\"5b3b9cdd17f484b85b379aa6b10144ad32a935b99a35b9ff9187053288567292\",\"frame_id\":\"map\"},\"provenance\":{\"kind\":\"SYNTHETIC_INPUT\"},\"sensor_age_ms\":null,\"host_clock_id\":\"test-host\",\"receipt_source_ns\":\"9007199254740993\",\"id\":\"LIDAR\",\"kind\":\"LIDAR\",\"points_m\":[[0.7,-0.02,0.27999999999999997],[0.7,-0.02,0.32],[0.7,0.02,0.27999999999999997],[0.7,0.02,0.32],[0.72,-0.02,0.27999999999999997],[0.72,-0.02,0.32],[0.72,0.02,0.27999999999999997],[0.72,0.02,0.32]],\"origin_m\":[0.08,0,0.4],\"health\":\"OK\"},\"reason\":\"\",\"ttl\":1200,\"age_ms\":266,\"receipt\":469,\"canonical\":true}],\"obstacles\":{\"value\":{\"producer\":\"d2.offline\",\"evidence_kind\":\"SYNTHETIC\",\"stamp_ns\":\"9007199254740993\",\"clock_domain\":\"synthetic-host-correspondence\",\"source_epoch\":\"sensor-1\",\"calibration_id\":\"synthetic-calibration\",\"sequence\":1,\"frame_key\":{\"map_id\":\"fc993a649b154c7985ab1896\",\"revision\":\"5b3b9cdd17f484b85b379aa6b10144ad32a935b99a35b9ff9187053288567292\",\"frame_id\":\"map\"},\"provenance\":{\"age_status\":\"CALLER_MAPPED\",\"coverage\":\"PARTIAL\",\"motion_compensated\":false,\"reasons\":[\"SELF_GEOMETRY_UNKNOWN\",\"GROUND_UNKNOWN\"],\"source_age_ns\":0},\"sensor_age_ms\":null,\"host_clock_id\":\"test-host\",\"receipt_source_ns\":\"9007199254740993\",\"obstacles\":[{\"track_id\":\"track-1-1\",\"class_name\":\"unknown\",\"class_score\":null,\"state\":\"OBSERVED\",\"novelty\":\"UNRESOLVED\",\"sensor_support\":[\"LIDAR\"],\"geometry\":{\"center_m\":[0.71,0,0.3],\"extent_m\":[0.08000000000000002,0.1,0.10000000000000003],\"orientation_xyzw\":[0,0,0,1]},\"provenance\":{\"field_layout\":null,\"motion_compensated\":false,\"point_count\":8,\"source\":{\"calibration_id\":\"synthetic-calibration\",\"clock_domain\":\"synthetic-host-correspondence\",\"evidence_kind\":\"SYNTHETIC\",\"frame_key\":{\"frame_id\":\"map\",\"source_epoch\":\"sensor-1\"},\"health\":\"OK\",\"host_clock_id\":\"test-host\",\"kind\":\"LIDAR\",\"map_binding\":{\"generation\":1,\"map_id\":\"fc993a649b154c7985ab1896\",\"revision\":\"5b3b9cdd17f484b85b379aa6b10144ad32a935b99a35b9ff9187053288567292\"},\"origin_m\":[0.08,0,0.4],\"points_m\":[[0.7,-0.02,0.27999999999999997],[0.7,-0.02,0.32],[0.7,0.02,0.27999999999999997],[0.7,0.02,0.32],[0.72,-0.02,0.27999999999999997],[0.72,-0.02,0.32],[0.72,0.02,0.27999999999999997],[0.72,0.02,0.32]],\"producer\":\"c3.synthetic-input\",\"provenance\":{\"kind\":\"SYNTHETIC_INPUT\"},\"received_monotonic_ns\":\"9007199254740993\",\"schema_version\":\"0.2\",\"sensor_id\":\"LIDAR\",\"sequence\":1,\"source_age_ns\":0,\"source_epoch\":\"sensor-1\",\"stamp_ns\":\"9007199254740993\"}}}],\"suppressed\":0,\"published_to_nav2\":false,\"costmap_ingestion_observed\":false,\"controller_consumption_observed\":false,\"canonical\":true},\"reason\":\"\",\"ttl\":1200,\"age_ms\":266,\"receipt\":469,\"canonical\":true},\"path\":{\"value\":{\"producer\":\"c3.supplied-path\",\"evidence_kind\":\"SYNTHETIC\",\"stamp_ns\":\"9007199254740993\",\"clock_domain\":\"synthetic-host-correspondence\",\"source_epoch\":\"sensor-1\",\"calibration_id\":\"\",\"sequence\":1,\"frame_key\":{\"map_id\":\"fc993a649b154c7985ab1896\",\"revision\":\"5b3b9cdd17f484b85b379aa6b10144ad32a935b99a35b9ff9187053288567292\",\"frame_id\":\"map\"},\"provenance\":{\"state\":\"SYNTHETIC_SUPPLIED\"},\"sensor_age_ms\":null,\"host_clock_id\":\"test-host\",\"receipt_source_ns\":\"9007199254740993\",\"generation\":\"plan-1\",\"reason\":\"SUPPLIED_SYNTHETIC\",\"representation\":\"XYZ\",\"points_m\":[[0,0,0.3],[0.6,0,0.3]]},\"reason\":\"\",\"ttl\":5000,\"age_ms\":266,\"receipt\":469,\"canonical\":true},\"local\":{\"value\":null,\"reason\":\"MISSING\",\"ttl\":5000},\"costmaps\":[{\"value\":{\"producer\":\"c3.supplied-costmap\",\"evidence_kind\":\"SYNTHETIC\",\"stamp_ns\":\"9007199254740993\",\"clock_domain\":\"synthetic-host-correspondence\",\"source_epoch\":\"sensor-1\",\"calibration_id\":\"\",\"sequence\":1,\"frame_key\":{\"map_id\":\"fc993a649b154c7985ab1896\",\"revision\":\"5b3b9cdd17f484b85b379aa6b10144ad32a935b99a35b9ff9187053288567292\",\"frame_id\":\"map\"},\"provenance\":{\"state\":\"SYNTHETIC_SUPPLIED\"},\"sensor_age_ms\":null,\"host_clock_id\":\"test-host\",\"receipt_source_ns\":\"9007199254740993\",\"id\":\"synthetic-costmap\",\"width\":2,\"height\":2,\"origin\":[0,0,0],\"resolution_m\":0.2,\"plane_z_m\":0,\"representation\":\"2D_GROUND_PLANE\",\"cell_encoding\":\"NAV2_COST_0_255\",\"cells\":[0,254,-1,0]},\"reason\":\"\",\"ttl\":1500,\"age_ms\":266,\"receipt\":469,\"canonical\":true}],\"collision\":{\"value\":null,\"reason\":\"VALIDITY_EXPIRED\"},\"ready\":true,\"contextKey\":\"fc993a649b154c7985ab1896|5b3b9cdd17f484b85b379aa6b10144ad32a935b99a35b9ff9187053288567292|map|sensor-1|scene-1|synthetic-host-correspondence|synthetic-calibration|m|1\",\"history\":[{\"value\":{\"producer\":\"c3.supplied-path\",\"evidence_kind\":\"SYNTHETIC\",\"stamp_ns\":\"9007199254740993\",\"clock_domain\":\"synthetic-host-correspondence\",\"source_epoch\":\"sensor-1\",\"calibration_id\":\"\",\"sequence\":1,\"frame_key\":{\"map_id\":\"fc993a649b154c7985ab1896\",\"revision\":\"5b3b9cdd17f484b85b379aa6b10144ad32a935b99a35b9ff9187053288567292\",\"frame_id\":\"map\"},\"provenance\":{\"state\":\"SYNTHETIC_SUPPLIED\"},\"sensor_age_ms\":null,\"host_clock_id\":\"test-host\",\"receipt_source_ns\":\"9007199254740993\",\"generation\":\"plan-1\",\"reason\":\"SUPPLIED_SYNTHETIC\",\"representation\":\"XYZ\",\"points_m\":[[0,0,0.3],[0.6,0,0.3]]},\"reason\":\"\",\"ttl\":5000,\"age_ms\":266,\"receipt\":282,\"canonical\":true}],\"lastRejection\":\"\"}\n    at file:///home/desktop1/Documents/ChatGPT/robot/c3-scene-ui-20261029/tests/expansion_c3/actual_browser.mjs:49:14"
+}

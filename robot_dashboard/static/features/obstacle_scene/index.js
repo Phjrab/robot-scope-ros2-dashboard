@@ -58,7 +58,7 @@ export function mountObstacleScene(host, { scene, subscribe, getMap, theme = 'da
   function inspect(value) { inspector.textContent = JSON.stringify(value, null, 2).slice(0, LIMITS.inspectorChars); }
   function applyPending() {
     if (!pending) return;
-    consumer.ingest(pending); pending = null; displayed = consumer.snapshot(); dirty = true;
+    consumer.ingest(pending.packet, pending.arrival); pending = null; displayed = consumer.snapshot(); dirty = true;
   }
   listen(pauseButton, 'click', () => { paused = !paused; if (!paused) applyPending(); dirty = true; });
   listen(stepButton, 'click', () => { paused = true; applyPending(); dirty = true; });
@@ -70,7 +70,8 @@ export function mountObstacleScene(host, { scene, subscribe, getMap, theme = 'da
   listen(risk, 'keydown', event => { if (['Enter',' '].includes(event.key)) { event.preventDefault(); selected = '@risk'; dirty = true; } });
   function renderPanel(view) {
     const kind = view.evidence_kind || 'WAITING';
-    mode.textContent = `SOURCE MODE: ${view.source_mode || 'FIXTURE'} · ${kind} · ${paused ? '표시 PAUSED' : '표시 진행'} · ${kind === 'LIVE' ? 'LIVE 입력' : '실장비 관측 아님'}`;
+    const observationValid = view.ready && view.pose.value && view.joints.value;
+    mode.textContent = `SOURCE MODE: ${view.source_mode || 'FIXTURE'} · ${kind} · ${paused ? '표시 PAUSED · 과거 프레임 / 유효시간 계속 경과' : '표시 진행'} · ${kind === 'LIVE' ? (paused || !observationValid ? 'LIVE 출처 · 현재 관측 보장 안 됨' : 'LIVE 입력') : '실장비 관측 아님'}`;
     pauseButton.textContent = paused ? '표시 재개' : '표시 일시정지'; pauseButton.setAttribute('aria-pressed', String(paused));
     stepButton.disabled = !pending;
     root.dataset.ready = String(view.ready); root.dataset.sequence = String(view.sequence ?? '');
@@ -140,9 +141,11 @@ export function mountObstacleScene(host, { scene, subscribe, getMap, theme = 'da
     const current = consumer.snapshot(); // invalidation also runs while paused/idle
     if (current.contextKey !== lastContext) {
       lastContext = current.contextKey; displayed = current; selected = ''; dirty = true;
+      if (pending && pending.arrival.contextKey !== current.contextKey) { pending = null; dropped++; }
     }
     if (!paused && pending) applyPending();
-    if (!paused || !displayed?.ready) displayed = consumer.snapshot();
+    // Pause holds frame selection, never the result of freshness evaluation.
+    displayed = consumer.snapshot();
     const v = displayed;
     const validity = v?.ready ? [v.pose.reason,v.joints.reason,v.obstacles.reason,
       v.obstacles.value?.obstacles.length,v.collision.reason,v.path.reason,v.local.reason,
@@ -160,14 +163,18 @@ export function mountObstacleScene(host, { scene, subscribe, getMap, theme = 'da
   }
   const unsubscribe = subscribe(packet => {
     if (destroyed) return;
-    received++; if (pending) dropped++; pending = packet; maxPending = 1; dirty = true;
+    received++;
+    const arrival = consumer.offer(packet);
+    if (arrival) { if (pending) dropped++; pending = {packet, arrival}; maxPending = 1; }
+    dirty = true;
   });
   if (typeof unsubscribe !== 'function') { canvas.remove(); root.remove(); throw new TypeError('subscribe must return unsubscribe'); }
   raf = win.requestAnimationFrame(tick);
   return {
     diagnostics: () => ({ ...consumer.diagnostics(), received, rendered, dropped, pending: pending ? 1 : 0,
       maxPending, maxDrawMs, paused, destroyed, ...painter.diagnostics() }),
-    snapshot: () => displayed,
+    // Recompute on reads too, including when background rAF is throttled.
+    snapshot: () => destroyed ? null : consumer.snapshot(),
     destroy() {
       if (destroyed) return; destroyed = true; win.cancelAnimationFrame(raf); unsubscribe();
       events.splice(0).forEach(dispose => dispose()); consumer.destroy(); pending = null; displayed = null;

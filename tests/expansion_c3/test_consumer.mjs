@@ -122,3 +122,43 @@ test('module import has no DOM, network, model-loading or process side effects',
   try{const module=await import('../../robot_dashboard/static/features/obstacle_scene/index.js');assert.equal(typeof module.mountObstacleScene,'function');assert.equal(calls,0);}
   finally{globalThis.fetch=originalFetch;}
 });
+
+test('paused queue residence counts from offer, including first display and step',()=>{
+  const h=harness(),p=makePacket(1),arrival=h.consumer.offer(p);
+  h.advance(2600);assert.ok(h.consumer.ingest(p,arrival));const v=h.consumer.snapshot();
+  assert.equal(v.pose.reason,'STALE');assert.equal(v.joints.reason,'STALE');assert.equal(v.collision.value,null);
+  assert.ok(h.consumer.ingest(makePacket(2)));assert.ok(h.consumer.snapshot().pose.value);
+});
+test('a delayed older offer cannot replace the latest pending frame or revive an expired one',()=>{
+  const h=harness(),p=makePacket(2),arrival=h.consumer.offer(p);
+  assert.equal(h.consumer.offer(makePacket(1)),false);assert.ok(h.consumer.ingest(p,arrival));
+  h.advance(2600);assert.equal(h.consumer.offer(makePacket(1)),false);assert.equal(h.consumer.snapshot().pose.reason,'STALE');
+});
+test('superseded arrival token is rejected and cannot restore previous geometry',()=>{
+  const h=harness(),old=makePacket(1),arrival=h.consumer.offer(old),next=makePacket(2),nextArrival=h.consumer.offer(next);
+  assert.equal(h.consumer.ingest(old,arrival),false);
+  assert.equal(h.consumer.ingest({...next,clock_domain:'foreign'},nextArrival),false);
+  assert.ok(h.consumer.ingest(next,nextArrival));
+  assert.equal(h.consumer.snapshot().sequence,2);
+  assert.equal(h.consumer.ingest(next,nextArrival),false); // An arrival is consumed once.
+});
+test('queued frames cannot cross revision, source epoch, reconnect or clock changes',()=>{
+  for(const field of ['revision','source_epoch','stream_epoch','clock_domain']){
+    const h=harness(),p=makePacket(1),arrival=h.consumer.offer(p);
+    const context={...h.context,[field]:'new'};h.setContext(context);
+    assert.equal(h.consumer.snapshot().ready,false);assert.equal(h.consumer.ingest(p,arrival),false);
+    assert.equal(h.consumer.offer(p),false);assert.ok(h.consumer.ingest(makePacket(1,'multi',context)));
+  }
+});
+test('queued missing pose/joints stay unavailable; no standby robot is synthesized',()=>{
+  for(const slot of ['robot_pose','joint_state']){
+    const h=harness(),p=makePacket(1);p[slot]=null;
+    const arrival=h.consumer.offer(p);h.consumer.ingest(p,arrival);const v=h.consumer.snapshot();
+    assert.equal(v[slot==='robot_pose'?'pose':'joints'].reason,'MISSING');assert.equal(v.collision.value,null);
+  }
+});
+test('collision validity is shorter than pose TTL and includes pending residence',()=>{
+  const h=harness(),p=makePacket(1);p.collision_assessment.valid_until_ns=String(BigInt(p.stamp_ns)+10000000n);
+  const arrival=h.consumer.offer(p);h.advance(11);h.consumer.ingest(p,arrival);
+  assert.ok(h.consumer.snapshot().pose.value);assert.equal(h.consumer.snapshot().collision.reason,'VALIDITY_EXPIRED');
+});
