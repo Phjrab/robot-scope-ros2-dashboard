@@ -142,6 +142,14 @@ def main():
         or os.environ.get("RUNNER_ENVIRONMENT") != "github-hosted"
     ):
         raise RuntimeError("explicit GitHub-hosted temporary runner required")
+    # A separate readiness record is never promoted to a ROS/native pass.
+    # Preserve the existing five-case baseline even when the new owner bridge
+    # is absent; do not substitute a D3 implementation for that missing port.
+    subprocess.run([
+        sys.executable, "-m",
+        "experiments.expansion_20261029.d3_collision_sim.c4_readiness",
+        "--fetch", "--output", str(args.output / "c4-readiness.json"),
+    ], cwd=REPO, check=True)
     summary = dict(
         source_sha=subprocess.check_output(
             ["git", "rev-parse", "HEAD"], cwd=REPO, text=True
