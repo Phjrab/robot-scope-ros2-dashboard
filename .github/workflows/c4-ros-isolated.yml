@@ -1,0 +1,50 @@
+name: C4 isolated ROS adapter
+on:
+  push:
+    branches: [review/20261029-x-c4-runtime]
+    paths:
+      - robot_dashboard/expansion_runtime/**
+      - tests/expansion_runtime/**
+      - experiments/expansion_20261029/c4_runtime/ros_bridge/**
+      - .github/workflows/c4-ros-isolated.yml
+permissions:
+  contents: read
+concurrency:
+  group: c4-isolated-ros-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  ros-native:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 35
+    env:
+      C4_ROS_DEP_ROOT: ${{ runner.temp }}/c4-ros-deps
+      C4_ROS_REQUIRED: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Fetch and verify exact read-only owners
+        run: |
+          git fetch --no-tags origin e0bc9cf8ba8bd22b406a287e1a9ef867a0cd367b e394b090221c555cf0649021d132163596c19fe2 7313f0a31c00ae87ae216b84ca41a23804e91917 356d0a036eb62d546e159e12a0691d7f5ea278f6
+          python -m experiments.expansion_20261029.c4_runtime.ros_bridge.dependencies
+      - name: Actual async core and TCP HTTP composition
+        run: |
+          python -m pip install numpy==1.26.4 scipy==1.11.4 PyYAML==6.0.2 fastapi==0.115.6 pydantic==2.10.6 uvicorn==0.34.0 httpx==0.28.1
+          PYTHONPATH=tests:. python -m unittest expansion_runtime.async_cases -v
+      - name: D3 immutable image and C4 network-none native evidence
+        run: python -m experiments.expansion_20261029.c4_runtime.ros_bridge.native_ci --output "$RUNNER_TEMP/c4-native"
+      - name: Preserve actual success or failure evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: c4-isolated-ros-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/c4-native/
+          if-no-files-found: error
+          retention-days: 14
