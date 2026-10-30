@@ -7,14 +7,7 @@ from typing import Callable
 from robot_dashboard.expansion_contracts import ContractError, MapSourceDescriptor
 from robot_dashboard.expansion_contracts.messages import ID, token
 from robot_dashboard.pcd_editing.store import SourceAsset, _digest
-
-
-class Conflict(ContractError):
-    pass
-
-
-class Busy(Conflict):
-    pass
+from .errors import Busy as Busy, Conflict as Conflict
 
 
 @dataclass(frozen=True)
@@ -31,26 +24,28 @@ def validate_dag(sources):
     for s in sources:
         g = s.lineage or {s.descriptor.key: []}
         if s.descriptor.key not in g:
-            raise Conflict("source missing from provenance DAG")
+            raise Conflict(
+                "source missing from provenance DAG", code="INVALID_PROVENANCE"
+            )
         for node, parents in g.items():
             if (
                 not isinstance(node, str)
                 or not isinstance(parents, list)
                 or len(set(parents)) != len(parents)
             ):
-                raise Conflict("invalid provenance DAG")
+                raise Conflict("invalid provenance DAG", code="INVALID_PROVENANCE")
             if node in graph and graph[node] != parents:
-                raise Conflict("conflicting provenance node")
+                raise Conflict("conflicting provenance node", code="INVALID_PROVENANCE")
             graph[node] = parents
     if len(graph) > 1024:
-        raise Conflict("provenance DAG exceeds limit")
+        raise Conflict("provenance DAG exceeds limit", code="INVALID_PROVENANCE")
     visiting, done = set(), {}
 
     def walk(node):
         if node in visiting:
-            raise Conflict("provenance cycle")
+            raise Conflict("provenance cycle", code="INVALID_PROVENANCE")
         if node not in graph:
-            raise Conflict("incomplete provenance DAG")
+            raise Conflict("incomplete provenance DAG", code="INVALID_PROVENANCE")
         if node not in done:
             visiting.add(node)
             ancestors = {node}
@@ -64,7 +59,9 @@ def validate_dag(sources):
     for s in sources:
         ancestry = walk(s.descriptor.key)
         if seen & ancestry:
-            raise Conflict("duplicate ancestor across fusion inputs")
+            raise Conflict(
+                "duplicate ancestor across fusion inputs", code="ANCESTRY_OVERLAP"
+            )
         seen |= ancestry
     return copy.deepcopy(graph)
 
@@ -104,9 +101,11 @@ class CatalogueAdapter:
             getattr(s.asset, k) != getattr(d, k)
             for k in ("map_id", "revision", "frame_id", "units", "asset_role")
         ):
-            raise Conflict("catalogue identity mismatch")
+            raise Conflict(
+                "catalogue identity mismatch", code="SOURCE_IDENTITY_MISMATCH"
+            )
         if _digest(s.asset.path, self.max_bytes) != d.sha256:
-            raise Conflict("full-source checksum drift")
+            raise Conflict("full-source checksum drift", code="SOURCE_CONTENT_CHANGED")
         return ResolvedSource(
             d, s.asset, copy.deepcopy(s.lineage), copy.deepcopy(s.semantic_masks)
         )
@@ -114,7 +113,12 @@ class CatalogueAdapter:
     def pinned(self, request):
         result = tuple(self.resolve(d["map_id"]) for d in request.sources)
         if [s.descriptor.to_dict() for s in result] != request.sources:
-            raise Conflict("catalogue descriptors changed")
+            code = "SOURCE_DESCRIPTOR_CHANGED"
+            for actual, pinned in zip(result, request.sources):
+                if actual.descriptor.revision != pinned["revision"]:
+                    code = "STALE_SOURCE_REVISION"
+                    break
+            raise Conflict("catalogue descriptors changed", code=code)
         validate_dag(result)
         return result
 

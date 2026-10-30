@@ -1,0 +1,444 @@
+{
+  "pins": {
+    "C2": "7625c87ede2489143c44862d883e10fc1791df28",
+    "C3": "e394b090221c555cf0649021d132163596c19fe2",
+    "C4": "7ac0d55b07abd20902d6d756c6b225733613fea7",
+    "D1": "203c144f6b4a90966839c34b603ae12ee676cb12",
+    "D2": "7313f0a31c00ae87ae216b84ca41a23804e91917",
+    "D3": "356d0a036eb62d546e159e12a0691d7f5ea278f6",
+    "C7": "ec724dafd33db92ecb27db17e0bdd2eee5a30455"
+  },
+  "verified_exports": {
+    "D1": {
+      "sha": "203c144f6b4a90966839c34b603ae12ee676cb12",
+      "files": 9,
+      "manifest_sha256": "03d1694e75de0e36daecd728ed51fc7b8bcbf6eadc54ac8349c7627b60c50d87"
+    },
+    "D2": {
+      "sha": "7313f0a31c00ae87ae216b84ca41a23804e91917",
+      "files": 4,
+      "manifest_sha256": "413ec5eb2300b370cc624e0cf00acd64249e58cb4dcc97f9c4fc78a74d3870bd"
+    },
+    "D3": {
+      "sha": "356d0a036eb62d546e159e12a0691d7f5ea278f6",
+      "files": 7,
+      "manifest_sha256": "f22e043d8d4ca3cbb64a7672dfa9f6f25b52951536f1f687d41e31e702b528e3"
+    },
+    "C4": {
+      "sha": "7ac0d55b07abd20902d6d756c6b225733613fea7",
+      "files": 18,
+      "manifest_sha256": "04bf96bb34f08cd9dd03b2cfcfda13cab1aab824977ffe1d5d6fe01b0d0d095d"
+    },
+    "C2": {
+      "sha": "7625c87ede2489143c44862d883e10fc1791df28",
+      "files": 7,
+      "manifest_sha256": "500f843c24d8302974255508bc30dff4dc07b4c0a0464d8de93389bf7627e25d"
+    },
+    "C3": {
+      "sha": "e394b090221c555cf0649021d132163596c19fe2",
+      "files": 6,
+      "manifest_sha256": "7245d96f18d7390526a77ee5b4dc76282d8a2a555f02f35a59e86899b43e59cf"
+    }
+  },
+  "owner_imports": {
+    "D1": "D1/robot_dashboard/multimap_core/__init__.py",
+    "D2": "D2/robot_dashboard/obstacle_fusion_core/__init__.py",
+    "D3": "D3/robot_dashboard/collision_geometry_core/__init__.py",
+    "C4": "C4/robot_dashboard/expansion_runtime/__init__.py"
+  },
+  "C7": "READ_ONLY_DOCUMENT_REVIEW_NOT_EXECUTED",
+  "map": {
+    "job_id": "6212b1a6c56043a48b84c3df",
+    "proposal_revision": 2,
+    "export_id": "906801f122cf419e96fa5e4c",
+    "state": "SOLVED_CANDIDATE",
+    "c2": "ACTUAL_PORTS_HTTP_PASS",
+    "points": 800,
+    "attributes": [
+      "x",
+      "y",
+      "z",
+      "normal_x",
+      "normal_y",
+      "normal_z",
+      "intensity"
+    ],
+    "source_hashes": {
+      "000000000000000000000001": "5a501d26741196765823c05d816df8d1ab171dd9bdf10e9f6abc7da99b1e8a8f",
+      "000000000000000000000002": "6d8385d3772a00e58e1b13335c782a9e1e4caeb13e55cdb9d1d28bc17a5a2869"
+    },
+    "output_hashes": {
+      "map.pcd": "46be1a0ec38166fc78e7d0344d3e241d57e3c29807f22e819e22e04d1ec9dbde",
+      "occupancy.pgm": "0f99d8759571beb4e73558bf36391d2e081cea53e99ef764494aa4b55105cbf7",
+      "occupancy.yaml": "266e51a3f2dad9b78c41e698df7eb882fd4b9ac7c6e9fedaec1135bf3b2ef965"
+    },
+    "shared_root": "REJECTED",
+    "stale_apply": "REJECTED",
+    "cancel": "CANCELED",
+    "solver": "d1-rigid-0.1",
+    "list_reload": "PASS",
+    "frozen": true,
+    "saved_ancestry_http_error": {
+      "detail": "Selected maps share original sources and cannot be merged together.",
+      "error": {
+        "code": "ANCESTRY_OVERLAP",
+        "message": "Selected maps share original sources and cannot be merged together."
+      }
+    }
+  },
+  "observation": {
+    "actual_core_runtime_c1_http_c3": "PASS",
+    "input_evidence": "SYNTHETIC_OWNER_FIXTURES",
+    "consumer": {
+      "result": "PASS",
+      "accepted_canonical_v02": true,
+      "obstacle_count": 1,
+      "collision": "UNAVAILABLE",
+      "collision_reason": "POSE_JOINT_OR_SOURCE_INSUFFICIENT",
+      "pose": "MISSING",
+      "joints": "MISSING",
+      "drawable_envelope": "UNAVAILABLE",
+      "unknown_preserved": true,
+      "old_sequence": "OUT_OF_ORDER",
+      "old_epoch": "LATE_EPOCH_OR_STREAM",
+      "map_revision": "C1_MAP_GENERATION_MISMATCH",
+      "delayed_ttl": "EXPIRED",
+      "paused_receipt": "ORIGINAL_AGE_PRESERVED",
+      "expired_response_replay": "NOT_REVIVED",
+      "wrong_host_clock": "UNAVAILABLE",
+      "transport_limit": "REJECTED",
+      "high_ns": "LOSSLESS",
+      "scope": "ACTUAL_JS_CONSUMER_NOT_BROWSER_OR_ROBOT"
+    },
+    "cases": {
+      "unknown": {
+        "sequence": 1,
+        "velocity": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "hold": true,
+        "reason": "UNKNOWN",
+        "assessment_ref": "c4/1"
+      },
+      "duplicate": {
+        "reason": "DUPLICATE_OR_REORDERED_INPUT",
+        "memory": {
+          "sequence": -1,
+          "velocity": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "hold": true,
+          "reason": "REJECTED_BINDING_ORDER_OR_TTL",
+          "assessment_ref": null
+        }
+      },
+      "old_epoch": {
+        "reason": "INPUT_BINDING_MISMATCH",
+        "memory": {
+          "sequence": -1,
+          "velocity": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "hold": true,
+          "reason": "REJECTED_BINDING_ORDER_OR_TTL",
+          "assessment_ref": null
+        }
+      },
+      "old_map": {
+        "reason": "INPUT_BINDING_MISMATCH",
+        "memory": {
+          "sequence": -1,
+          "velocity": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "hold": true,
+          "reason": "REJECTED_BINDING_ORDER_OR_TTL",
+          "assessment_ref": null
+        }
+      },
+      "wrong_clock": {
+        "reason": "CLOCK_MAPPING_CONTEXT_MISMATCH",
+        "memory": {
+          "sequence": -1,
+          "velocity": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "hold": true,
+          "reason": "REJECTED_BINDING_ORDER_OR_TTL",
+          "assessment_ref": null
+        },
+        "interval": null
+      },
+      "clock_epoch": {
+        "reason": "CLOCK_MAPPING_CONTEXT_MISMATCH",
+        "memory": {
+          "sequence": -1,
+          "velocity": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "hold": true,
+          "reason": "REJECTED_BINDING_ORDER_OR_TTL",
+          "assessment_ref": null
+        },
+        "interval": null
+      },
+      "mapping_expired": {
+        "reason": "OUTSIDE_CLOCK_MAPPING_WINDOW",
+        "memory": {
+          "sequence": -1,
+          "velocity": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "hold": true,
+          "reason": "REJECTED_BINDING_ORDER_OR_TTL",
+          "assessment_ref": null
+        },
+        "interval": null
+      },
+      "stale": {
+        "reason": "STALE_FUTURE_OR_LATE_INPUT",
+        "memory": {
+          "sequence": -1,
+          "velocity": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "hold": true,
+          "reason": "REJECTED_BINDING_ORDER_OR_TTL",
+          "assessment_ref": null
+        },
+        "interval": null
+      },
+      "missing_pose": {
+        "reason": "ASSESSMENT_EXPIRED_OR_UNMAPPED",
+        "memory": {
+          "sequence": -1,
+          "velocity": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "hold": true,
+          "reason": "REJECTED_BINDING_ORDER_OR_TTL",
+          "assessment_ref": null
+        },
+        "interval": {}
+      },
+      "missing_joints": {
+        "reason": "ASSESSMENT_EXPIRED_OR_UNMAPPED",
+        "memory": {
+          "sequence": -1,
+          "velocity": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "hold": true,
+          "reason": "REJECTED_BINDING_ORDER_OR_TTL",
+          "assessment_ref": null
+        },
+        "interval": {}
+      },
+      "empty_geometry": {
+        "reason": "UNKNOWN",
+        "memory": {
+          "sequence": 1,
+          "velocity": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "hold": true,
+          "reason": "UNKNOWN",
+          "assessment_ref": "c4/1"
+        },
+        "interval": {
+          "end_monotonic_ns": "1250000000",
+          "host_clock_id": "fixture-host",
+          "start_monotonic_ns": "1000000000"
+        }
+      },
+      "missing_matching_geometry": "GEOMETRY_CONTEXT_MISMATCH"
+    },
+    "limits": {
+      "scope": "FAULT_INJECTION_ON_ACTUAL_OUTPUT_NO_LIMIT_CHANGES",
+      "wire": "document exceeds byte limit",
+      "c4_compaction": "document exceeds byte limit",
+      "input_bytes": 16384,
+      "normalized_bytes": 16388,
+      "normalization": "document exceeds byte limit",
+      "latest_storage_bytes": 81920,
+      "sixth_sample": "REJECTED_FALSE"
+    },
+    "original_interval": {
+      "end_monotonic_ns": "1250000000",
+      "host_clock_id": "fixture-host",
+      "start_monotonic_ns": "1000000000"
+    },
+    "response_receipts": {
+      "ready": {
+        "sha256": "21351322ce2d69d5e9579d8a2e3430c9408586c6d77c77e8ade64751e20a7e41",
+        "bytes": 10558,
+        "context": {
+          "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+          "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "generation": 0,
+          "stream_epoch": "scene-0",
+          "source_epoch": "synthetic-1",
+          "frame_id": "odom",
+          "clock_domain": "fixture-clock",
+          "units": "m",
+          "calibration_id": "fixture-calibration"
+        }
+      },
+      "newer": {
+        "sha256": "88d8f3d8b8208beff7418b427933b255dcd1b36dda48ba9d8f859a7591a20e1e",
+        "bytes": 10558,
+        "context": {
+          "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+          "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "generation": 0,
+          "stream_epoch": "scene-0",
+          "source_epoch": "synthetic-1",
+          "frame_id": "odom",
+          "clock_domain": "fixture-clock",
+          "units": "m",
+          "calibration_id": "fixture-calibration"
+        }
+      },
+      "expired": {
+        "sha256": "1bfe4ff3e22b3c053c0db612cbb1f0716bb5c36592f32dbeed1ddd00bfa81ce4",
+        "bytes": 3849,
+        "context": {
+          "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+          "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "generation": 0,
+          "stream_epoch": "scene-0",
+          "source_epoch": "synthetic-1",
+          "frame_id": "odom",
+          "clock_domain": "fixture-clock",
+          "units": "m",
+          "calibration_id": "fixture-calibration"
+        }
+      },
+      "restart": {
+        "sha256": "8da2e5415cf6a520ad649209c7517f70153041bae10ab5d092287f7353c157ee",
+        "bytes": 10558,
+        "context": {
+          "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+          "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "generation": 0,
+          "stream_epoch": "scene-0",
+          "source_epoch": "synthetic-2",
+          "frame_id": "odom",
+          "clock_domain": "fixture-clock",
+          "units": "m",
+          "calibration_id": "fixture-calibration"
+        }
+      },
+      "map_reset": {
+        "sha256": "4f5da55065399d74e359ee1323fa6cd25801da39371d6da54531889d05e53db4",
+        "bytes": 890,
+        "context": {
+          "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+          "revision": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "generation": 1,
+          "stream_epoch": "map-reset",
+          "source_epoch": "synthetic-2",
+          "frame_id": "odom",
+          "clock_domain": "fixture-clock",
+          "units": "m",
+          "calibration_id": "fixture-calibration"
+        }
+      },
+      "wrong_host_clock": {
+        "sha256": "32f1d08477c7068ae23b564f4a4ae875151f8de8b4f0891ee5313a67cae5d4eb",
+        "bytes": 3855,
+        "context": {
+          "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+          "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "generation": 0,
+          "stream_epoch": "scene-0",
+          "source_epoch": "synthetic-1",
+          "frame_id": "odom",
+          "clock_domain": "fixture-clock",
+          "units": "m",
+          "calibration_id": "fixture-calibration"
+        }
+      },
+      "high_ns": {
+        "sha256": "1d0223f62adbcd6a7e8261424ad50c5c708ee31f4516a67aa7bd39ab2fd831e5",
+        "bytes": 10846,
+        "context": {
+          "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+          "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "generation": 0,
+          "stream_epoch": "scene-0",
+          "source_epoch": "synthetic-1",
+          "frame_id": "odom",
+          "clock_domain": "fixture-clock",
+          "units": "m",
+          "calibration_id": "fixture-calibration"
+        }
+      }
+    },
+    "native_ros": "NOT_RUN",
+    "browser_render": "NOT_RUN",
+    "drawable_collision": "UNAVAILABLE_INPUT_REQUIRED",
+    "physical_robot": "NOT_RUN",
+    "command_sink": "MEMORY_MOCK_ONLY"
+  },
+  "c1_base_head": "50600c7bce6f5fae743cd836ca1d8ee68d91b05a",
+  "c1_tested_source": "containing commit; exact final HEAD and completed remote CI in final chat receipt",
+  "c1_file_sha256": {
+    "robot_dashboard/expansion_services/errors.py": "1531104beaf998a902922d17ccf742f4d8ce8879e11b1ff25ef74c6a86e4148e",
+    "robot_dashboard/expansion_services/catalogue.py": "6b0eb51c8239af14d03f3c0c418a93c8043ee277b215ab6df62536d3dc9d0365",
+    "robot_dashboard/expansion_services/jobs.py": "e298b5145d36f4c92dc6c67eef7e8fd10d600d71eabd114e63589a28e9741a2c",
+    "robot_dashboard/expansion_services/router.py": "5b6ae15b5f23ab427a414a951bb19afd8b7701474a7e5ec3d04fb4fb5c107502",
+    "tests/expansion_services/current_composition.py": "3386584ea48c751e2675fab8f51e177e24dd498e0294d8d77c2b6415429d3fe4",
+    "tests/expansion_services/current_consumer.mjs": "1ecef483271674a595f24d27be0768e3491c2b641dce09997ed9d357ce4a0370",
+    "tests/expansion_services/current_pins.json": "affbb9a8423bece4a4e72cef17e2f8ebbfa120bbb6c4e56f6ab0f3b1b83aaad5",
+    "tests/expansion_services/test_errors.py": "c870dd54dfa7edd97d3fe6af75d8ec8bbd92abca86392b1580d6d9bdbf19fe8b",
+    "tests/expansion_services/composition.py": "39ac03ce11315e3344f35d8a5f2c51f1ab370718016fcb92c0d4eb5f12b197bf"
+  },
+  "local_validation": {
+    "python": "3.12.3",
+    "python_run": 3156,
+    "python_pass": 3154,
+    "existing_skips": 2,
+    "elapsed_seconds": 100.427,
+    "C2_CROSS_REQUIRED": true,
+    "new_error_tests": 10,
+    "javascript_test_files": 77,
+    "dashboard_syntax_modules": 112,
+    "new_consumer_syntax": "PASS",
+    "ruff": "PASS",
+    "mypy": "PASS_4_CONFIGURED_FILES",
+    "peer_composition": "PASS",
+    "drawable_collision": "UNAVAILABLE",
+    "native_ros": "NOT_RUN",
+    "browser_render": "NOT_RUN",
+    "security_scan": "PASS_AFTER_STAGING"
+  },
+  "initial_harness_error": {
+    "field": "C3 references_verified with missing pose",
+    "incorrect_assertion": "false",
+    "actual_contract": "null",
+    "resolution": "assert exact null; no owner/production/acceptance-criteria change"
+  }
+}

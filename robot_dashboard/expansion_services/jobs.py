@@ -25,6 +25,7 @@ from robot_dashboard.expansion_contracts import (
 from robot_dashboard.expansion_contracts.messages import integer, number
 from robot_dashboard.pcd_editing.store import _open_regular, _signature, _digest
 from .catalogue import Busy, Conflict
+from .errors import public_error
 
 
 class FusionJobManager:
@@ -97,6 +98,7 @@ class FusionJobManager:
                 cancel=threading.Event(),
                 done=False,
                 error=None,
+                error_detail=None,
             )
             self._jobs[job_id] = job
             self._requests[request.request_id] = job_id
@@ -117,6 +119,7 @@ class FusionJobManager:
                     "review",
                     "export",
                     "error",
+                    "error_detail",
                 )
             }
             | {
@@ -163,7 +166,10 @@ class FusionJobManager:
                     before != _signature(os.fstat(original.fileno()))
                     or sha.hexdigest() != source.descriptor.sha256
                 ):
-                    raise Conflict("source changed during private snapshot")
+                    raise Conflict(
+                        "source changed during private snapshot",
+                        code="SOURCE_CONTENT_CHANGED",
+                    )
             destination.chmod(0o400)
             result.append(
                 replace(source, asset=replace(source.asset, path=destination))
@@ -217,7 +223,10 @@ class FusionJobManager:
                             != s.descriptor.sha256
                             for s in snapshots
                         ):
-                            raise Conflict("worker changed private source snapshot")
+                            raise Conflict(
+                                "worker changed private source snapshot",
+                                code="SOURCE_CONTENT_CHANGED",
+                            )
                     proposal = FusionProposal.from_dict(
                         result.to_dict()
                         if isinstance(result, FusionProposal)
@@ -232,7 +241,10 @@ class FusionJobManager:
                         or proposal.source_epoch != request.source_epoch
                         or proposal.proposal_revision != 1
                     ):
-                        raise Conflict("solver result identity/pins mismatch")
+                        raise Conflict(
+                            "solver result identity/pins mismatch",
+                            code="SOURCE_IDENTITY_MISMATCH",
+                        )
                     if time.monotonic() - started > request.options.get(
                         "max_runtime_s", 300
                     ):
@@ -250,6 +262,7 @@ class FusionJobManager:
                     if not j["cancel"].is_set():
                         # Never leak server paths or solver internals to the API.
                         j["state"], j["error"] = "FAILED", type(exc).__name__
+                        j["error_detail"] = public_error(exc, worker=True)[1]
             finally:
                 with self._lock:
                     if j["cancel"].is_set():
@@ -264,11 +277,14 @@ class FusionJobManager:
             raise ContractError("explicit boolean review required")
         with self._lock:
             j = self._jobs[job_id]
+            if j["proposal_revision"] != expected_revision:
+                raise Conflict(
+                    "stale proposal revision", code="STALE_PROPOSAL_REVISION"
+                )
             if (
                 j["state"] not in {"SOLVED_CANDIDATE", "REVIEWED", "REJECTED"}
                 or j["proposal"] is None
                 or j["exporting"]
-                or j["proposal_revision"] != expected_revision
             ):
                 raise Conflict("stale proposal or invalid review state")
             self.catalogue.pinned(j["request"])
@@ -311,11 +327,9 @@ class FusionJobManager:
         integer(expected_revision, "expected proposal revision", 1)
         with self._lock:
             j = self._jobs[job_id]
-            if (
-                j["state"] != "REVIEWED"
-                or j["proposal_revision"] != expected_revision
-                or j["exporting"]
-            ):
+            if j["proposal_revision"] != expected_revision:
+                raise Conflict("stale export revision", code="STALE_PROPOSAL_REVISION")
+            if j["state"] != "REVIEWED" or j["exporting"]:
                 raise Conflict("export requires current accepted review")
             j["exporting"] = True
             request, proposal, review = (

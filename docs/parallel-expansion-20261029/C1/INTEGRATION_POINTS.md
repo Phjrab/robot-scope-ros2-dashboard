@@ -1,5 +1,10 @@
 # Future integration points (read only; BASE_SHA f469155c2b0c505f3e472e878f75029d7b8d39df)
 
+2026-10-30 update: [current actual composition](CURRENT_COMPOSITION_20261030.md)
+and [additive C2 error consumer contract](ERROR_CONTRACT.md). The latest C4
+CanonicalCorePorts uses C1 0.2 successfully with the pinned C3 consumer. This
+does not mount the router or supply missing drawable collision inputs.
+
 No root mount, product registration, DB migration, activation, ROS graph or robot
 connection was applied. Line numbers below refer to the fixed base unless noted.
 

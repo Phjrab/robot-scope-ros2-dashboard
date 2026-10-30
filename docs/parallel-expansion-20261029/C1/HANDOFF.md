@@ -1,10 +1,14 @@
 # C1 services handoff — independent expansion, 2026-10-29 KST
 
-Latest continuation: [ROUND2_FOLLOWUP.md](ROUND2_FOLLOWUP.md) — new exact owner
+Latest (2026-10-30): [CURRENT_COMPOSITION_20261030.md](CURRENT_COMPOSITION_20261030.md)
+— latest actual C4→C1 0.2 HTTP→C3 acceptance and safe map-error propagation.
+The minimum C2 consumer handoff is [ERROR_CONTRACT.md](ERROR_CONTRACT.md).
+
+Previous continuation: [ROUND2_FOLLOWUP.md](ROUND2_FOLLOWUP.md) — new exact owner
 SHAs, D2/D3-owned ports, actual C3 HTTP compatibility, new C4 runtime failure,
 and reviewed D3 native evidence. C1 production code is unchanged.
 [ROUND2.md](ROUND2.md) preserves the first round-2 implementation/CI record.
-The round-1 record below is historical; use ROUND2_FOLLOWUP for current status.
+The round-1 record below is historical; use CURRENT_COMPOSITION_20261030 for current status.
 
 Branch: [review/20261029-x-c1-services](https://github.com/Phjrab/robot-scope-ros2-dashboard/tree/review/20261029-x-c1-services)
 

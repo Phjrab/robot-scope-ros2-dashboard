@@ -4,11 +4,10 @@ import asyncio
 import json
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi.responses import JSONResponse
 
-from robot_dashboard.expansion_contracts import ContractError
 from robot_dashboard.expansion_contracts.messages import MAX_DOCUMENT_BYTES
-from robot_dashboard.pcd_editing.geometry import PcdEditError
-from .catalogue import Busy, Conflict
+from .errors import public_error
 
 
 def create_router(manager, catalogue, scene, store, *, authorize, require_origin):
@@ -60,29 +59,26 @@ def create_router(manager, catalogue, scene, store, *, authorize, require_origin
         except (ValueError, UnicodeError, RecursionError):
             raise HTTPException(422, "invalid bounded JSON document") from None
 
-    async def call(fn, *args, **kwargs):
+    async def call(fn, *args, envelope=None, **kwargs):
         try:
-            return await asyncio.to_thread(fn, *args, **kwargs)
-        except Busy:
-            raise HTTPException(429, "bounded worker capacity unavailable") from None
-        except Conflict:
-            raise HTTPException(
-                409, "stale input/revision or immutable conflict"
-            ) from None
-        except (FileNotFoundError, KeyError):
-            raise HTTPException(404, "candidate not found") from None
-        except (ContractError, PcdEditError, TypeError):
-            raise HTTPException(422, "invalid candidate contract") from None
-        except OSError:
-            raise HTTPException(503, "private candidate storage unavailable") from None
+            value = await asyncio.to_thread(fn, *args, **kwargs)
+            return {envelope: value} if envelope else value
+        except HTTPException:
+            # Preserve explicitly supplied host policy status/headers.
+            raise
+        except Exception as exc:
+            status, error = public_error(exc)
+            return JSONResponse(
+                status_code=status, content={"detail": error["message"], "error": error}
+            )
 
     @router.get("/multimap/sources")
     async def sources():
-        return {"sources": await call(catalogue.list)}
+        return await call(catalogue.list, envelope="sources")
 
     @router.get("/multimap/sources/{map_id}/preview")
     async def preview(map_id: str):
-        return {"preview": await call(catalogue.preview, map_id)}
+        return await call(catalogue.preview, map_id, envelope="preview")
 
     @router.post("/multimap/jobs", status_code=202)
     async def enqueue(request: Request):
@@ -119,7 +115,7 @@ def create_router(manager, catalogue, scene, store, *, authorize, require_origin
 
     @router.get("/multimap/exports")
     async def list_exports():
-        return {"exports": await call(store.list)}
+        return await call(store.list, envelope="exports")
 
     @router.get("/multimap/exports/{export_id}")
     async def get_export(export_id: str):
@@ -131,7 +127,10 @@ def create_router(manager, catalogue, scene, store, *, authorize, require_origin
 
     @router.get("/scene/assets/{asset_id}/{revision}")
     async def asset(asset_id: str, revision: str):
-        content, media_type = await call(scene.get_asset, asset_id, revision)
+        value = await call(scene.get_asset, asset_id, revision)
+        if isinstance(value, Response):
+            return value
+        content, media_type = value
         return Response(
             content,
             media_type=media_type,

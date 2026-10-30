@@ -1,5 +1,9 @@
 # C1 round 2 continuation — latest owner ports
 
+Historical pinned result. [CURRENT_COMPOSITION_20261030.md](CURRENT_COMPOSITION_20261030.md)
+records the newer C3/C4 combination, which accepts C1 0.2. The failures below
+remain valid only for this report's older exact dependency pins.
+
 Branch: `review/20261029-x-c1-services`. Previous delivery:
 `4e1dd519a707169da5f88cf2a92a20ed3e701cc7`.
 **NO_PRODUCTION_SOURCE_CHANGE**: C1 production implementation remains identical

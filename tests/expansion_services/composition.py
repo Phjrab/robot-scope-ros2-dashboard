@@ -6,7 +6,6 @@ consumer FAIL is expected evidence, never relabeled end-to-end PASS.
 
 import argparse
 import asyncio
-import copy
 from dataclasses import replace
 import json
 from pathlib import Path
@@ -80,7 +79,7 @@ def records(path):
         return np.frombuffer(f.read(), dtype=dtype), count
 
 
-def map_flow(root, deps, node_binary):
+def map_flow(root, deps, node_binary, *, verify_errors=False):
     from contextlib import asynccontextmanager
     from fastapi import FastAPI, HTTPException, Request
     from robot_dashboard.multimap_core.contract_adapter import solve_contract
@@ -248,6 +247,25 @@ def map_flow(root, deps, node_binary):
             list_reload="PASS",
             frozen=True,
         )
+        if verify_errors:
+            resolved[reloaded.descriptor.map_id] = reloaded
+            overlap = request(
+                [reloaded.descriptor, next(iter(resolved.values())).descriptor],
+                request_id="actual-d1-saved-ancestry-overlap",
+            )
+            response = client.post(
+                "/api/v1/extensions/multimap/jobs",
+                json=overlap.to_dict(),
+                headers={
+                    "Authorization": "Bearer public-c1-composition-test-only",
+                    "Origin": "http://127.0.0.1",
+                },
+            )
+            assert response.status_code == 409, response.text
+            assert response.json()["error"]["code"] == "ANCESTRY_OVERLAP"
+            assert str(root) not in response.text
+            assert len(store.list()) == 1
+            result["saved_ancestry_http_error"] = response.json()
     assert not manager._worker.is_alive()
     return result
 
