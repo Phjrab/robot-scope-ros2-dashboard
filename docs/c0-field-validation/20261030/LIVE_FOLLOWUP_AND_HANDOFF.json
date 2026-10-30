@@ -1,0 +1,163 @@
+{
+  "schema": "c0-live-followup.v1",
+  "checked_at": "2026-10-30T19:59:18.871618+09:00",
+  "first_round_results_preserved": true,
+  "comparison_scope": "one stationary bridge stop with one minimal shutdown/lifecycle fix",
+  "actual_deployment_sha": "15706c48c5e6df28be105b6f5bde825dce7c4b1f",
+  "dashboard_pid": 43956,
+  "verified_source_files": 2216,
+  "deployment_delta_bytes": 54507,
+  "stop_process_comparison": {
+    "source_sha": "15706c48c5e6df28be105b6f5bde825dce7c4b1f",
+    "comparison": "one no-motion stop after preserved live round1 FAIL",
+    "result": "PASS",
+    "elapsed_to_http_confirmation_s": 1.836,
+    "systemd": "TimeoutStopUSec=2s\nMainPID=0\nResult=success\nExecMainStatus=0\nActiveState=inactive\nSubState=dead\n",
+    "operation": {
+      "id": "2dfb0e45b81947b5abea2b835cb71674",
+      "action": "stop",
+      "state": "succeeded",
+      "requested_at": "2026-10-30T10:48:29.324406+00:00",
+      "updated_at": "2026-10-30T10:48:30.270176+00:00",
+      "error": null
+    },
+    "nonzero_move_before": 0,
+    "goals_sent": 0,
+    "physical_stop_or_robot_ack": "NOT_MEASURED"
+  },
+  "physical_moving_stop": "NOT_RUN",
+  "stationary_fastlio_inputs": {
+    "samples": 12,
+    "pose_source_stamps_strictly_increase": true,
+    "cloud_source_stamps_strictly_increase": true,
+    "exact_stamp_snapshots": 6,
+    "pose_age_max_s": 0.124,
+    "last_rates": {
+      "state": "mapping",
+      "cloud": {
+        "hz": 10.0,
+        "jitter_ms": 13.96,
+        "age_s": 0.084,
+        "samples": 3325,
+        "state": "ok"
+      },
+      "odometry": {
+        "hz": 19.93,
+        "jitter_ms": 36.9,
+        "age_s": 0.066,
+        "samples": 6654,
+        "state": "ok"
+      }
+    },
+    "raw_samples_sha256": "7f51e391d82c16515fd06ca5a64b1cb59413303b51e04bef0c1894106560733f",
+    "scope": "STATIONARY_FASTLIO_INPUT_ONLY; stored-map correction/TF/Nav2 not yet active"
+  },
+  "stored_map_correction_tf_nav2_consumption": "BLOCKED_OPERATOR_CURRENT_SEED_REQUIRED",
+  "button_actual_departure": "BLOCKED_DEPENDENCY",
+  "manual_ramp": "OBSERVATION_PATH_READY; NOT_RUN; fresh operator window required",
+  "rear_side_comparison": "INPUT_REQUIRED",
+  "new_pcd_copy": {
+    "id": "f4f819b45cb145bb826c3e8d",
+    "points": 12619,
+    "removed_points": 927,
+    "sha256": "53668ab834e77ca38a79103add1918f82e0ecad15dd807fef480ba505fbbedaa",
+    "active": false
+  },
+  "preservation": {
+    "user_checkout_status_unchanged": true,
+    "config_files": [
+      {
+        "name": "robot-scope.env",
+        "unchanged": false
+      },
+      {
+        "name": "control.env",
+        "unchanged": true
+      },
+      {
+        "name": "go2-onboard-operational3d.json",
+        "unchanged": true
+      },
+      {
+        "name": "source-selection.json",
+        "unchanged": true
+      },
+      {
+        "name": "operational-calibration.json",
+        "unchanged": true
+      },
+      {
+        "name": "presets.json",
+        "unchanged": true
+      }
+    ],
+    "selector_only_row_changed": "ROBOT_SCOPE_DIR",
+    "old_release_preserved": true,
+    "backup_manifest_sha256": "3b8e38be285f00ee69a4a6f91505f10333d40c2c0728825212915ea461320f1d"
+  },
+  "left_state": {
+    "nav2": {
+      "state": "idle",
+      "job_id": null,
+      "error": null,
+      "started_at": null
+    },
+    "goal": "idle",
+    "lease_active": false,
+    "command_zero": true,
+    "stop_latched": false,
+    "bridge": "inactive / PID0 / Result success",
+    "observation_state": "READY",
+    "observation_session": "176c1f39da8e445aae4a29d1cefe3faf",
+    "observation_remaining_s_at_read": 1330.8249486670002,
+    "operational_activation": "LEGACY_2D",
+    "operational_selected": null,
+    "saved_params_revision": "71933badef736b1361f1162355527488a9350b86a8b4b8865b81c38031100387",
+    "generated_job": null,
+    "controller_library_loaded": "NOT_RUN; Nav2 idle"
+  },
+  "source_ci_snapshot": {
+    "id": 41042751838,
+    "head_sha": "15706c48c5e6df28be105b6f5bde825dce7c4b1f",
+    "status": "in_progress",
+    "conclusion": null,
+    "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41042751838",
+    "updated_at": "2026-10-30T10:42:52Z"
+  },
+  "evidence": {
+    "source-audit-receipt.json": {
+      "sha256": "bca0fd52f8dc79b2a72e0ed7109d62f5abcf5eb74920034ffbb65fde4652bfee",
+      "bytes": 369
+    },
+    "pcd-save-verification.json": {
+      "sha256": "bad128802885c7fb537fa6f8bcb177b58c4f6da0382c871e74fefbf6c542b0dd",
+      "bytes": 1544
+    },
+    "predeploy-backup-receipt.json": {
+      "sha256": "0058414f86f25ab1bdaa4ea6848b80cefa1440155e1c6f1d1dc859ab0b3b0297",
+      "bytes": 294
+    },
+    "candidate-prepared.json": {
+      "sha256": "1aa1fbfba35c8c7a00d2c5bcf02a2e7a8823b302d118011c6f995b86e0a04551",
+      "bytes": 821
+    },
+    "stop-comparison-result.json": {
+      "sha256": "407e8af7ab2a149bdf1cbee890ea8db10f6c786cf4aeecb036f3ac52762b0262",
+      "bytes": 654
+    },
+    "stationary-input-summary.json": {
+      "sha256": "8b1402db8eaa8d98061ad3ee77af4a113830d706f8e13cffee4cc79953ae92e2",
+      "bytes": 666
+    }
+  },
+  "goals_sent": 0,
+  "motion_authorization": null,
+  "configuration_tuning": [],
+  "preparation_incidents": [
+    {
+      "kind": "selector wrapper quoting syntax error",
+      "selector_or_restart_dispatched": false,
+      "resolution": "locally parse corrected wrapper before single successful switch"
+    }
+  ]
+}
