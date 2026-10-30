@@ -19,7 +19,11 @@ def load():
     paths = {}
     for role, sha in PINS.items():
         export = root / f'{role}-{sha}'
-        tree = subprocess.check_output(['git','ls-tree','-r',sha,'--',*PREFIXES[role]],cwd=REPO,text=True)
+        prefixes=list(PREFIXES[role])
+        if role=='d3':
+            prefixes.extend(['experiments/competition_nav2',
+                'experiments/competition_vm/avoidance/config/rpp_polygon_vm_candidate.yaml'])
+        tree = subprocess.check_output(['git','ls-tree','-r',sha,'--',*prefixes],cwd=REPO,text=True)
         if not tree.strip():
             raise RuntimeError('PINNED_TREE_MISSING:'+role)
         for row in tree.splitlines():

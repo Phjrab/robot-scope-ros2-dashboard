@@ -30,9 +30,16 @@ def run(output):
             raise RuntimeError('NAV2_1_1_20_REQUIRED:'+str(nav))
         receipt['nav2_packages']=nav
         receipt['d3_base_image']=base['image_id']
+        # BuildKit parses a bare sha256:ID in FROM as a registry repository.
+        # Tag the already resolved local image and prove the alias is exact.
+        base_tag=name+'-base:local'
+        command(['docker','tag',base['image_id'],base_tag])
+        resolved=subprocess.check_output(['docker','image','inspect','--format','{{.Id}}',base_tag],text=True).strip()
+        if resolved!=base['image_id']: raise RuntimeError('LOCAL_BASE_IMAGE_ID_MISMATCH')
+        receipt['local_base_tag']=base_tag
         iid=output/'c4-image-id.txt'
         directory=Path(__file__).parent
-        command(['docker','build','--build-arg','BASE_IMAGE='+base['image_id'],'--iidfile',str(iid),
+        command(['docker','build','--build-arg','BASE_IMAGE='+base_tag,'--iidfile',str(iid),
                  '-f',str(directory/'Dockerfile'),str(directory)])
         image=iid.read_text().strip(); receipt['image_id']=image
         deps=Path(os.environ['C4_ROS_DEP_ROOT']).resolve()

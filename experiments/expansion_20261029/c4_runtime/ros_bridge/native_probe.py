@@ -167,7 +167,8 @@ async def main(output):
         evidence['c4_overlay_sha256']=hashlib.sha256(parameter_file.read_bytes()).hexdigest()
         log=(output/'planner.log').open('w')
         argv=[str(Path(get_package_prefix('nav2_planner'))/'lib/nav2_planner/planner_server'),
-            '--ros-args','-r','__ns:='+NAMESPACE,'--params-file',str(parameter_file),'-r','/tf:=tf','-r','/tf_static:=tf_static']
+            '--ros-args','-r','__ns:='+NAMESPACE,'--params-file',str(parameter_file),
+            '-r','/tf:='+NAMESPACE+'/tf','-r','/tf_static:='+NAMESPACE+'/tf_static']
         planner=subprocess.Popen(argv,stdout=log,stderr=subprocess.STDOUT)
         evidence['planner_argv']=argv
         async def service(kind,name,request):
@@ -232,7 +233,8 @@ async def main(output):
         # pre-viewport-throttle hook; receipt/source expiry never restarts.
         with server(adapter.scene) as url:
             previous=adapter.delivered; returns[0]=obstacle
-            await wait_for(lambda:adapter.delivered>previous,'actual obstacle C4 delivery',5)
+            await wait_for(lambda:adapter.delivered>previous and adapter.latest
+                and adapter.latest.work.message.width==len(obstacle),'actual obstacle C4 delivery',5)
             raw=await asyncio.to_thread(fetch,url)
             snapshot=json.loads(raw)
             assert snapshot['obstacle_frame'] and snapshot['collision_assessment'], adapter.health()
