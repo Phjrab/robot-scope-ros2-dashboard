@@ -1,0 +1,143 @@
+{
+  "schema": "c0-new-terrain-map-comparison-preparation.v1",
+  "created_at": "2026-10-30T20:56:45.392773+09:00",
+  "preceding_results_commit": "47f408253a88b3d3c55841f54b5af88461bde494",
+  "actual_code_deployment_unchanged": "15706c48c5e6df28be105b6f5bde825dce7c4b1f",
+  "operator_context": {
+    "reported_on_kst": "2026-10-30",
+    "existing_map_coverage": "FLAT_ONLY; RAMP_AND_STAIRS_ABSENT",
+    "basis": "DIRECT_OPERATOR_REPORT",
+    "causality_of_previous_flat_initial_HIGH_RESIDUAL": "NOT_ESTABLISHED_BY_THIS_REPORT"
+  },
+  "old_reference": {
+    "map_id": "e1dd40cc6911404dbdfc073b",
+    "map_revision": "c7d7ce7e04b2fb80519854cc71465f61af9fff210ac72e299105502497401ad5",
+    "sha256": "6ec38aa876ffcfe505ee81204d94fa84e1c3cb438ae706a6a6b7fc0048970b5a",
+    "points": 13546,
+    "role": "flat overlap baseline; uncovered terrain is not an adequate positive localization reference"
+  },
+  "cases": [
+    {
+      "case_id": "A",
+      "route": "RAMP_ASCENT_TO_STEPPED_DESCENT",
+      "telemetry_samples": 141,
+      "raw_db_files": 27,
+      "source_bundle_sha256": "ac9beca1705be01708ebb3bad454ce922c7e1d819d0424b939177178ed7229aa",
+      "metadata_sha256": "65153c93afe11031166ba59e2f8e06e6375e594c51eeb2ea222cc1b55dead7cc",
+      "offline_replay_arrays_extracted": false,
+      "new_map_frame_alignment": "PENDING"
+    },
+    {
+      "case_id": "B",
+      "route": "STAIRS_ASCENT_TO_RAMP_DESCENT",
+      "telemetry_samples": 142,
+      "raw_db_files": 27,
+      "source_bundle_sha256": "9bf04359c8d423947581888f1f02be8f22488cd59f179fdf6be75d7a78b10561",
+      "metadata_sha256": "0c599e8bf8cc31e2eca8aa1af0cb3fca64b651c3fd9cc79332759bb1a61b4209",
+      "offline_replay_arrays_extracted": false,
+      "new_map_frame_alignment": "PENDING"
+    },
+    {
+      "case_id": "C",
+      "route": "RAMP_ASCENT_TO_STAIRS_DESCENT_REPEAT",
+      "telemetry_samples": 131,
+      "raw_db_files": 24,
+      "source_bundle_sha256": "ab52feff5239262af42a4f13ace2a2663c06f20e8ef37fedd4f88d27e39bd664",
+      "metadata_sha256": "89ab4a69593bb6de11c60daa292121588d57a182e2abd6995232dce36c58d34c",
+      "offline_replay_arrays_extracted": false,
+      "new_map_frame_alignment": "PENDING"
+    }
+  ],
+  "raw_db_files": 78,
+  "raw_db_bytes": 20362293248,
+  "prepared_counts": {
+    "telemetry_rows": 414,
+    "operator_markers": 16,
+    "intervals": 18,
+    "zero_duration_intervals": 2,
+    "out_of_capture_stop_markers": 1
+  },
+  "private_artifacts": {
+    "PREPARATION_RECEIPT.json": {
+      "sha256": "83f0621739132a3230aa541557bf6a4fa9a7ec39c261bbffea2eda6f8a24200d",
+      "bytes": 1415
+    },
+    "VALIDATION.json": {
+      "sha256": "1444957ec30b54abd98cac941a39f9f94fd4d6729eda93ef8f1dc5b536a2d1cd",
+      "bytes": 463
+    },
+    "comparison-contract.json": {
+      "sha256": "3958bacfd249daec02846e0655003e0a464aec6ea0f78d65ab570aa9edbe782e",
+      "bytes": 1827
+    },
+    "new-map-intake.template.json": {
+      "sha256": "7c90897bef190fe38d43bc8062f7db3ef8ad347adc1234a7e6514c1434ff67f4",
+      "bytes": 752
+    },
+    "old-flat-edited-reference.pcd": {
+      "sha256": "6ec38aa876ffcfe505ee81204d94fa84e1c3cb438ae706a6a6b7fc0048970b5a",
+      "bytes": 216942
+    },
+    "operator-stage-index.csv": {
+      "sha256": "5bdfb7db0dc81c768250bbc1ff512ecc8ef626417fd84bb4d3e53b95f0097331",
+      "bytes": 3841
+    },
+    "recordings-manifest.json": {
+      "sha256": "e33123ecb4a5139dd510da3d7135c6ca4a2824ecc9470199c7a05e4be70b95ee",
+      "bytes": 24177
+    },
+    "stage-intervals.json": {
+      "sha256": "f38f860e4158fd7573eda747918a48be4c37d495d424037aeb3653a1518b432d",
+      "bytes": 23519
+    },
+    "telemetry-index.csv": {
+      "sha256": "2cf3ea39ab92cc50b731babea6d6f794db4149ea906983d85f2c9a361b5cd60a",
+      "bytes": 143201
+    }
+  },
+  "policy": {
+    "source_code_sha": "15706c48c5e6df28be105b6f5bde825dce7c4b1f",
+    "matcher_file_sha256": "5058cd7028e5c632c141877ba65c160db1cc741d7afa32d849bc724018857b7f",
+    "primary_query_population": "same recorded /cloud_registered frame, rebased by exact-stamp Odometry inverse once; match current captured pipeline",
+    "exact_pairing_required": true,
+    "max_rmse_m": 0.05,
+    "min_overlap": 0.6,
+    "max_correspondence_m": 0.75,
+    "min_geometry_ratio": 0.002,
+    "rear_side_weighting": "ALL_DIRECTION_UNCHANGED",
+    "new_map_numeric_pose_reuse_from_old_map": false,
+    "per_epoch_registration_required": true,
+    "same_input_pairs_required": true,
+    "automatic_runtime_application": false,
+    "strict_recorded_real_qualification_flags": "UNVERIFIED; never fabricate calibration/clock/frames/independence gates",
+    "new_geometry_test_results": "NOT_RUN",
+    "absolute_accuracy_metrics": "NOT_AVAILABLE_WITHOUT_GROUND_TRUTH"
+  },
+  "validation": {
+    "schema": "c0-map-comparison-preparation-validation.v1",
+    "result": "PASS",
+    "scope": "LOCAL INDEX/IDENTITY PREPARATION; NO NEW MAP NUMERICAL EVALUATION",
+    "checked_file_hashes": 7,
+    "samples": 414,
+    "markers": 16,
+    "intervals": 18,
+    "raw_files": 78,
+    "two_epoch_groups_verified": true,
+    "ambiguous_zero_duration_intervals": 2,
+    "late_stop_marker_outside_capture": 1,
+    "device_calls": 0,
+    "runtime_changes": 0,
+    "new_map_comparison": "NOT_RUN"
+  },
+  "readiness": {
+    "local_indices_reference_contract": "PASS",
+    "new_map_identity_and_terrain_coverage": "WAITING_OPERATOR_MAPPING_COMPLETE",
+    "per_epoch_frame_alignment": "PENDING",
+    "bag_exact_stamp_pair_and_numerical_array_conversion": "PENDING_SAFE_OFFLINE_CONVERSION",
+    "strict_recorded_real_qualification": "UNVERIFIED; no flags fabricated",
+    "new_map_numerical_comparison": "NOT_RUN"
+  },
+  "hardware_api_ssh_calls": 0,
+  "service_deployment_and_motion_changes": 0,
+  "previous_closed_results_modified": false
+}
