@@ -1,0 +1,302 @@
+{
+  "schema": "c0-current-seed-first-results.v1",
+  "closed_at": "2026-10-30T20:09:47.592415+09:00",
+  "scope": "One fresh operator seed, one unchanged seeded local numerical match; no candidate application or motion",
+  "prior_first_tables_preserved": true,
+  "source_sha": "15706c48c5e6df28be105b6f5bde825dce7c4b1f",
+  "source_ci": {
+    "id": 41042751838,
+    "status": "completed",
+    "conclusion": "success",
+    "head_sha": "15706c48c5e6df28be105b6f5bde825dce7c4b1f",
+    "updated_at": "2026-10-30T11:04:11Z"
+  },
+  "operator_position": "MOVED; operator supplied a new map position and direction; old position not reused",
+  "match": {
+    "job_id": "71b49519f286e357642bb7bf",
+    "job_state": "succeeded",
+    "numerical_result": "FAIL",
+    "reason": "HIGH_RESIDUAL",
+    "candidate_applied": false,
+    "rmse_m": 0.23538279147536598,
+    "overlap": 0.7513513513513513,
+    "delta": {
+      "tilt_deg": 1.9960949016432883,
+      "xy_m": 0.24913364156357806,
+      "yaw_deg": 0.2536507452553142,
+      "z_m": 0.09619604087641669
+    },
+    "bounds": {
+      "tilt_deg": 10,
+      "xy_m": 0.75,
+      "yaw_deg": 25,
+      "z_m": 0.3
+    },
+    "residual_policy": {
+      "enforced": true,
+      "max_rmse_m": 0.05,
+      "original_max_rmse_m": 0.05,
+      "original_passed": false
+    },
+    "scan_points": 185,
+    "map_points": 13546,
+    "runtime_ms": 605.5715560000863,
+    "exact_stamp_rebase": "INVERSE_EXACT_STAMP_FASTLIO_ODOMETRY",
+    "map_revision": "c7d7ce7e04b2fb80519854cc71465f61af9fff210ac72e299105502497401ad5",
+    "reference_source_sha256": "6ec38aa876ffcfe505ee81204d94fa84e1c3cb438ae706a6a6b7fc0048970b5a",
+    "reference_array_sha256": "6c0580ec1aa9365364edbe2f73b660095400e1ff8b421dc50c334579e693c677",
+    "reference_asset_role": "EDITED_FULL_SOURCE",
+    "map_sampling_applied": false,
+    "ambiguity": "OTHER_LOCATIONS_UNVERIFIED"
+  },
+  "rows": [
+    {
+      "id": "V03",
+      "result": "FAIL",
+      "reason": "Single fresh stationary initial match rejected HIGH_RESIDUAL; downstream correction/TF/Nav2 BLOCKED_DEPENDENCY"
+    },
+    {
+      "id": "V04",
+      "result": "BLOCKED_DEPENDENCY",
+      "reason": "Operational stored-map source not valid; no goals sent"
+    },
+    {
+      "id": "V05",
+      "result": "BLOCKED_DEPENDENCY",
+      "reason": "No actual stop/success/dwell/source; no button or next-goal request"
+    },
+    {
+      "id": "V06",
+      "result": "BLOCKED_OPERATOR",
+      "reason": "Independent observation READY; fresh manual field window pending"
+    },
+    {
+      "id": "V07",
+      "result": "BLOCKED_DEPENDENCY",
+      "reason": "Ramp input missing; raw/LIO capture prepared; stored-map/TF/scan/costmap runtime absent"
+    },
+    {
+      "id": "V08",
+      "result": "PASS",
+      "scope": "Idle process-stop comparison only; bridge inactive, lease inactive, dashboard axes zero; physical moving stop/robot ACK not measured"
+    },
+    {
+      "id": "V09",
+      "result": "PASS",
+      "reason": "This full requirement status table written before seed failure diagnosis"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "E1",
+      "title": "영역/Z 선택·제외·undo/redo",
+      "implementation": "기존 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "과거 FIELD_PASS",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V02",
+      "this_step": "PASS",
+      "evidence": "See preserved LIVE_ROUND1_RESULTS full-source editing verification"
+    },
+    {
+      "id": "E2",
+      "title": "전체 PCD 사본 저장·재조회·속성 보존",
+      "implementation": "기존 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "과거 FIELD_PASS",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V02",
+      "this_step": "PASS",
+      "evidence": "See preserved LIVE_ROUND1_RESULTS full-source editing verification"
+    },
+    {
+      "id": "E3",
+      "title": "사본 reference hash/revision 실제 worker 일치",
+      "implementation": "기존 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "과거 FIELD_PASS",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V02/V03",
+      "this_step": "BLOCKED_DEPENDENCY",
+      "evidence": "PASS scoped to actual seeded numerical worker: existing edited reference full XYZ count/revision/source hash matched; persistent operational worker NOT_RUN"
+    },
+    {
+      "id": "N1",
+      "title": "3D/2D map bundle·frame·origin",
+      "implementation": "기존 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "과거 FIELD_PASS",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V03",
+      "this_step": "BLOCKED_DEPENDENCY",
+      "evidence": "Fresh operator seed attempted once; HIGH_RESIDUAL blocked candidate application and downstream operational source/goal/dwell/release"
+    },
+    {
+      "id": "N2",
+      "title": "브라우저 독립 지속 저장 지도 정합",
+      "implementation": "기존 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "과거 FIELD_PASS",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V03",
+      "this_step": "BLOCKED_DEPENDENCY",
+      "evidence": "Fresh operator seed attempted once; HIGH_RESIDUAL blocked candidate application and downstream operational source/goal/dwell/release"
+    },
+    {
+      "id": "N3",
+      "title": "TF/body/controller odom 실제 소비",
+      "implementation": "기존 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "과거 FIELD_PASS",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V03",
+      "this_step": "BLOCKED_DEPENDENCY",
+      "evidence": "Fresh operator seed attempted once; HIGH_RESIDUAL blocked candidate application and downstream operational source/goal/dwell/release"
+    },
+    {
+      "id": "N4",
+      "title": "idle 전환·재시작 비복원·rollback",
+      "implementation": "기존 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "과거 보고/회귀",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V03",
+      "this_step": "BLOCKED_DEPENDENCY",
+      "evidence": "Idle, selected=null, LEGACY_2D preserved across C0 restart; selected-source transition/rollback NOT_RUN"
+    },
+    {
+      "id": "N5",
+      "title": "새 3D source의 실제 짧은 Nav2 목표",
+      "implementation": "기존 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "기존 허용오차 FIELD_PASS; 정밀 기준 실패",
+      "round1_software": "NOT_RUN",
+      "round1_field": "BLOCKED_OPERATOR",
+      "row": "V04",
+      "this_step": "BLOCKED_DEPENDENCY",
+      "evidence": "Fresh operator seed attempted once; HIGH_RESIDUAL blocked candidate application and downstream operational source/goal/dwell/release"
+    },
+    {
+      "id": "G1",
+      "title": "시험 모드·현재 stop 이벤트",
+      "implementation": "기존 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "전체 실기 NOT_RUN",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V05",
+      "this_step": "BLOCKED_DEPENDENCY",
+      "evidence": "Fresh operator seed attempted once; HIGH_RESIDUAL blocked candidate application and downstream operational source/goal/dwell/release"
+    },
+    {
+      "id": "G2",
+      "title": "실제 success·측정 정지 2초 dwell",
+      "implementation": "기존 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "전체 실기 NOT_RUN",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V04/V05",
+      "this_step": "BLOCKED_DEPENDENCY",
+      "evidence": "Fresh operator seed attempted once; HIGH_RESIDUAL blocked candidate application and downstream operational source/goal/dwell/release"
+    },
+    {
+      "id": "G3",
+      "title": "중복/만료/이전 stop/source 변경 차단",
+      "implementation": "기존 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "software 증거",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V05",
+      "this_step": "BLOCKED_DEPENDENCY",
+      "evidence": "Existing software negative gates PASS; real mission/source event sequence NOT_RUN"
+    },
+    {
+      "id": "G4",
+      "title": "버튼→다음 goal 1개→실제 출발·종료",
+      "implementation": "기존 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "NOT_RUN",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V05",
+      "this_step": "BLOCKED_DEPENDENCY",
+      "evidence": "Fresh operator seed attempted once; HIGH_RESIDUAL blocked candidate application and downstream operational source/goal/dwell/release"
+    },
+    {
+      "id": "R1",
+      "title": "평지·진입·상승·정상·하강·복귀 baseline",
+      "implementation": "계측 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "NOT_RUN",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_OPERATOR",
+      "row": "V06",
+      "this_step": "BLOCKED_OPERATOR",
+      "evidence": "Independent observation READY; subscription-only 300s/2GiB recorder prepared; fresh manual operator window requested, not granted at closure"
+    },
+    {
+      "id": "R2",
+      "title": "동일 입력 후방/측면 후보 비교",
+      "implementation": "운영 미구현/미채택; 조건부",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "NOT_RUN",
+      "round1_software": "NOT_RUN",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V07",
+      "this_step": "BLOCKED_DEPENDENCY",
+      "evidence": "INPUT_REQUIRED: no actual ramp recording, no rear/side policy change"
+    },
+    {
+      "id": "R3",
+      "title": "품질·전방 관측·CPU/지연 손익",
+      "implementation": "지표 기반 구현; 실비교 없음",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "NOT_RUN",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V07",
+      "this_step": "BLOCKED_DEPENDENCY",
+      "evidence": "INPUT_REQUIRED: no actual ramp recording, no rear/side policy change"
+    },
+    {
+      "id": "R4",
+      "title": "실제 경사로 위치추정 결과",
+      "implementation": "관측 경로 실기 미검증",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "NOT_RUN",
+      "round1_software": "NOT_RUN",
+      "round1_field": "BLOCKED_OPERATOR",
+      "row": "V06",
+      "this_step": "BLOCKED_DEPENDENCY",
+      "evidence": "Raw/IMU/LIO manual baseline can proceed independently; stored-map ramp correction cannot be claimed while initial match is rejected"
+    }
+  ],
+  "actions": {
+    "seeded_local_requests": 1,
+    "candidate_application": 0,
+    "quality_gate_changes": 0,
+    "runtime_source_selection": 0,
+    "nav2_start": 0,
+    "goals": 0,
+    "arm_or_posture": 0,
+    "nonzero_move": 0,
+    "rear_weight_changes": 0
+  },
+  "private_evidence_sha256": {
+    "first-user-seed-job-private.json": "06a1955dc3a6da82a758e17638817530943456a96760def77de5567ba070f42c",
+    "first-user-seed-proposal-private.json": "60481773c813885a0d3fafdc10edfbd881339bac037d9058e59f65e5eaca3fdd",
+    "pre-user-seed-match-private.json": "5a19ac7b214093643fbd976105f82e2df1b31aa29ba8bb4926dabf1684c50180",
+    "manual_ramp_recorder.py": "b190b6547a862d6b9063eecb83e809cbe1683bd26857e7a65716004bcd7f9397"
+  },
+  "all_rows_adjudicated": true,
+  "all_field_requirements_passed": false
+}

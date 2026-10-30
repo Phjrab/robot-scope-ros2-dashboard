@@ -1,0 +1,10 @@
+{
+  "schema": "c0-final-round1-closed.v1",
+  "closed_at": "2026-10-30T20:41:04.578062+09:00",
+  "artifacts": {
+    "FINAL_ROUND1_RESULTS.md": "00afff02484d967dd7a7a2c0bbbcf9c6ca9658255394d0b66185410e18135d5e",
+    "FINAL_ROUND1_RESULTS.json": "ef82684c76e48ea482b6ce74ee4d8caab7284044e139c6bf80eeb2f232e263ae"
+  },
+  "separate_diagnosis_after_this_receipt": true,
+  "rounding_note": "Case3 display uses raw duration260.7003s; raw JSON unchanged"
+}

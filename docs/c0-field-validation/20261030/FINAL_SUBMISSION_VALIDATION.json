@@ -1,0 +1,46 @@
+{
+  "schema": "c0-final-submission-validation.v1",
+  "recorded_at": "2026-10-30T11:45:56.451927+00:00",
+  "scope": "Documentation/field evidence follow-up; no application/test/CI source change since15706c4",
+  "code_sha": "15706c48c5e6df28be105b6f5bde825dce7c4b1f",
+  "reused_required_code_checks": {
+    "related_python": 62,
+    "full_python_run": 3137,
+    "full_python_failures": 0,
+    "full_python_skipped": 2,
+    "javascript_tests": 700,
+    "ruff": "PASS",
+    "mypy": "PASS configured files",
+    "jetson_python310_shutdown_regression": 3,
+    "source_ci_run": 41042751838,
+    "source_ci_conclusion": "success",
+    "evidence": "STOP_CANDIDATE_VALIDATION.json"
+  },
+  "new_checks": {
+    "focused_history_ui_correctly_selected": {
+      "exit": 0,
+      "elapsed_s": 3.0690846140496433,
+      "scope": "one correctly selected existing mock browser reproduction; no robot connection",
+      "source_code_sha": "15706c48c5e6df28be105b6f5bde825dce7c4b1f"
+    },
+    "first_empty_selection": "No tests found; infrastructure selection error preserved",
+    "closures_json_and_links": "PASS",
+    "git_diff_check": "PASS",
+    "application_diff_since_code_sha": "EMPTY",
+    "temporary_dependencies_removed": true,
+    "tracked_secret_scan_before_stage": "PASS",
+    "staged_secret_scan": "PASS"
+  },
+  "preceding_doc_ci": {
+    "sha": "8d96840ee4f1393535a4c5f70c737cabba58fa2a",
+    "run": 41044928748,
+    "conclusion": "failure",
+    "failed_test": "global_observation_history.spec.mjs:90",
+    "passed": 226,
+    "failed": 1,
+    "flaky": "NOT_ESTABLISHED"
+  },
+  "new_doc_head_ci": "Inspect after push; do not report prior result as current",
+  "runtime_code_deployed_for_this_doc_submission": false,
+  "full_field_completion": false
+}

@@ -1,0 +1,9 @@
+{
+  "schema": "c0-current-seed-results-closed.v1",
+  "closed_at": "2026-10-30T20:09:47.592415+09:00",
+  "artifacts": {
+    "CURRENT_SEED_RESULTS.md": "41e5678e5bb81bb935fcd95778c367e72c56ab61a6165b1fba198451c921d035",
+    "CURRENT_SEED_RESULTS.json": "bccecddd76dc886ca917b5a42358980f48f145fd4c73f208cf385a5b10f69a87"
+  },
+  "diagnosis_created_after_this_receipt": true
+}

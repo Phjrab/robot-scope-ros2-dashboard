@@ -1,5 +1,7 @@
 # C0 연결 복구·최소 정지 보완·비이동 인계
 
+이 문서는 새 seed/수동 시험 전의 역사적 checkpoint다. 이후 새 정합 FAIL·수동3회 기록·최종 종료 상태는 [최종 1차 표](FINAL_ROUND1_RESULTS.md), [별도 진단](POST_FINAL_DIAGNOSIS.md)을 따른다.
+
 현재 실제 배포는 **15706c48c5e6df28be105b6f5bde825dce7c4b1f**, dashboard PID43956 / release robot-scope-15706c48c5e6다. 기존 main846121b와 최초 실행5154761을 구분한다. 다음 내용은 저장 지도에서 현재 위치·방향을 확인하기 전까지의 결과다. 실제 이동은0건이다.
 
 ## 1차 결과와 별도 비교
