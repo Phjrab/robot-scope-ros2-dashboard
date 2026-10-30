@@ -1,0 +1,418 @@
+{
+  "additional_3d_constraint_mode": "ADVISORY_ONLY",
+  "base_digest": "ros@sha256:d9bcf2e6f72df127fdee07048c2e87b1b4b9a59a74af0592f4489fc2844aa855",
+  "cases": [
+    {
+      "execution": "NATIVE_NAV2_SIM",
+      "expected": "GOAL_REACHED",
+      "result": {
+        "action": {
+          "accepted": true,
+          "goal_uuid": [
+            29,
+            39,
+            236,
+            85,
+            57,
+            193,
+            68,
+            19,
+            170,
+            48,
+            37,
+            89,
+            48,
+            71,
+            38,
+            144
+          ],
+          "status": 4
+        },
+        "config_sha256": "03e662b688603f63dfdc3d90a0008ce4342b5939dcf1b948d6aad9552c5c940a",
+        "error": null,
+        "fixture_sha256": "e6ee1aade91486d8019c8ad22d45ba0c7b6e46ad919d2308c81d18b6d58197d2",
+        "goal_distance_m": 0.11928092830274943,
+        "goal_yaw_error_rad": 0.029030514832637522,
+        "loaded_library_sha256": {
+          "/opt/ros/humble/lib/libnav2_regulated_pure_pursuit_controller.so": "d63cca14c5cd1f5d85b61d2d37e40f70c1cba0133fe2dcd574595386b969f497"
+        },
+        "metrics": {
+          "boundary_violation_count": 0,
+          "footprint_collision_count": 0,
+          "hold_nonzero_count": 0,
+          "min_conservative_clearance_m": 0,
+          "path_length_m": 2.583042280491853,
+          "plant_deadline_misses": 1,
+          "plant_max_wall_gap_s": 0.08852446700001337,
+          "runner_cpu_s": 3.17269497,
+          "runner_peak_rss_kib": 93264,
+          "sim_time_s": 19.550000000000143,
+          "wall_time_s": 19.59283078599998
+        },
+        "outcome": "GOAL_REACHED",
+        "package_versions": {
+          "nav2_bt_navigator": "1.1.20",
+          "nav2_controller": "1.1.20",
+          "nav2_planner": "1.1.20",
+          "nav2_regulated_pure_pursuit_controller": "1.1.20",
+          "rclpy": "3.3.22"
+        },
+        "raw_command_counts": {
+          "behavior_server": 0,
+          "controller_server": 348
+        },
+        "status": "NATIVE_RECORDED",
+        "terminal_fault": null
+      },
+      "scenario": "empty",
+      "status": "PASS",
+      "validation": {
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null,
+        "status": "PASS"
+      }
+    },
+    {
+      "execution": "NATIVE_NAV2_SIM",
+      "expected": "GOAL_REACHED",
+      "result": {
+        "action": {
+          "accepted": true,
+          "goal_uuid": [
+            140,
+            173,
+            142,
+            119,
+            46,
+            195,
+            76,
+            232,
+            186,
+            133,
+            55,
+            142,
+            192,
+            34,
+            191,
+            86
+          ],
+          "status": 4
+        },
+        "config_sha256": "03e662b688603f63dfdc3d90a0008ce4342b5939dcf1b948d6aad9552c5c940a",
+        "error": null,
+        "fixture_sha256": "631f19f08a426f4ba91666fadea3b38488580259fabde589b8532854a7ba873a",
+        "goal_distance_m": 0.11549726774655586,
+        "goal_yaw_error_rad": 0.15889590924736208,
+        "loaded_library_sha256": {
+          "/opt/ros/humble/lib/libnav2_regulated_pure_pursuit_controller.so": "d63cca14c5cd1f5d85b61d2d37e40f70c1cba0133fe2dcd574595386b969f497"
+        },
+        "metrics": {
+          "boundary_violation_count": 0,
+          "footprint_collision_count": 0,
+          "hold_nonzero_count": 0,
+          "min_conservative_clearance_m": 0.27955182462573597,
+          "path_length_m": 4.269372327084769,
+          "plant_deadline_misses": 1,
+          "plant_max_wall_gap_s": 0.09293094099999166,
+          "runner_cpu_s": 5.700189547,
+          "runner_peak_rss_kib": 93020,
+          "sim_time_s": 30.150000000000293,
+          "wall_time_s": 30.21752914000004
+        },
+        "outcome": "GOAL_REACHED",
+        "package_versions": {
+          "nav2_bt_navigator": "1.1.20",
+          "nav2_controller": "1.1.20",
+          "nav2_planner": "1.1.20",
+          "nav2_regulated_pure_pursuit_controller": "1.1.20",
+          "rclpy": "3.3.22"
+        },
+        "raw_command_counts": {
+          "behavior_server": 0,
+          "controller_server": 560
+        },
+        "status": "NATIVE_RECORDED",
+        "terminal_fault": null
+      },
+      "scenario": "diagnostic_single_obstacle",
+      "status": "PASS",
+      "validation": {
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null,
+        "status": "PASS"
+      }
+    },
+    {
+      "execution": "NATIVE_NAV2_SIM",
+      "expected": "SAFE_WAIT",
+      "result": {
+        "action": {
+          "accepted": true,
+          "goal_uuid": [
+            92,
+            159,
+            188,
+            104,
+            169,
+            198,
+            76,
+            233,
+            143,
+            23,
+            227,
+            149,
+            0,
+            79,
+            112,
+            237
+          ],
+          "status": 6
+        },
+        "config_sha256": "03e662b688603f63dfdc3d90a0008ce4342b5939dcf1b948d6aad9552c5c940a",
+        "error": null,
+        "fixture_sha256": "bba0caa89f1e18cb4383f9c25af54ca83fc916d5c75a39622ee4573b20cb886b",
+        "goal_distance_m": 2.6999999999999997,
+        "goal_yaw_error_rad": 0.8639491561648933,
+        "loaded_library_sha256": {
+          "/opt/ros/humble/lib/libnav2_regulated_pure_pursuit_controller.so": "d63cca14c5cd1f5d85b61d2d37e40f70c1cba0133fe2dcd574595386b969f497"
+        },
+        "metrics": {
+          "boundary_violation_count": 0,
+          "footprint_collision_count": 0,
+          "hold_nonzero_count": 0,
+          "min_conservative_clearance_m": 0,
+          "path_length_m": 0,
+          "plant_deadline_misses": 1,
+          "plant_max_wall_gap_s": 0.08828531000000339,
+          "runner_cpu_s": 1.473694809,
+          "runner_peak_rss_kib": 92468,
+          "sim_time_s": 9.299999999999997,
+          "wall_time_s": 9.338780434
+        },
+        "outcome": "SAFE_WAIT",
+        "package_versions": {
+          "nav2_bt_navigator": "1.1.20",
+          "nav2_controller": "1.1.20",
+          "nav2_planner": "1.1.20",
+          "nav2_regulated_pure_pursuit_controller": "1.1.20",
+          "rclpy": "3.3.22"
+        },
+        "raw_command_counts": {
+          "behavior_server": 45,
+          "controller_server": 0
+        },
+        "status": "NATIVE_RECORDED",
+        "terminal_fault": null
+      },
+      "scenario": "fully_blocked",
+      "status": "PASS",
+      "validation": {
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null,
+        "status": "PASS"
+      }
+    },
+    {
+      "execution": "NATIVE_NAV2_SIM",
+      "expected": "GOAL_REACHED",
+      "result": {
+        "action": {
+          "accepted": true,
+          "goal_uuid": [
+            127,
+            28,
+            32,
+            58,
+            62,
+            125,
+            74,
+            142,
+            178,
+            15,
+            45,
+            236,
+            177,
+            171,
+            57,
+            16
+          ],
+          "status": 4
+        },
+        "config_sha256": "03e662b688603f63dfdc3d90a0008ce4342b5939dcf1b948d6aad9552c5c940a",
+        "error": null,
+        "fixture_sha256": "d217b3f69ab571ed1111bc2d65c0b510939e0d7211c64cee85581c1cec8e7303",
+        "goal_distance_m": 0.115975323566245,
+        "goal_yaw_error_rad": 0.16579984458872454,
+        "loaded_library_sha256": {
+          "/opt/ros/humble/lib/libnav2_regulated_pure_pursuit_controller.so": "d63cca14c5cd1f5d85b61d2d37e40f70c1cba0133fe2dcd574595386b969f497"
+        },
+        "metrics": {
+          "boundary_violation_count": 0,
+          "footprint_collision_count": 0,
+          "hold_nonzero_count": 0,
+          "min_conservative_clearance_m": 0.26883324650719415,
+          "path_length_m": 4.372670759831019,
+          "plant_deadline_misses": 1,
+          "plant_max_wall_gap_s": 0.08850085499994975,
+          "runner_cpu_s": 5.909944055,
+          "runner_peak_rss_kib": 93080,
+          "sim_time_s": 32.4000000000003,
+          "wall_time_s": 32.47819690800003
+        },
+        "outcome": "GOAL_REACHED",
+        "package_versions": {
+          "nav2_bt_navigator": "1.1.20",
+          "nav2_controller": "1.1.20",
+          "nav2_planner": "1.1.20",
+          "nav2_regulated_pure_pursuit_controller": "1.1.20",
+          "rclpy": "3.3.22"
+        },
+        "raw_command_counts": {
+          "behavior_server": 0,
+          "controller_server": 603
+        },
+        "status": "NATIVE_RECORDED",
+        "terminal_fault": null
+      },
+      "scenario": "diagnostic_appearing_obstacle",
+      "status": "PASS",
+      "validation": {
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": {
+          "actual_appearance_elapsed_s": 3.04999999999999,
+          "detour_path_points": 191,
+          "errors": [],
+          "first_costmap_elapsed_s": 3.3999999989999994,
+          "first_detour_path_elapsed_s": 3.699999998999999,
+          "first_scan_elapsed_s": 3.04999999999999,
+          "first_scan_hit_beams": 27,
+          "first_scan_receipt_sim_s": 4.899999999999991,
+          "initial_path_points": 197,
+          "inserted_lethal_cells": 16,
+          "requested_appearance_elapsed_s": 3,
+          "scope": "Native centerline path change; body safety is independently swept from actuator trace",
+          "status": "PASS"
+        },
+        "status": "PASS"
+      }
+    },
+    {
+      "execution": "NATIVE_NAV2_SIM",
+      "expected": "SAFE_WAIT",
+      "result": {
+        "action": {
+          "accepted": true,
+          "cancel_ack_count": 1,
+          "goal_uuid": [
+            207,
+            102,
+            147,
+            227,
+            17,
+            225,
+            67,
+            147,
+            170,
+            109,
+            222,
+            229,
+            8,
+            117,
+            27,
+            126
+          ],
+          "status": 5
+        },
+        "config_sha256": "03e662b688603f63dfdc3d90a0008ce4342b5939dcf1b948d6aad9552c5c940a",
+        "error": null,
+        "fixture_sha256": "18f21411987f2bfc3f792536c8e825cc54d5634c2d1f9d52dadc1569019eba25",
+        "goal_distance_m": 2.371524272314708,
+        "goal_yaw_error_rad": 0.003567220286170958,
+        "loaded_library_sha256": {
+          "/opt/ros/humble/lib/libnav2_regulated_pure_pursuit_controller.so": "d63cca14c5cd1f5d85b61d2d37e40f70c1cba0133fe2dcd574595386b969f497"
+        },
+        "metrics": {
+          "boundary_violation_count": 0,
+          "footprint_collision_count": 0,
+          "hold_nonzero_count": 0,
+          "min_conservative_clearance_m": 0,
+          "path_length_m": 0.3284999936987105,
+          "plant_deadline_misses": 1,
+          "plant_max_wall_gap_s": 0.08718881199996531,
+          "runner_cpu_s": 0.8108341609999998,
+          "runner_peak_rss_kib": 93032,
+          "sim_time_s": 6.8999999999999835,
+          "wall_time_s": 6.9376202939999985
+        },
+        "outcome": "SAFE_WAIT",
+        "package_versions": {
+          "nav2_bt_navigator": "1.1.20",
+          "nav2_controller": "1.1.20",
+          "nav2_planner": "1.1.20",
+          "nav2_regulated_pure_pursuit_controller": "1.1.20",
+          "rclpy": "3.3.22"
+        },
+        "raw_command_counts": {
+          "behavior_server": 0,
+          "controller_server": 45
+        },
+        "status": "NATIVE_RECORDED",
+        "terminal_fault": "SENSOR_STALE"
+      },
+      "scenario": "sensor_stale",
+      "status": "PASS",
+      "validation": {
+        "backend": "nav2_native_sim",
+        "errors": [],
+        "replan": null,
+        "status": "PASS"
+      }
+    }
+  ],
+  "controller": "STOCK_NAVFN_RPP_NO_HEADING_PATCH",
+  "domain": 194,
+  "first_blocker": null,
+  "image_id": "sha256:b5f9046e2f76e4da065a1a4d40f8be7ec1bc549765a149825d0704077835485b",
+  "namespace": "/robot_scope_review_x",
+  "native_nav2_collision_detection": "ACTIVE_EXISTING_RPP",
+  "native_source_base": "47ae383fff5bfa12c20d523d2851a952dbb60f4b",
+  "nav2_packages": {
+    "ros-humble-nav2-amcl": "1.1.20-1jammy.20260915.212107",
+    "ros-humble-nav2-behavior-tree": "1.1.20-1jammy.20260915.212118",
+    "ros-humble-nav2-behaviors": "1.1.20-1jammy.20260915.232147",
+    "ros-humble-nav2-bringup": "1.1.20-1jammy.20260916.005516",
+    "ros-humble-nav2-bt-navigator": "1.1.20-1jammy.20260915.232207",
+    "ros-humble-nav2-collision-monitor": "1.1.20-1jammy.20260915.231815",
+    "ros-humble-nav2-common": "1.1.20-1jammy.20260907.215155",
+    "ros-humble-nav2-constrained-smoother": "1.1.20-1jammy.20260915.232237",
+    "ros-humble-nav2-controller": "1.1.20-1jammy.20260915.232401",
+    "ros-humble-nav2-core": "1.1.20-1jammy.20260915.231847",
+    "ros-humble-nav2-costmap-2d": "1.1.20-1jammy.20260915.225814",
+    "ros-humble-nav2-dwb-controller": "1.1.20-1jammy.20260915.234238",
+    "ros-humble-nav2-lifecycle-manager": "1.1.20-1jammy.20260915.225403",
+    "ros-humble-nav2-map-server": "1.1.20-1jammy.20260915.212154",
+    "ros-humble-nav2-mppi-controller": "1.1.20-1jammy.20260915.232158",
+    "ros-humble-nav2-msgs": "1.1.20-1jammy.20260907.223327",
+    "ros-humble-nav2-navfn-planner": "1.1.20-1jammy.20260915.232217",
+    "ros-humble-nav2-planner": "1.1.20-1jammy.20260915.232217",
+    "ros-humble-nav2-regulated-pure-pursuit-controller": "1.1.20-1jammy.20260915.232155",
+    "ros-humble-nav2-rotation-shim-controller": "1.1.20-1jammy.20260915.233053",
+    "ros-humble-nav2-route": "1.1.20-1jammy.20260915.232223",
+    "ros-humble-nav2-rviz-plugins": "1.1.20-1jammy.20260916.003050",
+    "ros-humble-nav2-simple-commander": "1.1.20-1jammy.20260907.224519",
+    "ros-humble-nav2-smac-planner": "1.1.20-1jammy.20260915.232226",
+    "ros-humble-nav2-smoother": "1.1.20-1jammy.20260915.232411",
+    "ros-humble-nav2-theta-star-planner": "1.1.20-1jammy.20260915.232221",
+    "ros-humble-nav2-util": "1.1.20-1jammy.20260915.211149",
+    "ros-humble-nav2-velocity-smoother": "1.1.20-1jammy.20260915.230155",
+    "ros-humble-nav2-voxel-grid": "1.1.20-1jammy.20260908.002526",
+    "ros-humble-nav2-waypoint-follower": "1.1.20-1jammy.20260915.232231",
+    "ros-humble-navigation2": "1.1.20-1jammy.20260916.003813"
+  },
+  "source_sha": "56cb4ab63ae42aa208573c68d17c3da688c58976",
+  "status": "PASS"
+}

@@ -111,3 +111,5 @@ execution environment for the six-case native test. Physical geometry/calibratio
 inputs remain prerequisites for later physical qualification, not a reason to
 block this completed offline candidate. Integration/deployment still requires
 separate user authorization.
+
+Latest C4 native-input preparation and preserved baseline: [C4_NATIVE_RESULTS.md](C4_NATIVE_RESULTS.md).
