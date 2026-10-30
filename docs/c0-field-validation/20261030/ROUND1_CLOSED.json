@@ -1,0 +1,18 @@
+{
+  "closed_at": "2026-10-30T17:46:26.511120+09:00",
+  "results_json_sha256": "9f8a9605c2f995809bccf1ce9ad466c1d487525ec7452b4ef6e6f21127cc3e9e",
+  "results_md_sha256": "5538ae678d65ec2aa0006985d735015d657e3eeac6f918e3d1d2fc0603c60161",
+  "diagnosis_created_after_round1": true,
+  "post_close_presentation_corrections": [
+    {
+      "at": "2026-10-30T17:49:40.367575+09:00",
+      "kind": "relative documentation link correction only",
+      "results_md_sha256_after": "94bd06682b8509f721a34c7380438debcabf3d2a87181cdaf73f4c574f9e4d7e"
+    },
+    {
+      "at": "2026-10-30T17:50:59.369959+09:00",
+      "kind": "append final submission validation, no row or first-round JSON changes",
+      "results_md_sha256_after": "fdc769120b018e81745947d67a93d542a0b6f01a5159b3cb57a591bb748f4e06"
+    }
+  ]
+}
