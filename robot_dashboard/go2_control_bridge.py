@@ -588,16 +588,15 @@ def main() -> None:
     # rclpy's default SIGINT handler shuts the ROS context down before
     # ``executor.spin()`` returns.  That makes the shutdown StopMove publishes
     # fail with "publisher's context is invalid".  Keep the context alive,
-    # interrupt the spin ourselves, then publish the final stops before calling
-    # ``rclpy.shutdown()``.
+    # leave the bounded spin loop ourselves, then publish the final stops before
+    # calling ``rclpy.shutdown()``. A signal must not raise from a ROS callback
+    # or Future finalizer, where Python can swallow the exception and keep the
+    # executor alive until systemd kills it.
     shutdown_requested = False
 
     def request_shutdown(_signum: int, _frame: Any) -> None:
         nonlocal shutdown_requested
-        if shutdown_requested:
-            return
         shutdown_requested = True
-        raise KeyboardInterrupt
 
     if SignalHandlerOptions is None:
         rclpy.init(args=None)
@@ -616,7 +615,8 @@ def main() -> None:
         )
         executor = MultiThreadedExecutor(num_threads=2)
         executor.add_node(node)
-        executor.spin()
+        while rclpy.ok() and not shutdown_requested:
+            executor.spin_once(timeout_sec=0.1)
     except KeyboardInterrupt:
         pass
     finally:

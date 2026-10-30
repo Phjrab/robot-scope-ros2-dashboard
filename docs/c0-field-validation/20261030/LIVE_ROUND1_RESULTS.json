@@ -1,0 +1,196 @@
+{
+  "schema": "c0-live-round1-results.v1",
+  "closed_at": "2026-10-30T19:33:18.408318+09:00",
+  "preceding_round1_commit": "b790aa02461c00f27d5acd6c81aa35eae5cc3d83",
+  "source_audit": {
+    "checked_at": "2026-10-30T19:22:44.125140+09:00",
+    "expected_source_sha": "5154761bba6fa4f171881e61f986901e2b415ed9",
+    "expected_file_count": 2200,
+    "matched_file_count": 2200,
+    "mismatch_count": 0,
+    "mismatches": [],
+    "pid": 995,
+    "cwd": "/home/unitree/robot-scope-releases/robot-scope-5154761bba6f",
+    "pid_and_cwd_stable": true,
+    "device_mutations": 0
+  },
+  "pcd_verification": {
+    "checked_at": "2026-10-30T19:30:22.171653+09:00",
+    "evidence_level": "STATIONARY_DEVICE",
+    "new_map_id": "f4f819b45cb145bb826c3e8d",
+    "parent": {
+      "pcd_sha256": "6ec38aa876ffcfe505ee81204d94fa84e1c3cb438ae706a6a6b7fc0048970b5a",
+      "points": 13546,
+      "fields": [
+        "x",
+        "y",
+        "z",
+        "intensity"
+      ],
+      "size": [
+        "4",
+        "4",
+        "4",
+        "4"
+      ],
+      "type": [
+        "F",
+        "F",
+        "F",
+        "F"
+      ],
+      "count": [
+        "1",
+        "1",
+        "1",
+        "1"
+      ],
+      "record_bytes": 16,
+      "zip_sha256": "edb8e833e3aac48f9ea305282c608bd9fa62ee3d954920cf834d5e8fb0abe66d"
+    },
+    "copy": {
+      "pcd_sha256": "53668ab834e77ca38a79103add1918f82e0ecad15dd807fef480ba505fbbedaa",
+      "points": 12619,
+      "fields": [
+        "x",
+        "y",
+        "z",
+        "intensity"
+      ],
+      "size": [
+        "4",
+        "4",
+        "4",
+        "4"
+      ],
+      "type": [
+        "F",
+        "F",
+        "F",
+        "F"
+      ],
+      "count": [
+        "1",
+        "1",
+        "1",
+        "1"
+      ],
+      "record_bytes": 16,
+      "zip_sha256": "992eaace83219705122a43cee37e2df2a8a7431e1eadf1b1eae822ed90302908"
+    },
+    "field_layout_preserved": true,
+    "all_retained_record_bytes_and_order_preserved": true,
+    "parent_hash_unchanged": true,
+    "copy_matches_catalogue_hash": true,
+    "removed_points": 927,
+    "active_selection_after_save": {
+      "selected": null,
+      "initial_pose_confirmation": null,
+      "calibration_available": true,
+      "activation": "LEGACY_2D",
+      "runtime": null,
+      "runtime_fresh": false
+    }
+  },
+  "rows": [
+    {
+      "id": "V00",
+      "title": "현재 인수·실행 기준",
+      "result": "PASS",
+      "evidence_level": "STATIONARY_DEVICE",
+      "fact": "SSH/API 복구; PID995/cwd, source5154761 2200/2200 hash 일치; saved71933bade 유지"
+    },
+    {
+      "id": "V01",
+      "title": "대표 software/UI",
+      "result": "PASS",
+      "evidence_level": "STATIONARY_DEVICE + SOFTWARE",
+      "fact": "기존 software3132/JS700/browser18 인수; 실제 editor에서 영역/Z·undo/redo 확인"
+    },
+    {
+      "id": "V02",
+      "title": "E1/E2 편집·전체 저장·재조회",
+      "result": "PASS",
+      "evidence_level": "STATIONARY_DEVICE",
+      "fact": "13,546→12,619점 사본1개; 927점 제외, XYZ/intensity layout·retained record bytes/order·부모 hash 보존. E3 실제 worker는 V03에 의존"
+    },
+    {
+      "id": "V03",
+      "title": "N1~N4 실제 source·TF·consumer",
+      "result": "BLOCKED_DEPENDENCY",
+      "evidence_level": "STATIONARY_DEVICE",
+      "fact": "부팅 뒤 LEGACY_2D/source null. 독립 관측 준비 중 bridge stop이 failed여서 관측 시작하지 않음. 실제 seed·정합·Nav2 소비 미실행"
+    },
+    {
+      "id": "V04",
+      "title": "N5/G2 stop 접근",
+      "result": "BLOCKED_DEPENDENCY",
+      "evidence_level": "SOURCE_REVIEW",
+      "fact": "V03+V08 안전 gate 미충족, 새 시험창 미확인. 신규 goal0"
+    },
+    {
+      "id": "V05",
+      "title": "G1~G4 실제 버튼 재출발",
+      "result": "BLOCKED_DEPENDENCY",
+      "evidence_level": "SOFTWARE",
+      "fact": "actual stop/success/dwell/source 불충족. GREEN·arrival 강제 안 함"
+    },
+    {
+      "id": "V06",
+      "title": "R1/R4 독립 수동 경사로 관측",
+      "result": "BLOCKED_DEPENDENCY",
+      "evidence_level": "STATIONARY_DEVICE",
+      "fact": "정밀 도착과 독립적으로 관측 경로를 준비했으나 bridge inactive gate가 충족되지 않음; 관측 서비스 STOPPED"
+    },
+    {
+      "id": "V07",
+      "title": "R2/R3 원인 경계·동일입력 A/B",
+      "result": "BLOCKED_DEPENDENCY",
+      "evidence_level": "SOURCE_REVIEW",
+      "fact": "실제 ramp raw/LIO/match 입력 없음(INPUT_REQUIRED); rear policy 미적용"
+    },
+    {
+      "id": "V08",
+      "title": "정지·복구·보존",
+      "result": "FAIL",
+      "evidence_level": "STATIONARY_DEVICE",
+      "fact": "기존 stop API succeeded와 systemd failed/Result=timeout 불일치. MainPID0, TimeoutStopUSec2s, ExecMainCode2/Status9. 물리 정지는 미확인"
+    },
+    {
+      "id": "V09",
+      "title": "표 마감·진단 분리",
+      "result": "PASS",
+      "evidence_level": "SOURCE_REVIEW",
+      "fact": "이번 표를 새 stop 원인 분석보다 먼저 생성; 첫 ROUND1 원본 JSON 보존"
+    }
+  ],
+  "goals_sent": 0,
+  "motion_authorization": null,
+  "configuration_changes": [],
+  "code_deployment": false,
+  "device_actions": {
+    "new_pcd_copy": 1,
+    "existing_bridge_stop_requests": 1,
+    "bridge_start_requests": 0,
+    "observation_start_requests": 0,
+    "safety_gate_bypass": false
+  },
+  "observed_left_state": {
+    "dashboard_pid": 995,
+    "dashboard_release": "robot-scope-5154761bba6f",
+    "bridge_main_pid": 0,
+    "bridge_systemd_state": "failed",
+    "bridge_result": "timeout",
+    "bridge_timeout_stop_usec": "2s",
+    "bridge_stop_api_operation": "succeeded",
+    "observation_state": "STOPPED",
+    "nav2_pipeline": "idle",
+    "nav2_goal": "idle",
+    "lease_active": false,
+    "command_zero": true,
+    "stop_latched": false,
+    "physical_stop_verified": false,
+    "source_selection": null
+  },
+  "all_rows_adjudicated": true
+}

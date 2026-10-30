@@ -1,0 +1,53 @@
+{
+  "schema": "c0-stop-candidate-validation.v1",
+  "checked_at": "2026-10-30T19:42:18.014749+09:00",
+  "change": "signal flag with bounded executor spin; fail truthful lifecycle receipt",
+  "python_full": {
+    "run": 3137,
+    "skipped": 2,
+    "failures": 0,
+    "duration_s": 98.499
+  },
+  "javascript_full": {
+    "run": 700,
+    "failures": 0
+  },
+  "targeted_shutdown_lifecycle": {
+    "run": 62,
+    "failures": 0
+  },
+  "ruff": "PASS",
+  "mypy": "PASS (configured 4 files)",
+  "secret_scan": "PASS",
+  "field_stop_comparison": "NOT_RUN_AT_COMMIT",
+  "device_source_before": "5154761bba6fa4f171881e61f986901e2b415ed9",
+  "c4_owner_conflict_check": {
+    "head": "b7242fca7c1b863ef111978debe444b2a74cc3d3",
+    "shared_core_paths_changed": [],
+    "merged": false
+  },
+  "unchanged": [
+    "watchdog",
+    "STOP publishes",
+    "controller",
+    "goal tolerance",
+    "speed",
+    "progress checker",
+    "rear weighting",
+    "TimeoutStopSec=2"
+  ],
+  "logs": {
+    "stop-fix-python-full.log": {
+      "sha256": "2087cd8d881b275a2ee9de4ba18fbbfb56368e85fdd36eaeaf78323590f46953",
+      "bytes": 558658
+    },
+    "stop-fix-js.log": {
+      "sha256": "4e5e1790e364deca51cf558716be7f63fb3b9b74509711752b60f34e14830571",
+      "bytes": 146402
+    },
+    "stop-fix-targeted.log": {
+      "sha256": "838761d8d8907b14b2ff4cf09c93c131903f992675a8bb8f6575640bc2e763ca",
+      "bytes": 11175
+    }
+  }
+}

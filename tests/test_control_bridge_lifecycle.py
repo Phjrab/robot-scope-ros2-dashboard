@@ -168,6 +168,37 @@ class ControlBridgeLifecycleManagerTests(unittest.TestCase):
             self.assertNotIn("restart", command)
             self.assertNotIn("enable", command)
 
+    def test_stop_timeout_failed_unit_is_not_reported_as_success(self):
+        fake = FakeSystemd("active")
+
+        def timed_out_stop(command, timeout_seconds):
+            result = fake.mutate(command, timeout_seconds)
+            fake.active_state = "failed"
+            return result
+
+        manager = self.manager(
+            fake, mutation_runner=timed_out_stop, bridge_status_provider=lambda: False,
+        )
+        try:
+            manager.schedule_stop(confirmed=True)
+            snapshot = wait_for_state(manager, {"failed"})
+            self.assertEqual(snapshot["operation"]["error"], "service_stop_failed")
+            self.assertEqual(len(fake.mutations), 1)
+            self.assertFalse(snapshot["systemd"]["running"])
+        finally:
+            manager.close()
+
+    def test_already_failed_stop_stays_failed_without_another_mutation(self):
+        fake = FakeSystemd("failed")
+        manager = self.manager(fake, bridge_status_provider=lambda: False)
+        try:
+            manager.schedule_stop(confirmed=True)
+            snapshot = wait_for_state(manager, {"failed"})
+            self.assertEqual(snapshot["operation"]["error"], "service_stop_failed")
+            self.assertEqual(fake.mutations, [])
+        finally:
+            manager.close()
+
     def test_confirmation_opt_in_busy_and_preflight_fail_closed(self):
         fake = FakeSystemd("inactive")
         manager = self.manager(fake)
