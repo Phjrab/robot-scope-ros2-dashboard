@@ -273,5 +273,45 @@
     "robot_dashboard/expansion_runtime/ports.py": "8b5305dbb13866e74898cf275dba1e7323e4bde7618b80ada8f1e4d4c6e21f29",
     "robot_dashboard/expansion_runtime/sensor.py": "e38d536ac3306d1a0133a2dd1ce5028d5a0e5608eea4d140be3920a9d05e406d"
   },
-  "final_test_sha256": "481813709d2c1f6290780b22150486a709a14bbc593d7c60ad0854c5938354ec"
+  "final_test_sha256": "481813709d2c1f6290780b22150486a709a14bbc593d7c60ad0854c5938354ec",
+  "delivery_source_sha": "92c36c3d7a7dd87385ae71316dbb2d9059f77d67",
+  "delivery_native": {
+    "run": 41035596751,
+    "artifact": 12967872693,
+    "artifact_sha256": "c1876294fdf0cb81b9b15640562371fd50049cacda7aa68ecf334e08e2d4173f",
+    "result": "FAIL",
+    "actual_owner_tests": 12,
+    "callback_identity_rejections": 62,
+    "delivered": 0,
+    "raw_publications": 0,
+    "network": "none",
+    "container_removed": true
+  },
+  "delivery_full_ci": {
+    "run": 41035596779,
+    "result": "FAIL",
+    "ubuntu_22_python_310": "PASS",
+    "competition_offline_integration": "PASS",
+    "ubuntu_24_python_312": {
+      "result": "FAIL",
+      "python": "PASS",
+      "javascript": "PASS",
+      "browser_passed": 226,
+      "browser_failed": 1,
+      "mission_api_fixture": "NOT_RUN_AFTER_BROWSER_FAILURE",
+      "file": "tests/e2e/mount_calibration.spec.mjs",
+      "test_line": 343,
+      "error_line": 378,
+      "error": "page.waitForEvent: Test timeout of 20000ms exceeded, waiting for download",
+      "artifact": 12969460451,
+      "artifact_sha256": "53c4caf780a6e5ce4f4e33839554cc02c2e76d06babdcd93c2f7b92986c8f3ed"
+    },
+    "comparison": {
+      "previous_source": "652b9bfff72e29d35447661c0d3deaebe5044331",
+      "previous_full_ci": 41033864515,
+      "previous_result": "SUCCESS",
+      "identical_paths_from_start": "robot_dashboard/static, tests/e2e, package.json, package-lock.json, playwright.config.mjs, .github/workflows/ci.yml",
+      "root_cause": "UNCONFIRMED_NO_OWNER_SOURCE_CHANGE_NO_TIMEOUT_INCREASE_NO_TEST_REMOVAL"
+    }
+  }
 }

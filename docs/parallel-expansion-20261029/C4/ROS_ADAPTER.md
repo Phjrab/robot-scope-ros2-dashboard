@@ -174,6 +174,22 @@ make the separate native workflow green. Final delivery HEAD and both final CI
 run outcomes are reported in the delivery message, without embedding a
 self-referential commit SHA here.
 
+## Delivery-source CI audit
+
+Actual final implementation/test SHA **`92c36c3d7a7dd87385ae71316dbb2d9059f77d67`**
+was pushed and checked. The containing audit commit changes only this report and
+its JSON evidence; final publication HEAD is reported in the delivery message.
+
+- [Native run 41035596751](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41035596751): **FAIL**, same owner identity rejection after 62 actual callbacks, 0 delivered / 0 published. All **12** actual-owner Python checks passed first. [Final native artifact](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41035596751/artifacts/12967872693) is retained with digest in ROS_EVIDENCE.json.
+- [Full CI 41035596779](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41035596779): **FAIL**. Ubuntu 22.04/Python 3.10 and competition-offline-integration succeeded. Ubuntu 24.04/Python 3.12 passed Python/JS/static/audit checks, then had **226 browser tests pass / 1 fail**; its subsequent mission API fixture step was not run.
+- The first full-CI error is `tests/e2e/mount_calibration.spec.mjs:343`, “imports saved SYNTHETIC artifacts ... exports relative-only input”. At line 378, `page.waitForEvent('download')` encountered the **overall 20,000 ms test deadline**. The event's own configured timeout is 5,000 ms; neither limit was changed. [Browser failure artifact](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41035596779/artifacts/12969460451) includes the screenshot/trace/error context and is retained locally outside Git.
+- Baseline comparison: the prior source `652b9bf` completed [full CI 41033864515 SUCCESS](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41033864515); the same final `92c36c3` passed this browser test in Ubuntu 22.04. Browser source, E2E fixtures/test, package lock, Playwright config and shared CI are byte-identical to the starting `7ac0d55` in Git. This narrows the evidence but does **not** prove a root cause or erase the Ubuntu 24.04 failure.
+
+No retry-to-green, timeout increase, deleted test or unrelated owner-code fix was
+used. This UI download timeout remains a separate observed CI failure for its
+owner to investigate; it does not substitute for the native identity contract.
+A subsequent docs-only CI result, if available, is reported separately in chat.
+
 ## Reproduction and next boundary
 
 See the [executable recipe and host example](../../../experiments/expansion_20261029/c4_runtime/ros_bridge/README.md).
