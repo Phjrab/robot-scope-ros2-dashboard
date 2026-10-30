@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 35
     env:
-      C4_ROS_DEP_ROOT: ${{ runner.temp }}/c4-ros-deps
+      C4_ROS_DEP_ROOT: /tmp/c4-ros-deps
       C4_ROS_REQUIRED: '1'
       PYTHONDONTWRITEBYTECODE: '1'
     steps:
