@@ -1,0 +1,189 @@
+{
+  "schema": "c0-continue-remaining-functions-progress.v1",
+  "date_kst": "2026-10-31",
+  "sweep_status": "OPEN_WAITING_REQUIRED_INPUT; not a completed field result",
+  "requested_scope": [
+    "Nav2 stop point",
+    "actual stop+dwell+test green+one next goal",
+    "current operational ramp continuity",
+    "current/goal URDF and actual state",
+    "safe end/full result table"
+  ],
+  "excluded": "No alignment investigation, prior fit/origin/RMSE comparison, old editing/2D/gait/manual-recording repetition, or extension-branch merge",
+  "attachment_status": "Named continuation MD not found in supplied/local paths; written user instructions applied; path requested",
+  "source_status": {
+    "activation": "LEGACY_2D",
+    "selected": null,
+    "sensor_pose_topic": "/Odometry",
+    "sensor_cloud_topic": "/cloud_registered",
+    "map_id": "9a382e3eb990fb02fe1a3569",
+    "map_revision": "d5733a293effbd9567cdb9165472e15c2be8ab0adef7cf05f99ec39f19578552",
+    "node_tf_readiness": {
+      "map_server": true,
+      "localization": true,
+      "planner": true,
+      "controller": true,
+      "behavior": true,
+      "cmd_bridge": true,
+      "map": true,
+      "scan": true,
+      "odometry": true,
+      "tf": true,
+      "action_server": true,
+      "cmd_vel_publishers": 1,
+      "scan_publishers": 1,
+      "odometry_publishers": 1,
+      "controller_odometry_publishers": 1,
+      "runtime_health_publishers": 1,
+      "localization_publishers": 1
+    },
+    "nav_pipeline": "running",
+    "gateway_session": "idle",
+    "health_state": "UNAVAILABLE",
+    "health_reason": "NAVIGATION_INACTIVE",
+    "can_send_goal": false,
+    "previous_user_goal_state": "canceled",
+    "previous_user_goal_not_counted_as_this_sweep": true
+  },
+  "rows": [
+    {
+      "id": "C00",
+      "feature": "current deployment/settings acquisition",
+      "result": "PASS",
+      "evidence": "PID/cwd + actual YAML and loaded overlay readback; current config/calibration backup"
+    },
+    {
+      "id": "C01",
+      "feature": "current source/TF/Nav2 admission",
+      "result": "BLOCKED_SOURCE_SELECTION",
+      "evidence": "TF/node inputs ready; selected=null LEGACY_2D, gateway inactive, can_send_goal=false; source choice pending"
+    },
+    {
+      "id": "C02",
+      "feature": "actual Nav2 stop-point arrival and measured stop",
+      "result": "NOT_RUN",
+      "dependency": "C01 + P1/P2 + fresh field readiness and bounded test window"
+    },
+    {
+      "id": "C03",
+      "feature": "test green -> one next goal -> actual departure/end",
+      "result": "BLOCKED_DEPENDENCY",
+      "dependency": "existing gate requires live STORED_PCD_FASTLIO source, actual success, measured stop/dwell and current generation; no forced proof"
+    },
+    {
+      "id": "C04",
+      "feature": "ramp current operational localization continuity",
+      "result": "NOT_RUN",
+      "dependency": "current operational source + fresh field window; no repeat of old raw/LIO-only records"
+    },
+    {
+      "id": "C05",
+      "feature": "current robot URDF, pose and 12 joints",
+      "result": "PASS_SCOPED",
+      "evidence": {
+        "schema": "c0-continue-display-and-monitor-check.v1",
+        "fresh_pose_and_12_joint_input": "PASS",
+        "pose_seq_progresses": true,
+        "pose_stamp_progresses": true,
+        "joint_seq_progresses": true,
+        "pose_max_age_s": 0.06,
+        "joint_max_age_s": 0.014,
+        "urdf_render_current": "PASS visual; no physical accuracy assertion",
+        "active_goal_urdf": "NOT_RUN current goal canceled before scope; no new goal sent",
+        "camera_view_tab": "closed; original user tab preserved",
+        "monitor_samples": 2,
+        "monitor_phase": "PREPARATION_READ_ONLY",
+        "monitor_hardware_commands": 0,
+        "monitor_errors": 0
+      }
+    },
+    {
+      "id": "C05b",
+      "feature": "actual current goal URDF and movement-state display",
+      "result": "NOT_RUN",
+      "dependency": "new goal not dispatched; old canceled user goal is not this test"
+    },
+    {
+      "id": "C06",
+      "feature": "end/recovery/full field results",
+      "result": "PENDING_SWEEP",
+      "evidence": "temporary inspection tab and 2s read-only monitor ended; device runtime unchanged"
+    }
+  ],
+  "deployment": {
+    "code_sha_existing_full_receipt": "15706c48c5e6df28be105b6f5bde825dce7c4b1f",
+    "current_pid": 1016,
+    "current_cwd_release": "robot-scope-15706c48c5e6",
+    "new_full_source_audit": false,
+    "loaded_overlay_sha256": "95c6ee9b0294651c182092031eb4926291946eb8e72be5cf1bfb976219f1754d",
+    "saved_parameter_revision": "71933badef736b1361f1162355527488a9350b86a8b4b8865b81c38031100387",
+    "generated_yaml_sha256": "69804bc0a5dacf1122fe52e2a1aa313c8c65576525c2262f10eeea6783c50ccc",
+    "saved_generated_live_xy_tolerance_m": 0.1,
+    "saved_generated_live_yaw_tolerance_rad": 0.1,
+    "desired_linear_velocity_mps": 0.25,
+    "controller_hz": 10,
+    "progress_checker": "nav2_controller::SimpleProgressChecker",
+    "new_deployment": false,
+    "settings_changed": false
+  },
+  "preserved_private_runtime_files": [
+    {
+      "bytes": 6756,
+      "sha256": "69804bc0a5dacf1122fe52e2a1aa313c8c65576525c2262f10eeea6783c50ccc"
+    },
+    {
+      "bytes": 1504,
+      "sha256": "3d3fd83fe14c21d07d0b7108f4818d74c0557d67006aa00bc24295e8d30dd4bd"
+    },
+    {
+      "bytes": 3218,
+      "sha256": "5025e83be9014bef40ab6b57970a8f981fd196689e9b7404cd3503668ad28226"
+    }
+  ],
+  "current_bridge": {
+    "active": true,
+    "authenticated": true,
+    "lease_active": false,
+    "command_zero": true,
+    "agent_started_bridge": false
+  },
+  "actions": {
+    "new_goal_arm_posture_motion_commands": 0,
+    "service_changes": 0,
+    "source_changes": 0,
+    "map_calibration_edits": 0,
+    "guard_bypasses": 0,
+    "raw_recording_repeats": 0
+  },
+  "validation": {
+    "display_seq_stamp_age_checks": "PASS",
+    "read_only_monitor_2_samples_errors": 0,
+    "current_file_backup_hashes": "PASS",
+    "application_test_ci_code_changed": false,
+    "new_report_exact_sha_ci": "not yet published; no success asserted"
+  },
+  "private_evidence": {
+    "initial-state-private.json": "727345f9a0c155bbbac89d7020a9242507601bec9431ffd1ae8f33611ca39d2d",
+    "deployment-readback-private.json": "2ad5c41dd7cd5de2ca866f5994fc86b3fd395e5b0b5dc93db320c9827b423fbb",
+    "current-map-private.json": "a9bb93b877358db12fc52e0b7664bb83317071ce3311dcf135dcd2a9a13992d4",
+    "current-map-annotations-private.json": "7d4611726e8d4709b984b62b28a2e55718225597136620dc53a82b38967db78b",
+    "stationary-display-inputs-private.json": "7a6ad40e098d73c6247cdff1224ae5c655943d08c02ac0d30a02569ee9ec60e8",
+    "current-runtime-file-backup-private.json": "c18f5a9fecec7bcc295ba566c9b4827e59ef38a93c0b9cad489eafb1d15b314c",
+    "display-and-monitor-check-private.json": "8612c2b0a7fc04dbb1feb1ab01f67e4ff0f1aa873c3725dbd0239aba00196faf",
+    "preparation-baseline.jsonl": "713d896a4de339f54891af2286c51bfa8d89df41ea582d6dfa95fb668e75f441",
+    "monitor_current_runtime.py": "0a48a3260a761f6b4f318ab2010547a03e6b33053ac84cae6fcc661fcf1f0d81",
+    "current-urdf-cockpit.jpg": "03774537621c3a6753940602ea841b5d4398b8ece8747b431e999f361310411f"
+  },
+  "requested_inputs": [
+    "continuation MD path",
+    "use prepared stored-PCD operating source versus preserve current source",
+    "P1 stop and P2 next target",
+    "fresh field readiness and bounded test window after goals are concrete"
+  ],
+  "blocking_inputs": [
+    "operating source choice/admission",
+    "P1 and P2 targets",
+    "fresh field readiness and bounded test window"
+  ],
+  "attachment_missing_does_not_block_read_only_preparation": true
+}
