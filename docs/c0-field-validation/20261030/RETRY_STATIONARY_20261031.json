@@ -172,7 +172,7 @@
     "parameters_modified": false,
     "no_vertical_offset_applied": true
   },
-  "latest_attempt_key": "moved_location_retry",
+  "latest_attempt_key": "seed_candidate_recheck",
   "moved_location_retry": {
     "schema": "c0-moved-location-stationary-result.v1",
     "created_at_kst": "2026-10-31T15:41:38.275061+09:00",
@@ -252,6 +252,96 @@
       "moved-location-retry-job-private.json": "19c30712f17667a23acd83fd47ccade503b42207cb06909d62e98089f1632067",
       "moved-location-retry-proposal-private.json": "7f78eae0d99689688ba626c2e97c95e07f5e2a9312272beb597b43e9b9d750ef",
       "moved-location-after-result-state-private.json": "49453f315ac98ecdf44bc218ba4b7f16ca64892940afbec6c0117ced2b8fb741"
+    }
+  },
+  "seed_candidate_recheck": {
+    "schema": "c0-seed-candidate-recheck-summary.v1",
+    "job_id": "53db9049c009bbacb11b6b3d",
+    "seed_revision": 225,
+    "map_id": "4b672f17ec79b96d2d075189",
+    "map_revision": "32123a1b2eb19798d81aa930a6e7f0b02451fb219f9fa164abe99612d191d268",
+    "basis": "latest server job at readback; same query capture stamp/camera_init/FASTLIO_IMU",
+    "initial_pose_transmitted_correctly": true,
+    "matrix_binding_reconstructs_original_seed": true,
+    "capture_prior_matches_solver_input": true,
+    "seed_to_capture_s": 0.100098848,
+    "signed_delta_xyz_m": [
+      -0.3060355826987726,
+      0.12852164592857307,
+      -0.053130634240777165
+    ],
+    "xy_delta_m": 0.3319270874001801,
+    "signed_delta_rpy_deg": [
+      -0.10024583289765587,
+      0.0757631016048208,
+      6.454199753166705
+    ],
+    "rmse_m": 0.05156782353011113,
+    "overlap": 1.0,
+    "admissible": false,
+    "result": "FAIL_HIGH_RESIDUAL",
+    "actual_physical_pose_verified": false,
+    "two_pose_coordinates_equal": false,
+    "new_registration_POSTs": 0,
+    "pose_or_goal_motion_commands": 0,
+    "candidate_application": "NOT_RUN",
+    "prior_report_job_id": "f2b7ef3a977235a5c28eb75f",
+    "prior_report_rmse_m": 0.054923964866580445,
+    "latest_server_job_was_already_complete": "succeeded; no computation rerun for this request",
+    "private_evidence": {
+      "latest-seed-candidate-recheck-private.json": "e02d551d469b7e7a86922af836ee5c53d4e67f843afcaf9447e78608cb14e217",
+      "seed-candidate-recheck.png": "262c82460792101d55279030a79daac7641eb417c015b9f9155f6d72cafbeb5e",
+      "seed-candidate-recheck.svg": "2fc43244e8a6aadaf11818055469699fc6d2f6e3267e3935098f40b8adf84e92",
+      "recheck-latest-job-53db9049c009bbacb11b6b3d-private.json": "da2faebc89ee038abd78f8527927395963c87b5bed2f345dd6fed1ae91784d68",
+      "recheck-latest-proposal-53db9049c009bbacb11b6b3d-private.json": "3c06614a5bc647ce5ff8e579ef1a2b49592a0126e219bc08f42e7605364ded5a"
+    }
+  },
+  "height_horizontal_cause_audit": {
+    "schema": "c0-height-horizontal-cause-audit.v1",
+    "job_id": "53db9049c009bbacb11b6b3d",
+    "known": {
+      "seed_height_source": "approximate",
+      "seed_z_m": 0,
+      "solver": "point-to-point SE3 ICP; one local coarse-to-fine hypothesis",
+      "initial_pose_is_start_not_prior_cost": true,
+      "bounds_checked_after_solve": true,
+      "correspondence_gate_m": 0.75,
+      "query_points": 172,
+      "current_surface_voxel_m": 0.5,
+      "current_dense_publish_en": false,
+      "registered_publisher_uses_downsampled_population_if_dense_false": true,
+      "inverse_odometry_does_not_restore_removed_points": true,
+      "initial_pose_binding_and_units_verified": true,
+      "new_terrain_map_reference_hash_verified": true
+    },
+    "hypotheses": [
+      "Coarse representative points and nearest-neighbour correspondences bias local pose",
+      "Map/current IMU origin, posture or realised estimated extrinsic differ between sessions"
+    ],
+    "unproven": [
+      "Single physical root cause",
+      "Which pose is closer to physical truth",
+      "That sampling alone caused 33cm displacement",
+      "Session-to-session realised extrinsic equality",
+      "Independent IMU/floor height"
+    ],
+    "interpretation": {
+      "vertical_delta_is_not_floor_step_measurement": true,
+      "rmse_is_not_prior_delta_or_absolute_pose_error": true,
+      "overlap_is_correspondence_gate_coverage_not_pose_truth": true,
+      "voxel_size_is_not_pose_error_bound": true,
+      "spatial_covariance_direction_is_not_pose_uncertainty": true,
+      "coarse_seed_and_final_rmse_have_different_populations": true
+    },
+    "recommended_comparison": "Same frozen raw/dense versus current downsampled query; same map, seed and gates; offline only; dense input availability not asserted",
+    "same_input_dense_comparison_completed": false,
+    "installed_fastlio_source_sha256": "63fc4d567e3952d4c7a5d08a9d3b15ded6ceb919ae75f463abf25c851c1af1f9",
+    "new_source_binary_reproducibility_verified": false,
+    "new_registration_POSTs": 0,
+    "parameters_or_quality_gate_changed": false,
+    "pose_application_or_motion_commands": 0,
+    "private_evidence": {
+      "fastlio-point-population-source-audit-private.json": "7fd1011b8c5caa961244d40225500ee4b6b3ce2092114b30bc3976f9a424310a"
     }
   }
 }
