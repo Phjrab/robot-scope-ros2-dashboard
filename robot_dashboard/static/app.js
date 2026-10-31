@@ -2729,7 +2729,7 @@ function scheduleMappingLogScroll(scrollSnapshot) {
   });
 }
 
-function renderMappingControl() {
+function renderMappingControl({ trackConversion = false } = {}) {
   if (!mappingControlSnapshot) return;
   const logScrollSnapshot = captureStickyLogScroll(ui.mappingLog);
   const pipeline = mappingControlSnapshot.pipeline || {};
@@ -2797,7 +2797,9 @@ function renderMappingControl() {
       }
     }
   }
-  renderMapConversionOperation(operation);
+  // Topic refreshes also render this cached snapshot. Only a new mapping
+  // response may invalidate an accepted conversion reservation.
+  if (trackConversion) renderMapConversionOperation(operation);
 }
 
 async function refreshMappingControl() {
@@ -2813,7 +2815,7 @@ async function refreshMappingControl() {
     mappingLogLines = mappingLogLines.slice(-80);
     mappingLogCursor = Number(payload.log_cursor || mappingLogCursor);
     mappingControlSnapshot = payload;
-    renderMappingControl();
+    renderMappingControl({ trackConversion: true });
   } catch (error) {
     if (requestGeneration !== mappingControlRequestGeneration) return;
     if (mapConversionTrackingExpired()) {

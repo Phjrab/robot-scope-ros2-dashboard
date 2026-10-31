@@ -160,6 +160,39 @@ test('conversion status is bound only to the reserved backend job id', () => {
   assert.equal(matchesJob({ jobId: 'a'.repeat(32) }, { state: 'idle', job_id: null }), false);
 });
 
+test('cached topic render cannot cancel a newly accepted conversion reservation', async () => {
+  const start = appSource.indexOf('function renderMappingControl(');
+  const end = appSource.indexOf('\nasync function refreshMappingControl()', start);
+  const calls = [];
+  const noop = () => {};
+  const node = { classList: { remove: noop, add: noop } };
+  const ui = new Proxy({}, { get: () => node });
+  const render = new Function('mappingControlSnapshot', 'ui', 'captureStickyLogScroll',
+    'hasFreshLaserMap', 'latestState', 'mappingPipelineActive', 'setStatePill',
+    'mappingLogLines', 'scheduleMappingLogScroll', 'mapConversionMatches',
+    'renderMapConversionOperation', `${appSource.slice(start, end)}; return renderMappingControl;`);
+  const cached = { operation: { state: 'idle', job_id: null } };
+  const run = render(cached, ui, noop, () => false, {}, () => false, noop,
+    [], noop, () => false, (operation) => calls.push(operation));
+  // POST reserved job A, while topics still hold the pre-POST idle snapshot.
+  run();
+  assert.deepEqual(calls, []);
+  cached.operation = { state: 'saving', job_id: 'a'.repeat(32), kind: 'pcd_to_2d' };
+  run({ trackConversion: true });
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].job_id, 'a'.repeat(32));
+  cached.operation = { state: 'succeeded', job_id: 'a'.repeat(32), kind: 'pcd_to_2d' };
+  run({ trackConversion: true });
+  assert.equal(calls[1].state, 'succeeded');
+  // A genuinely fresh mismatching/idle response must still reach the guard.
+  cached.operation = { state: 'idle', job_id: null };
+  run({ trackConversion: true });
+  assert.equal(calls[2].job_id, null);
+  const refresh = appSource.slice(end, appSource.indexOf('\nasync function startMappingSession', end));
+  assert.match(refresh, /requestGeneration !== mappingControlRequestGeneration/);
+  assert.match(refresh, /renderMappingControl\(\{ trackConversion: true \}\)/);
+});
+
 test('2D editor exposes brush, eraser, semantic values and non-destructive history', () => {
   for (const value of ['brush', 'eraser']) assert.match(indexSource, new RegExp(`data-map-editor-tool="${value}"`));
   for (const value of ['100', '0', '-1']) assert.match(indexSource, new RegExp(`data-map-editor-value="${value}"`));
