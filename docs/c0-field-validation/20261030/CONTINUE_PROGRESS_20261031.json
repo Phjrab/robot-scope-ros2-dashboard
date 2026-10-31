@@ -185,5 +185,13 @@
     "P1 and P2 targets",
     "fresh field readiness and bounded test window"
   ],
-  "attachment_missing_does_not_block_read_only_preparation": true
+  "attachment_missing_does_not_block_read_only_preparation": true,
+  "later_followup": {
+    "report": "../20261031/CONTINUATION_RESULTS.md",
+    "deployment_and_recovery": "../20261031/EDITED_PCD_CONVERSION.md",
+    "rear_side_comparison": "../20261031/REAR_SIDE_COMPARISON.md",
+    "attachment_read_after_this_snapshot": true,
+    "status": "OPEN_REQUIRED_FIELD_INPUT",
+    "archived_snapshot_not_current_state": true
+  }
 }

@@ -1,0 +1,221 @@
+{
+  "schema": "c0-continuation-first-pass.v1",
+  "status": "OPEN_REQUIRED_FIELD_INPUT",
+  "date_kst": "2026-10-31",
+  "alignment_intake": "USER_CONFIRMED_USABLE; historical re-investigation excluded",
+  "attachment_sha256": "2a42b14369d73a76db3cead480d449ac9aa953eb6690cea9ad95e171bd9b5399",
+  "instruction_precedence": "Latest explicit rear/side implementation instruction overrides this attachment only for archived same-input second-pass weighting comparison; no origin or old/new-map investigation",
+  "actual_deployment_sha": "15706c48c5e6df28be105b6f5bde825dce7c4b1f",
+  "actual_weighting_policy": "ALL_DIRECTION_BASELINE; no active stored-map matcher",
+  "new_device_mutations": 0,
+  "new_autonomous_goals": 0,
+  "pre_weighting_snapshot_sha256": "530d0e3bba0591cf511b1d4c9a4a6c5a9ceae69009ed5e5b88948dcae71ddb42",
+  "last_readback_utc": "2026-10-31T08:14:05.004652+00:00",
+  "source": {
+    "activation": "LEGACY_2D",
+    "selected": null,
+    "sensor_pose_topic": "/Odometry",
+    "sensor_cloud_topic": "/cloud_registered",
+    "map_id": "9a382e3eb990fb02fe1a3569",
+    "map_revision": "d5733a293effbd9567cdb9165472e15c2be8ab0adef7cf05f99ec39f19578552",
+    "node_tf_readiness": {
+      "map_server": true,
+      "localization": true,
+      "planner": true,
+      "controller": true,
+      "behavior": true,
+      "cmd_bridge": true,
+      "map": true,
+      "scan": true,
+      "odometry": true,
+      "tf": true,
+      "action_server": true,
+      "cmd_vel_publishers": 1,
+      "scan_publishers": 1,
+      "odometry_publishers": 1,
+      "controller_odometry_publishers": 1,
+      "runtime_health_publishers": 1,
+      "localization_publishers": 1
+    },
+    "nav_pipeline": "running",
+    "gateway_session": "idle",
+    "health_state": "UNAVAILABLE",
+    "health_reason": "NAVIGATION_INACTIVE",
+    "can_send_goal": false,
+    "previous_user_goal_state": "canceled",
+    "previous_user_goal_not_counted_as_this_sweep": true
+  },
+  "rows": [
+    {
+      "id": "F00",
+      "feature": "current source/deployment/settings intake",
+      "result": "PASS_READBACK; BLOCKED_SOURCE_SELECTION",
+      "evidence": "Current nodes/TF fresh; selected=null, LEGACY_2D, gateway idle/NAVIGATION_INACTIVE. User-confirmed usable alignment is inherited, not remeasured accuracy."
+    },
+    {
+      "id": "F01",
+      "feature": "3D Nav2 stop point, measured stop, separate precision assessment",
+      "result": "BLOCKED_DEPENDENCY",
+      "dependency": "Operating source selection, explicit new P1/P2, fresh bounded field window; zero new goals"
+    },
+    {
+      "id": "F02",
+      "feature": "real success/stop/dwell -> test green -> one next action/departure/end",
+      "result": "BLOCKED_DEPENDENCY",
+      "dependency": "F01 real success and live 3D source/stop/dwell/generation. No fake state, permit or goal"
+    },
+    {
+      "id": "F03",
+      "feature": "current operating localization ramp continuity",
+      "result": "BLOCKED_DEPENDENCY",
+      "dependency": "Current operating source and field window. Archived manual LIO recordings are inherited input, not current operating-map evidence"
+    },
+    {
+      "id": "F04",
+      "feature": "current/goal URDF and actual state",
+      "result": "PASS_CURRENT_DISPLAY; NOT_RUN_NEW_GOAL",
+      "evidence": "Fresh current Go2 pose+12 joints and screen previously checked this continuation; no new goal to validate"
+    },
+    {
+      "id": "F05",
+      "feature": "safe end/control return/evidence and restoration",
+      "result": "PASS_OWN_READ_ONLY_CLEANUP; NOT_RUN_MOTION_END",
+      "evidence": "Read-only recorder ended normally; temporary tab closed; other owner runtime preserved. Bridge ready, lease inactive, final command zero. Physical stop not re-certified"
+    },
+    {
+      "id": "F06",
+      "feature": "first-pass table before post-analysis",
+      "result": "OPEN_REQUIRED_FIELD_INPUT",
+      "evidence": "All currently executable nonmotion checks have outcomes; field sweep is not declared completed. Pre-weighting snapshot frozen before implementation"
+    }
+  ],
+  "second_pass_status": "IMPLEMENTED_OFFLINE_COMPARED_NOT_ADOPTED_CODE_DEPLOYED_DISABLED",
+  "prior_results": "20261030/FINAL_ROUND1_RESULTS remains unchanged",
+  "second_pass_rows": [
+    {
+      "id": "R01",
+      "feature": "quality rear/side implementation and regressions",
+      "result": "PASS_SOFTWARE",
+      "code_sha": "c719672ccc16d41d905087b795c84a9a01bcb2dd"
+    },
+    {
+      "id": "R02",
+      "feature": "same-input comparison",
+      "result": "COMPLETE_MIXED_NOT_ADOPTED",
+      "paired_frames": 1616
+    },
+    {
+      "id": "R03",
+      "feature": "candidate device deployment",
+      "result": "CODE_DEPLOYED_DISABLED; POLICY_NOT_ACTIVATED"
+    },
+    {
+      "id": "R04",
+      "feature": "candidate current operating ramp field validation",
+      "result": "NOT_RUN"
+    }
+  ],
+  "second_pass_report": "REAR_SIDE_COMPARISON.md",
+  "snapshot_scope": "Frozen first pass before weighting implementation; later events are appended separately",
+  "later_events": [
+    {
+      "kind": "user_navigation_intake",
+      "at_utc": "2026-10-31T08:37:47Z",
+      "result": "2D_READY_P1_P2_SAVED; LEGACY_2D_SELECTED_NULL; NOT_3D_MOTION_PASS"
+    },
+    {
+      "kind": "source_link_attempt",
+      "result": "HTTP_TIMEOUT_20S; ORIGINAL_CALIBRATION_RESTORED; IDLE_ZERO_COMMAND",
+      "cause": "UNPROVEN"
+    },
+    {
+      "kind": "user_edited_pcd_conversion",
+      "job_id": "e3a49a7fa5c94b22b815a50ca5f0de8e",
+      "result": "SUCCEEDED; UI_TRACKING_FALSE_FAILURE",
+      "output_map_id": "17b3e78ac06cc92af38b86f9",
+      "output_name": "map1_2d",
+      "finished_at_utc": "2026-10-31T09:16:23.219638+00:00"
+    }
+  ],
+  "latest_readback": {
+    "at_utc": "2026-10-31T09:28:33.371224+00:00",
+    "source_sha": "8dd087243ecc6ca12146e07cc2b6b8ca5d56e298",
+    "pid": 241880,
+    "release": "/home/unitree/robot-scope-releases/robot-scope-8dd087243ecc",
+    "verified_files": 2243,
+    "served_app_sha256": "57fa417bca00ae5c1bda39cb8d368fe8f8fd5792754a65fd1d2a39e877cbdc14",
+    "configs_unchanged": true,
+    "protected_assets_unchanged": true,
+    "runtime_links": {
+      ".venv": "/home/unitree/robot-scope/.venv",
+      "workspaces": "/home/unitree/robot-scope/workspaces"
+    },
+    "goals_sent": 0,
+    "states": {
+      "nav_pipeline": "idle",
+      "goal": "idle",
+      "lease_active": false,
+      "command": {
+        "source": null,
+        "deadman": false,
+        "linear_x": 0.0,
+        "linear_y": 0.0,
+        "angular_z": 0.0
+      },
+      "source_selected": null,
+      "activation": "LEGACY_2D",
+      "policy": "ALL_DIRECTION_BASELINE; candidate disabled; no active stored-map matcher"
+    },
+    "conversion": {
+      "job_id": "e3a49a7fa5c94b22b815a50ca5f0de8e",
+      "state": "succeeded",
+      "exit_code": 0,
+      "started_at": "2026-10-31T09:16:17.184522+00:00",
+      "finished_at": "2026-10-31T09:16:23.219638+00:00",
+      "files": [
+        "map1_2d.yaml",
+        "map1_2d.pgm"
+      ],
+      "details": {
+        "filter": "projected_xy_density",
+        "result_map_id": "17b3e78ac06cc92af38b86f9",
+        "source_revision": "c9ad9bcc4c8b7c02a47a0db5822707853110b60cb4b9ef837e42b0c32e3c823e",
+        "source_points": 18166,
+        "z_slice_points": 9318,
+        "selected_points": 9048,
+        "occupied_cells": 3292,
+        "width": 170,
+        "height": 166,
+        "z_min": -0.2,
+        "z_max": 0.8,
+        "resolution": 0.05,
+        "noise_radius": 0.1,
+        "min_neighbors": 10,
+        "background": "unknown"
+      }
+    },
+    "software_validation": {
+      "python_tests": 3159,
+      "skipped": 2,
+      "python_runtime_s": 102.49,
+      "javascript_direct_assertions": 701,
+      "javascript_files_runner": 77,
+      "cached_topic_race_regression": "PASS",
+      "syntax_modules": 112,
+      "ruff": "PASS",
+      "mypy_existing_scope": "PASS",
+      "secret_scan": "PASS",
+      "initial_sandbox_full_test": "STALLED_TERMINATED_143; host retry PASS; not a robot result"
+    },
+    "private_receipt_sha256": {
+      "tracking-deployment-final-private.json": "160028c58e65badc3fd434646088b62b27c78ece6d566222a924878c95149a3a",
+      "user-conversion-readback-private.json": "e8934b230f22a19f555149c8aae1dbb65194db7b2dc3113f13a2dd7a67828fc0"
+    },
+    "rollback": {
+      "previous_release": "/home/unitree/robot-scope-releases/robot-scope-67e6fc5f85a0",
+      "backup": "/home/unitree/robot-scope-backups/c0-conversion-tracking-8dd087243ecc-20261031",
+      "method": "restore backed-up selector atomically under normal idle lifecycle gates, normal restart API, verify HTTP/code/assets/source/control",
+      "policy_adoption": "NOT_ADOPTED; default baseline unchanged"
+    }
+  }
+}

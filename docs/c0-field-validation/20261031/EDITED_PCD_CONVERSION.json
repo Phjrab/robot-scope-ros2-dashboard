@@ -1,0 +1,92 @@
+{
+  "at_utc": "2026-10-31T09:28:33.371224+00:00",
+  "source_sha": "8dd087243ecc6ca12146e07cc2b6b8ca5d56e298",
+  "pid": 241880,
+  "release": "/home/unitree/robot-scope-releases/robot-scope-8dd087243ecc",
+  "verified_files": 2243,
+  "served_app_sha256": "57fa417bca00ae5c1bda39cb8d368fe8f8fd5792754a65fd1d2a39e877cbdc14",
+  "configs_unchanged": true,
+  "protected_assets_unchanged": true,
+  "runtime_links": {
+    ".venv": "/home/unitree/robot-scope/.venv",
+    "workspaces": "/home/unitree/robot-scope/workspaces"
+  },
+  "goals_sent": 0,
+  "states": {
+    "nav_pipeline": "idle",
+    "goal": "idle",
+    "lease_active": false,
+    "command": {
+      "source": null,
+      "deadman": false,
+      "linear_x": 0.0,
+      "linear_y": 0.0,
+      "angular_z": 0.0
+    },
+    "source_selected": null,
+    "activation": "LEGACY_2D",
+    "policy": "ALL_DIRECTION_BASELINE; candidate disabled; no active stored-map matcher"
+  },
+  "conversion": {
+    "job_id": "e3a49a7fa5c94b22b815a50ca5f0de8e",
+    "state": "succeeded",
+    "exit_code": 0,
+    "started_at": "2026-10-31T09:16:17.184522+00:00",
+    "finished_at": "2026-10-31T09:16:23.219638+00:00",
+    "files": [
+      "map1_2d.yaml",
+      "map1_2d.pgm"
+    ],
+    "details": {
+      "filter": "projected_xy_density",
+      "result_map_id": "17b3e78ac06cc92af38b86f9",
+      "source_revision": "c9ad9bcc4c8b7c02a47a0db5822707853110b60cb4b9ef837e42b0c32e3c823e",
+      "source_points": 18166,
+      "z_slice_points": 9318,
+      "selected_points": 9048,
+      "occupied_cells": 3292,
+      "width": 170,
+      "height": 166,
+      "z_min": -0.2,
+      "z_max": 0.8,
+      "resolution": 0.05,
+      "noise_radius": 0.1,
+      "min_neighbors": 10,
+      "background": "unknown"
+    }
+  },
+  "software_validation": {
+    "python_tests": 3159,
+    "skipped": 2,
+    "python_runtime_s": 102.49,
+    "javascript_direct_assertions": 701,
+    "javascript_files_runner": 77,
+    "cached_topic_race_regression": "PASS",
+    "syntax_modules": 112,
+    "ruff": "PASS",
+    "mypy_existing_scope": "PASS",
+    "secret_scan": "PASS",
+    "initial_sandbox_full_test": "STALLED_TERMINATED_143; host retry PASS; not a robot result"
+  },
+  "private_receipt_sha256": {
+    "tracking-deployment-final-private.json": "160028c58e65badc3fd434646088b62b27c78ece6d566222a924878c95149a3a",
+    "user-conversion-readback-private.json": "e8934b230f22a19f555149c8aae1dbb65194db7b2dc3113f13a2dd7a67828fc0"
+  },
+  "rollback": {
+    "previous_release": "/home/unitree/robot-scope-releases/robot-scope-67e6fc5f85a0",
+    "backup": "/home/unitree/robot-scope-backups/c0-conversion-tracking-8dd087243ecc-20261031",
+    "method": "restore backed-up selector atomically under normal idle lifecycle gates, normal restart API, verify HTTP/code/assets/source/control",
+    "policy_adoption": "NOT_ADOPTED; default baseline unchanged"
+  },
+  "ui": {
+    "existing_user_tab": "map1_2d selected; actual 2D drawing visible",
+    "temporary_tab": "startup view stalled after reload; closed; user tab preserved",
+    "post_tracking_fix_second_real_conversion": "NOT_RUN; no duplicate map creation",
+    "regression_and_served_asset_hash": "PASS"
+  },
+  "remote_ci": {
+    "run_id": 41188793754,
+    "status": "IN_PROGRESS_AT_REPORT",
+    "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41188793754"
+  }
+}
