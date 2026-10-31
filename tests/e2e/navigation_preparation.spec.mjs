@@ -6,13 +6,15 @@ const grid = { id: 'c'.repeat(24), revision: 'd'.repeat(64), kind: 'occupancy2d'
 
 async function fixture(page) {
   const state = { selected: null, pair: null, runtime: null }, writes = [];
-  let reject = false;
+  let reject = false, failingReads = 0, heldWrites = null, releaseWrite = null;
   await page.route('**/software-preparation.html', route => route.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/styles.css"><main style="padding:24px"><label>3D 위치추정 지도<select id="cloud"></select></label><label>2D 경로 계산 지도<select id="grid"><option>${grid.name}</option></select></label><article class="panel navigation-preparation-panel" id="host"></article></main>` }));
-  await page.route('**/api/v1/navigation/operational-3d**', route => {
+  await page.route('**/api/v1/navigation/operational-3d**', async route => {
     const path = new URL(route.request().url()).pathname, method = route.request().method();
     const body = route.request().postDataJSON();
     const json = (value, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(value) });
     if (method !== 'GET') writes.push({ path, method, body });
+    if (method === 'GET' && failingReads > 0) { failingReads--; return json({ detail: 'SYNTHETIC_READ_TIMEOUT' }, 503); }
+    if (method !== 'GET' && heldWrites) await heldWrites;
     if (reject && method !== 'GET') return json({ detail: 'PAIR_COORDINATE_RELATION_UNVERIFIED' }, 409);
     if (path.endsWith('/pair')) {
       state.selected = { workflow: 'staged_navigation_pair', generation: 'pairgen',
@@ -35,7 +37,9 @@ async function fixture(page) {
       actions: Object.fromEntries(['start', 'initial', 'goal', 'refresh'].map(key => [key, () => window.fixtureActions.push(key)])) });
     window.preparation.render(); await window.preparation.refresh(true);
   }, { cloud, grid });
-  return { state, writes, reject(value) { reject = value; } };
+  return { state, writes, reject(value) { reject = value; }, failReads(count) { failingReads = count; },
+    holdWrites() { heldWrites = new Promise(resolve => { releaseWrite = resolve; }); },
+    releaseWrites() { releaseWrite?.(); heldWrites = null; releaseWrite = null; } };
 }
 
 test('map selection is passive, missing geometry is explicit, retry resumes without repeated pair application', async ({ page }) => {
@@ -140,4 +144,42 @@ test('server checks invalidate only their dependent stages and current execution
   }, { grid });
   await expect(page.locator('[data-prep="steps"] > li').nth(6)).toHaveAttribute('data-state', '미시작');
   expect(f.writes).toHaveLength(1);
+});
+
+test('automatic fresh status clears a recovered read failure without losing the current preparation step', async ({ page }) => {
+  const f = await fixture(page);
+  await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
+  await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
+  await expect(page.locator('[data-prep="current"]')).toContainText('현재 단계: 2.');
+  f.failReads(1);
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="issues"]')).toContainText('상태 확인 실패: SYNTHETIC_READ_TIMEOUT');
+  // The dashboard calls this same refresh from its periodic navigation reads.
+  // There is no operator click, pose input, or write retry after the failure.
+  await page.evaluate(() => { window.fixturePolling = setInterval(() => window.preparation.refresh(), 100); });
+  await expect(page.locator('[data-prep="issues"]')).not.toContainText('상태 확인 실패');
+  await expect(page.locator('[data-prep="issues"]')).not.toContainText('현재 준비 상태 수신 실패');
+  await expect(page.locator('[data-prep="current"]')).toContainText('현재 단계: 2.');
+  await expect(page.locator('[data-prep="current"]')).toContainText('사용자 입력 필요');
+  await expect(page.getByRole('button', { name: 'Nav2 시작', exact: true })).toBeDisabled();
+  expect(f.writes).toHaveLength(1);
+  expect(await page.evaluate(() => window.fixtureActions)).toEqual([]);
+  await page.evaluate(() => clearInterval(window.fixturePolling));
+});
+
+test('pending apply visibly checks its step and later fresh reads retain action rejection evidence', async ({ page }) => {
+  const f = await fixture(page);
+  await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
+  f.holdWrites();
+  await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
+  await expect(page.locator('[data-prep="current"]')).toHaveText('현재 단계: 1. 지도 선택·연결 확인 · 확인 중');
+  await expect(page.getByRole('button', { name: '① 지도 연결 확인·적용' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Nav2 시작', exact: true })).toBeDisabled();
+  expect(await page.evaluate(() => window.preparation.canStart())).toBe(false);
+  f.reject(true); f.releaseWrites();
+  await expect(page.locator('[data-prep="issues"]')).toContainText('PAIR_COORDINATE_RELATION_UNVERIFIED');
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="issues"]')).toContainText('PAIR_COORDINATE_RELATION_UNVERIFIED');
+  expect(f.writes).toHaveLength(1);
+  expect(await page.evaluate(() => window.fixtureActions)).toEqual([]);
 });

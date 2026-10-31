@@ -115,7 +115,7 @@ export function preparationModel({ state, navigation = {}, draft3d, draft2d, err
 }
 
 export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect, api, context, onChange, actions }) {
-  let state = null, busy = false, available = true, error = '', checkedAt = 0, refreshing = false, draftTouched = false;
+  let state = null, busy = false, available = true, error = '', fetchError = '', checkedAt = 0, refreshing = false, draftTouched = false, actionStep = null;
   let lastContext = '', invalidated = '', selected3d = '', draft3dRevision = '', geometryGeneration = '';
   const node = (tag, text, className) => { const el = document.createElement(tag); if (text !== undefined) el.textContent = text; if (className) el.className = className; return el; };
   host.innerHTML = `<div class="panel-header compact"><div><div class="eyebrow">STORED MAP NAVIGATION</div><h2>단계별 주행 준비</h2></div><button type="button" data-prep="refresh">현재 단계 다시 확인</button></div>
@@ -137,7 +137,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     const ctx = context();
     const maps = ctx.maps || [];
     const draft3d = maps.find(map => map.id === map3dSelect.value && map.kind === 'pointcloud3d');
-    return { ...ctx, navigation: ctx.navigation || {}, draft3d, draft2d: ctx.map, model: preparationModel({ state, navigation: ctx.navigation, draft3d, draft2d: ctx.map, error, available }) };
+    return { ...ctx, navigation: ctx.navigation || {}, draft3d, draft2d: ctx.map, model: preparationModel({ state, navigation: ctx.navigation, draft3d, draft2d: ctx.map, error: error || fetchError, available }) };
   }
   function syncOptions() {
     const maps = (context().maps || []).filter(map => map.kind === 'pointcloud3d' && map.revision);
@@ -164,8 +164,8 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
       host.querySelectorAll('[data-geometry]').forEach(input => { input.value = ''; });
     }
     const mapName = pinValue => (context().maps || []).find(entry => samePin(entry, pinValue))?.name || pinValue?.map_id || '없음';
-    const nextStep = model.steps.find(step => step.status !== '완료') || model.steps[6];
-    el('current').textContent = model.enabled ? `현재 단계: ${nextStep.number}. ${nextStep.title} · ${nextStep.status}` : '현재 모드: 기존 2D · 저장 지도 위치추정은 3D 지도 선택 후 준비';
+    const nextStep = busy && actionStep ? model.steps[actionStep - 1] : model.steps.find(step => step.status !== '완료') || model.steps[6];
+    el('current').textContent = model.enabled || busy ? `현재 단계: ${nextStep.number}. ${nextStep.title} · ${busy ? '확인 중' : nextStep.status}` : '현재 모드: 기존 2D · 저장 지도 위치추정은 3D 지도 선택 후 준비';
     el('selected').textContent = `화면 선택: 3D ${draft3d?.name || '미선택'} / 2D ${map?.name || '미선택'} · 서버 준비 구성: ${selected ? `${mapName(selected.localization_3d)} / ${mapName(selected.navigation_2d)}` : '기존 2D 모드'}`;
     el('applied').textContent = source ? `실제 실행: ${source.source || 'source 미확인'} · 3D ${mapName({ map_id: source.localization_map_id, revision: source.localization_map_revision })} / 2D ${mapName(navigation.map)} · ${model.applied ? '준비 구성과 일치' : '구성 일치 미확인'} · ${model.tracking ? '추적 중' : '지도상 현재 위치 미확인'}` : '실제 실행: 저장 3D 지도 위치추정 미적용';
     el('invalidation').textContent = invalidated;
@@ -193,16 +193,16 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
   async function refresh(force = false) {
     if (refreshing || busy || (!force && Date.now() - checkedAt < 2500)) return;
     refreshing = true;
-    try { state = await api('/api/v1/navigation/operational-3d', { signal: AbortSignal.timeout(10000) }); available = true; if (!draftTouched && !map3dSelect.value && state.selected?.localization_3d?.map_id) map3dSelect.value = state.selected.localization_3d.map_id; }
-    catch (failure) { available = false; error = `상태 확인 실패: ${failure.message}`; }
+    try { state = await api('/api/v1/navigation/operational-3d', { signal: AbortSignal.timeout(10000) }); available = true; fetchError = ''; if (!draftTouched && !map3dSelect.value && state.selected?.localization_3d?.map_id) map3dSelect.value = state.selected.localization_3d.map_id; }
+    catch (failure) { available = false; fetchError = `상태 확인 실패: ${failure.message}`; }
     finally { checkedAt = Date.now(); refreshing = false; render(); onChange(); }
   }
   async function run(path, body, method = 'POST') {
     if (busy) return;
-    busy = true; error = ''; render(); onChange();
+    busy = true; error = ''; actionStep = path.endsWith('/seed-geometry') ? 2 : path.endsWith('/match') ? 5 : 1; render(); onChange();
     try { state = await api(path, { method, ...(body === undefined ? {} : { body: JSON.stringify(body) }), signal: AbortSignal.timeout(15000) }); available = true; invalidated = ''; }
     catch (failure) { error = failure.message; }
-    finally { busy = false; checkedAt = 0; await refresh(true); render(); onChange(); }
+    finally { busy = false; actionStep = null; checkedAt = 0; await refresh(true); render(); onChange(); }
   }
   async function match() {
     const { model, navigation } = current();

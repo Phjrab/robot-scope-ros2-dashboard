@@ -21,6 +21,8 @@ class OperationalNavigation:
         self.lock = threading.RLock()
         # Never restore execution selection/seed across dashboard restarts.
         self.selected = None
+        # Private path identities for status reads, never cached content/proof.
+        self._selected_records = None
         self.used_geometry = None
         self.snapshot_binding = None
 
@@ -93,7 +95,7 @@ class OperationalNavigation:
         checks = []
         try:
             if not validated:
-                self._revalidate_pair(bundle)
+                self._revalidate_pair(bundle, references=self._selected_records)
         except (ValueError, KeyError, OSError, SavedMapError) as exc:
             checks.append({'code': str(exc), 'current': '지도 또는 교정 확인이 무효가 됨',
                 'required': '현재 ID·revision·교정과 일치하는 지도 조합',
@@ -114,8 +116,8 @@ class OperationalNavigation:
                 'valid': not any(item['code'] not in {'INITIAL_HEIGHT_TILT_REQUIRED', 'INITIAL_GEOMETRY_RECONFIRM_REQUIRED'} for item in checks),
                 'can_start': not checks, 'restart_from_step': 1 if any(item['code'] not in {'INITIAL_HEIGHT_TILT_REQUIRED', 'INITIAL_GEOMETRY_RECONFIRM_REQUIRED'} for item in checks) else 2 if checks else None}
 
-    def _revalidate_pair(self, bundle):
-        with self.catalog.pinned_lookup():
+    def _revalidate_pair(self, bundle, *, references=None):
+        with self.catalog.pinned_lookup(references=references):
             source = self.catalog.pcd_edit_source(bundle['localization_3d']['map_id'])
             if source['revision'] != bundle['localization_3d']['revision'] or source['sha256'] != bundle['localization_3d']['sha256']:
                 raise ValueError('LOCALIZATION_MAP_REVISION_CHANGED')
@@ -165,8 +167,9 @@ class OperationalNavigation:
             self._idle()
             if not body:
                 self.selected = None
+                self._selected_records = None
                 return self.status()
-            with self.catalog.pinned_lookup():
+            with self.catalog.pinned_lookup() as admitted:
                 source = self.catalog.pcd_edit_source(body['map_id'])
                 if source['revision'] != body['map_revision']:
                     raise ValueError('LOCALIZATION_MAP_REVISION_CHANGED')
@@ -220,7 +223,10 @@ class OperationalNavigation:
                     bundle['course_region'] = course_values(course)
                     if (course['map_id'], course['map_revision'], course['map_frame']) != (body['map_id'], source['revision'], source['frame_id']):
                         raise ValueError('COURSE_REFERENCE_CHANGED')
-                self.selected = validate_bundle(bundle)
+                candidate = validate_bundle(bundle)
+                references = tuple(admitted[item] for item in (body['map_id'], nav.map_id))
+                self.selected = candidate
+                self._selected_records = references
                 return self._status_locked(pair_validated=paired)
 
     def expected_source(self, job_id, map_id, revision):

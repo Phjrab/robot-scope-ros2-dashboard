@@ -9,6 +9,7 @@ import copy
 from dataclasses import replace
 import hashlib
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -385,8 +386,10 @@ class OperationalNavigationBundleTests(unittest.TestCase):
             self.assertEqual(scan.call_count, 0)
             state = self.manager.select_pair(pair)
             self.assertEqual(scan.call_count, 1)
+            self.assertTrue(self.manager.status()['pair']['valid'])
+            self.assertEqual(scan.call_count, 1, 'status verifies selected files without discovery')
+            self.assertEqual(len(self.manager._selected_records), 2)
             for operation in (
-                self.manager.status,
                 lambda: self.manager.seed_geometry({'generation': state['selected']['generation'],
                     'z': .4, 'roll': .02, 'pitch': -.04}),
                 lambda: self.manager.preflight(self.navigation['id'], self.navigation['revision']),
@@ -400,7 +403,36 @@ class OperationalNavigationBundleTests(unittest.TestCase):
             state = self.manager.status()
             self.assertFalse(state['pair']['valid'])
             self.assertIn('LOCALIZATION_MAP_REVISION_CHANGED', state['pair']['checks'][0]['code'])
-            self.assertEqual(scan.call_count, before + 1)
+            self.assertEqual(scan.call_count, before)
+
+    def test_status_retained_references_do_not_cache_sha_and_invalid_references_report_checks(self):
+        self.manager.select_pair(self.pair_fixture())
+        before = self.pcd.stat()
+        data = bytearray(self.pcd.read_bytes())
+        data[-1] ^= 1
+        self.pcd.write_bytes(data)
+        os.utime(self.pcd, ns=(before.st_atime_ns, before.st_mtime_ns))
+        with patch.object(self.catalog, '_scan', side_effect=AssertionError('status must not scan')):
+            state = self.manager.status()
+        self.assertFalse(state['pair']['valid'])
+        self.assertEqual(state['pair']['checks'][0]['code'], 'LOCALIZATION_MAP_REVISION_CHANGED')
+        self.manager._selected_records = (replace(self.manager._selected_records[0], root=self.root),)
+        state = self.manager.status()
+        self.assertFalse(state['pair']['valid'])
+        self.assertIn('outside configured roots', state['pair']['checks'][0]['code'])
+        self.manager.select({})
+        self.assertIsNone(self.manager._selected_records)
+
+    def test_preflight_and_snapshot_still_require_full_catalog_admission(self):
+        state = self.manager.select_pair(self.pair_fixture())
+        self.manager.seed_geometry({'generation': state['selected']['generation'],
+                                   'z': .4, 'roll': .02, 'pitch': -.04})
+        self.catalog.max_files = 1
+        self.assertTrue(self.manager.status()['pair']['valid'])
+        with self.assertRaises(SavedMapError):
+            self.manager.preflight(self.navigation['id'], self.navigation['revision'])
+        with self.assertRaises(SavedMapError):
+            self.manager.snapshot_for_job(self.navigation['id'], self.navigation['revision'], self.job_directory())
 
 
 

@@ -26,6 +26,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, Callable, ContextManager, Dict, Iterable, Mapping, Optional
 
 import numpy as np
@@ -396,24 +397,39 @@ class SavedMapCatalog:
         self._pinned_records: Optional[Dict[str, SavedMapRecord]] = None
 
     @contextmanager
-    def pinned_lookup(self):
-        """Admit IDs once for one operation, then revalidate each requested asset.
+    def pinned_lookup(self, *, references: Optional[Iterable[SavedMapRecord]] = None):
+        """Locate IDs once for an operation, then revalidate each requested asset.
 
-        The lock and admission list last only for this context. Nested catalog
-        calls retain all content/manifest checks; this avoids repeatedly scanning
-        unrelated maps, without reusing file validation between requests.
+        A status reader may reuse private path references captured during an
+        earlier full admission. Only their ID/root/path are used, never cached
+        metadata or validation. Execution admission omits references and retains
+        the full scan and max_files limit. Each _find rereads the target, including
+        edited-map manifest/content hashes, under this context's lock.
         """
         with self._lock:
             if self._pinned_records is not None:
-                yield
+                yield MappingProxyType(self._pinned_records)
                 return
             admitted = {}
-            for record in self._scan():
+            for record in self._scan() if references is None else references:
+                if (not isinstance(record, SavedMapRecord) or record.root not in self.roots
+                        or not isinstance(record.path, Path)
+                        or not isinstance(record.map_id, str) or len(record.map_id) != 24):
+                    raise SavedMapNotFound("saved map reference is outside configured roots")
+                try:
+                    relative = record.path.relative_to(record.root)
+                except (AttributeError, TypeError, ValueError) as exc:
+                    raise SavedMapNotFound("saved map reference path is invalid") from exc
+                if (not relative.parts or len(relative.parts) - 1 > self.max_depth
+                        or any(part.startswith('.') for part in relative.parts)
+                        or record.path.suffix.lower() not in {'.pcd', '.json', '.yaml', '.yml'}
+                        or record.path.name.endswith(('.annotations.json', '.map-family.json'))):
+                    raise SavedMapNotFound("saved map reference path is outside catalog scope")
                 # Preserve _find's first-record precedence for overlapping roots.
                 admitted.setdefault(record.map_id, record)
             self._pinned_records = admitted
             try:
-                yield
+                yield MappingProxyType(admitted)
             finally:
                 self._pinned_records = None
 

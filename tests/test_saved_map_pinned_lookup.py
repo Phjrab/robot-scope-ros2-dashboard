@@ -1,5 +1,6 @@
 """Request-scoped catalog admission retains fresh asset/content validation."""
 import json
+from dataclasses import replace
 import os
 from pathlib import Path
 import tempfile
@@ -90,6 +91,34 @@ class SavedMapPinnedLookupTests(unittest.TestCase):
         with self.catalog.pinned_lookup():
             self.assertEqual(self.catalog.metadata(self.item['id']), self.item)
 
+    def test_retained_path_references_skip_discovery_but_reread_each_target(self):
+        with self.catalog.pinned_lookup() as admitted:
+            references = (admitted[self.item['id']],)
+        self.path.write_text(json.dumps({'points': [7, 8, 9], 'frame_id': 'new-frame'}))
+        with patch.object(self.catalog, '_scan', side_effect=AssertionError('must not rescan')):
+            with self.catalog.pinned_lookup(references=references):
+                self.assertEqual(self.catalog.metadata(self.item['id'])['frame_id'], 'new-frame')
+                self.path.unlink()
+                with self.assertRaises(SavedMapNotFound):
+                    self.catalog.metadata(self.item['id'])
+        self.assertIsNone(self.catalog._pinned_records)
+
+    def test_reference_roots_paths_and_id_correspondence_are_checked(self):
+        with self.catalog.pinned_lookup() as admitted:
+            record = admitted[self.item['id']]
+        for invalid in (replace(record, root=self.root.parent),
+                        replace(record, path=self.root.parent / 'escaped.json'),
+                        replace(record, path=self.root / '.hidden.json'),
+                        replace(record, map_id='bad'), None):
+            with self.subTest(reference=invalid), self.assertRaises(SavedMapNotFound):
+                with self.catalog.pinned_lookup(references=(invalid,)):
+                    self.fail('invalid reference admitted')
+            self.assertIsNone(self.catalog._pinned_records)
+        forged = replace(record, map_id='f' * 24)
+        with self.catalog.pinned_lookup(references=(forged,)):
+            with self.assertRaises(SavedMapNotFound):
+                self.catalog.metadata(forged.map_id)
+
     def test_edited_manifest_full_hash_is_rechecked_even_with_same_size_and_mtime(self):
         source_path = self.root / 'source.pcd'
         source_path.write_bytes(cloud_bytes())
@@ -103,7 +132,9 @@ class SavedMapPinnedLookupTests(unittest.TestCase):
                        'regions': [region()]}}
         edited = self.catalog.save_pcd_edited_copy(original['id'], request)
         path = self.root / 'pcd-edits' / edited['id'] / 'map.pcd'
-        with self.catalog.pinned_lookup():
+        with self.catalog.pinned_lookup() as admitted:
+            references = (admitted[edited['id']],)
+        with self.catalog.pinned_lookup(references=references):
             self.catalog.metadata(edited['id'])
             before = path.stat()
             data = bytearray(path.read_bytes())
