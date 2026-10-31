@@ -1588,7 +1588,7 @@ function updateSavedMapManagement() {
 }
 
 function conversionCloudMaps() {
-  return savedMapCatalog.filter((entry) => entry.kind === 'pointcloud3d' && entry.manageable && entry.format === 'pcd-binary');
+  return savedMapCatalog.filter((entry) => mapEditorEngine.canConvertPcd(entry));
 }
 
 function renderMapConversionFeedback(kind, label, message, progress = 0) {

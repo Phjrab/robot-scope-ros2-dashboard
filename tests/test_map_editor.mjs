@@ -112,8 +112,20 @@ test('Saved Maps exposes PDF 09 conversion parameters, progress and safe backgro
   assert.match(appSource, /주의: FREE는 PCD 경계 사각형의 미관측 영역까지 자유공간으로 처리합니다/);
 });
 
-test('conversion uses only manageable binary PCD and the backend operation contract', () => {
-  assert.match(appSource, /entry\.kind === 'pointcloud3d' && entry\.manageable && entry\.format === 'pcd-binary'/);
+test('conversion includes full immutable PCD without granting rename/delete rights', () => {
+  const edited = Object.freeze({ kind:'pointcloud3d', format:'pcd-binary', manageable:false,
+    schema:'robot-scope.pcd-edited-map.v1', asset_role:'full_source', units:'m' });
+  assert.equal(editor.canConvertPcd(edited), true);
+  assert.equal(edited.manageable, false);
+  assert.equal(editor.canConvertPcd({ kind:'pointcloud3d', format:'pcd-binary', manageable:true }), true);
+  for (const value of [null, {}, {...edited,schema:null}, {...edited,asset_role:'preview'},
+    {...edited,units:'mm'}, {...edited,format:'pcd-ascii'}, {...edited,kind:'occupancy2d'}]) {
+    assert.equal(editor.canConvertPcd(value), false);
+  }
+  assert.match(appSource, /savedMapCatalog\.filter\(\(entry\) => mapEditorEngine\.canConvertPcd\(entry\)\)/);
+});
+
+test('conversion preserves the existing backend operation contract', () => {
   assert.match(appSource, /\/api\/v1\/saved-maps\/\$\{encodeURIComponent\(source\.id\)\}\/convert-2d/);
   for (const field of ['z_min', 'z_max', 'resolution', 'noise_radius', 'min_neighbors', 'background']) {
     assert.match(appSource, new RegExp(`${field}[:,]`));

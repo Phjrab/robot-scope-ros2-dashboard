@@ -1808,7 +1808,7 @@ class SavedMapCatalog:
         min_neighbors: object = 10,
         background: object = "unknown",
     ) -> Dict[str, Any]:
-        """Validate a managed PCD conversion without exposing its path."""
+        """Validate copy-only conversion without granting source mutation rights."""
 
         safe_name = self.validate_map_name(name)
         parameters = self._conversion_parameters(
@@ -1821,7 +1821,7 @@ class SavedMapCatalog:
         )
         with self._lock:
             record = self._find(map_id)
-            self._require_manageable(record)
+            self._require_pcd_conversion_source(record)
             if record.format != "pcd-binary":
                 raise SavedMapFormatError("only a managed binary PCD can be converted")
             if int(record.details.get("point_count", 0)) > self.max_full_view_points:
@@ -1877,7 +1877,7 @@ class SavedMapCatalog:
             )
         with self._lock:
             record = self._find(map_id)
-            self._require_manageable(record)
+            self._require_pcd_conversion_source(record)
             if record.format != "pcd-binary":
                 raise SavedMapFormatError("only a managed binary PCD can be converted")
             if int(record.details.get("point_count", 0)) > self.max_full_view_points:
@@ -1942,6 +1942,9 @@ class SavedMapCatalog:
             with self._lock:
                 if self._regular_signature(record.path) != source_signature:
                     raise SavedMapMutationError("PCD changed during conversion")
+                # A published edit also has a semantic manifest revision. A
+                # metadata-only replacement must not pass the PCD inode check.
+                self._require_pcd_conversion_source(record)
                 self._ensure_targets_absent(targets)
                 if publication_guard is None:
                     if self._operation_cancelled(cancelled):
@@ -2887,6 +2890,34 @@ class SavedMapCatalog:
         for value, pixel in values.items():
             pixels[image_grid == value] = pixel
         return pixels
+
+    def _require_pcd_conversion_source(self, record: SavedMapRecord) -> None:
+        """Read a verified immutable edit; publish only into its managed root.
+
+        ``manageable`` still controls legacy rename/delete. Conversion reads
+        the complete pinned source and creates a separate occupancy pair.
+        """
+        if record.manageable:
+            self._require_manageable(record)
+            return
+        if (record.root not in self.managed_roots or record.format != 'pcd-binary'
+                or record.details.get('schema') != 'robot-scope.pcd-edited-map.v1'
+                or record.details.get('asset_role') != 'full_source'
+                or record.details.get('units') != 'm'
+                or record.path.parent.parent != record.root / 'pcd-edits'
+                or record.path.name != 'map.pcd'):
+            raise SavedMapReadOnly('saved map is read-only')
+        self._validate_record(record)
+        self._regular_identity(record.path)
+        try:
+            manifest = read_manifest(record.path.parent, verify_pcd=True)
+        except PcdEditError as exc:
+            raise SavedMapConflict('edited PCD manifest changed during conversion') from exc
+        expected = {'id': record.map_id, 'revision': record.revision,
+                    **{key: record.details[key] for key in
+                       ('sha256', 'frame_id', 'units', 'point_count', 'asset_role')}}
+        if any(manifest.get(key) != value for key, value in expected.items()):
+            raise SavedMapConflict('edited PCD revision changed during conversion')
 
     def _require_manageable(self, record: SavedMapRecord) -> None:
         if not record.manageable or record.root not in self.managed_roots:

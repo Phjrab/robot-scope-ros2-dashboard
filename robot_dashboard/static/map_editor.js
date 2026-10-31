@@ -249,6 +249,12 @@
     return confirmAction(message) ? replaceCellValue(grid, CELL_UNKNOWN, CELL_FREE) : [];
   }
 
+  function canConvertPcd(entry) {
+    return Boolean(entry?.kind === 'pointcloud3d' && entry.format === 'pcd-binary'
+      && (entry.manageable === true || (entry.schema === 'robot-scope.pcd-edited-map.v1'
+        && entry.asset_role === 'full_source' && entry.units === 'm')));
+  }
+
   return Object.freeze({
     CELL_UNKNOWN,
     CELL_FREE,
@@ -268,5 +274,6 @@
     applyRuns,
     replaceCellValue,
     replaceUnknownWithConfirmation,
+    canConvertPcd,
   });
 }));
