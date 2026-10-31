@@ -34,3 +34,22 @@ def wait_initial_pose_receipt(snapshot, context, stamp_ns, *, clock=time.monoton
             return
         sleep(.025)
     raise ControlDisabled('INITIAL_POSE_APPLICATION_UNCONFIRMED: no matching runtime receipt')
+
+
+def wait_match_receipt(snapshot, context, request_id, generation, *, clock=time.monotonic, sleep=time.sleep):
+    deadline = clock() + 1.5
+    while clock() < deadline:
+        health = snapshot(clock())
+        source = health.get('operational_3d') or {}
+        if ((health.get('runtime_instance_generation'), source.get('bundle_generation')) != context
+                or source.get('localization_generation') != generation):
+            raise ControlDisabled('MAP_MATCH_SOURCE_CHANGED')
+        receipt = source.get('match_receipt') or {}
+        if health.get('fresh') and receipt.get('request_id') == request_id:
+            if receipt.get('accepted') is not True:
+                raise ControlDisabled('3D map match rejected: ' + str(receipt.get('reason', 'UNKNOWN')))
+            if receipt.get('localization_generation') != generation:
+                raise ControlDisabled('MAP_MATCH_SOURCE_CHANGED')
+            return receipt
+        sleep(.025)
+    raise ControlDisabled('MAP_MATCH_APPLICATION_UNCONFIRMED: no matching runtime receipt')

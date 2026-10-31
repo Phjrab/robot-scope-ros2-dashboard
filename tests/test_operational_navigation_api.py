@@ -51,6 +51,14 @@ class SelectionManager:
         self.calls.append(copy.deepcopy(body))
         return {'selected': body or None, 'activation': 'NEXT_NAVIGATION_START' if body else 'LEGACY_2D'}
 
+    def select_pair(self, body):
+        self.calls.append(('pair', copy.deepcopy(body)))
+        return self.status()
+
+    def seed_geometry(self, body):
+        self.calls.append(('geometry', copy.deepcopy(body)))
+        return self.status()
+
 
 class Missions:
     def __init__(self):
@@ -136,6 +144,56 @@ class OperationalNavigationApiTests(unittest.IsolatedAsyncioTestCase):
                  'client': ('tests', 1), 'headers': [(k.encode(), v.encode()) for k, v in headers.items()]}
         await self.app(scope, receive, respond)
         return status, json.loads(chunks) if chunks else None
+
+    async def test_pair_and_geometry_strict_schema_and_idle_interlocks(self):
+        pair = {k: v for k, v in selection().items() if k != 'seed_pose'}
+        geometry = {'generation': 'a' * 32, 'z': .3, 'roll': .02, 'pitch': -.03}
+        for endpoint, body in (('/pair', pair), ('/seed-geometry', geometry)):
+            for origin in (None, 'http://attacker.invalid'):
+                code, _ = await self.request('POST', URL + endpoint, body=body, origin=origin)
+                self.assertEqual(code, 403)
+            code, _ = await self.request('POST', URL + endpoint, body={**body, 'verified': True})
+            self.assertEqual(code, 422)
+            self.nav_state['session_mode'] = 'navigation'
+            code, _ = await self.request('POST', URL + endpoint, body=body)
+            self.assertEqual(code, 409)
+            self.nav_state['session_mode'] = 'idle'
+            code, _ = await self.request('POST', URL + endpoint, body=body)
+            self.assertEqual(code, 200)
+        for bad in ({'generation': 'a' * 32, 'z': .3, 'roll': .02},
+                    {**geometry, 'pitch': 'NaN'}, {**geometry, 'z': True}):
+            code, _ = await self.request('POST', URL + '/seed-geometry', body=bad)
+            self.assertEqual(code, 422)
+        self.assertEqual(len(self.manager.calls), 2)
+
+    async def test_explicit_match_requires_current_active_context_and_does_not_send_goal(self):
+        body = {'map_id': 'a' * 24, 'map_revision': 'b' * 64,
+                'bundle_generation': 'c' * 32, 'localization_generation': 2,
+                'initial_pose_stamp_ns': '12345678'}
+        calls = []
+        def start_match(**request):
+            calls.append(request)
+            return {'accepted': True}
+        self.runtime.agent.navigation_start_operational_match = start_match
+        code, _ = await self.request('POST', URL + '/match', body=body)
+        self.assertEqual(code, 409)
+        self.nav_state.update(pipeline={'state': 'running'},
+            map={'id': body['map_id'], 'revision': body['map_revision']}, goal={'state': 'active'})
+        code, _ = await self.request('POST', URL + '/match', body=body)
+        self.assertEqual(code, 409)
+        self.nav_state['goal']['state'] = 'idle'
+        self.mission.active = True
+        code, _ = await self.request('POST', URL + '/match', body=body)
+        self.assertEqual(code, 409)
+        self.mission.active = False
+        code, _ = await self.request('POST', URL + '/match', body=body, origin=None)
+        self.assertEqual(code, 403)
+        code, response = await self.request('POST', URL + '/match', body=body)
+        self.assertEqual(code, 200)
+        self.assertTrue(response['accepted'])
+        self.assertEqual(calls, [body])
+        self.assertFalse(self.manager.calls)
+        self.assertFalse(self.mission.calls)
 
     async def test_get_status_cannot_select_or_clear_source(self):
         self.mission.active = True

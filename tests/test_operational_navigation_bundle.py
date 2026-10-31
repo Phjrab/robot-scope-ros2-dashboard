@@ -281,6 +281,102 @@ class OperationalNavigationBundleTests(unittest.TestCase):
             self.manager.snapshot_for_job(self.navigation['id'], self.navigation['revision'], directory)
         self.assertFalse((directory / 'operational-3d.json').exists())
 
+    def pair_fixture(self):
+        from robot_dashboard.map_lineage import build_family_document, serialize_family_document
+        family = build_family_document(family_id='a' * 24, mapping_session_id='b' * 24,
+            pcd_map_id=self.source['map_id'], pcd_revision=self.source['revision'],
+            source_frame_id=self.source['frame_id'], occupancy_map_id=self.navigation['id'],
+            occupancy_revision=self.navigation['revision'], occupancy_frame_id='map',
+            resolution=.05, width=2, height=2, origin=[.7, -.3, .2],
+            parameters={'resolution': .05, 'z_min': -.2, 'z_max': .8,
+                        'noise_radius': .1, 'min_neighbors': 10, 'background': 'unknown'})
+        (self.maps / 'floor.map-family.json').write_bytes(serialize_family_document(family))
+        (self.maps / 'floor.map-family.json').chmod(0o600)
+        return {key: value for key, value in self.selection.items() if key != 'seed_pose'}
+
+    def test_pair_rebinds_only_map_transform_using_explicit_lineage_without_changing_calibration(self):
+        pair = self.pair_fixture()
+        self.calibration['navigation_map_id'] = 'e' * 24
+        self.calibration['navigation_map_revision'] = 'e' * 64
+        self.calibration['localization_root']['map_id'] = 'f' * 24
+        self.calibration['T_nav_map_from_localization_map'] = from_translation_rpy([3, 2, 1], [.1, .2, .3]).tolist()
+        self.write_calibration()
+        before = (self.runtime_root / 'operational-calibration.json').read_bytes()
+        result = self.manager.select_pair(pair)
+        self.assertTrue(result['pair']['valid'])
+        self.assertFalse(result['pair']['can_start'])
+        self.assertIsNone(result['selected']['seed_T_map_imu'])
+        self.assertIsNone(result['initial_pose_confirmation'])
+        self.assertEqual(result['selected']['calibration']['T_imu_base'], self.calibration['T_imu_base'])
+        self.assertEqual(result['selected']['policy'], self.calibration['policy'])
+        np.testing.assert_allclose(result['selected']['calibration']['T_nav_map_from_localization_map'], np.eye(4))
+        self.assertEqual((self.runtime_root / 'operational-calibration.json').read_bytes(), before)
+        with self.assertRaisesRegex(ValueError, 'INITIAL_HEIGHT_TILT_REQUIRED'):
+            self.manager.preflight(self.navigation['id'], self.navigation['revision'])
+
+    def test_pair_rejects_wrong_source_and_preserves_previous_selection(self):
+        pair = self.pair_fixture()
+        original = self.manager.select_pair(pair)['selected']
+        other = self.maps / 'unrelated.pcd'
+        write_pcd(other, self.points + 10)
+        item = next(m for m in self.catalog.list_snapshot()['maps'] if m['name'] == 'unrelated')
+        with self.assertRaisesRegex(ValueError, 'MAP_PAIR_LINEAGE_MISMATCH'):
+            self.manager.select_pair({**pair, 'map_id': item['id'], 'map_revision': item['revision']})
+        self.assertEqual(self.manager.status()['selected'], original)
+        self.jobs.state = 'running'
+        with self.assertRaisesRegex(ValueError, 'STOP_NAVIGATION'):
+            self.manager.select_pair(pair)
+
+    def test_pair_geometry_explicit_and_one_execution_only_with_reconfirm_and_legacy_restore(self):
+        state = self.manager.select_pair(self.pair_fixture())
+        generation = state['selected']['generation']
+        for bad in ({'generation': generation, 'z': .4, 'roll': 0.},
+                    {'generation': generation, 'z': float('nan'), 'roll': 0., 'pitch': 0.},
+                    {'generation': 'e' * 32, 'z': .4, 'roll': 0., 'pitch': 0.}):
+            with self.assertRaises(ValueError):
+                self.manager.seed_geometry(bad)
+        body = {'generation': generation, 'z': .4, 'roll': .02, 'pitch': -.04}
+        self.assertTrue(self.manager.seed_geometry(body)['pair']['can_start'])
+        self.manager.preflight(self.navigation['id'], self.navigation['revision'])
+        directory = self.job_directory()
+        self.manager.snapshot_for_job(self.navigation['id'], self.navigation['revision'], directory)
+        doc = json.loads((directory / 'operational-3d.json').read_text())
+        self.assertIsNone(doc['seed_T_map_imu'])
+        self.assertEqual(doc['seed_geometry']['source'], 'operator')
+        self.assertEqual(self.manager.expected_source(directory.name, self.navigation['id'], self.navigation['revision'])['bundle_generation'], generation)
+        self.assertIsNone(self.manager.expected_source('different-job', self.navigation['id'], self.navigation['revision']))
+        with self.assertRaisesRegex(ValueError, 'INITIAL_GEOMETRY_RECONFIRM_REQUIRED'):
+            self.manager.preflight(self.navigation['id'], self.navigation['revision'])
+        self.assertTrue(self.manager.seed_geometry(body)['pair']['can_start'])
+        self.assertEqual(self.manager.select({})['activation'], 'LEGACY_2D')
+        self.assertIsNone(self.manager.status()['pair'])
+
+    def test_pair_rename_invalidates_old_proof_and_rebind_preserves_annotations(self):
+        pair = self.pair_fixture()
+        self.manager.select_pair(pair)
+        annotations = self.catalog.annotations(self.navigation['id'])
+        renamed = self.catalog.rename(self.navigation['id'], 'renamed_floor')
+        state = self.manager.status()
+        self.assertFalse(state['pair']['valid'])
+        self.assertEqual(state['pair']['restart_from_step'], 1)
+        with self.assertRaises(SavedMapError):
+            self.manager.preflight(self.navigation['id'], self.navigation['revision'])
+        state = self.manager.select_pair({**pair, 'navigation_map_id': renamed['id'], 'navigation_map_revision': renamed['revision']})
+        self.assertTrue(state['pair']['valid'])
+        self.assertIsNone(state['pair']['seed_geometry'])
+        self.assertEqual(self.catalog.annotations(renamed['id'])['points'], annotations['points'])
+
+    def test_pair_changed_calibration_blocks_until_revalidated_without_silent_update(self):
+        pair = self.pair_fixture()
+        first = self.manager.select_pair(pair)
+        self.calibration['evidence'] = 'software fixture changed readback'
+        self.write_calibration()
+        state = self.manager.status()
+        self.assertFalse(state['pair']['valid'])
+        self.assertEqual(state['pair']['checks'][0]['code'], 'CALIBRATION_CHANGED_REAPPLY_PAIR')
+        self.assertEqual(first['selected'], state['selected'])
+
+
 
 if __name__ == '__main__':
     unittest.main()

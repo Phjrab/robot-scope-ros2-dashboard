@@ -21,6 +21,7 @@ import { initializeControlBridgeServiceFeature } from './features/control/bridge
 import { connectionButtonLabel, connectionOutcomeNote, createReleaseAckTracker, overviewUnavailableReason, renderHeaderConnections, robotTargetLabel } from './features/control/session_contract.js';
 import { initializeNavigationLogFeature } from './features/navigation/log_controller.js';
 import { createNavigationPresetCatalog, initializeNavigationPresetFeature } from './features/navigation/presets.js';
+import { initializeNavigationPreparation } from './features/navigation/preparation.js';
 import { createDatasetFeature } from './features/datasets/capture.js';
 import { renderSavedMapDownloadState } from './features/maps/download.js';
 import { initializeSavedMapObservations } from './features/maps/global_observation_integration.js';
@@ -488,6 +489,7 @@ let handledMappingOperation = '';
 let mappingControlRequestGeneration = 0;
 const navigationEngine = window.RobotNavigation;
 let navigationSnapshot = null;
+let navigationPreparation = null;
 let navigationStatusBusy = false;
 let navigationStatusRequestGeneration = 0;
 let navigationOperationBusy = false;
@@ -3617,11 +3619,14 @@ function drawNavigationMap() {
     }
     const goalOverlay = navigationEngine.goalPoseOverlay(navigationSnapshot, navigationMapSnapshot);
     if (goalOverlay) drawNavigationPosePreview(context, layout, goalOverlay.pose, ratio, goalOverlay.state);
+    const initialOverlay = navigationEngine.initialPoseOverlay(navigationSnapshot, navigationMapSnapshot);
+    if (initialOverlay) drawNavigationPosePreview(context, layout, initialOverlay, ratio, 'accepted');
     if (navigationStagedPose) {
       drawNavigationPosePreview(context, layout, navigationStagedPose, ratio);
     }
     // Keep the measured current robot visible above planned pose overlays.
-    const currentRobot = navigationEngine.currentRobotOverlay(navigationSnapshot, navigationMapSnapshot);
+    const currentRobot = navigationEngine.currentRobotOverlay(navigationSnapshot, navigationMapSnapshot,
+      { requireOperational: Boolean(navigationPreparation?.state()?.selected) });
     if (currentRobot) drawNavigationPosePreview(context, layout, currentRobot, ratio, 'current');
   } catch (error) {
     navigationMapLayout = null;
@@ -3656,6 +3661,7 @@ function navigationPoseToolAllowed(mode) {
   if (!navigationApiAvailable || state !== 'running' || !robotOnline || manualConflict || !navigationMapSnapshot || !navigationActiveMapMatchesSelection()) return false;
   if (mode === 'initial') return safety.can_set_initial_pose === true;
   return safety.can_send_goal === true &&
+    navigationPreparation?.permitsGoal() !== false &&
     String(navigationSnapshot?.localization?.state || '').toLowerCase() === 'localized' &&
     !navigationEngine?.goalActive(navigationSnapshot);
 }
@@ -3674,7 +3680,7 @@ function renderNavigationPoseSelection() {
     ? `${staged.mode === 'initial' ? 'INITIAL' : 'GOAL'} · STAGED`
     : navigationMapTool ? `${navigationMapTool === 'initial' ? 'INITIAL' : 'GOAL'} · DRAW ON MAP` : 'NO TOOL';
   ui.navigationPoseCoordinates.textContent = staged
-    ? `X ${staged.x.toFixed(3)} · Y ${staged.y.toFixed(3)} · YAW ${staged.yaw.toFixed(3)} · ${staged.mode === 'initial' ? '초기 위치' : '목표 정지 자세'} 미리보기 (URDF 또는 방향 마커)`
+    ? `X ${staged.x.toFixed(3)} · Y ${staged.y.toFixed(3)} · YAW ${staged.yaw.toFixed(3)} · ${staged.mode === 'initial' ? '사용자 초기 위치 점·방향' : '목표 정지 자세 (URDF 또는 방향 마커)'}`
     : 'X — · Y — · YAW —';
   const stagedAllowed = staged && navigationPoseToolAllowed(staged.mode);
   ui.navigationPoseDiscard.disabled = !staged || navigationOperationBusy;
@@ -4029,7 +4035,7 @@ function renderNavigationStatus() {
   const canStart = available && robotOnline && mapReady && parameterReady &&
     safety.can_start === true && !pipelineActive && !manualConflict;
   const canStop = safety.can_stop === true || pipelineActive;
-  ui.navigationStartButton.disabled = navigationOperationBusy || manualConflict || !canStart;
+  ui.navigationStartButton.disabled = navigationOperationBusy || manualConflict || !canStart || navigationPreparation?.canStart() === false;
   ui.navigationStartButton.textContent = startupPending ? 'STARTING…' : 'START NAV2';
   ui.navigationStopButton.textContent = startupPending ? 'STOP STARTUP' : 'STOP';
   ui.navigationStopButton.disabled = (navigationOperationBusy && navigationOperationKind !== 'start') || !canStop;
@@ -4054,12 +4060,14 @@ function renderNavigationStatus() {
   syncNavigationParameterControls();
   scheduleNavigationMapDraw();
   navigationLogFeature?.render();
+  navigationPreparation?.render();
 }
 
 function applyNavigationSnapshot(payload) {
   const snapshot = extractNavigationSnapshot(payload);
   if (!snapshot) throw new Error('서버가 유효한 navigation snapshot을 반환하지 않았습니다.');
   navigationSnapshot = snapshot;
+  void navigationPreparation?.refresh();
   navigationApiAvailable = true;
   renderNavigationStatus();
   renderControlStatus();
@@ -4114,6 +4122,10 @@ async function runNavigationMutation(path, body, successMessage) {
 }
 
 async function startNavigation() {
+  if (navigationPreparation?.canStart() === false) {
+    showToast('선택한 3D·2D 지도 연결과 초기 높이·기울기를 단계별 준비 화면에서 먼저 확인하세요.', true);
+    return;
+  }
   if (mapAnnotationFeature?.hasDirty() || mapAnnotationFeature?.hasActiveTool()) {
     showToast('지도 주석을 저장하거나 DISCARD한 뒤 Nav2를 시작하세요.', true);
     return;
@@ -4160,7 +4172,8 @@ async function sendNavigationPose() {
   if (staged.mode === 'goal') body.confirmed = true;
   const response = await runNavigationMutation(endpoint, {
     ...body,
-  }, staged.mode === 'goal' ? 'Nav2 목표를 전송했습니다.' : '초기 위치를 접수했습니다. 정합 완료 후 Goal Pose가 활성화됩니다.');
+  }, staged.mode === 'goal' ? 'Nav2 목표를 전송했습니다.' : navigationPreparation?.state()?.selected?.workflow === 'staged_navigation_pair'
+    ? '초기 위치를 접수했습니다. 단계별 준비 ⑤에서 정합 시작을 누르세요.' : '초기 위치를 접수했습니다. 정합 완료 후 Goal Pose가 활성화됩니다.');
   if (response) {
     navigationMapTool = '';
     discardNavigationPose();
@@ -6707,6 +6720,13 @@ mapAnnotationFeature = mapAnnotationEngine?.createFeature({
     if (snapshot) navigationSnapshot = snapshot;
   },
 });
+navigationPreparation = initializeNavigationPreparation({
+  host: $('#navigationPreparation'), map3dSelect: $('#navigationLocalizationMapSelect'), map2dSelect: ui.navigationMapSelect,
+  api, context: () => ({ maps: savedMapCatalog, map: navigationSelectedMapMeta, navigation: navigationSnapshot, busy: navigationOperationBusy }),
+  onChange: renderNavigationStatus,
+  actions: { start: startNavigation, initial: () => selectNavigationTool('initial'), goal: () => selectNavigationTool('goal'), refresh: refreshNavigation },
+});
+void navigationPreparation.refresh(true);
 ui.navigationMapSelect.addEventListener('change', () => {
   const selected = navigationMapCandidates().find((entry) => entry.id === ui.navigationMapSelect.value);
   if (!selected) return;

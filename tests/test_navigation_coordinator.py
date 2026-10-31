@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 
+from robot_dashboard.navigation_jobs import NavigationConflict
 from robot_dashboard.application.navigation_coordinator import NavigationCoordinator
 from robot_dashboard.mapping_jobs import MappingJobError
 from robot_dashboard.navigation_jobs import (
@@ -375,6 +376,16 @@ class NavigationCoordinatorTests(unittest.IsolatedAsyncioTestCase):
             'fresh': True, 'ready': False, 'state': 'INITIAL_REFINEMENT_CONFIRMING',
             'metrics': {'initial_confirmations': 2}})
         self.assertFalse(view['safety']['can_send_goal'])
+
+    async def test_pair_preflight_rejects_before_starting_shared_pipeline(self):
+        def reject(map_id, revision):
+            raise ValueError('INITIAL_HEIGHT_TILT_REQUIRED')
+        self.jobs.operational_preflight = reject
+        with self.assertRaisesRegex(NavigationConflict, 'INITIAL_HEIGHT_TILT_REQUIRED'):
+            await self.coordinator.start(map_id='m' * 24, map_revision='r' * 64,
+                parameters_revision=self.jobs.parameters_revision)
+        self.assertIsNone(self.coordinator.start_task)
+        self.assertFalse(any(event[0] == 'activate' for event in self.agent.events))
 
     async def test_stop_fence_prevents_commit_and_replacement_start(self):
         token = self.coordinator.begin_start()

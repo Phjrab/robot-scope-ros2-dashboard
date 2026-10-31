@@ -84,6 +84,8 @@ class ApplicationRuntime:
         from .operational_navigation import OperationalNavigation
         self.operational_navigation = OperationalNavigation(catalog, directory, jobs)
         jobs.operational_snapshotter = self.operational_navigation.snapshot_for_job
+        jobs.operational_preflight = self.operational_navigation.preflight
+        jobs.operational_expected_source = self.operational_navigation.expected_source
         self.mission._operational_health = lambda: self.agent._navigation_runtime_health_snapshot(time.monotonic())
 
     def require_agent(self) -> RosAgent:

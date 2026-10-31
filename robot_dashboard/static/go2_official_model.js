@@ -487,8 +487,9 @@
           return pixel && {x: pixel.x, y: pixel.y, depth: -point[2]};
         },
       };
+      const measured = pose.mode === 'robot' && ['z', 'roll', 'pitch'].every(key => Number.isFinite(pose[key]));
       drawOfficialRobot(view, runtime, {
-        pose: {...pose, z: 0, roll: 0, pitch: 0, preview: true},
+        pose: {...pose, z: measured ? pose.z : 0, roll: measured ? pose.roll : 0, pitch: measured ? pose.pitch : 0, preview: true},
         joints: runtime.asset.skeleton.default_joint_positions || {},
         suppressLabel: true, tint: parseHex(color),
       });

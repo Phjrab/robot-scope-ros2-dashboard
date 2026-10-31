@@ -32,7 +32,8 @@ from ..localization_diagnostics import sanitize_localization_diagnostics
 from ..navigation_policy import POLICY_SCHEMA
 from ..goal_precision import GoalPrecision, parameter_observation
 from ..goal_evidence_sink import GoalEvidenceSink
-from .initial_pose_receipt import operational_initial_pose_context, wait_initial_pose_receipt
+from .initial_pose_receipt import operational_initial_pose_context, wait_initial_pose_receipt, wait_match_receipt
+from ..relocalization.operational import MATCH_TOPIC, STAGED_WORKFLOW
 
 
 LOGGER = logging.getLogger(__name__)
@@ -218,6 +219,8 @@ class NavigationRosGateway:
         self._navigation_cmd_subscription: Any = None
         self._navigation_health_subscriptions: Dict[str, Any] = {}
         self._navigation_initial_pose_publisher: Any = None
+        self._navigation_match_publisher: Any = None
+        self._navigation_string_type: Any = None
         self._navigation_pose_type: Any = None
         self._navigation_action_type: Any = None
         self._navigation_action_client: Any = None
@@ -489,6 +492,8 @@ class NavigationRosGateway:
                 reliable,
                 callback_group=callback_group,
             )
+            match_publisher = node.create_publisher(
+                String, MATCH_TOPIC, reliable, callback_group=callback_group)
             action_client = ActionClient(
                 node,
                 action_type,
@@ -508,6 +513,8 @@ class NavigationRosGateway:
                 self._navigation_cmd_subscription = command_subscription
                 self._navigation_health_subscriptions = health_subscriptions
                 self._navigation_initial_pose_publisher = pose_publisher
+                self._navigation_match_publisher = match_publisher
+                self._navigation_string_type = String
                 self._navigation_pose_type = pose_type
                 self._navigation_action_type = action_type
                 self._navigation_action_client = action_client
@@ -1790,6 +1797,9 @@ class NavigationRosGateway:
             return
         from ..relocalization.operational import sanitize_status
         operational = sanitize_status(payload.get('operational_3d'))
+        if (operational is not None and operational.get('runtime_instance_generation') is not None
+                and operational['runtime_instance_generation'] != instance):
+            operational = None
         if payload.get('operational_3d') is not None and (operational is None or not operational['ready']):
             payload['ready'] = payload['localized'] = False
         sanitized = {
@@ -2372,6 +2382,48 @@ class NavigationRosGateway:
             wait_initial_pose_receipt(self._navigation_runtime_health_snapshot, context,
                 int(stamp.sec) * 1_000_000_000 + int(stamp.nanosec))
         return self.runtime_snapshot()
+
+    def start_operational_match(self, *, map_id: str, map_revision: str,
+                                bundle_generation: str, localization_generation: int,
+                                initial_pose_stamp_ns: str) -> Dict[str, Any]:
+        """Arm the staged map fit only; this never publishes a navigation goal."""
+        with self._control_port.operation_lock:
+            interlock = self._navigation_sensor_interlock_reason(time.monotonic(), require_localized=False)
+            if interlock:
+                raise ControlDisabled(interlock)
+            with self._navigation_lock:
+                self._navigation_require_pinned_map_locked(map_id, map_revision)
+                if (self._navigation.get('goal') or {}).get('state') in {'pending', 'active', 'canceling'}:
+                    raise LeaseBusy('cancel the active goal before matching localization')
+                publisher = self._navigation_match_publisher
+                message_type = self._navigation_string_type
+            health = self._navigation_runtime_health_snapshot(time.monotonic())
+            context = operational_initial_pose_context(health)
+            source = health.get('operational_3d') or {}
+            initial = source.get('accepted_initial_pose') or {}
+            if (context is None or source.get('workflow') != STAGED_WORKFLOW
+                    or source.get('bundle_generation') != bundle_generation
+                    or source.get('localization_generation') != localization_generation
+                    or source.get('map_id') != map_id or source.get('map_revision') != map_revision
+                    or initial.get('stamp_ns') != initial_pose_stamp_ns
+                    or initial.get('accepted') is not True):
+                raise ControlDisabled('MAP_MATCH_SOURCE_CHANGED_OR_INITIAL_POSE_REQUIRED')
+            node = self._node_getter()
+            if publisher is None or message_type is None or node is None:
+                raise ControlDisabled('MAP_MATCH_TRANSPORT_UNAVAILABLE')
+            request_id = secrets.token_hex(16)
+            request = {key: source[key] for key in (
+                'bundle_generation', 'localization_generation', 'reference_sha256',
+                'map_id', 'map_revision', 'localization_map_id', 'localization_map_revision')}
+            stamp = node.get_clock().now().to_msg()
+            request.update(request_id=request_id,
+                stamp_ns=str(int(stamp.sec) * 1_000_000_000 + int(stamp.nanosec)),
+                runtime_instance_generation=context[0], initial_pose_stamp_ns=initial_pose_stamp_ns)
+            message = message_type()
+            message.data = json.dumps(request, allow_nan=False)
+            publisher.publish(message)
+        return wait_match_receipt(self._navigation_runtime_health_snapshot, context,
+                                  request_id, localization_generation)
 
     @staticmethod
     def _new_navigation_goal_progress(started_at: float = 0.0) -> Dict[str, Any]:

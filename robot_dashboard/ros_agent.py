@@ -1203,6 +1203,14 @@ class RosAgent(ObservationSubscriptionMixin, RawObservationAccessMixin):
             yaw=yaw,
         )
 
+    def navigation_start_operational_match(
+        self, *, map_id: str, map_revision: str, bundle_generation: str,
+        localization_generation: int, initial_pose_stamp_ns: str,
+    ) -> Dict[str, Any]:
+        return self._navigation_gateway.start_operational_match(
+            map_id=map_id, map_revision=map_revision, bundle_generation=bundle_generation,
+            localization_generation=localization_generation, initial_pose_stamp_ns=initial_pose_stamp_ns)
+
     def navigation_set_localization_only_initial_pose(
         self,
         *,

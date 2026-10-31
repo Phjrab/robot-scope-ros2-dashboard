@@ -7,6 +7,8 @@ const status = (state, extra={}) => nav.operationalLocalizationStatus({operation
 test('accepted initial seed remains aligning until actual tracking is ready', () => {
   assert.equal(nav.operationalLocalizationStatus({}), null);
   assert.equal(status('WAITING_EXPLICIT_INITIAL_POSE').label, 'NEED POSE');
+  assert.equal(status('WAITING_EXPLICIT_MAP_MATCH').label, 'NEED MATCH');
+  assert.equal(status('WAITING_EXPLICIT_MAP_MATCH').tone, 'waiting');
   assert.equal(status('WAITING_MAP_CORRECTION').label, 'ALIGNING');
   assert.match(status('INITIAL_REFINEMENT_CONFIRMING',{metrics:{initial_confirmations:2}}).note,/2\/3/);
   assert.equal(status('MAP_TRACKING',{ready:true}).label, 'READY');

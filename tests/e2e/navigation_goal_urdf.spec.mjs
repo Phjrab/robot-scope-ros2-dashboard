@@ -62,23 +62,20 @@ async function lastDraw(page, color) {
   return page.evaluate(c => window.navModelDraws.filter(d => d.drawn && d.color === c).at(-1), color);
 }
 
-test('Navigation initial and goal share official URDF; explicit send, actual states and stale map defense remain intact', async ({ page }) => {
+test('Navigation initial is a dot, robot and goal use URDF; explicit send and stale map defense remain intact', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1100 });
   const backend = await prepare(page);
   const robot = await lastDraw(page, '#7df0b6');
   expect(robot.pose).toEqual({ x: 2.8, y: .3, yaw: .1, mode: 'robot' });
   const canvas = await drag(page, 'initial');
-  const initial = await lastDraw(page, '#5dded8');
+  await expect.poll(() => page.evaluate(() => window.navLabels)).toContain('INITIAL · 입력 중');
+  expect(await page.evaluate(() => window.navModelDraws.some(draw => draw.color === '#5dded8'))).toBe(false);
   await canvas.screenshot({ path: 'test-results/navigation-urdf-initial.png' });
   await page.locator('#navigationPoseDiscard').click();
   await drag(page, 'goal');
   const goal = await lastDraw(page, '#ffc66d');
   expect(goal.status.url).toBe('/static/assets/go2/go2-official-lite.json');
-  expect(goal.status.model).toBe(initial.status.model);
-  expect(robot.status.model).toBe(initial.status.model);
-  expect(goal.pose.x).toBeCloseTo(initial.pose.x, 8);
-  expect(goal.pose.y).toBeCloseTo(initial.pose.y, 8);
-  expect(goal.pose.yaw).toBeCloseTo(initial.pose.yaw, 8);
+  expect(goal.status.model).toBe(robot.status.model);
   expect(goal.front.x).toBeGreaterThan(goal.projected.x);
   expect(goal.front.y).toBeLessThan(goal.projected.y);
   expect(backend.state.requests.filter(r => /navigation\/(goal|initial-pose)$/.test(r.path))).toEqual([]);

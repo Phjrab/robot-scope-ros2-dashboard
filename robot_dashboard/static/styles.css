@@ -1553,3 +1553,29 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior:auto !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
 }
+/* Staged source preparation: plain evidence, independent retry and explicit actions. */
+.navigation-preparation-panel { margin-bottom: 18px; padding: 18px; }
+.navigation-preparation-map-selectors { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 14px 0; }
+.navigation-preparation-map-selectors label { display: grid; gap: 8px; font-size: 12px; }
+.navigation-preparation-map-selectors select, .navigation-seed-geometry input { background: #13251e; color: #dcece5; border: 1px solid #436456; border-radius: 5px; padding: 9px; min-width: 0; }
+.navigation-preparation-panel button { background: #183c30; color: #d5f3e7; border: 1px solid #456e5e; border-radius: 5px; padding: 8px 11px; font-size: 12px; cursor: pointer; }
+.navigation-preparation-panel button:disabled { opacity: .45; cursor: default; }
+.navigation-preparation-panel button:focus-visible, .navigation-preparation-panel select:focus-visible, .navigation-preparation-panel input:focus-visible { outline: 2px solid #7ddbc1; outline-offset: 2px; }
+@media (max-width: 600px) { .navigation-preparation-map-selectors { grid-template-columns: 1fr; } .navigation-preparation-panel { padding: 12px; } }
+.navigation-preparation-panel > p, .navigation-pose-legend { color: var(--text-muted, #9fb2ac); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.navigation-preparation-actions, .navigation-seed-geometry > div { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; margin: 12px 0; }
+.navigation-seed-geometry label { display: grid; gap: 6px; font-size: 12px; }
+.navigation-seed-geometry input { max-width: 160px; }
+.navigation-preparation-steps { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; margin: 16px 0; }
+.navigation-preparation-steps > li { border: 1px solid #344a42; border-radius: 8px; padding: 12px; min-width: 0; }
+.navigation-preparation-steps > li[data-state="완료"] { border-color: #378762; }
+.navigation-preparation-steps > li[data-state="오류"] { border-color: #ce7764; }
+.navigation-preparation-steps strong { display: block; font-size: 13px; }
+.preparation-state { display: inline-block; margin: 7px 0; font-size: 12px; color: #7ddbc1; }
+.navigation-preparation-steps p, .navigation-preparation-issues p { font-size: 12px; line-height: 1.6; margin: 5px 0; overflow-wrap: anywhere; }
+.navigation-preparation-steps small { display: block; color: #a4b6af; line-height: 1.5; margin: 8px 0; }
+.preparation-missing { color: #f2bd8d; }
+.navigation-preparation-issues { border-top: 1px solid #344a42; padding-top: 12px; }
+.navigation-preparation-issues h3 { font-size: 14px; }
+.navigation-preparation-panel pre { max-height: 320px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 11px; }
+.navigation-map-toolbar > label { min-width: 180px; }
