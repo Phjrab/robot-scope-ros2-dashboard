@@ -1,0 +1,175 @@
+{
+  "schema": "c0-new-map-stationary-retry.v1",
+  "created_at_kst": "2026-10-31T15:24:00.935471+09:00",
+  "branch": "review/20261030-c0-3d-field-sweep",
+  "job_id": "f5b1f94a8c426bc30b7ceb67",
+  "submission": "User submitted current seed/search; agent retrieved existing completed job; additional registration POSTs 0",
+  "job_state": "succeeded",
+  "numerical_status": "REJECTED",
+  "result": "FAIL",
+  "reason": "HIGH_RESIDUAL",
+  "admissible": false,
+  "map_id": "4b672f17ec79b96d2d075189",
+  "map_revision": "32123a1b2eb19798d81aa930a6e7f0b02451fb219f9fa164abe99612d191d268",
+  "map_pcd_sha256": "879cd0335fad8e15272ffcabcafdbf839f82afd19166a8d6ef2c343a96715203",
+  "map_array_sha256": "c49669ae0f2758e041c46cbdcf1866095db9c89b8e4249f92e5f1c322759c3ea",
+  "full_map_points": 49080,
+  "solver_reachable_reference_points": 49058,
+  "query_points": 238,
+  "query_sha256": "0b2b351e54190f20de791797b053921ee24557af69bfe89d633341ccdd067eba",
+  "metrics": {
+    "converged": true,
+    "geometry_min_max_eigen_ratio": 0.02882089794716376,
+    "inlier_count": 180,
+    "iterations": 10,
+    "matched_geometry_min_max_eigen_ratio": 0.03892607660175519,
+    "overlap_ratio": 0.7563025210084033,
+    "rmse_m": 0.2970373733814862,
+    "runtime_ms": 43.305724999981976,
+    "weak_geometry_direction_target": [
+      0.031119598874641,
+      0.013877973464770599,
+      0.9994193176131794
+    ]
+  },
+  "delta": {
+    "tilt_deg": 2.254624775485263,
+    "xy_m": 0.2793513780122007,
+    "yaw_deg": 0.20557206395589148,
+    "z_m": 0.21034201953365664
+  },
+  "seed_bounds": {
+    "tilt_deg": 10,
+    "xy_m": 0.75,
+    "yaw_deg": 25,
+    "z_m": 0.3
+  },
+  "residual_policy": {
+    "enforced": true,
+    "max_rmse_m": 0.05,
+    "original_max_rmse_m": 0.05,
+    "original_passed": false
+  },
+  "runtime_ms": 713.0329029998848,
+  "input_population": "CACHED_REGISTERED_XYZ_REBASED_TO_IMU",
+  "single_inverse_transform": "INVERSE_EXACT_STAMP_FASTLIO_ODOMETRY",
+  "numerical_converged": true,
+  "quality_acceptance_is_job_succeeded": false,
+  "applied_to_observation_anchor": false,
+  "applied_to_operational_navigation": false,
+  "registration_threshold_or_nav2_settings_changed": false,
+  "actual_goal_or_motion_commands": 0,
+  "checks": [
+    {
+      "item": "Dashboard and read-only observation restore",
+      "result": "PASS"
+    },
+    {
+      "item": "Fresh saved terrain map reference hash/revision",
+      "result": "PASS"
+    },
+    {
+      "item": "User seed registration calculation",
+      "result": "PASS",
+      "note": "calculation completed, quality separately rejected"
+    },
+    {
+      "item": "50mm residual gate",
+      "result": "FAIL"
+    },
+    {
+      "item": "operational TF/odom and Nav2 consumption",
+      "result": "BLOCKED_DEPENDENCY"
+    },
+    {
+      "item": "stop/dwell/button/next-goal departure",
+      "result": "BLOCKED_DEPENDENCY"
+    }
+  ],
+  "qualification": {
+    "source_clock_verified": false,
+    "deskew_verified": false,
+    "map_axes_verified": false,
+    "body_extrinsic_verified": false,
+    "upstream_processing_verified": false
+  },
+  "diagnosis": {
+    "confirmed": [
+      "Target map is saved new terrain map, not previous flat reference",
+      "Overlap and local bounds satisfied; convergence true; residual exceeds unchanged cap",
+      "A server-side current seed job exists despite inspected browser draft appearing empty",
+      "Operator reports same flat floor/elevation; 21cm result is not independent evidence of a physical floor-level difference"
+    ],
+    "not_confirmed": [
+      "Click input defect",
+      "Physical seed position accuracy",
+      "Map axes/height/body extrinsic alignment",
+      "Cause of 297mm residual",
+      "Equal realized extrinsic estimates across mapping/observation epochs",
+      "Whether .5m cloud/map voxel sampling contributes to current residual"
+    ]
+  },
+  "state_after": {
+    "observation": "READY",
+    "observation_session_id": "6e3637b83f4b44c2afc47a027e2a6def",
+    "observation_remaining_s": 710.6353666480002,
+    "operational_3d": {
+      "selected": null,
+      "initial_pose_confirmation": null,
+      "calibration_available": true,
+      "activation": "LEGACY_2D",
+      "runtime": null,
+      "runtime_fresh": false
+    },
+    "navigation_goal": "idle",
+    "control_lease_retained": false,
+    "control_pending_outputs": 0,
+    "physical_stop_ack_this_attempt": false
+  },
+  "deployment": {
+    "code_sha_existing_receipt": "15706c48c5e6df28be105b6f5bde825dce7c4b1f",
+    "this_boot_pid_cwd_rechecked": true,
+    "full_source_hash_rescan_this_boot": false,
+    "new_deployment": false
+  },
+  "validation": {
+    "same_completed_job_used": true,
+    "source_map_hash_matches_terrain_comparison": true,
+    "original_frozen_round1_reports_unchanged": true,
+    "application_test_ci_code_changed": false,
+    "existing_report_c882124_ci_41057038508": "success",
+    "this_report_sha_CI": "not yet published; no success asserted"
+  },
+  "private_evidence": {
+    "current-user-seed-job-private.json": "6bba768e0fe7372b90f21d00664046c5b32a53ee7e2c095210e1a90f5e084b65",
+    "current-user-seed-proposal-private.json": "05674f38d419bafb9f0ac249688ce60fc2172b9b9d3c10865b3d707864545418",
+    "after-stationary-result-readback-private.json": "fca8c3dcfab257677dccba0619934a3a405710454e4e2d8018bb4baccdc3226c",
+    "fastlio-config-readback-private.json": "d6208ae1ec2f65fa1902a92fa0dbb134b9cb21f7c56f34f0f87cb890a6543486"
+  },
+  "operator_floor_report": "Same flat floor and elevation as new mapping start",
+  "configuration_readback": {
+    "schema": "c0-fastlio-config-readback.v1",
+    "source": "SSH read-only /proc current fastlio_mapping PID11523; params file readback",
+    "operator_current_floor": "same flat floor and elevation as mapping start",
+    "actual_params_sha256": "3d3fd83fe14c21d07d0b7108f4818d74c0557d67006aa00bc24295e8d30dd4bd",
+    "local_release_params_sha256": "3d3fd83fe14c21d07d0b7108f4818d74c0557d67006aa00bc24295e8d30dd4bd",
+    "params_name": "fastlio_xt16.yaml",
+    "alternate_dense_d2_selected": false,
+    "current_mode": "ROBOT_SCOPE_FASTLIO_OBSERVATION_ONLY=1",
+    "mapping_profile": "go2-onboard",
+    "surface_voxel_m": 0.5,
+    "map_voxel_m": 0.5,
+    "online_extrinsic_estimation_enabled": true,
+    "extrinsic_T_seed_m": [
+      0.25,
+      0,
+      0
+    ],
+    "historical_mapping_actual_parameter_receipt_available": false,
+    "mapping_and_observation_share_launcher_config_selection": true,
+    "current_estimated_extrinsic_values_verified": false,
+    "base_file_same_does_not_prove_equal_session_estimated_extrinsics": true,
+    "parameters_modified": false,
+    "no_vertical_offset_applied": true
+  }
+}
