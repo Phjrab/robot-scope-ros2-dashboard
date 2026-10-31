@@ -34,3 +34,6 @@ PCD 편집·저장, 기존2D Nav2와 보행 자체·기존 수동 기록은 INHE
 사용자는 이후 실제 편집 PCD `map1`을 선택했다. 편집본은 18,166개의 실제 점을 가진 불변 복사본이다. 변경 불가 표식이 2D 변환까지 막는 결함을 수정·배포했다. 사용자가 18:16:17 KST 변환 버튼을 누른 작업은 18:16:23 KST 성공했고 `map1_2d`가 생성됐다. 화면은 이전 idle snapshot을 재렌더하면서 TRACKING LOST를 표시했다. 실제 지도 생성 성공과 UI 추적 실패를 구분한다. [수정·배포·복구 기록](EDITED_PCD_CONVERSION.md).
 
 후보 가중치 코드도 배포 release에 포함됐지만 기본 비활성이다. 활성 정책은 ALL_DIRECTION_BASELINE이며 운영 matcher는 선택되지 않았다. 실제 3D Nav2 이동, stop/dwell/녹색 버튼, 현재 운영 위치추정 경사로 실기는 여전히 미실행이다. 새 map1/map1_2d source 연결·P1/P2 적용 확인·현재 현장 창이 의존 조건이다. 기존 품질·stop·dwell·source 검사는 보존한다.
+
+
+후속 주행 화면의 지도 조합·단계별 준비 구현, 최종 배포와 별도 N01~N09 결과는 [지도 조합·단계별 주행 준비 결과](NAVIGATION_PAIR_RESULTS.md)에 기록했다. 위 동결 F00~F06 표는 변경하지 않았다.
