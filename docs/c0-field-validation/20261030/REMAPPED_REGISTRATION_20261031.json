@@ -1,0 +1,136 @@
+{
+  "schema": "c0-remapped-registration-summary.v1",
+  "date_kst": "2026-10-31",
+  "job_id": "725c89769977d33be483cc99",
+  "job_state": "succeeded",
+  "quality": "FAIL",
+  "reason": "HIGH_RESIDUAL",
+  "admissible": false,
+  "map": {
+    "map_id": "22f75eff7935774b87cfeec4",
+    "map_revision": "9552c16eba5f0cac752b5e307b40b5267ac00d0d16a5058d98e8995aa27377af",
+    "source_sha256": "a60d3c52274dfec5dd94d2333fb10e0d788aa5d99d94dd6f50501e4882a7193f",
+    "array_sha256": "ee8b5d3fc2fa511404944a465102de24aa0c9fa9773d9bd5fe93285e2a6d8d30",
+    "point_count": 23890
+  },
+  "map_name": "map_20261031_150246",
+  "mapping_save": "succeeded",
+  "mapping_pipeline": "stopped exit0",
+  "immutable_private_backup_matches_worker_pcd": true,
+  "query_points": 160,
+  "query_sha256": "096e8d916b4c9cf6802d1ee71d7c2db14674b98cd64a05ec4a3f96a9e76b3a22",
+  "new_source_epoch_verified": true,
+  "scan_transform_basis": "INVERSE_EXACT_STAMP_FASTLIO_ODOMETRY",
+  "reference_points_reachable": 23872,
+  "seed_revision": 135,
+  "seed_binding_reconstructs_user_pose": true,
+  "same_capture_prior_matches_solver_input": true,
+  "height_source": "approximate",
+  "metrics": {
+    "converged": true,
+    "geometry_min_max_eigen_ratio": 0.02911681359744313,
+    "inlier_count": 160,
+    "iterations": 8,
+    "matched_geometry_min_max_eigen_ratio": 0.021799116565868106,
+    "overlap_ratio": 1.0,
+    "rmse_m": 0.051491981185452264,
+    "runtime_ms": 22.54164599980868,
+    "weak_geometry_direction_target": [
+      0.006015017581319806,
+      0.030289584551010718,
+      0.9995230665828696
+    ]
+  },
+  "delta": {
+    "tilt_deg": 0.26159753500446814,
+    "xy_m": 0.23424613664857818,
+    "yaw_deg": 6.955602684141507,
+    "z_m": 0.009799962783737471
+  },
+  "signed_delta_xyz_m": [
+    -0.1623066250518384,
+    0.16890178210743162,
+    -0.009799962783737471
+  ],
+  "bounds": {
+    "tilt_deg": 10,
+    "xy_m": 0.75,
+    "yaw_deg": 25,
+    "z_m": 0.3
+  },
+  "residual_policy": {
+    "enforced": true,
+    "max_rmse_m": 0.05,
+    "original_max_rmse_m": 0.05,
+    "original_passed": false
+  },
+  "runtime_ms": 549.2166759995598,
+  "previous_case": {
+    "job_id": "53db9049c009bbacb11b6b3d",
+    "map_points": 49080,
+    "query_points": 172,
+    "rmse_m": 0.05156782353011113,
+    "xy_m": 0.3319270874001801,
+    "signed_z_m": -0.053130634240777165,
+    "yaw_deg": 6.454199753166708,
+    "same_input_controlled_comparison": false
+  },
+  "diagnosis": {
+    "input_transfer_error_observed": false,
+    "map_recreation_did_not_make_this_case_pass": true,
+    "direct_cause_of_residual_confirmed": false,
+    "absolute_pose_truth_measured": false,
+    "dense_vs_coarse_frozen_input_comparison_completed": false,
+    "same_floor_height_independently_measured": false
+  },
+  "deployment": {
+    "code_sha_existing_full_receipt": "15706c48c5e6df28be105b6f5bde825dce7c4b1f",
+    "pid_cwd_rechecked": true,
+    "dashboard_pid": 1016,
+    "new_full_source_hash_audit": false,
+    "new_deployment": false,
+    "current_params_name": "fastlio_xt16.yaml",
+    "current_params_sha256": "3d3fd83fe14c21d07d0b7108f4818d74c0557d67006aa00bc24295e8d30dd4bd",
+    "surface_voxel_m": 0.5,
+    "map_voxel_m": 0.5,
+    "dense_publish_en": false,
+    "extrinsic_est_en": true,
+    "parameters_changed": false
+  },
+  "final": {
+    "observation": "READY, bounded30min",
+    "goal": "idle",
+    "navigation_pipeline": "idle",
+    "navigation_localization_active": false,
+    "operational_selected": null,
+    "activation": "LEGACY_2D",
+    "lease_retained": false,
+    "pending_outputs": 0,
+    "ownership_unknown_components": [],
+    "intermittent_navigation_unknown_seen_and_sequential_recheck_clear": true,
+    "physical_stop": "operator confirmed; no separate hardware ACK measured",
+    "pose_application": "NOT_RUN",
+    "nav2_motion_and_stop_go": "BLOCKED_DEPENDENCY",
+    "new_agent_registration_POSTs": 0,
+    "goal_pose_arm_motion_commands": 0
+  },
+  "validation": {
+    "application_test_ci_code_changed": false,
+    "report_json_hash_and_delta_checks": "PASS",
+    "previous_reports_frozen": "PASS",
+    "exact_report_sha_ci": "not yet published; no success asserted"
+  },
+  "private_evidence": {
+    "remapped-initial-readback-private.json": "0ac638dd12e38003fc74dcdfb7e7cff5efca1335ff3887f1d6fd3c23c8b780ab",
+    "remapped-observation-prepare-private.json": "29a038fb8ae98223af94e328250d933d7651cea6219f991c5bfaad23b25732a1",
+    "remapped-backup-and-ready-private.json": "3f29b440f7217f1fa5d06033c0b1698a5e19dc4f402bd75dfa448a501b9c9712",
+    "remapped-job-725c89769977d33be483cc99-private.json": "f7b3b0130607651b72ce7aef97441b9377ee0de34277e6c77c57043e564dc331",
+    "remapped-pose-comparison-private.json": "2bc1ae20d98fd24c759ce24cd9c60d3e058cc384dd64ee2f7ac79b7a9a39fcd7",
+    "remapped-final-idle-readback-private.json": "ea60ca7f07daef30cfeb0335cf81f22b474dfd0c888bfe67884adb5df202acfb",
+    "remapped-deployment-readback-private.json": "fbc1ea744ba65b55bcd9815e7c4bf661c535826646a609d98b196a111589a650",
+    "remapped-map-selected-ready.jpg": "cbc6f5b4e9565b4710deb332a8eab9eb4582ca5fc81b3e71ce8ee925d6c14520",
+    "remapped-plot-poses-private.json": "60b936043c3b2063f44ab96d5e8b321003944d43523c57b1c8e2fbf9092c3f01",
+    "remapped-seed-candidate.png": "d43fe2f24d2ef042be3c3ea595a2a557f180cec6f6052afc33ccd65a2289267e",
+    "remapped-seed-candidate.svg": "d86a3ee4d3742c6a7e9ccf5b467e1659dde28e0c9abd374256758cef0bee6258"
+  }
+}
