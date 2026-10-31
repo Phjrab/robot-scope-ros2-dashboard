@@ -606,6 +606,13 @@ export async function installDashboardBackend(page, options = {}) {
     }
     const missionDetail = path.match(/^\/api\/v1\/missions\/([0-9a-f]{32})$/);
     if (missionDetail) { const mission = state.missions.find((item) => item.id === missionDetail[1]); return mission ? json(route, { available: true, mission }) : json(route, { detail: 'mission was not found' }, 404); }
+    // Preparation reads are part of every dashboard session. The default
+    // fixture stays explicitly in legacy mode; source mutations need a test's
+    // own handler and must not acquire an accidental success response here.
+    if (path === '/api/v1/navigation/operational-3d' && method === 'GET') return json(route, {
+      selected: null, pair: null, initial_pose_confirmation: null,
+      calibration_available: false, activation: 'LEGACY_2D', runtime: null, runtime_fresh: false,
+    });
     if (path === '/api/v1/navigation') return json(route, state.navigation);
     if (path === '/api/v1/navigation/start') {
       state.control.lease = { active: true, bound: true, source: 'navigation' };

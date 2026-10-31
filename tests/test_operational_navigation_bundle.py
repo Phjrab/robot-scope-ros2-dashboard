@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 
@@ -375,6 +376,31 @@ class OperationalNavigationBundleTests(unittest.TestCase):
         self.assertFalse(state['pair']['valid'])
         self.assertEqual(state['pair']['checks'][0]['code'], 'CALIBRATION_CHANGED_REAPPLY_PAIR')
         self.assertEqual(first['selected'], state['selected'])
+
+    def test_pair_operations_admit_catalog_once_and_external_status_revalidates(self):
+        pair = self.pair_fixture()
+        with patch.object(self.catalog, '_scan', wraps=self.catalog._scan) as scan:
+            self.assertIsNone(self.manager.status()['selected'])
+            self.manager.preflight(self.navigation['id'], self.navigation['revision'])
+            self.assertEqual(scan.call_count, 0)
+            state = self.manager.select_pair(pair)
+            self.assertEqual(scan.call_count, 1)
+            for operation in (
+                self.manager.status,
+                lambda: self.manager.seed_geometry({'generation': state['selected']['generation'],
+                    'z': .4, 'roll': .02, 'pitch': -.04}),
+                lambda: self.manager.preflight(self.navigation['id'], self.navigation['revision']),
+                lambda: self.manager.snapshot_for_job(self.navigation['id'], self.navigation['revision'], self.job_directory()),
+            ):
+                before = scan.call_count
+                operation()
+                self.assertEqual(scan.call_count, before + 1)
+            self.pcd.write_bytes(self.pcd.read_bytes() + b'changed reference')
+            before = scan.call_count
+            state = self.manager.status()
+            self.assertFalse(state['pair']['valid'])
+            self.assertIn('LOCALIZATION_MAP_REVISION_CHANGED', state['pair']['checks'][0]['code'])
+            self.assertEqual(scan.call_count, before + 1)
 
 
 

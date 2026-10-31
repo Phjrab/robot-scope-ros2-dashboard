@@ -22,6 +22,7 @@ import tempfile
 import threading
 import uuid
 import zipfile
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -392,6 +393,29 @@ class SavedMapCatalog:
             min(int(max_edited_cells), self.max_grid_cells, 8_000_000),
         )
         self._lock = threading.RLock()
+        self._pinned_records: Optional[Dict[str, SavedMapRecord]] = None
+
+    @contextmanager
+    def pinned_lookup(self):
+        """Admit IDs once for one operation, then revalidate each requested asset.
+
+        The lock and admission list last only for this context. Nested catalog
+        calls retain all content/manifest checks; this avoids repeatedly scanning
+        unrelated maps, without reusing file validation between requests.
+        """
+        with self._lock:
+            if self._pinned_records is not None:
+                yield
+                return
+            admitted = {}
+            for record in self._scan():
+                # Preserve _find's first-record precedence for overlapping roots.
+                admitted.setdefault(record.map_id, record)
+            self._pinned_records = admitted
+            try:
+                yield
+            finally:
+                self._pinned_records = None
 
     @classmethod
     def from_profile(
@@ -3142,6 +3166,17 @@ class SavedMapCatalog:
     def _find(self, map_id: str) -> SavedMapRecord:
         if not isinstance(map_id, str) or len(map_id) != 24:
             raise SavedMapNotFound("saved map not found")
+        if self._pinned_records is not None:
+            admitted = self._pinned_records.get(map_id)
+            if admitted is None:
+                raise SavedMapNotFound("saved map not admitted for this operation")
+            try:
+                record = self._record_for(admitted.root, admitted.path)
+            except (OSError, ValueError, RuntimeError, UnicodeError, SavedMapFormatError) as exc:
+                raise SavedMapNotFound("saved map changed during this operation") from exc
+            if record is None or record.map_id != map_id:
+                raise SavedMapNotFound("saved map changed during this operation")
+            return record
         record = next((item for item in self._scan() if item.map_id == map_id), None)
         if record is None:
             raise SavedMapNotFound("saved map not found")
