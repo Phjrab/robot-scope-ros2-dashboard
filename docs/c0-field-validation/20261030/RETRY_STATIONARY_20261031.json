@@ -171,5 +171,87 @@
     "base_file_same_does_not_prove_equal_session_estimated_extrinsics": true,
     "parameters_modified": false,
     "no_vertical_offset_applied": true
+  },
+  "latest_attempt_key": "moved_location_retry",
+  "moved_location_retry": {
+    "schema": "c0-moved-location-stationary-result.v1",
+    "created_at_kst": "2026-10-31T15:41:38.275061+09:00",
+    "job_id": "f2b7ef3a977235a5c28eb75f",
+    "cancelled_user_job_id": "bb806a5b474e296f019105f6",
+    "first_submission": "CANCELLED before input capture; no numerical outcome",
+    "reason_for_one_retry": "User explicitly requested registration; use their newly submitted pose/bounds/source contract unchanged; one bounded infrastructure retry only",
+    "new_numerical_registration_attempts_by_agent": 1,
+    "job_state": "succeeded",
+    "result": "FAIL",
+    "reason": "HIGH_RESIDUAL",
+    "admissible": false,
+    "metrics": {
+      "converged": true,
+      "geometry_min_max_eigen_ratio": 0.02879484299170854,
+      "inlier_count": 169,
+      "iterations": 33,
+      "matched_geometry_min_max_eigen_ratio": 0.02457048291398034,
+      "overlap_ratio": 1.0,
+      "rmse_m": 0.054923964866580445,
+      "runtime_ms": 84.27981500017268,
+      "weak_geometry_direction_target": [
+        0.031150651742129463,
+        0.013798792629437062,
+        0.9994194465878732
+      ]
+    },
+    "excess_over_residual_limit_mm": 4.923964866580442,
+    "delta": {
+      "tilt_deg": 0.7707823532177658,
+      "xy_m": 0.24291952762628832,
+      "yaw_deg": 7.505368747834105,
+      "z_m": 0.08579288207126104
+    },
+    "seed_bounds": {
+      "tilt_deg": 10,
+      "xy_m": 0.75,
+      "yaw_deg": 25,
+      "z_m": 0.3
+    },
+    "residual_policy": {
+      "enforced": true,
+      "max_rmse_m": 0.05,
+      "original_max_rmse_m": 0.05,
+      "original_passed": false
+    },
+    "query_points": 169,
+    "query_sha256": "ed9ac9a2e6668eaf07033b8c310a5954e1b6eddc630c1b93ccc125349275c428",
+    "reference_points_full": 49080,
+    "reference_points_reachable": 49064,
+    "map_id": "4b672f17ec79b96d2d075189",
+    "map_revision": "32123a1b2eb19798d81aa930a6e7f0b02451fb219f9fa164abe99612d191d268",
+    "map_pcd_sha256": "879cd0335fad8e15272ffcabcafdbf839f82afd19166a8d6ef2c343a96715203",
+    "runtime_ms": 709.5987869997771,
+    "prior_location_result_reused": false,
+    "comparison_to_prior_location": "Different physical placement, observer epoch, query and initial prior; not a controlled same-input improvement claim",
+    "quality_nav2_velocity_progress_rear_policy_changed": false,
+    "applied_anchor_or_operational_pose": false,
+    "goal_pose_arm_nonzero_motion_commands": 0,
+    "state_after": {
+      "observation": "READY",
+      "operational_selected": null,
+      "activation": "LEGACY_2D",
+      "goal": "idle",
+      "lease": false,
+      "pending_outputs": 0
+    },
+    "qualification": {
+      "source_clock_verified": false,
+      "deskew_verified": false,
+      "map_axes_verified": false,
+      "body_extrinsic_verified": false
+    },
+    "private_evidence": {
+      "moved-location-cancelled-job-private.json": "7cf24232c1ad5ec9770afc357cf285ae60dc555bc028247efd5c865230a253d3",
+      "moved-location-one-retry-request-private.json": "cfe0e302a2640442797673731c0103ce59f54ecc61adff390508dadfd6e23e3e",
+      "moved-location-retry-job-private.json": "19c30712f17667a23acd83fd47ccade503b42207cb06909d62e98089f1632067",
+      "moved-location-retry-proposal-private.json": "7f78eae0d99689688ba626c2e97c95e07f5e2a9312272beb597b43e9b9d750ef",
+      "moved-location-after-result-state-private.json": "49453f315ac98ecdf44bc218ba4b7f16ca64892940afbec6c0117ced2b8fb741"
+    }
   }
 }
