@@ -251,7 +251,7 @@ def project_query(cloud: dict[str, Any], pose: dict[str, Any], now: float, *,
     }
 
 
-def solve_prepared(reference, grid, target_frame, points, frame, stamp_ns, seed, deadline, *, course_region=None, enforce_residual_limit=True):
+def solve_prepared(reference, grid, target_frame, points, frame, stamp_ns, seed, deadline, *, course_region=None, enforce_residual_limit=True, query_weighting=None):
     """Pure numerical work shared by inline diagnostics and the isolated worker."""
     from .observation_seed import prepare_seed
     with measure("local_seed"):
@@ -265,6 +265,7 @@ def solve_prepared(reference, grid, target_frame, points, frame, stamp_ns, seed,
         result = register_se3(Cloud(reference, target_frame, "REGISTERED_MAP"),
             Cloud(points, frame, "REGISTERED_QUERY", stamp_ns=stamp_ns), seed,
             reference_limit=100_000, nearest=nearest,
+            **({'query_weighting': query_weighting} if query_weighting is not None else {}),
             **({'enforce_residual_limit': False} if not enforce_residual_limit else {}),
             **({'reference_weights': course_weights(reference, course_region)} if course_region else {}))
     p = result["pose"]
@@ -302,6 +303,8 @@ def solve_prepared(reference, grid, target_frame, points, frame, stamp_ns, seed,
             full_input_unweighted_rmse_m=result['metrics']['rmse_m'])
     if refinement is not None:
         result["seed_refinement"] = refinement
+    if query_weighting is not None:
+        query_weighting.finish(result)
     return result, transform
 
 

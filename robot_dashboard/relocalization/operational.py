@@ -22,6 +22,7 @@ from .experimental_se3 import (
     rotation_error_rad, transform_points, validate_transform,
 )
 from .observation_alignment import ReferenceIndex, solve_prepared
+from .directional_weighting import CANDIDATE, DirectionalFrame, SurfaceSupport, sector_counts, validate_weighting
 
 
 SCHEMA = "robot-scope.operational-3d-bundle.v1"
@@ -117,6 +118,7 @@ def validate_bundle(bundle):
             raise ValueError('INVALID_OPERATIONAL_QUALITY_POLICY')
     if not policy.get('evidence'):
         raise ValueError('QUALITY_POLICY_EVIDENCE_REQUIRED')
+    validate_weighting(policy.get('directional_weighting'))
     return bundle
 
 
@@ -144,6 +146,9 @@ class OperationalLocalizer:
         self.clock = clock
         self.reference, self.full_count = read_reference(reference_path, bundle['localization_3d']['sha256'])
         self.index = ReferenceIndex(self.reference)
+        self.weighting = validate_weighting(bundle['policy'].get('directional_weighting'))
+        self.surface_support = SurfaceSupport(self.index) if self.weighting['mode'] == CANDIDATE else None
+        self.directional_state = None
         self.exclusions = []
         for entry in bundle['localization_3d'].get('edit_history', []):
             if entry['purpose'] != 'localization':
@@ -181,6 +186,7 @@ class OperationalLocalizer:
 
     def invalidate(self, reason):
         self.generation += 1
+        self.directional_state = None
         self.correction = None
         self.seed = None
         self.stopped_since = None
@@ -264,6 +270,7 @@ class OperationalLocalizer:
         initial = self.correction.copy() if self.correction is not None else self.seed @ inverse(odom_at_stamp)
         token = self.generation
         deadline = now + self.bundle['policy']['compute_budget_s']
+        directional_state = self.directional_state
         def solve():
             selected = query
             if self.exclusions:
@@ -278,21 +285,24 @@ class OperationalLocalizer:
                 selected = query[~excluded]
                 if len(selected) < 60:
                     raise ValueError('INSUFFICIENT_LOCALIZATION_POINTS_AFTER_EXCLUSION')
+            weighting = None
+            if self.surface_support is not None:
+                weighting = DirectionalFrame(self.weighting, self.surface_support, selected,
+                    odom_at_stamp @ self.imu_base, stamp, directional_state, deadline,
+                    frame_verified=self.bundle['calibration']['verified'])
             result, transform = solve_prepared(self.reference, self.index,
                 self.bundle['localization_3d']['frame'], selected, 'camera_init', stamp,
-                initial, deadline, course_region=self.bundle.get('course_region'), enforce_residual_limit=False)
+                initial, deadline, course_region=self.bundle.get('course_region'), enforce_residual_limit=False,
+                **({'query_weighting': weighting} if weighting is not None else {}))
+            if weighting is not None:
+                result['_directional_state'] = weighting.next_state
             result['metrics']['registered_input_points'] = len(query)
             result['metrics']['localization_selected_points'] = len(selected)
             result['metrics']['localization_excluded_points'] = len(query) - len(selected)
             # Physical sectors use body heading at this exact source stamp.
             body = odom_at_stamp @ self.imu_base
-            heading = math.atan2(body[1, 0], body[0, 0])
-            delta = selected - body[:3, 3]
-            x = delta[:, 0] * math.cos(heading) + delta[:, 1] * math.sin(heading)
-            y = -delta[:, 0] * math.sin(heading) + delta[:, 1] * math.cos(heading)
-            result['metrics']['body_sectors'] = {'front': int((x > np.abs(y)).sum()),
-                'rear': int((-x > np.abs(y)).sum()), 'left': int((y >= np.abs(x)).sum()),
-                'right': int((-y >= np.abs(x)).sum())}
+            result['metrics']['body_sectors'] = sector_counts(selected, body)
+            result['metrics']['body_sector_basis'] = 'FULL_EXACT_STAMP_BODY_AXES_NOT_TRAVEL_DIRECTION'
             result['metrics']['body_pitch_rad'] = math.asin(float(np.clip(-body[2, 0], -1, 1)))
             return token, stamp, receipt, odom_at_stamp.copy(), result, transform
         self.future = self.pool.submit(solve)
@@ -311,6 +321,8 @@ class OperationalLocalizer:
             return
         if token != self.generation:
             return
+        if '_directional_state' in result:
+            self.directional_state = result.pop('_directional_state')
         self.metrics = result['metrics']
         policy = self.bundle['policy']
         if not 0 <= self.clock() - receipt <= policy['max_correction_age_s']:
@@ -379,7 +391,8 @@ class OperationalLocalizer:
                 'linear_speed_mps': self.speed, 'angular_speed_rps': self.yaw_rate,
                 'stopped_seconds': self.stopped_seconds(), 'metrics': self.metrics,
                 'initial_pose_receipt': self.initial_pose_receipt,
-                'weighting': 'ALL_DIRECTION_BASELINE', 'reference_full_count': self.full_count}
+                'weighting': self.weighting['mode'], 'reference_full_count': self.full_count,
+                **({'weighting_config': self.weighting} if self.weighting['mode'] == CANDIDATE else {})}
 
     def nav_odom(self):
         return self.nav_map @ self.correction if self.status()['ready'] else None
