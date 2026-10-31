@@ -118,3 +118,7 @@ P1/P2를 포함한 주석 revision `c639ebe083cd57a0dd1dcbe61703cecc08eff51e4a69
 직전 검증 release `/home/unitree/robot-scope-releases/robot-scope-a7fbe197f3b7`을 남겼다. 코드 rollback은 정상 STOP·idle·lease inactive·명령0·lifecycle 차단 없음 확인 후 selector만 해당 release로 변경하고 정상 service restart API를 사용한다. 현재 지도·주석·교정·주행 설정은 보존하며 PID/cwd·HTTP 자산·source·보호 파일 hash를 다시 확인한다. **최종 bb77에서 a7로의 rollback을 실제 실행한 것은 아니다.**
 
 전체 C0 실기는 미완료다. 남은 항목은 초기 높이·기울기 근거 확보와 검증된 센서 관측의 자동 제시 경로, 상태 조회의 간헐 지연 원인 규명, 실제 저장 지도 보정·Nav2 반영, P1 정지·녹색 버튼 P2, 현재 운영 경사로 연속성과 최신 CI 전체 결과 확인이다.
+
+## 충전 대기 인계
+
+2026-10-31 21:50 KST 사용자가 충전 후 재개를 요청해 장비 작업과 추가 구현을 중단했다. 마지막 읽기에서 Nav2 pipeline/goal idle, 제어 lease inactive·deadman false·명령0, FAST-LIO 관측 STOPPED/inactive를 확인했다. 이후 요청된 ② 센서 관측 우선·자동 후보 제시와 ③④⑦ 중복 버튼의 안내 문구 전환은 **아직 미구현·미배포**이며, 중단 당시 미커밋 코드 변경은 없었다. 현재 상태와 충전 후 실행 지시는 [재개 프롬프트](RESUME_AFTER_CHARGE.md)에 보존했다.
