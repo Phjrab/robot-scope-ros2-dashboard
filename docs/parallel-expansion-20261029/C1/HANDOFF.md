@@ -1,6 +1,10 @@
 # C1 services handoff — independent expansion, 2026-10-29 KST
 
-Latest (2026-10-30): [CURRENT_COMPOSITION_20261030.md](CURRENT_COMPOSITION_20261030.md)
+Latest CI follow-up (2026-10-31): [CI_FOLLOWUP_20261031.md](CI_FOLLOWUP_20261031.md)
+— actual shared-fixture timer leak reproduced on previous/current C1 SHAs;
+original CI failure retained, no production or shared-source change.
+
+Latest composition (2026-10-30): [CURRENT_COMPOSITION_20261030.md](CURRENT_COMPOSITION_20261030.md)
 — latest actual C4→C1 0.2 HTTP→C3 acceptance and safe map-error propagation.
 The minimum C2 consumer handoff is [ERROR_CONTRACT.md](ERROR_CONTRACT.md).
 

@@ -1,0 +1,50 @@
+[
+  {
+    "path": "tests/e2e/live_observation.spec.mjs",
+    "git_blobs": {
+      "50600c7bce6f5fae743cd836ca1d8ee68d91b05a": "7108b1c444d7e8bf444af86002256596ff425c2b",
+      "e0bc9cf8ba8bd22b406a287e1a9ef867a0cd367b": "7108b1c444d7e8bf444af86002256596ff425c2b"
+    },
+    "identical": true
+  },
+  {
+    "path": "tests/e2e/dashboard_backend.mjs",
+    "git_blobs": {
+      "50600c7bce6f5fae743cd836ca1d8ee68d91b05a": "f1d1e76d3f90f010064a8d60c5ca1b96e8eec51c",
+      "e0bc9cf8ba8bd22b406a287e1a9ef867a0cd367b": "f1d1e76d3f90f010064a8d60c5ca1b96e8eec51c"
+    },
+    "identical": true
+  },
+  {
+    "path": "tests/e2e/static_server.mjs",
+    "git_blobs": {
+      "50600c7bce6f5fae743cd836ca1d8ee68d91b05a": "723eadee4c50a6e7989481cc44517e7623bbc716",
+      "e0bc9cf8ba8bd22b406a287e1a9ef867a0cd367b": "723eadee4c50a6e7989481cc44517e7623bbc716"
+    },
+    "identical": true
+  },
+  {
+    "path": "playwright.config.mjs",
+    "git_blobs": {
+      "50600c7bce6f5fae743cd836ca1d8ee68d91b05a": "efaeb830ac00ffb667717673f80e3ee0a6ffb65f",
+      "e0bc9cf8ba8bd22b406a287e1a9ef867a0cd367b": "efaeb830ac00ffb667717673f80e3ee0a6ffb65f"
+    },
+    "identical": true
+  },
+  {
+    "path": "package-lock.json",
+    "git_blobs": {
+      "50600c7bce6f5fae743cd836ca1d8ee68d91b05a": "fc0ae24ce5a86a186176cd1681f0f9ebcd9612ab",
+      "e0bc9cf8ba8bd22b406a287e1a9ef867a0cd367b": "fc0ae24ce5a86a186176cd1681f0f9ebcd9612ab"
+    },
+    "identical": true
+  },
+  {
+    "path": ".github/workflows/ci.yml",
+    "git_blobs": {
+      "50600c7bce6f5fae743cd836ca1d8ee68d91b05a": "78d63403489dea7ec1cf6dfb0b9c8b3b25795d46",
+      "e0bc9cf8ba8bd22b406a287e1a9ef867a0cd367b": "78d63403489dea7ec1cf6dfb0b9c8b3b25795d46"
+    },
+    "identical": true
+  }
+]

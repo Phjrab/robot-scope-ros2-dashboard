@@ -1,0 +1,130 @@
+{
+  "production_source_sha": "e0bc9cf8ba8bd22b406a287e1a9ef867a0cd367b",
+  "previous_success_sha": "50600c7bce6f5fae743cd836ca1d8ee68d91b05a",
+  "owner_diagnostic_dependencies": [
+    {
+      "sha": "ec724dafd33db92ecb27db17e0bdd2eee5a30455",
+      "path": "experiments/expansion_20261030/c7_capacity/ci/socket_cleanup_probe.mjs",
+      "git_blob": "174c568e5b6419ec1638bd0af8cc1a2ce99992d8",
+      "readonly": true,
+      "verified_after_execution": true
+    },
+    {
+      "sha": "ec724dafd33db92ecb27db17e0bdd2eee5a30455",
+      "path": "experiments/expansion_20261030/c7_capacity/ci/summarize_original_traces.py",
+      "git_blob": "c4aa1988986250504fe2bf56ecb863c55a57a48e",
+      "readonly": true,
+      "verified_after_execution": true
+    }
+  ],
+  "environment": {
+    "os": "Ubuntu 24.04.5",
+    "node": "20.20.2",
+    "npm": "10.8.2",
+    "python": "3.12.3",
+    "playwright": "1.62.1",
+    "chromium": "151.0.7922.34",
+    "hosted_runner_image_reproduced": false,
+    "ubuntu22_standalone": "NOT_RUN; no local 22.04 runtime",
+    "initial_browser_launch": "Sandbox blocked Chromium; same probe then executed with host permission. This was not a product-test failure."
+  },
+  "single_test_comparison": [
+    {
+      "sha": "50600c7bce6f5fae743cd836ca1d8ee68d91b05a",
+      "raw_json_sha256": "089bf05969329215093cde75edad2ed4101ef3f8bafb7217f35ab1d3332bbeb1",
+      "stats": {
+        "startTime": "2026-10-31T06:07:16.572Z",
+        "duration": 6089.243,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "tests": [
+        {
+          "title": "course boundary manual drawing, save, reload and real seed payload preserve active observation",
+          "file": "live_observation.spec.mjs",
+          "line": 853,
+          "timeout_ms": 20000,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "duration_ms": 4927,
+              "retry": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sha": "e0bc9cf8ba8bd22b406a287e1a9ef867a0cd367b",
+      "raw_json_sha256": "72fa2ed00b76c2a058369468044fc05e020cc28cbf5c4967c4b76b8deee33797",
+      "stats": {
+        "startTime": "2026-10-31T06:06:54.277Z",
+        "duration": 6213.088,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "tests": [
+        {
+          "title": "course boundary manual drawing, save, reload and real seed payload preserve active observation",
+          "file": "live_observation.spec.mjs",
+          "line": 853,
+          "timeout_ms": 20000,
+          "status": "expected",
+          "results": [
+            {
+              "status": "passed",
+              "duration_ms": 5024,
+              "retry": 0
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "original_ci": {
+    "run_id": 41024138006,
+    "sha": "e0bc9cf8ba8bd22b406a287e1a9ef867a0cd367b",
+    "conclusion": "FAILURE",
+    "ubuntu22_browser": {
+      "pass": 226,
+      "fail": 1,
+      "mission": "SKIPPED_BY_PRIOR_STEP_FAILURE"
+    },
+    "ubuntu24_browser_pass": 227,
+    "ubuntu24_mission_pass": 10,
+    "offline_integration": "SUCCESS"
+  },
+  "interpretation": "Shared fixture lifetime defect reproduced on both revisions. Original trace has stale activity and pointer interceptions. Sufficient cause of the original whole-test timeout is unproven; single-test PASS does not supersede full-suite FAIL.",
+  "production_change": "NONE",
+  "shared_fixture_change": "NONE; requires explicit scope expansion or shared owner",
+  "composition": "Frozen at e0bc9cf; no peer repin or new ROS/native/robot run.",
+  "local_regression": {
+    "python": {
+      "interpreter": "3.12.3",
+      "command": "C2_CROSS_REQUIRED=1 python -m unittest discover -s tests -v",
+      "run": 3156,
+      "pass": 3154,
+      "existing_skip": 2,
+      "seconds": 102.654
+    },
+    "javascript": {
+      "node": "20.20.2",
+      "command": "node --test tests/*.mjs",
+      "test_files_pass": 77,
+      "fail": 0
+    },
+    "syntax_dashboard_modules": 112,
+    "ruff": "PASS; robot_dashboard scripts tests/expansion_services",
+    "mypy": "PASS; 4 configured files",
+    "tracked_secret_scan": "PASS",
+    "whitespace": "PASS",
+    "source_scope": "C1 documentation/evidence only",
+    "python_log_sha256": "efb8a17b111b0d08991783534e95b2f2c9b2e56ee52e0ffe94cbb9298224b2e1",
+    "javascript_log_sha256": "bf114f5cd87ee9d4a8450dbf99424cd542f8244c79facb3e28a2043844e45623"
+  }
+}

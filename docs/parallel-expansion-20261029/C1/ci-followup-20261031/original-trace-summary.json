@@ -1,0 +1,476 @@
+[
+  {
+    "artifact": "c1-e0bc9cf-ubuntu22-browser.zip",
+    "artifact_bytes": 21107784,
+    "artifact_sha256": "10661e86aff19587ea5fba542364513ae793dc6ef3e29245e5adbe5ad2e1706e",
+    "trace_member": "test-results/live_observation-course-bo-e8430-preserve-active-observation/trace.zip",
+    "attachments": {
+      "test-results/live_observation-course-bo-e8430-preserve-active-observation/error-context.md": {
+        "bytes": 26677,
+        "sha256": "aa3ce37c4dd1566dd5b7b6ef0b9eec6d0652612f3481f0ad8c80d434a34b816f"
+      },
+      "test-results/live_observation-course-bo-e8430-preserve-active-observation/synthetic-course-controls.png": {
+        "bytes": 42351,
+        "sha256": "1693d2b4fa16abc682c4fb044cf7c914c8f24b13c28479481cd9cad737378caa"
+      },
+      "test-results/live_observation-course-bo-e8430-preserve-active-observation/synthetic-saved-course.png": {
+        "bytes": 110881,
+        "sha256": "ac6cd7f7e2c4f7ecc13c8ef3ba102713ac0f9d227b4106e6d19983f1ff9448ab"
+      },
+      "test-results/live_observation-course-bo-e8430-preserve-active-observation/test-failed-1.png": {
+        "bytes": 237290,
+        "sha256": "b2eff470e7408fa4cbd2f6af893405b2d0bc7e405edca7430116085924a96d1c"
+      },
+      "test-results/live_observation-course-bo-e8430-preserve-active-observation/trace.zip": {
+        "bytes": 16894160,
+        "sha256": "8d0c30926711a5fb2c966464aa45bf002bd369622270113329ed411b07ec6839"
+      }
+    },
+    "playwright": "1.62.1",
+    "test_timeout_ms": 20000,
+    "test_trace_events": 28158,
+    "network_requests": 387,
+    "last_browser_api_event_ms": 20695.283,
+    "closed_socket_send_errors": 13470,
+    "closed_socket_error_stacks": {
+      "tests/e2e/live_observation.spec.mjs:83:54": 163,
+      "tests/e2e/live_observation.spec.mjs:90:14": 3651,
+      "tests/e2e/dashboard_backend.mjs:244:97": 1702,
+      "tests/e2e/dashboard_backend.mjs:265:16": 3977,
+      "tests/e2e/dashboard_backend.mjs:280:23": 3977
+    },
+    "actions_relative_to_test_trace_start": [
+      {
+        "title": "Navigate to \"/#maps\"",
+        "start_ms": 92.573,
+        "end_ms": 1136.33
+      }
+    ],
+    "relevant_http_requests": [
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 404,
+        "start_ms": 1718.72,
+        "duration_ms": 7.74
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 404,
+        "start_ms": 1721.201,
+        "duration_ms": 10.523
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 404,
+        "start_ms": 1726.063,
+        "duration_ms": 15.738
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 404,
+        "start_ms": 2717.723,
+        "duration_ms": 9.464
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 404,
+        "start_ms": 2725.968,
+        "duration_ms": 27.309
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 404,
+        "start_ms": 2726.262,
+        "duration_ms": 28.153000000000002
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 404,
+        "start_ms": 3717.939,
+        "duration_ms": 12.438
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 404,
+        "start_ms": 3726.229,
+        "duration_ms": 35.983999999999995
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 404,
+        "start_ms": 3726.548,
+        "duration_ms": 34.033
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 4742.305,
+        "duration_ms": 35.755
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 4742.45,
+        "duration_ms": 36.61
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 4742.609,
+        "duration_ms": 35.357
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 5727.519,
+        "duration_ms": 27.964000000000002
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 5727.689,
+        "duration_ms": 28.964000000000002
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 5727.959,
+        "duration_ms": 24.665000000000003
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 6765.66,
+        "duration_ms": 63.161
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 6765.874,
+        "duration_ms": 63.318999999999996
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 6766.131,
+        "duration_ms": 62.396
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 7723.182,
+        "duration_ms": 70.681
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 7723.323,
+        "duration_ms": 71.111
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 7747.442,
+        "duration_ms": 105.02300000000001
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 8745.248,
+        "duration_ms": 93.93599999999999
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 8745.437,
+        "duration_ms": 93.976
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 8745.647,
+        "duration_ms": 91.57900000000001
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 9752.418,
+        "duration_ms": 107.436
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 9752.645,
+        "duration_ms": 105.793
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 9787.483,
+        "duration_ms": 116.62299999999999
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 10725.152,
+        "duration_ms": 11.31
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 10725.353,
+        "duration_ms": 11.423
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 10736.393,
+        "duration_ms": 31.661
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 11832.047,
+        "duration_ms": 176.04000000000002
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 11832.206,
+        "duration_ms": 176.247
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 11832.505,
+        "duration_ms": 174.706
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 12723.67,
+        "duration_ms": 71.50699999999999
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 12758.973,
+        "duration_ms": 127.58
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 12759.24,
+        "duration_ms": 125.578
+      },
+      {
+        "method": "POST",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 202,
+        "start_ms": 12800.346,
+        "duration_ms": 164.175
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs/888888888888888888888888/anchor-proposal",
+        "status": 200,
+        "start_ms": 13038.53,
+        "duration_ms": 268.29499999999996
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 13747.932,
+        "duration_ms": 135.359
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 13748.111,
+        "duration_ms": 137.302
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 13748.318,
+        "duration_ms": 136.251
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 14738.079,
+        "duration_ms": 122.592
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 14738.248,
+        "duration_ms": 122.675
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 14738.399,
+        "duration_ms": 120.861
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 15727.434,
+        "duration_ms": 129.669
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 15727.549,
+        "duration_ms": 128.475
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 15778.768,
+        "duration_ms": 247.761
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 16774.059,
+        "duration_ms": 242.04399999999998
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 16774.209,
+        "duration_ms": 241.18099999999998
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 16774.37,
+        "duration_ms": 239.057
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 17727.413,
+        "duration_ms": 121.209
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 17727.573,
+        "duration_ms": 120.307
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 17789.506,
+        "duration_ms": 223.538
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 18794.733,
+        "duration_ms": 346.478
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 18794.955,
+        "duration_ms": 345.545
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 18795.122,
+        "duration_ms": 345.132
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 19804.994,
+        "duration_ms": 448.937
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 19805.256,
+        "duration_ms": 448.38199999999995
+      },
+      {
+        "method": "GET",
+        "path": "/api/v1/observations/global-jobs",
+        "status": 200,
+        "start_ms": 19805.563,
+        "duration_ms": 448.46400000000006
+      }
+    ],
+    "pointer_interceptions": [
+      {
+        "time_ms": 15726.159,
+        "message": "  <footer>…</footer> intercepts pointer events"
+      },
+      {
+        "time_ms": 16401.577,
+        "message": "  <footer>…</footer> intercepts pointer events"
+      }
+    ],
+    "interpretation_limit": "Trace evidence does not measure host CPU or prove a single sufficient cause for timeout."
+  }
+]

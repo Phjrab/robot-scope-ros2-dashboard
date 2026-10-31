@@ -1,0 +1,237 @@
+{
+  "source": "original artifact 12964220614 / test.trace",
+  "relative_origin": "test.trace monotonicTime; not wall clock or an assertion timeout clock",
+  "actions": [
+    {
+      "title": "Evaluate",
+      "line": 863,
+      "start_ms": 6046.108,
+      "end_ms": 6215.289,
+      "error": null
+    },
+    {
+      "title": "Click locator('#mapCourse > summary')",
+      "line": 864,
+      "start_ms": 6216.468,
+      "end_ms": 6422.619,
+      "error": null
+    },
+    {
+      "title": "Click locator('#mapCourseDraw')",
+      "line": 865,
+      "start_ms": 6424.915,
+      "end_ms": 6886.646,
+      "error": null
+    },
+    {
+      "title": "Wait for timeout",
+      "line": 865,
+      "start_ms": 6888.583,
+      "end_ms": 7438.051,
+      "error": null
+    },
+    {
+      "title": "Click locator('#mapCourseFinish')",
+      "line": 867,
+      "start_ms": 9878.92,
+      "end_ms": 10350.746,
+      "error": null
+    },
+    {
+      "title": "Expect \"toBeDisabled\"",
+      "line": 867,
+      "start_ms": 10351.914,
+      "end_ms": 10453.321,
+      "error": null
+    },
+    {
+      "title": "Evaluate",
+      "line": 868,
+      "start_ms": 10454.628,
+      "end_ms": 10561.111,
+      "error": null
+    },
+    {
+      "title": "Expect \"toBe\"",
+      "line": 868,
+      "start_ms": 10564.93,
+      "end_ms": 10564.986,
+      "error": null
+    },
+    {
+      "title": "Fill \"경기장 코스\" locator('#mapCourseName')",
+      "line": 869,
+      "start_ms": 10568.896,
+      "end_ms": 10907.955,
+      "error": null
+    },
+    {
+      "title": "Click locator('#mapCourseSave')",
+      "line": 869,
+      "start_ms": 10911.56,
+      "end_ms": 11886.711,
+      "error": null
+    },
+    {
+      "title": "Expect \"toContainText\"",
+      "line": 870,
+      "start_ms": 11889.139,
+      "end_ms": 12263.126,
+      "error": null
+    },
+    {
+      "title": "Expect \"toBeEnabled\"",
+      "line": 871,
+      "start_ms": 12264.885,
+      "end_ms": 12451.885,
+      "error": null
+    },
+    {
+      "title": "Click locator('#mapSeedSearch')",
+      "line": 871,
+      "start_ms": 12453.383,
+      "end_ms": 13201.473,
+      "error": null
+    },
+    {
+      "title": "Expect \"toBeEnabled\"",
+      "line": 872,
+      "start_ms": 13203.806,
+      "end_ms": 13578.551,
+      "error": null
+    },
+    {
+      "title": "Expect \"toMatchObject\"",
+      "line": 873,
+      "start_ms": 13580.008,
+      "end_ms": 13580.125,
+      "error": null
+    },
+    {
+      "title": "Expect \"toBeCloseTo\"",
+      "line": 874,
+      "start_ms": 13581.209,
+      "end_ms": 13581.257,
+      "error": null
+    },
+    {
+      "title": "Expect \"toBeCloseTo\"",
+      "line": 874,
+      "start_ms": 13582.208,
+      "end_ms": 13582.237,
+      "error": null
+    },
+    {
+      "title": "Evaluate",
+      "line": 875,
+      "start_ms": 13583.392,
+      "end_ms": 13920.099,
+      "error": null
+    },
+    {
+      "title": "Expect \"toEqual\"",
+      "line": 875,
+      "start_ms": 13923.395,
+      "end_ms": 13923.538,
+      "error": null
+    },
+    {
+      "title": "Select option locator('#mapCourseSaved')",
+      "line": 876,
+      "start_ms": 13927.199,
+      "end_ms": 14600.222,
+      "error": null
+    },
+    {
+      "title": "Expect \"toBeDisabled\"",
+      "line": 876,
+      "start_ms": 14603.863,
+      "end_ms": 14929.186,
+      "error": null
+    },
+    {
+      "title": "Click locator('#mapCourseReload')",
+      "line": 877,
+      "start_ms": 14933.088,
+      "end_ms": 17389.572,
+      "error": null
+    },
+    {
+      "title": "Expect \"toHaveValue\"",
+      "line": 877,
+      "start_ms": 17392.502,
+      "end_ms": 17770.791,
+      "error": null
+    },
+    {
+      "title": "Evaluate",
+      "line": 878,
+      "start_ms": 17774.605,
+      "end_ms": 18312.088,
+      "error": null
+    },
+    {
+      "title": "Expect \"toBe\"",
+      "line": 878,
+      "start_ms": 18314.324,
+      "end_ms": 18314.384,
+      "error": null
+    },
+    {
+      "title": "Select option locator('#mapCourseWeight')",
+      "line": 879,
+      "start_ms": 18316.667,
+      "end_ms": 19702.649,
+      "error": null
+    },
+    {
+      "title": "Expect \"toBeDisabled\"",
+      "line": 879,
+      "start_ms": 19706.136,
+      "end_ms": 20311.514,
+      "error": null
+    },
+    {
+      "title": "Click locator('#mapCourseCancel')",
+      "line": 880,
+      "start_ms": 20312.333,
+      "end_ms": 20710.464,
+      "error": null
+    },
+    {
+      "title": "Expect \"toHaveValue\"",
+      "line": 880,
+      "start_ms": 20710.98,
+      "end_ms": 20823.648,
+      "error": null
+    },
+    {
+      "title": "Screenshot locator('.saved-map-panel')",
+      "line": 881,
+      "start_ms": 20824.788,
+      "end_ms": 21010.782,
+      "error": null
+    },
+    {
+      "title": "Screenshot locator('#mapCourse')",
+      "line": 882,
+      "start_ms": 21011.875,
+      "end_ms": 21218.176,
+      "error": null
+    },
+    {
+      "title": "Expect \"toEqual\"",
+      "line": 883,
+      "start_ms": 21218.787,
+      "end_ms": 21218.928,
+      "error": null
+    },
+    {
+      "title": "Expect \"toEqual\"",
+      "line": 883,
+      "start_ms": 21219.436,
+      "end_ms": 21219.502,
+      "error": null
+    }
+  ]
+}

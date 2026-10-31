@@ -1,5 +1,10 @@
 # C1 latest composition and map-error propagation
 
+The containing implementation commit is `e0bc9cf8ba8bd22b406a287e1a9ef867a0cd367b`.
+Its remote CI failed one shared browser test. [CI_FOLLOWUP_20261031.md](CI_FOLLOWUP_20261031.md)
+preserves that failure and the subsequent bounded diagnosis; this composition
+result is unchanged and is not a claim that the complete remote CI passed.
+
 2026-10-30 KST. Existing branch `review/20261029-x-c1-services`; start HEAD
 `50600c7bce6f5fae743cd836ca1d8ee68d91b05a`, clean and equal to remote.
 Its [CI 40846353053](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/40846353053)
