@@ -5,13 +5,16 @@ const cloud = { id: 'a'.repeat(24), revision: 'b'.repeat(64), kind: 'pointcloud3
 const grid = { id: 'c'.repeat(24), revision: 'd'.repeat(64), kind: 'occupancy2d', name: 'map1_2D', frame_id: 'map' };
 
 async function fixture(page) {
-  const state = { selected: null, pair: null, runtime: null }, writes = [];
+  const state = { selected: null, pair: null, runtime: null }, writes = [], reads = [];
   const observation = { state: 'STOPPED', active: false, can_start: true, can_stop: false, reason: '정지' };
   const inputs = { schema: 'robot-scope.navigation-preparation-inputs.v1', pair: null, observation, start_blockers: { items: [], advisory: true },
     evidence: { valid: false, reason: 'OBSERVATION_INACTIVE', cloud: null, pose: null, calibration_sha256: null }, reference_pose: null,
     candidates: Object.fromEntries(['z', 'roll', 'pitch'].map(key => [key, { value: null, frame: 'map', available: false, reason: 'OBSERVATION_INACTIVE', provenance: null }])) };
   let reject = false, failingReads = 0, heldWrites = null, releaseWrite = null;
   let rejectObservation = false;
+  let invalidOperationalState = false;
+  let proposalState = 'ready', proposalReason = null, proposalRejected = false, wrongProposalSource = false, proposalReads = null, releaseProposalReads = null;
+  let proposalCleanup = { state: 'SETTLED', cancellation_requested: false, worker_active: false, terminal_state: 'succeeded' };
   await page.route('**/api/v1/observations/fastlio/**', async route => {
     const path = new URL(route.request().url()).pathname, body = route.request().postDataJSON();
     writes.push({ path, method: route.request().method(), body });
@@ -25,8 +28,27 @@ async function fixture(page) {
     const path = new URL(route.request().url()).pathname, method = route.request().method();
     const body = route.request().postDataJSON();
     const json = (value, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(value) });
-    if (path.endsWith('/preparation-inputs')) return json(inputs);
+    if (method === 'GET') reads.push(path);
+    if (path.endsWith('/preparation-inputs')) {
+      if (failingReads > 0) { failingReads--; return json({ detail: 'SYNTHETIC_READ_TIMEOUT' }, 503); }
+      if (invalidOperationalState) return json({ ...inputs, operational_state: null, operational_state_error: 'CONTEXT_CHANGED' });
+      return json({ ...inputs, operational_state: { ...state, pair: state.pair && { ...state.pair, generation: state.selected?.generation }, activation: state.selected ? 'NEXT_NAVIGATION_START' : 'LEGACY_2D' }, operational_state_error: null });
+    }
     if (method !== 'GET') writes.push({ path, method, body });
+    if (path.includes('/initialization-proposals')) {
+      if (method === 'POST' && proposalRejected) return json({ detail: 'GLOBAL_BACKEND_UNAVAILABLE' }, 503);
+      if (method === 'GET' && proposalReads) await proposalReads;
+      const pose = { x: 1, y: 2, z: .4, roll: .1, pitch: .2, yaw: .3 };
+      const result = { schema: 'robot-scope.navigation-initialization-proposal.v1', proposal_id: 'f'.repeat(24),
+        state: method === 'POST' ? 'capturing' : proposalState, reason: proposalReason,
+        pair: inputs.pair, observation_session_id: observation.session_id, operational_application: 'NOT_RUN', absolute_accuracy_m: null,
+        imu_hypothesis: method === 'GET' && proposalState === 'ready' ? { frame: 'camera_init', pose_reference: 'FASTLIO_IMU', units: 'metres_degrees', pose, approximate_only: true, requires_reanchor: true } : null,
+        body_candidate: method === 'GET' && proposalState === 'ready' ? { frame: 'camera_init', pose_reference: 'base_link', units: 'metres_radians', pose, qualification: 'INFORMATIONAL_LOCALIZATION_MAP_ONLY' } : null,
+        quality: method === 'GET' && proposalState === 'ready' ? { overlap: .7, rmse_m: .1, hypothesis_overlap_min: .6, operational_initial_overlap_min: .85, ambiguity_unresolved: false, residual_selection_gate_enabled: false, qualification: 'GLOBAL_HYPOTHESIS_ONLY_NOT_OPERATIONAL_QUALITY' } : null,
+        provenance: method === 'GET' && proposalState === 'ready' ? { pose_age_s: 0, capture_age_s: 15, source_contract: { observer_id: '1'.repeat(32), cloud_epoch: (wrongProposalSource ? '4' : '2').repeat(32), pose_epoch: '3'.repeat(32) } } : null,
+        cleanup: method === 'POST' ? { state: 'MONITORING', cancellation_requested: false } : proposalCleanup };
+      return json(result, method === 'POST' ? 202 : 200);
+    }
     if (method === 'GET' && failingReads > 0) { failingReads--; return json({ detail: 'SYNTHETIC_READ_TIMEOUT' }, 503); }
     if (method !== 'GET' && heldWrites) await heldWrites;
     if (reject && method !== 'GET') return json({ detail: 'PAIR_COORDINATE_RELATION_UNVERIFIED' }, 409);
@@ -55,7 +77,11 @@ async function fixture(page) {
       actions: Object.fromEntries(['start', 'initial', 'goal', 'refresh'].map(key => [key, () => window.fixtureActions.push(key)])) });
     window.preparation.render(); await window.preparation.refresh(true);
   }, { cloud, grid });
-  return { state, inputs, writes, reject(value) { reject = value; }, rejectObservation(value) { rejectObservation = value; }, failReads(count) { failingReads = count; },
+  return { state, inputs, observation, writes, reads, reject(value) { reject = value; }, rejectObservation(value) { rejectObservation = value; }, failReads(count) { failingReads = count; }, invalidStatus(value) { invalidOperationalState = value; },
+    proposalStatus(value, reason = null) { proposalState = value; proposalReason = reason; }, rejectProposal(value) { proposalRejected = value; }, wrongProposalSource(value) { wrongProposalSource = value; },
+    cleanup(value) { proposalCleanup = value; },
+    holdProposalReads() { proposalReads = new Promise(resolve => { releaseProposalReads = resolve; }); },
+    releaseProposalReads() { releaseProposalReads?.(); proposalReads = null; releaseProposalReads = null; },
     holdWrites() { heldWrites = new Promise(resolve => { releaseWrite = resolve; }); },
     releaseWrites() { releaseWrite?.(); heldWrites = null; releaseWrite = null; } };
 }
@@ -175,7 +201,8 @@ test('automatic fresh status clears a recovered read failure without losing the 
   await expect(page.locator('[data-prep="current"]')).toContainText('현재 단계: 2.');
   f.failReads(1);
   await page.evaluate(() => window.preparation.refresh(true));
-  await expect(page.locator('[data-prep="issues"]')).toContainText('상태 확인 실패: SYNTHETIC_READ_TIMEOUT');
+  await expect(page.locator('[data-prep="issues"]')).toContainText('상태 확인 실패');
+  await expect(page.locator('[data-prep="details"]')).toContainText('SYNTHETIC_READ_TIMEOUT');
   // The dashboard calls this same refresh from its periodic navigation reads.
   // There is no operator click, pose input, or write retry after the failure.
   await page.evaluate(() => { window.fixturePolling = setInterval(() => window.preparation.refresh(), 100); });
@@ -257,7 +284,8 @@ test('sensor evidence and individual candidates are descriptive and never applie
   await page.evaluate(() => window.preparation.refresh(true));
   await expect(page.locator('[data-prep="candidates"]')).not.toContainText('자동 후보');
   await page.getByRole('button', { name: '센서 관측 종료' }).click();
-  await expect(page.locator('[data-prep="observation-status"]')).toContainText('관측 상태: 정지');
+  await expect(page.locator('[data-prep="observation-status"]')).toContainText('관측 입력 확인 실패');
+  await expect(page.locator('[data-prep="details"]')).toContainText('"state": "STOPPED"');
   await expect(page.getByRole('button', { name: '센서 관측 시작' })).toBeDisabled();
   expect(f.writes.at(-1).body).toEqual({ confirmed: true, session_id: 'a'.repeat(32) });
 });
@@ -281,4 +309,141 @@ test('observation rejection exposes bridge reason and does not retry or bypass t
   await expect(page.locator('[data-prep="details"]')).toContainText('control_bridge_not_inactive');
   expect(f.writes.filter(write => write.path.includes('/observations/'))).toHaveLength(1);
   expect(f.writes.filter(write => /seed-geometry|\/match|\/goal/.test(write.path))).toHaveLength(0);
+});
+
+async function proposalFixture(page) {
+  const f = await fixture(page);
+  await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
+  await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
+  await page.getByRole('button', { name: '센서 관측 시작' }).click();
+  await expect(page.getByRole('button', { name: '센서 관측 종료' })).toBeEnabled();
+  f.state.selected.generation = 'b'.repeat(32);
+  f.state.selected.localization_3d.frame = 'camera_init';
+  f.inputs.pair.generation = 'b'.repeat(32);
+  f.inputs.pair.calibration_sha256 = 'c'.repeat(64);
+  f.inputs.evidence = { valid: true, reason: null,
+    cloud: { topic: '/cloud_registered', frame_id: 'camera_init', observer_id: '1'.repeat(32), publisher_epoch: '2'.repeat(32), source_stamp_ns: '123' },
+    pose: { topic: '/Odometry', frame_id: 'camera_init', observer_id: '1'.repeat(32), publisher_epoch: '3'.repeat(32), source_stamp_ns: '123' } };
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.getByRole('button', { name: '초기 위치 제안 계산' })).toBeEnabled();
+  return f;
+}
+
+test('explicit proposal is read-only, distinguishes IMU and body units, and invalidates when the source changes', async ({ page }) => {
+  const f = await proposalFixture(page);
+  expect(f.writes.filter(value => value.path.endsWith('/initialization-proposals'))).toHaveLength(0);
+  await page.getByRole('button', { name: '초기 위치 제안 계산' }).click();
+  const proposalWrite = f.writes.filter(value => value.path.endsWith('/initialization-proposals'));
+  expect(proposalWrite).toHaveLength(1);
+  expect(proposalWrite[0].body).toEqual({ request_id: expect.stringMatching(/^[a-f0-9]{32}$/), bundle_generation: 'b'.repeat(32), observation_session_id: 'a'.repeat(32) });
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('FAST-LIO IMU 가설 (이력·근사값)');
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('위치 m, 각도 도');
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('원본 스캔 15.0초 전');
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('본체 위치 후보 (정보성)');
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('위치 m, 각도 rad');
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('운영 초기 기준 0.85는 별도');
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('운영 잔차 검사를 통과한 결과나 실제 위치 정확도가 아닙니다');
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('운영 보정 위치·Nav2 준비·TF 적용 결과가 아닙니다');
+  await page.getByText('② 초기 높이·기울기 입력', { exact: true }).click();
+  await expect(page.getByLabel('높이 z (m)')).toHaveValue('');
+  await expect(page.getByLabel('roll (rad)', { exact: true })).toHaveValue('');
+  await expect(page.getByLabel('pitch (rad)', { exact: true })).toHaveValue('');
+  expect(f.writes.filter(value => /seed-geometry|\/match|\/goal/.test(value.path))).toHaveLength(0);
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('제안 관측이 오래됐거나 신선도를 확인하지 못했습니다');
+  await expect(page.locator('[data-prep="proposal-result"]')).not.toContainText('본체 위치 후보 (정보성)');
+  f.inputs.evidence.cloud.publisher_epoch = 'd'.repeat(32);
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('이전 제안을 사용할 수 없습니다');
+  await expect(page.locator('[data-prep="proposal-result"]')).not.toContainText('본체 위치 후보 (정보성)');
+  expect(f.writes.filter(value => value.path.endsWith('/initialization-proposals'))).toHaveLength(1);
+});
+
+test('proposal rejection and late result never retry or restore invalid data', async ({ page }) => {
+  const f = await proposalFixture(page);
+  f.rejectProposal(true);
+  await page.getByRole('button', { name: '초기 위치 제안 계산' }).click();
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('전역 위치 제안 기능을 사용할 수 없습니다');
+  await expect(page.locator('[data-prep="details"]')).toContainText('GLOBAL_BACKEND_UNAVAILABLE');
+  expect(f.writes.filter(value => value.path.endsWith('/initialization-proposals'))).toHaveLength(1);
+  f.rejectProposal(false); f.holdProposalReads();
+  await page.getByRole('button', { name: '초기 위치 제안 계산' }).click();
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('현재 관측과 지도 문맥을 다시 확인 중');
+  f.observation.state = 'STOPPED'; f.observation.active = false;
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('이전 제안을 사용할 수 없습니다');
+  f.releaseProposalReads();
+  await expect(page.locator('[data-prep="proposal-result"]')).not.toContainText('본체 위치 후보 (정보성)');
+  expect(f.writes.filter(value => value.path.endsWith('/initialization-proposals'))).toHaveLength(2);
+  expect(f.writes.filter(value => /seed-geometry|\/match|\/goal/.test(value.path))).toHaveLength(0);
+});
+
+test('one combined read clears prior readiness when its operational state is invalid', async ({ page }) => {
+  const f = await fixture(page);
+  await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
+  await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
+  await expect(page.locator('[data-prep="selected"]')).toContainText('서버 준비 구성: map1 / map1_2D');
+  f.state.selected.seed_geometry = { z: .34, roll: 0, pitch: 0 };
+  f.state.pair.can_start = true;
+  await page.evaluate(() => window.preparation.refresh(true));
+  expect(await page.evaluate(() => window.preparation.canStart())).toBe(true);
+  expect(f.reads.filter(path => path === '/api/v1/navigation/operational-3d')).toHaveLength(0);
+  const readCount = f.reads.filter(path => path.endsWith('/preparation-inputs')).length;
+  f.invalidStatus(true);
+  await page.evaluate(() => window.preparation.refresh(true));
+  expect(f.reads.filter(path => path.endsWith('/preparation-inputs'))).toHaveLength(readCount + 1);
+  expect(await page.evaluate(() => window.preparation.canStart())).toBe(false);
+  expect(await page.evaluate(() => window.preparation.permitsGoal())).toBe(false);
+  expect(await page.evaluate(() => window.preparation.state())).toBe(null);
+  await expect(page.locator('[data-prep="issues"]')).toContainText('조회 중 지도 또는 관측 실행이 바뀌었습니다');
+  await expect(page.locator('[data-prep="details"]')).toContainText('CONTEXT_CHANGED');
+  f.invalidStatus(false);
+  await page.evaluate(() => window.preparation.refresh(true));
+  expect(await page.evaluate(() => window.preparation.canStart())).toBe(true);
+});
+
+test('a proposal with different publisher identity is invalidated even if the session is unchanged', async ({ page }) => {
+  const f = await proposalFixture(page);
+  f.wrongProposalSource(true);
+  await page.getByRole('button', { name: '초기 위치 제안 계산' }).click();
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('제안의 센서 출처가 현재 관측과 달라 사용할 수 없습니다');
+  await expect(page.locator('[data-prep="proposal-result"]')).not.toContainText('본체 위치 후보 (정보성)');
+  expect(f.writes.filter(value => value.path.endsWith('/initialization-proposals'))).toHaveLength(1);
+  expect(f.writes.filter(value => /seed-geometry|\/match|\/goal/.test(value.path))).toHaveLength(0);
+});
+
+test('cleanup delay and failure remain blocked across context changes until settled and ownership clears', async ({ page }) => {
+  const f = await proposalFixture(page);
+  f.proposalStatus('stale', 'OBSERVATION_SESSION_CHANGED');
+  f.cleanup({ state: 'CANCELLING', cancellation_requested: true, worker_active: true });
+  await page.getByRole('button', { name: '초기 위치 제안 계산' }).click();
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('취소 요청 처리 중 · 작업 종료 미확인');
+  await expect(page.getByRole('button', { name: '초기 위치 제안 계산' })).toBeDisabled();
+  f.inputs.evidence.cloud.publisher_epoch = 'd'.repeat(32);
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('이전 제안을 사용할 수 없습니다');
+  f.cleanup({ state: 'CANCEL_PENDING', cancellation_requested: true, worker_active: true });
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('취소 후 종료 확인 지연');
+  await expect(page.getByRole('button', { name: '초기 위치 제안 계산' })).toBeDisabled();
+  f.cleanup({ state: 'CANCEL_FAILED', cancellation_requested: false, worker_active: true });
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('취소 요청 실패 · 작업 종료 미확인');
+  await expect(page.getByRole('button', { name: '초기 위치 제안 계산' })).toBeDisabled();
+  f.cleanup({ state: 'CLEANUP_UNCONFIRMED', cancellation_requested: true });
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('작업 정리 상태 미확인');
+  await expect(page.getByRole('button', { name: '초기 위치 제안 계산' })).toBeDisabled();
+  f.cleanup({ state: 'SETTLED', cancellation_requested: true, worker_active: true, terminal_state: 'cancelled' });
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('작업 종료 상태를 확인하지 못했습니다');
+  await expect(page.getByRole('button', { name: '초기 위치 제안 계산' })).toBeDisabled();
+  f.inputs.start_blockers.items = ['OWNER_BUSY:global_observation'];
+  await page.evaluate(() => window.preparation.refresh(true));
+  f.cleanup({ state: 'SETTLED', cancellation_requested: true, worker_active: false, terminal_state: 'cancelled' });
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('작업 종료 확인');
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('전역 관측 작업이 사용 중입니다');
+  await expect(page.getByRole('button', { name: '초기 위치 제안 계산' })).toBeDisabled();
+  await expect(page.locator('[data-prep="proposal-result"]')).not.toContainText('본체 위치 후보 (정보성)');
+  f.inputs.start_blockers.items = [];
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.getByRole('button', { name: '초기 위치 제안 계산' })).toBeEnabled();
+  await expect(page.locator('[data-prep="proposal-result"]')).not.toContainText('본체 위치 후보 (정보성)');
+  expect(f.writes.filter(value => value.path.endsWith('/initialization-proposals'))).toHaveLength(1);
+  expect(f.writes.filter(value => /seed-geometry|\/match|\/goal/.test(value.path))).toHaveLength(0);
 });

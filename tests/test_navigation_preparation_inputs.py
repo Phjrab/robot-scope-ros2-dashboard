@@ -231,6 +231,66 @@ class PreparationTests(unittest.TestCase):
             pipeline.update(change)
             self.assertIsNone(manager.preparation_execution())
 
+    def test_operational_state_reuses_one_full_pair_validation_and_exact_status_shape(self):
+        case = bundle_test.OperationalNavigationBundleTests()
+        case.setUp(); self.addCleanup(case.doCleanups)
+        case.manager.select_pair(case.pair_fixture())
+        expected = case.manager.status()
+        with patch.object(case.manager, '_revalidate_pair', wraps=case.manager._revalidate_pair) as check:
+            result = preparation_inputs(case.manager, None, None)
+        self.assertEqual(check.call_count, 1)
+        self.assertEqual(result['operational_state'], {**expected, 'runtime': None, 'runtime_fresh': False})
+        self.assertIsNone(result['operational_state_error'])
+
+    def test_operational_state_and_candidates_fail_closed_when_job_changes_during_read(self):
+        manager, service, agent, state, _ = fixture()
+        manager.preparation_snapshot = lambda: copy.deepcopy(state)
+        agent.health = active_health(state['pair'])
+        previous = manager.preparation_execution()
+        calls = [0]
+        def transition():
+            calls[0] += 1
+            return previous if calls[0] == 1 else {**previous, 'job_id': '8'*32}
+        manager.preparation_execution = transition
+        result = preparation_inputs(manager, service, agent)
+        self.assertIsNone(result['operational_state'])
+        self.assertEqual(result['operational_state_error'], 'CONTEXT_CHANGED')
+        self.assertIsNone(result['reference_pose'])
+        self.assertTrue(all(not candidate['available'] for candidate in result['candidates'].values()))
+
+    def test_operational_state_invalidates_if_session_changes_at_final_fence(self):
+        manager, service, agent, state, session = fixture()
+        manager.preparation_snapshot = lambda: copy.deepcopy(state)
+        reads = [0]
+        def changed():
+            reads[0] += 1
+            result = copy.deepcopy(session)
+            if reads[0] >= 3:
+                result['state'] = 'STOPPED'; result['active'] = False
+            return result
+        service.snapshot = changed
+        result = preparation_inputs(manager, service, agent)
+        self.assertIsNone(result['operational_state'])
+        self.assertEqual(result['operational_state_error'], 'CONTEXT_CHANGED')
+        self.assertIsNone(result['reference_pose'])
+
+    def test_source_epoch_change_at_final_fence_invalidates_shared_status(self):
+        manager, service, agent, state, _ = fixture()
+        manager.preparation_snapshot = lambda: copy.deepcopy(state)
+        original = agent.pointcloud_binary_snapshot
+        reads = [0]
+        def changed_cloud():
+            reads[0] += 1
+            if reads[0] == 3:
+                agent.cloud['observation']['publisher_epoch'] = '9'*32
+            return original()
+        agent.pointcloud_binary_snapshot = changed_cloud
+        result = preparation_inputs(manager, service, agent)
+        self.assertEqual(result['operational_state_error'], 'CONTEXT_CHANGED')
+        self.assertIsNone(result['operational_state'])
+        self.assertIsNone(result['reference_pose'])
+        self.assertTrue(all(not candidate['available'] for candidate in result['candidates'].values()))
+
     def test_context_change_discards_observation(self):
         manager, service, agent, state, session = fixture()
         reads = [0]

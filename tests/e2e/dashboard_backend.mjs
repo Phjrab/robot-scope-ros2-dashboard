@@ -613,6 +613,16 @@ export async function installDashboardBackend(page, options = {}) {
       selected: null, pair: null, initial_pose_confirmation: null,
       calibration_available: false, activation: 'LEGACY_2D', runtime: null, runtime_fresh: false,
     });
+    if (path === '/api/v1/navigation/operational-3d/preparation-inputs' && method === 'GET') return json(route, {
+      schema: 'robot-scope.navigation-preparation-inputs.v1', pair: null,
+      observation: { state: 'UNAVAILABLE', active: false, session_id: null, can_start: false, can_stop: false, reason: 'SYNTHETIC_NO_HARDWARE' },
+      evidence: { valid: false, reason: 'OBSERVATION_INACTIVE', cloud: null, pose: null, calibration_sha256: null },
+      reference_pose: null, map_estimate_reason: 'MAP_PAIR_REQUIRED',
+      candidates: Object.fromEntries(['z', 'roll', 'pitch'].map(axis => [axis, { value: null, frame: 'map', available: false, reason: 'MAP_PAIR_REQUIRED', provenance: null }])),
+      start_blockers: { items: ['OBSERVATION_STATUS_UNAVAILABLE'], advisory: true },
+      operational_state: { selected: null, pair: null, initial_pose_confirmation: null, calibration_available: false, activation: 'LEGACY_2D', runtime: null, runtime_fresh: false },
+      operational_state_error: null,
+    });
     if (path === '/api/v1/navigation') return json(route, state.navigation);
     if (path === '/api/v1/navigation/start') {
       state.control.lease = { active: true, bound: true, source: 'navigation' };

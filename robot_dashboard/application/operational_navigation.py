@@ -247,6 +247,20 @@ class OperationalNavigation:
                 'valid': None,
             }}
 
+    def verify_preparation_calibration(self, generation, expected_sha, expected_imu_base):
+        """Re-read the small calibration file immediately before candidate return."""
+        with self.lock:
+            if not self.selected or self.selected.get('generation') != generation:
+                raise ValueError('MAP_PAIR_CHANGED')
+            try:
+                calibration, sha = self._calibration()
+            except (ValueError, KeyError, OSError) as exc:
+                raise ValueError('CALIBRATION_CHANGED') from exc
+            if (sha != expected_sha or calibration['T_imu_base'] != expected_imu_base
+                    or self.selected['calibration']['T_imu_base'] != expected_imu_base):
+                raise ValueError('CALIBRATION_CHANGED')
+            return True
+
     def preparation_execution(self):
         """Copy the current job binding and its pre-launch monotonic boundary."""
         with self.lock:

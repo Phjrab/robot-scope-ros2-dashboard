@@ -129,6 +129,7 @@ test('source restart invalidates runtime steps while valid map geometry stays pr
 
 test('legacy mode remains available, while configured server blocker is respected', () => {
   assert.equal(preparationModel({ state: { selected: null }, navigation: null }).canStart, true);
+  assert.equal(preparationModel({ state: null, navigation: null, available: false }).canStart, false);
   const value = fixture(); value.state.pair.can_start = false;
   assert.equal(preparationModel(value).canStart, false);
   value.state.pair.can_start = true;

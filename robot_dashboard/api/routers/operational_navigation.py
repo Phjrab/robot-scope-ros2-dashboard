@@ -46,6 +46,21 @@ class SeedGeometry(BaseModel):
     pitch: float = Field(ge=-1.5707963267948966, le=1.5707963267948966)
 
 
+class InitializationProposalRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid', strict=True)
+    request_id: str = Field(pattern=r'^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$')
+    bundle_generation: str = Field(pattern=r'^[a-f0-9]{32}$')
+    observation_session_id: str = Field(pattern=r'^[a-f0-9]{32}$')
+
+
+def _proposal_owner(runtime):
+    from ...application.navigation_initialization_proposal import NavigationInitializationProposals
+    owner = getattr(runtime, '_navigation_initialization_proposals', None)
+    if owner is None:
+        owner = runtime._navigation_initialization_proposals = NavigationInitializationProposals(runtime)
+    return owner
+
+
 def health(runtime):
     return runtime.agent._navigation_runtime_health_snapshot(time.monotonic()) if runtime.agent else {}
 
@@ -73,6 +88,37 @@ async def preparation_inputs(request: Request, response: Response):
     result = await asyncio.to_thread(collect, manager, runtime.fastlio_observation, runtime.agent)
     result['start_blockers'] = blockers
     return result
+
+
+@router.post('/api/v1/navigation/operational-3d/initialization-proposals', status_code=202)
+async def start_initialization_proposal(body: InitializationProposalRequest, request: Request):
+    from ...application.navigation_initialization_proposal import ProposalConflict, ProposalUnavailable
+
+    require_same_origin(request)
+    runtime = runtime_from_request(request)
+    require_competition_unlocked(runtime, 'initial localization proposal')
+    require_manual_operation_mode(runtime)
+    async with runtime.pipeline_coordination_lock:
+        try:
+            return await asyncio.to_thread(_proposal_owner(runtime).start, body.request_id,
+                                           body.bundle_generation, body.observation_session_id)
+        except ProposalConflict as exc:
+            raise HTTPException(409, str(exc)) from exc
+        except ProposalUnavailable as exc:
+            raise HTTPException(503, str(exc)) from exc
+
+
+@router.get('/api/v1/navigation/operational-3d/initialization-proposals/{proposal_id}')
+async def get_initialization_proposal(proposal_id: str, request: Request, response: Response):
+    from ...application.navigation_initialization_proposal import ProposalNotFound
+
+    response.headers['Cache-Control'] = 'no-store'
+    runtime = runtime_from_request(request)
+    async with runtime.pipeline_coordination_lock:
+        try:
+            return await asyncio.to_thread(_proposal_owner(runtime).get, proposal_id)
+        except ProposalNotFound as exc:
+            raise HTTPException(404, str(exc)) from exc
 
 
 async def select_idle(request, body, operation="select"):

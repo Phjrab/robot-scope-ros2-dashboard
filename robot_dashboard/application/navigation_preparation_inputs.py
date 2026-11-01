@@ -47,6 +47,17 @@ def _summary(sample):
                 'observer_id', 'publisher_epoch', 'receipt_clock')}}
 
 
+def _source_identity(sample):
+    """Fence actual source/session/graph changes even if evidence becomes invalid."""
+    observation = sample.get('observation') or {}
+    subscription = observation.get('subscription_evidence') or {}
+    graph = subscription.get('graph') or {}
+    return (sample.get('topic'), sample.get('frame_id'), sample.get('child_frame_id'),
+            sample.get('pipeline_stage'), observation.get('observer_id'), observation.get('publisher_epoch'),
+            subscription.get('session_id'), subscription.get('topic'), subscription.get('type_name'),
+            graph.get('fingerprint'))
+
+
 def _pair(state):
     pair = state.get('pair')
     if not pair:
@@ -120,6 +131,8 @@ def preparation_inputs(manager, observation_session, agent):
     evidence = {'valid': False, 'reason': None, 'cloud': None, 'pose': None,
                 'calibration_sha256': pair.get('calibration_sha256') if pair else None}
     reference = None
+    capture_identity = None
+    source_transition = False
     if not session.get('active') or session.get('state') != 'READY' or not session.get('session_id'):
         evidence['reason'] = 'OBSERVATION_INACTIVE'
     elif agent is None:
@@ -130,6 +143,7 @@ def preparation_inputs(manager, observation_session, agent):
         try:
             started = session.get('started_monotonic_s')
             cloud, latest = agent.pointcloud_binary_snapshot(), agent.pose_snapshot()
+            capture_identity = (_source_identity(cloud), _source_identity(latest))
             now = time.monotonic()
             if not inputs_ready(latest, cloud, started, now=now):
                 raise ObservationAlignmentError('OBSERVATION_STALE_OR_SOURCE_INVALID')
@@ -141,7 +155,9 @@ def preparation_inputs(manager, observation_session, agent):
             now = time.monotonic()
             if not inputs_ready(pose, cloud, started, now=now):
                 raise ObservationAlignmentError('OBSERVATION_STALE_OR_SOURCE_INVALID')
-            source_contract(cloud, pose, mode, now)
+            if source_contract(cloud, pose, mode, now) != contract:
+                source_transition = True
+                raise ObservationAlignmentError('SOURCE_CHANGED')
             project_query(cloud, pose, now, provenance_mode=mode)
             transform = imu_matrix(pose) @ validate_transform(state['selected']['calibration']['T_imu_base'])
             roll, pitch, yaw = _rpy(transform[:3, :3])
@@ -173,6 +189,9 @@ def preparation_inputs(manager, observation_session, agent):
         try:
             now = time.monotonic()
             current_cloud, current_pose = agent.pointcloud_binary_snapshot(), agent.pose_snapshot()
+            if (_source_identity(current_cloud), _source_identity(current_pose)) != capture_identity:
+                source_transition = True
+                raise ObservationAlignmentError('SOURCE_CHANGED')
             if not inputs_ready(pose, cloud, session['started_monotonic_s'], now=now):
                 raise ObservationAlignmentError('OBSERVATION_STALE_OR_SOURCE_INVALID')
             if source_contract(current_cloud, current_pose, 'subscription_observation', now) != contract:
@@ -185,7 +204,8 @@ def preparation_inputs(manager, observation_session, agent):
     execution = read_execution()
     health_started = time.monotonic()
     health = agent._navigation_runtime_health_snapshot(health_started) if agent else {}
-    if read_execution() != execution:
+    job_changed = read_execution() != execution
+    if job_changed:
         execution = None
     if type(health.get('age_s')) in (int, float):
         # Health ages are rounded to milliseconds by the gateway. Include time
@@ -195,11 +215,43 @@ def preparation_inputs(manager, observation_session, agent):
     if evidence['valid'] and not inputs_ready(pose, cloud, session['started_monotonic_s'], now=time.monotonic()):
         reference = None
         evidence.update(valid=False, reason='OBSERVATION_STALE_OR_SOURCE_INVALID', cloud=None, pose=None)
+    # A final cheap in-memory fence ensures the status and evidence refer to
+    # the same selection/session/job; it does not cache or replace validation.
+    latest_selection = getattr(manager, 'preparation_snapshot', lambda: current)()
+    end_session = observation_session.snapshot() if observation_session else session
+    changed = (context_changed or source_transition or job_changed or latest_selection.get('selected') != current.get('selected')
+               or any(end_session.get(k) != session.get(k) for k in
+                      ('session_id', 'state', 'active', 'started_monotonic_s')))
+    if capture_identity is not None and not changed:
+        try:
+            final_cloud, final_pose = agent.pointcloud_binary_snapshot(), agent.pose_snapshot()
+            if (_source_identity(final_cloud), _source_identity(final_pose)) != capture_identity:
+                changed = True
+            elif evidence['valid'] and source_contract(final_cloud, final_pose,
+                    'subscription_observation', time.monotonic()) != contract:
+                changed = True
+        except (ObservationAlignmentError, KeyError, TypeError, ValueError, OSError):
+            # A stale/temporarily unavailable input alone is not proof of a
+            # source transition. Never retain the reference in that case.
+            reference = None
+            evidence.update(valid=False, reason='OBSERVATION_STALE_OR_SOURCE_INVALID', cloud=None, pose=None)
+    if changed:
+        reference = None
+        evidence.update(valid=False, reason='CONTEXT_CHANGED', cloud=None, pose=None)
+        execution = None
+    elif evidence['valid'] and not inputs_ready(pose, cloud, session['started_monotonic_s'], now=time.monotonic()):
+        reference = None
+        evidence.update(valid=False, reason='OBSERVATION_STALE_OR_SOURCE_INVALID', cloud=None, pose=None)
     candidates, reason = _map_candidates(pair, health, execution)
     if candidates is None:
         candidates = {axis: {'value': None, 'frame': 'map', 'available': False,
                              'reason': (reason if reason in ('MAP_PAIR_REQUIRED', 'MAP_PAIR_INVALID') else
                                         'MAP_ABSOLUTE_Z_UNVERIFIED' if axis == 'z' else 'MAP_GRAVITY_ALIGNMENT_UNVERIFIED'),
                              'provenance': None} for axis in ('z', 'roll', 'pitch')}
+    runtime_fresh = bool(health.get('fresh') is True and type(health.get('age_s')) in (int, float)
+                         and 0 <= health['age_s'] <= .75)
+    operational_state = None if changed else {**current, 'runtime': health.get('operational_3d'),
+                                                'runtime_fresh': runtime_fresh}
     return {'schema': SCHEMA, 'pair': pair, 'observation': session, 'evidence': evidence,
-            'reference_pose': reference, 'map_estimate_reason': reason, 'candidates': candidates}
+            'reference_pose': reference, 'map_estimate_reason': reason, 'candidates': candidates,
+            'operational_state': operational_state, 'operational_state_error': 'CONTEXT_CHANGED' if changed else None}
