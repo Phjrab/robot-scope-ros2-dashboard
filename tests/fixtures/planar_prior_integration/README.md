@@ -1,0 +1,20 @@
+# Planar prior integration fixture — preparation checkpoint
+
+This fixture is an **offline, synthetic-only preparation**, not a completed integration test. It is pinned to a reviewed source snapshot before starting. It uses the actual ASGI router, proposal owner, global coordinator, manager, and `asyncio.to_thread`; fixture inputs stand in for maps, observations, solver, ownership, and the stop service. It is not evidence of robot state, physical stationarity, real sensor quality, position accuracy, Nav2, or movement.
+
+The browser fixture injects a synthetic draft getter into the preparation component. It does not exercise the full dashboard map drawing or the mock Nav2→explicit INITIAL POSE→receipt→alignment path. Those remain **NOT IMPLEMENTED / NOT RUN**. The real ASGI↔UI integration remains **NOT RUN** until a frozen integrated implementation and reviewed retention-evidence adapter are available. No synthetic success should be interpreted as a device test.
+
+The staged-pair UI must require an explicit draft, uncertainty bounds, and stationary acknowledgement before submitting a proposal. With a prior, both originally ambiguous and nonambiguous results remain conditional on that prior. The original ambiguity boolean must match the server-owned proof. Confirmation must acknowledge the conditional prior without resending the prior or proof. The existing no-prior backend/global API remains separate.
+
+## Intended offline setup
+
+1. Supply `PRIOR_SOURCE_ROOT` and `PRIOR_HASH_MANIFEST` for an explicitly reviewed, frozen Git checkout. The manifest is a JSON object with `snapshot_id`, `complete_source_snapshot: true`, and `files`, a mapping from each tracked or untracked nonignored repository-relative source path to its SHA-256. The path set must match `git ls-files --cached --others --exclude-standard -z`. The fixture refuses missing pins and mismatched sets or hashes; run a separate post-test hash comparison as well.
+2. Supply `PRIOR_RETENTION_ADAPTER` and `PRIOR_RETENTION_ADAPTER_SHA256`. The reviewed adapter must expose `attach_real_retention_evidence(result, context, variant=...)` and call the integrated implementation's real retention evidence producer for synthetic input. Do not manufacture a passing proof. The adapter has not yet been supplied or verified.
+3. Set `PRIOR_OUTPUT_DIR`, `PRIOR_RUN_LABEL`, and optionally `PRIOR_CHROMIUM` for Playwright. Start `fixture_server.py` with the same source/manifest/adapter environment, then run `browser_probe.mjs` using the project's Node/Playwright dependencies. The server listens on loopback port 4397 and blocks external connections and child processes; browser requests outside that origin are blocked. Preserve initial and repaired runs under distinct labels.
+4. The standalone synthetic assertion checks can be run with `node test_contract_assertions.mjs`; they test the assertion logic, not the actual server or UI. See `CASE_MATRIX.md` for coverage and outstanding scenarios.
+
+The source, retained-candidate proof adapter, integration UI selectors, and full handoff scenario must be reviewed against the completed implementation before using this preparation as an executable test. API fields and runtime semantics may change. If true executor execution cannot complete in the permitted environment, report that result; do not replace `asyncio.to_thread` with an inline fake.
+
+## Recorded preparation evidence
+
+For the pre-implementation baseline commit `f50989a37b0203634f8dccefc4d149edafe0eadc`, a synthetic request to the real ASGI router returned HTTP 422 with `operator_prior` rejected as an extra field. That is an expected baseline rejection, not a passing implementation. The first attempt could not import an optional local HTTP client; the separate baseline used raw ASGI messages. The assertion helper's synthetic tests recorded 5 PASS after the ambiguity contract update; its earlier 3 PASS / 2 FAIL are retained separately outside this checkpoint. These figures are separate from the unrun ASGI↔UI integration.
