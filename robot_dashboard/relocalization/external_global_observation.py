@@ -192,7 +192,7 @@ class ExternalGlobalObservationRunner:
                     stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 process = resource_scope.process
             else:
-                process = subprocess.Popen([str(python), "-I", str(_WORKER), str(folder)],
+                process = subprocess.Popen([str(python), "-I", "-B", str(_WORKER), str(folder)],
                     stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                     env=environment, start_new_session=True)
             output_bytes = 0
