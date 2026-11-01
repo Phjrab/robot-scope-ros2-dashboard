@@ -1,0 +1,68 @@
+/* Opt-in presentation only. Load after the existing theme/typography and
+   feature styles. No global selectors, canvas geometry or safety gate rules. */
+[data-operator-usability="navigation"] .navigation-pose-readout strong,
+[data-operator-usability="navigation"] .navigation-pose-readout small {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  overflow: visible;
+  text-overflow: clip;
+}
+[data-operator-usability="navigation"] .navigation-safety-banner p {
+  overflow-wrap: anywhere;
+}
+[data-operator-usability="navigation"] .ou-navigation-guide {
+  margin: 0;
+  padding: 12px 15px;
+  color: var(--muted);
+  font: max(14px, .875rem)/1.6 var(--font-ui, sans-serif);
+  overflow-wrap: anywhere;
+  border-top: 1px solid var(--line);
+}
+
+.mmf[data-operator-usability="multimap"] :is(button, input, select) {
+  font-size: max(15px, .9375rem);
+}
+.mmf[data-operator-usability="multimap"] :is(button, select, input:not([type="checkbox"]):not([type="range"])) {
+  min-height: 44px;
+}
+.mmf[data-operator-usability="multimap"] :is(label, .mmf-note, .mmf-warnings, figcaption, [role="status"], [data-slot="saved"]) {
+  font-size: max(14px, .875rem);
+}
+.mmf[data-operator-usability="multimap"] :is(.mmf-source small, .mmf-layer small, th, td, [data-slot="gridNote"]) {
+  font-size: max(13px, .8125rem);
+}
+.mmf[data-operator-usability="multimap"] :is(button, .mmf-layer, .mmf-toolbar, .mmf-header) {
+  overflow-wrap: anywhere;
+}
+.mmf[data-operator-usability="multimap"] table {
+  table-layout: fixed;
+}
+.mmf[data-operator-usability="multimap"] th {
+  background: var(--panel-strong);
+  color: var(--text);
+}
+.mmf[data-operator-usability="multimap"] td {
+  color: var(--text);
+}
+
+.obstacle-scene[data-operator-usability="obstacles"] :is(.os-note, .os-mode, .os-layers label, .os-layers legend, .os-summary, .os-sources, .os-paths, .os-objects button, .os-toolbar button) {
+  font-size: max(14px, .875rem);
+}
+.obstacle-scene[data-operator-usability="obstacles"] :is(button, .os-layers label) {
+  min-height: 44px;
+}
+.obstacle-scene[data-operator-usability="obstacles"] :is(.os-mode, .os-sources, .os-objects button) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.obstacle-scene[data-operator-usability="obstacles"] .os-inspector {
+  font-size: max(13px, .8125rem);
+}
+.obstacle-scene[data-operator-usability="obstacles"] .os-risk {
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .mmf[data-operator-usability="multimap"] .mmf-header { flex-wrap: wrap; }
+  .mmf[data-operator-usability="multimap"] .mmf-pose { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

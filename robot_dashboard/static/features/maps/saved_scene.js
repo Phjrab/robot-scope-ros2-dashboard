@@ -6,13 +6,14 @@ export function sameSavedCloudRevision(meta, selectedId, previousMeta, cloud) {
     cloud?.revision === meta.revision && !cloud.demo_snapshot);
 }
 
-export function createSavedMapScene(ui, environment = window) {
+export function createSavedMapScene(ui, environment = window, displayOptions = {}) {
   const savedScene3d = environment.RobotScene3D && ui.savedSceneCanvas
     ? new environment.RobotScene3D(ui.savedSceneCanvas, {
         maxPoints: null,
         maxCloudRadius: 1000000,
         pointSize: 0.05,
         autoFitOnFirstCloud: true,
+        ...displayOptions,
       })
     : null;
 

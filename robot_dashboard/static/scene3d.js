@@ -1184,6 +1184,12 @@
       return this._basis;
     }
 
+    // Read-only public projection for diagnostic overlays sharing this camera.
+    projectWorld(point) {
+      if (!Array.isArray(point) || point.length !== 3 || !point.every(Number.isFinite)) return null;
+      return this._project(point);
+    }
+
     _project(point) {
       const basis = this._basis || this._cameraBasis();
       const relative = subtract(point, basis.position);
