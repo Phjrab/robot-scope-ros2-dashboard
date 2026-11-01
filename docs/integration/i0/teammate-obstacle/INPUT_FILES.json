@@ -1,0 +1,47 @@
+[
+  {
+    "file": "0001-Add-read-only-simulated-obstacle-cone-map-projection.patch",
+    "bytes": 54786,
+    "sha256": "26a5735da4215bf3cc9eec86056c1ab903d79852c17e23c349a09f9e132dbe9c"
+  },
+  {
+    "file": "0002-Draw-the-obstacle-cone-map-on-the-Live-Mapping-3D-sc.patch",
+    "bytes": 58654,
+    "sha256": "fb1d8ba6f6d2ccf4064cdf9b7fbab1feffed1f3c75b91591129c41eaf57080bd"
+  },
+  {
+    "file": "0003-Document-the-simulated-obstacle-map-display.patch",
+    "bytes": 16283,
+    "sha256": "be9943021b687e5c2e67bb741a8c93a79d6a084a8207c7f6f973a692216b7cee"
+  },
+  {
+    "file": "obstacle-frame-mismatch.png",
+    "bytes": 119331,
+    "sha256": "bc4be6c9eb43c679ffaf89baae7f8f9496c9b717c403d333ef7a0f835a6edeff"
+  },
+  {
+    "file": "obstacle-live-desktop-1280x720.png",
+    "bytes": 117685,
+    "sha256": "c13c9ac7728df886407e05037a0de3bad0195d2f17c28829445d3d74edcb1afe"
+  },
+  {
+    "file": "obstacle-live-tablet-820x1000.png",
+    "bytes": 140360,
+    "sha256": "10efa73ef7dd4a25d82336123049a840fb9604dc23210656ada867e3bdf11e9b"
+  },
+  {
+    "file": "obstacle-live.png",
+    "bytes": 117722,
+    "sha256": "fc9701612918045fbb5c1d6da8923a0f9eeef3e10c55abfe1878868b91588341"
+  },
+  {
+    "file": "obstacle-source-unconfigured.png",
+    "bytes": 117145,
+    "sha256": "6eb51619af05b721c8d732ba697145914d12e6e7d44181f94ca81e73921b0e15"
+  },
+  {
+    "file": "obstacle-stale.png",
+    "bytes": 119163,
+    "sha256": "486c8a578306303f70bbbd5da767385cae3b3248305d09196bcc7ee511befd73"
+  }
+]

@@ -21,3 +21,7 @@ native flag는 없고 공개 상태는 항상 native=false, protection_mode=ADVI
 복구는 배포 설정에서 위 flag를 제거하는 것으로 시작한다. 환경변수 변경은 이미 실행 중인 프로세스에 소급되지 않는다. 승인된 로컬 검토 프로세스만 정상 lifespan 종료로 manager/worker를 닫는다. 브라우저 탭 전환/닫기는 abort·타이머·renderer·C3/C6/C5 handle을 해제한다. 로봇 서비스를 재시작하지 않는다.
 
 immutable review bundle은 보존한다. 삭제·원본 덮어쓰기·운영 family 설치·현재 지도 전환은 복구에 필요하지 않다.
+
+## 2026-11-01 콘 표시 후속
+
+운영 flag나 환경변수는 추가하지 않았다. 기존 SCENE flag와 명시 owner가 유지된다. C3의 CONES 표시 checkbox는 기본 OFF이며 기존 scene subscription을 공유한다. 별도 poll/store/GET API는 없다. 독립 합성 CLI 실행·종료와 제거 범위는 [후속 HANDOFF](teammate-obstacle/HANDOFF.md)를 따른다. `ROBOT_SCOPE_OBSTACLE_SIM_FRAME` 치환과 원본 runtime 자동 feed는 인수하지 않았다. 실제 cone node/교정은 PAIRED_REAL_PRODUCER_INPUT_REQUIRED다.

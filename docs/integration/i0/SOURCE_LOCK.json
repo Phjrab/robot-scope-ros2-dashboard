@@ -195,13 +195,15 @@
           "path": "robot_dashboard/expansion_services/router.py",
           "git_blob": "08102c602b3ac3ef7bc19a3beff5ac6b089160c9",
           "sha256": "5b6ae15b5f23ab427a414a951bb19afd8b7701474a7e5ec3d04fb4fb5c107502",
-          "integrated_sha256": "5b6ae15b5f23ab427a414a951bb19afd8b7701474a7e5ec3d04fb4fb5c107502"
+          "integrated_sha256": "3f7662ca545e8e7169c427a5198fe07e184de98478cad64819836dd476278e5c",
+          "pre_cone_followup_integrated_sha256": "5b6ae15b5f23ab427a414a951bb19afd8b7701474a7e5ec3d04fb4fb5c107502"
         },
         {
           "path": "robot_dashboard/expansion_services/scene.py",
           "git_blob": "e281fa30014b5ef6f71d64225bdcd756cd5ffee0",
           "sha256": "316d757fcd3cb79ad9497f4a1a2c66aab802835ea596658d8a0f3f1b27902ad6",
-          "integrated_sha256": "316d757fcd3cb79ad9497f4a1a2c66aab802835ea596658d8a0f3f1b27902ad6"
+          "integrated_sha256": "f918735df41d7eae1dc9476b0f658b380914516d0ae8cf071df4671b95ee4e23",
+          "pre_cone_followup_integrated_sha256": "316d757fcd3cb79ad9497f4a1a2c66aab802835ea596658d8a0f3f1b27902ad6"
         },
         {
           "path": "robot_dashboard/expansion_services/scene_assets.py",
@@ -327,11 +329,16 @@
           "path": "tests/expansion_services/test_scene.py",
           "git_blob": "33b47602269511ae5a294844298854be6772c748",
           "sha256": "d17bfe1e29f736cc131d88d4b5d55283c5a3f8abc7689f5365316b0d263ee259",
-          "integrated_sha256": "d17bfe1e29f736cc131d88d4b5d55283c5a3f8abc7689f5365316b0d263ee259"
+          "integrated_sha256": "47f4add0a62c515c5f4456e1ae76296a467c7d77bfff646873e914ab5541d09c",
+          "pre_cone_followup_integrated_sha256": "d17bfe1e29f736cc131d88d4b5d55283c5a3f8abc7689f5365316b0d263ee259"
         }
       ],
       "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/tree/8fd42bdd5a1cdf2b5bf26eeab830e071988ac7d3",
-      "i0_adapted_paths": []
+      "i0_adapted_paths": [
+        "robot_dashboard/expansion_services/router.py",
+        "robot_dashboard/expansion_services/scene.py",
+        "tests/expansion_services/test_scene.py"
+      ]
     },
     "C2": {
       "ref": "review/20261029-x-c2-map-ui",
@@ -544,7 +551,8 @@
           "path": "robot_dashboard/static/features/obstacle_scene/c1_adapter.js",
           "git_blob": "a7b8b095faeeb2c70036a6b957cdf04e22edcc76",
           "sha256": "6f4dd8f6c25441e8df14620c41430a1d2816c361bf2e87619950436294d83edc",
-          "integrated_sha256": "6f4dd8f6c25441e8df14620c41430a1d2816c361bf2e87619950436294d83edc"
+          "integrated_sha256": "e05aadaba36418e1fcebab3f02c5f81b8a2355b6a159941b72436a606e3aa67c",
+          "pre_cone_followup_integrated_sha256": "6f4dd8f6c25441e8df14620c41430a1d2816c361bf2e87619950436294d83edc"
         },
         {
           "path": "robot_dashboard/static/features/obstacle_scene/c1_assets.js",
@@ -556,19 +564,22 @@
           "path": "robot_dashboard/static/features/obstacle_scene/consumer.js",
           "git_blob": "6993c856c52b13951a9141f04f6447afd43a81f5",
           "sha256": "826dd50fc8b49afeaf02d9f233d10fc97564693a73fc643c264ea4250768211b",
-          "integrated_sha256": "826dd50fc8b49afeaf02d9f233d10fc97564693a73fc643c264ea4250768211b"
+          "integrated_sha256": "7e1d40426d9ab011831493590f821320e857a71c14445d1f430ed7d5b1db2db9",
+          "pre_cone_followup_integrated_sha256": "826dd50fc8b49afeaf02d9f233d10fc97564693a73fc643c264ea4250768211b"
         },
         {
           "path": "robot_dashboard/static/features/obstacle_scene/draw.js",
           "git_blob": "22d2aac37dc36a3b27e0677f0be4b5d794445073",
           "sha256": "ef62fe72665ea799249fe28b8b341b363364d6b1f0bb8bc66df3ad295543ffa0",
-          "integrated_sha256": "ef62fe72665ea799249fe28b8b341b363364d6b1f0bb8bc66df3ad295543ffa0"
+          "integrated_sha256": "336ac42ccb873814c127b04119d25f1152d5e6d9ce6d390e9b566dfed3f02ba3",
+          "pre_cone_followup_integrated_sha256": "ef62fe72665ea799249fe28b8b341b363364d6b1f0bb8bc66df3ad295543ffa0"
         },
         {
           "path": "robot_dashboard/static/features/obstacle_scene/index.js",
           "git_blob": "e863e30a80d64d80df31478f38c990f31fdc6bc8",
           "sha256": "565d58ab2f7d217a5ba0575a3f3c7c62fa6b80f83835d0d6c536e7d7b2df0edc",
-          "integrated_sha256": "565d58ab2f7d217a5ba0575a3f3c7c62fa6b80f83835d0d6c536e7d7b2df0edc"
+          "integrated_sha256": "c3375a2ff7323e8e43d0fe75471a64df2fa7ef340134a454af60f57deb6487d7",
+          "pre_cone_followup_integrated_sha256": "565d58ab2f7d217a5ba0575a3f3c7c62fa6b80f83835d0d6c536e7d7b2df0edc"
         },
         {
           "path": "robot_dashboard/static/features/obstacle_scene/obstacle_scene.css",
@@ -638,7 +649,12 @@
         }
       ],
       "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/tree/e394b090221c555cf0649021d132163596c19fe2",
-      "i0_adapted_paths": []
+      "i0_adapted_paths": [
+        "robot_dashboard/static/features/obstacle_scene/c1_adapter.js",
+        "robot_dashboard/static/features/obstacle_scene/consumer.js",
+        "robot_dashboard/static/features/obstacle_scene/draw.js",
+        "robot_dashboard/static/features/obstacle_scene/index.js"
+      ]
     },
     "D2": {
       "ref": "review/20261029-x-d2-perception",
@@ -1607,5 +1623,123 @@
     "main": "846121b4988ed2932d329020857925558f8f2c79",
     "review/20261030-c0-3d-field-sweep": "7321251f36ede748c73f8252f913b4cf2ac91fbd"
   },
-  "c0_start_to_final_production_diff": "EMPTY: two documentation commits only; no C0 code imported"
+  "c0_start_to_final_production_diff": "EMPTY: two documentation commits only; no C0 code imported",
+  "teammate_obstacle_followup": {
+    "checkpoint_head": "cdf9e04e3da6478409c19c2be3e1e35a58b229be",
+    "code_head": "c9567302dc519920bb7a094aea25a0fb35a55c5b",
+    "zip_sha256": "81661d5f3c64f30543b939949b0d5ffe1cf1777f65555dfd7c0206c34388fe2c",
+    "original_commits": [
+      "447d45e9451a6dcc0f718e8a78dc80041ce37998",
+      "ff5d228fec28c811e393eb105973a70b504ed707",
+      "42da84fc26b450cd16e8a7258b39dedd5f25b465"
+    ],
+    "strategy": "SELECTIVE_STATELESS_INGRESS_AND_C3_DISPLAY_ONLY",
+    "source_records": "teammate-obstacle/INPUT_FILES.json",
+    "c0_read_only_start_and_submission": "2ff4f84a77d421b8bf3cd93b10e96bca16793cf0",
+    "main_read_only_submission": "846121b4988ed2932d329020857925558f8f2c79",
+    "files": [
+      {
+        "path": ".github/workflows/i0-offline.yml",
+        "integrated_sha256": "69d6a130ba53c1d950e1125cad769ff94430f3c5e181d3be736a1d76065a480b"
+      },
+      {
+        "path": "experiments/expansion_20261101/cone_display/demo.py",
+        "integrated_sha256": "97a874e5dfc0ebd685fb46d6c15e7d49c3cb94923b8150e85ce1b3f8d1ba1153"
+      },
+      {
+        "path": "playwright.i0-cones.config.mjs",
+        "integrated_sha256": "be31c381cafbe5ae76bf3adba6afccb87aa51ba62880d32a6fe5e76d7dd5f433"
+      },
+      {
+        "path": "robot_dashboard/expansion_integration/cone_demo.py",
+        "integrated_sha256": "c5dd91354085b5a6dc10767f49c22efb55f5a9dedfe13cc2c1d2d59e9803ee67"
+      },
+      {
+        "path": "robot_dashboard/expansion_integration/cone_input.py",
+        "integrated_sha256": "e65cc4a28e94deaba811ca226d6e13f0f4d342e6c09033613f35bde0522afedd"
+      },
+      {
+        "path": "robot_dashboard/expansion_services/router.py",
+        "integrated_sha256": "3f7662ca545e8e7169c427a5198fe07e184de98478cad64819836dd476278e5c"
+      },
+      {
+        "path": "robot_dashboard/expansion_services/scene.py",
+        "integrated_sha256": "f918735df41d7eae1dc9476b0f658b380914516d0ae8cf071df4671b95ee4e23"
+      },
+      {
+        "path": "robot_dashboard/static/features/expansion/scene.js",
+        "integrated_sha256": "17cf5b9a8b8c373a3c100f63b7e74c765477bb3a67d44feb6675cf78805f979a"
+      },
+      {
+        "path": "robot_dashboard/static/features/expansion/scene_poll.js",
+        "integrated_sha256": "4035db073c854a8f270e9de69c552352ea971a30a3d4483d1b711a8de238da91"
+      },
+      {
+        "path": "robot_dashboard/static/features/expansion/style.css",
+        "integrated_sha256": "1b8ff955f727af91636b88c13002d550ac3646ab3cb722a9ff46a92e50658a21"
+      },
+      {
+        "path": "robot_dashboard/static/features/expansion/transport.js",
+        "integrated_sha256": "b5acb87be3e25912132e1449d065cf5231c8ed941cbd836cff3e8f7bb0bda511"
+      },
+      {
+        "path": "robot_dashboard/static/features/obstacle_scene/c1_adapter.js",
+        "integrated_sha256": "e05aadaba36418e1fcebab3f02c5f81b8a2355b6a159941b72436a606e3aa67c"
+      },
+      {
+        "path": "robot_dashboard/static/features/obstacle_scene/cone_display.js",
+        "integrated_sha256": "080604112e0958c20baf2aec065cfca1589c3e9f8100f87bf63bf762778a2738"
+      },
+      {
+        "path": "robot_dashboard/static/features/obstacle_scene/consumer.js",
+        "integrated_sha256": "7e1d40426d9ab011831493590f821320e857a71c14445d1f430ed7d5b1db2db9"
+      },
+      {
+        "path": "robot_dashboard/static/features/obstacle_scene/draw.js",
+        "integrated_sha256": "336ac42ccb873814c127b04119d25f1152d5e6d9ce6d390e9b566dfed3f02ba3"
+      },
+      {
+        "path": "robot_dashboard/static/features/obstacle_scene/index.js",
+        "integrated_sha256": "c3375a2ff7323e8e43d0fe75471a64df2fa7ef340134a454af60f57deb6487d7"
+      },
+      {
+        "path": "tests/expansion_c3/test_cones.mjs",
+        "integrated_sha256": "d725562e1a82c3db2855dfac75847361623e3d16093f1cfe8603461bd39517d6"
+      },
+      {
+        "path": "tests/expansion_services/test_scene.py",
+        "integrated_sha256": "47f4add0a62c515c5f4456e1ae76296a467c7d77bfff646873e914ab5541d09c"
+      },
+      {
+        "path": "tests/integration_i0/cone.product.mjs",
+        "integrated_sha256": "9638380641fde8b4d72978932dd2668a99f481d4a22bcd21d2cd35b48d7f25a8"
+      },
+      {
+        "path": "tests/integration_i0/cone_fixture.py",
+        "integrated_sha256": "208f611430418c2908966f1736002cdcebd4a50836527d832e8bfc3c0e8c0e98"
+      },
+      {
+        "path": "tests/integration_i0/cone_wire.py",
+        "integrated_sha256": "2ecadd281edcda18c286c147cb3b51ed04fd10e8b7f3854d1bb16130b8cf1fe3"
+      },
+      {
+        "path": "tests/integration_i0/test_cone_integration.py",
+        "integrated_sha256": "f78ec2e70f0ad862ce4fd674db83e6ae14270931a63ed52019c11a7497310ae5"
+      },
+      {
+        "path": "tests/integration_i0/test_cone_validation.py",
+        "integrated_sha256": "d95fc44140b6f5ca0a2ba1e91a623704b1de3ae12fd136ea43e0af98b5ec883c"
+      },
+      {
+        "path": "tests/test_i0_scene_transport.mjs",
+        "integrated_sha256": "5af25df76bd7de7200e5a1066945b6b537c4837bf3ccf7628ff2ad0b2cb7049f"
+      }
+    ],
+    "shared_files_unchanged_from_checkpoint": [
+      "robot_dashboard/app.py",
+      "robot_dashboard/static/app.js",
+      "robot_dashboard/static/scene3d.js",
+      "tests/e2e/dashboard_backend.mjs"
+    ]
+  }
 }

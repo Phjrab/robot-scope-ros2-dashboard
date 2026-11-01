@@ -1,0 +1,25 @@
+{
+  "stage": "T3 first non-moving matrix BEFORE repairs",
+  "base_head": "595c321",
+  "working_diff_sha256": "eaeed279bc3bd2f4c610430aea6108518feab06d8dd1f5a278ebd301b86cd44e",
+  "results": {
+    "python": "25 PASS / 1 test harness ERROR unsupported follow_redirects",
+    "js": "63 PASS / 1 test expectation ERROR: adapter rejected inconsistent evidence first",
+    "cones_browser": "11 PASS",
+    "existing_product": "9 PASS",
+    "syntax": "131 PASS",
+    "ruff": "PASS",
+    "device": "DEVICE_NOT_RUN",
+    "real_producer": "PAIRED_REAL_PRODUCER_INPUT_REQUIRED",
+    "real_alignment": "UNALIGNED",
+    "real_height": "HEIGHT_UNVERIFIED"
+  },
+  "log_sha256": {
+    "t3-python": "0b37dc8c130e38160f5b8cf4a9fe83f4f3dc3e7bd50f71528e2b4b25f5f0bacd",
+    "t3-js": "1f1bef2414d4729c32677069cf9508d5e8d318f4e38684c98e8e54d537a64d04",
+    "t3-cones": "b8f69b4b4e3fd47a62deaaebf5f81169561b9df00101cec1bbc2d6165c71c0e5",
+    "t3-product": "06cbe24b4073cbdee1a42503d75f6f9a9d12af7239ef750b6196d6293577a249",
+    "t3-syntax": "a46be29e933ef15efa3501f9bb9851020600dcb88979e813ef15f3d4b7de51e8",
+    "t3-ruff": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+  }
+}

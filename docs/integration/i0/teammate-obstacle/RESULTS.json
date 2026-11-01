@@ -1,0 +1,181 @@
+{
+  "schema": "robot-scope.i0-cone-followup-results.v1",
+  "checkpoint_head": "cdf9e04e3da6478409c19c2be3e1e35a58b229be",
+  "validated_code_head": "c9567302dc519920bb7a094aea25a0fb35a55c5b",
+  "branch": "integration/20261101-expansion",
+  "local_environment": {
+    "python": "3.12",
+    "node": "20.20.2",
+    "playwright": "1.62.1",
+    "chromium": "151.0.7922.34",
+    "runtime": "isolated loopback synthetic only"
+  },
+  "baseline": "BASELINE.json",
+  "first_matrix": "T3_FIRST_PASS.json",
+  "results": {
+    "python": {
+      "run": 3397,
+      "pass": 3362,
+      "skip": 35,
+      "failure": 0,
+      "error": 0,
+      "seconds": 112.149
+    },
+    "javascript": {
+      "run": 789,
+      "pass": 787,
+      "skip": 2,
+      "failure": 0
+    },
+    "installed": {
+      "pass": 45
+    },
+    "cone_browser": {
+      "pass": 11,
+      "skip": 0,
+      "seconds": 17.1
+    },
+    "existing_product_browser": {
+      "pass": 9,
+      "seconds": 13.3
+    },
+    "mission_browser": {
+      "pass": 10,
+      "seconds": 41.6
+    },
+    "existing_browser": {
+      "pass": 227
+    },
+    "syntax_modules": 131,
+    "ruff": "PASS",
+    "mypy_existing_scope_files": 4,
+    "secret_scan": "PASS",
+    "without_optional_http_clients": {
+      "api_tests_pass": 4,
+      "c7_http": "PASS"
+    },
+    "fixture_cleanup": {
+      "result": "NO_LEAK_OBSERVED",
+      "sha": "595c32176143504b8c7ed472645e1e1a8cac1c2d",
+      "playwright": "1.62.1",
+      "browser": "151.0.7922.34",
+      "rounds": [
+        {
+          "round": 1,
+          "contextClosed": true,
+          "socketCloseCallbacks": 0,
+          "unclearedIntervals": 0,
+          "callbacksAfterContextClose": 0
+        },
+        {
+          "round": 2,
+          "contextClosed": true,
+          "socketCloseCallbacks": 0,
+          "unclearedIntervals": 0,
+          "callbacksAfterContextClose": 0
+        },
+        {
+          "round": 3,
+          "contextClosed": true,
+          "socketCloseCallbacks": 0,
+          "unclearedIntervals": 0,
+          "callbacksAfterContextClose": 0
+        }
+      ],
+      "cleanup": "All intervals captured by this probe are cleared in finally."
+    }
+  },
+  "logs": {
+    "verified-python": {
+      "sha256": "21443d07d95374ac52667f9195d2acfce37f22c5a9502b484f1c446151c74b72"
+    },
+    "verified-installed": {
+      "sha256": "4069a45f64a505c3810ac769b66008beca88ff01c7e7dda1f2afb49d5003d8fb"
+    },
+    "verified-js": {
+      "sha256": "88a0c7ce683d495063c6d19656fa141a815ad30cdfce9f186b30d6ea0a2245f6"
+    },
+    "verified-cones": {
+      "sha256": "938f2ced139967da786cfcb675739968c190eb7b0e7439993a8c277640281e30"
+    },
+    "final-product": {
+      "sha256": "6ca88f59af75610fb2b3cfb2378e85f4ca42f0a144af23de8db2114e3349dc63"
+    },
+    "final-mission": {
+      "sha256": "f1a155ec5c900d88c6877f6412db89d105443df762ee755ce5d178371ae651e3"
+    },
+    "verified-syntax": {
+      "sha256": "a46be29e933ef15efa3501f9bb9851020600dcb88979e813ef15f3d4b7de51e8"
+    },
+    "verified-ruff": {
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    "final-mypy": {
+      "sha256": "71144743c83babea384888a735db0c4daba3d4d7b7942b6839984bd5c21b52bb"
+    },
+    "final-no-optional": {
+      "sha256": "fa62ba0a9607594b530ae6afe86139281c9e5d95c50398a2e0a61dd36997ed42"
+    },
+    "final-browser": {
+      "sha256": "9349a837db94c89df89c30c4b6d323eda40f82c4a5c05b775f0e59e3f1dd60ec"
+    }
+  },
+  "known_failures_resolved": [
+    {
+      "stage": "T3",
+      "cause": "Unsupported test client option; incorrect test expectation for already-rejected evidence",
+      "change": "Correct test harness without changing production gates"
+    },
+    {
+      "stage": "first full Python 3396",
+      "cause": "C1 snapshot missing no-store; previous test assumed implicit clock replacement",
+      "change": "Add no-store; require and test explicit source reset retaining unknown-clock rejection"
+    },
+    {
+      "stage": "visual inspection",
+      "cause": "Dark canvas labels on light UI; narrow checkbox layout",
+      "change": "Readable cone label and scoped layout"
+    },
+    {
+      "stage": "timer probe launch",
+      "cause": "PLAYWRIGHT_BROWSERS_PATH omitted",
+      "change": "Use installed runtime path; no product change"
+    }
+  ],
+  "scope": {
+    "legacy_get_api_added": false,
+    "duplicate_state_owner": false,
+    "duplicate_poller": false,
+    "duplicate_renderer": false,
+    "all_production_flags_default_off": true,
+    "cone_toggle_default_off": true,
+    "device_connections": 0,
+    "deployments": 0,
+    "robot_commands": 0,
+    "new_ros_native_runs": 0,
+    "main_or_c0_mutations": 0
+  },
+  "remaining": {
+    "real_cone_node": "PAIRED_REAL_PRODUCER_INPUT_REQUIRED",
+    "real_map_alignment": "UNALIGNED",
+    "real_3d_pose_ground": "HEIGHT_UNVERIFIED",
+    "production_auth": "BLOCKED_AUTH",
+    "native_identity": "BLOCKED_NATIVE_IDENTITY",
+    "new_collision_protection": "ADVISORY_ONLY",
+    "jetson_performance": "NOT_RUN",
+    "device": "DEVICE_NOT_RUN",
+    "existing_maps_history_poll_race": "PREVIOUSLY_KNOWN_UNRESOLVED"
+  },
+  "remote_refs_at_submission": {
+    "main": "846121b4988ed2932d329020857925558f8f2c79",
+    "C0": "2ff4f84a77d421b8bf3cd93b10e96bca16793cf0"
+  },
+  "ci": {
+    "existing_workflow_changed": false,
+    "i0_workflow_added_checks": [
+      "cone browser 11",
+      "scene transport 5"
+    ],
+    "final_document_head_status": "Run after this commit is pushed; exact HEAD run and every job terminal status reported in final chat. Commands in VALIDATION.md."
+  }
+}

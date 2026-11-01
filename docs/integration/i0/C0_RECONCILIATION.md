@@ -25,3 +25,9 @@ C0의 map1/map1_2D pairing, INITIAL_HEIGHT_TILT_REQUIRED, 명시 map match, 관�
 6. C4 genuine per-message identity 또는 검토된 graph evidence와 격리 환경을 먼저 확보한다. 이후 marking→clearing근거→plan변경→simulated actuator를 별도 검증한다. 실제 배포·주행은 별도 승인/C0 운영 절차를 따른다.
 
 최종 관측: main은 기준 SHA 그대로이며 C0는 `7321251f36ede748c73f8252f913b4cf2ac91fbd`다. 시작 이후 `0a9fdd0`/`7321251` 두 문서 커밋이 추가됐다. `git diff <start-C0> <final-C0> -- robot_dashboard`는 비어 있어 위 생산 파일 비교는 여전히 유효하다. C0 checkout/실행환경은 변경하지 않았다.
+
+## 콘 후속 인수 시 관측
+
+후속 시작·제출 직전 C0 ref는 `2ff4f84a77d421b8bf3cd93b10e96bca16793cf0`, main은 `846121b4988ed2932d329020857925558f8f2c79`다. 이전 문서의 ‘C0 생산 코드 차이 없음’은 이전 마감 시점의 기록이며 현재 전체 C0에는 적용되지 않는다. 이후 C0 navigation_initialization_proposal/preparation/API/fixture가 진행됐다. main 대비 C0 app.js +30/-8, shared E2E backend +17이므로 과거 통합 파일로 덮지 않는다.
+
+이번 후속은 cdf9e04 대비 app.py/app.js/scene3d.js/shared backend 변경0이다. C1 scene/router의 TTL·stamp/no-store, C3 consumer/draw/index와 전용 expansion transport/scene 및 합성 demo만 변경했다. C0의 실제 3D 초기화 제안·관측 handoff·지도 pairing·height/tilt·lease/STOP은 인수하거나 활성화하지 않았다. 후속 결합에서도 real producer의 source/session/map revision/generation, 운영 인증, 검증된 3D pose/transform 근거를 별도로 제공해야 한다. [계약](teammate-obstacle/CONTRACT_AND_RENDERING.md)과 [인수표](teammate-obstacle/INTAKE.md)를 확인한다.
