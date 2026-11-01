@@ -1,0 +1,54 @@
+{
+  "status": "C0_CHECKPOINT_CONTRACT_IMPLEMENTATION_AND_INTEGRATION_NOT_COMPLETE",
+  "base_sha": "f50989a37b0203634f8dccefc4d149edafe0eadc",
+  "request_optional_field": "operator_prior",
+  "operator_prior": {
+    "frame": "map",
+    "pose_reference": "base_link",
+    "units": "metres_radians",
+    "pose": {
+      "x": "finite number",
+      "y": "finite number",
+      "yaw": "finite number in [-pi,pi]"
+    },
+    "bounds": {
+      "xy_m": "finite number [0.1,3.0]",
+      "yaw_rad": "finite number [pi/180,pi/2]"
+    },
+    "source": "OPERATOR_CURRENT_MAP_DRAFT",
+    "stationary_current_pose_confirmed": true,
+    "navigation_map_id": "exact selected 2D map id",
+    "navigation_map_revision": "exact selected 2D revision",
+    "calibration_sha256": "exact selected pair calibration hash"
+  },
+  "validation": "Strict object and numeric types, no bool/string/NaN/Infinity, unknown fields rejected. Entire prior binds request id. Existing generation/session are top-level and exact server pin includes both maps/family/calibration/source and prior exact-stamp pose.",
+  "prior_ttl_s": 120,
+  "response": {
+    "classification": "CONDITIONAL_ON_OPERATOR_PRIOR",
+    "quality_ambiguity_unresolved": "Preserve original boolean: true for ambiguous global result, false for nonambiguous. Every prior-bearing result still requires conditional proof and range checks.",
+    "global_uniqueness_verified": false,
+    "proof_field": "operator_prior_resolution",
+    "proof_schema": "robot-scope.operator-prior-resolution.v1",
+    "proof_required_semantics": [
+      "server generated prior id",
+      "exact immutable prior",
+      "prior accepted monotonic time and expiry",
+      "prior exact-stamp binding",
+      "source and pair/calibration binding",
+      "original observation digest",
+      "candidate index",
+      "retained and eligible and matching candidate counts",
+      "projection basis",
+      "conditional scope",
+      "candidate versus user draft xy/yaw distances",
+      "within existing 0.25m/0.20rad handoff reference",
+      "original_ambiguity_unresolved equals original result and quality boolean"
+    ]
+  },
+  "selection": "All original retained candidates validated under unchanged existing non-ambiguity quality policy. Zero or multiple admissible candidates inside prior bounds reject. No ranking choice, override elevation, ambiguity flag rewrite or deduplication changes. Missing/malformed/known truncated candidate sets reject. One candidate is only conditional on operator input within the retained hypotheses, never globally unique or measured accuracy.",
+  "confirmation": "Fresh server-owned proof must be independently revalidated by coordinator at confirm. Explicit conditional_prior_acknowledged confirms conditional result; original ambiguity boolean remains unchanged. Keep geometry source proposal_confirmed to retain every gate, but use distinct robot-scope.proposal-handoff.operator-prior-v1 with mandatory prior proof. Every prior-bearing result including original unique result is range/TTL/proof checked. No-prior v1 path unchanged. The latest propagated navigation-base pose must satisfy both the operator bounds and the existing candidate handoff distance at explicit geometry confirmation.",
+  "handoff": "Expiry cannot exceed either existing handoff TTL or prior expiry. Existing exact session/stop/worker/source/map/calibration/one-use fences preserved. Later INITIAL POSE must satisfy existing candidate reference 0.25m/0.20rad AND bound operator prior region; do not widen either. Never overwrite user marker with candidate.",
+  "frontend": "Stage 1 includes map pair and non-sendable local initial pose draft, uncertainty bounds and explicit current-stationary acknowledgment. Use existing lower INITIAL POSE drawing tool via text guidance, no duplicate draw/send/start buttons. Proposal action reads exact fresh draft binding; changes invalidate proposal selection. Show degrees to user and convert to radians in API. UI numeric bounds initially empty (no implicit confidence). Existing no-prior API preserved; advanced/manual geometry behavior preserved. Stage 4 groups actual INITIAL POSE acceptance check followed by existing explicit alignment start. Remaining estimate/goal steps displayed as 5/6; internal gate sequence unchanged. No automatic Nav2, pose, alignment, goal or retry.",
+  "draft_retention": "Transient query failure preserves coordinates as previous unconfirmed draft with actions disabled. Confirmed different map/revision/generation invalidates. No reactivation on page refresh or sensor/runtime restart. Explicit reconfirmation under exact matching current map context required; actual pose sending remains after Nav2.",
+  "hardware": "Offline checkpoint only; no deployment or fresh sensor application in this checkpoint. Historical observations do not establish current device state or a new field window."
+}
