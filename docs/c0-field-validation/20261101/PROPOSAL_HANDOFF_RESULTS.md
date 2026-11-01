@@ -74,4 +74,23 @@ C1.4의 W05는 새 정지 확인 뒤 최대5분 관측 한 번·정보성 propos
 
 시작 HEAD `2ff4f84a77d421b8bf3cd93b10e96bca16793cf0`와 branch는 검사 중 같았다. 시작 변경·신규 20파일의 내용 hash는 전후 모두 같았다. 추가된 유일 변경은 `tests/test_operational_navigation_api.py`로 14:33:55.677830493 KST에 적용됐으며 원본 `cc2da06b2645118c4f1e90078212d6d5ce869223d9946c4d7aa580e6b035a285`에서 `3a7049ff87d62845ca64b723ec6b2af651fbf928b233eac3ba33b5825b526335`로 바뀌었다. 그 파일을 포함한 표적 검사 전후 hash도 같았다. 따라서 전체 실행이 단일 무변경 snapshot이었다고 주장하지 않는다. C0가 통합 직전 최종 21파일을 다시 대조했고 구현·테스트 19파일을 정확히 커밋했다. 이후 보고서 2파일만 최종 검사 결과를 반영했다.
 
-비공개 원본은 `/tmp/c1_3_handoff_freeze_20261101/`의 `before.*`, `after.*`, `python.log`, `api-target.log`, `node20.log`, `syntax-node20.log`, `playwright-node20.log`, `competition-e2e.log`, `competition_*.log` 및 최초 환경 오류 로그다. 알려진 로컬 실패의 원인과 표적 수리 증거를 검토해 코드 통합을 진행했다. GitHub OS matrix/coverage/audit는 별도 결과를 확인해야 하며 실제 장비 검증을 대체하지 않는다.
+비공개 원본은 `/tmp/c1_3_handoff_freeze_20261101/`의 `before.*`, `after.*`, `python.log`, `api-target.log`, `node20.log`, `syntax-node20.log`, `playwright-node20.log`, `competition-e2e.log`, `competition_*.log` 및 최초 환경 오류 로그다. 알려진 로컬 실패의 원인과 표적 수리 증거를 검토해 코드 통합을 진행했다. GitHub OS matrix/coverage/audit의 후속 확인은 아래 기록을 따른다. 실제 장비 검증을 대체하지 않는다.
+
+
+## GitHub CI 완료 및 오프라인 배포 준비
+
+`C13-POSTPUSH-CANDIDATE-20261101-01`의 [CI run 41277949779](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41277949779)은 **2026-11-01 15:04:34 KST completed/success**다. 실제 run head는 `f33683058834e25157853fc3ee995c54105d48a5`이고 C0가 run 메타데이터 및 세 job의 step 결과를 읽어 확인했다. competition-offline-integration, Ubuntu22.04/Python3.10, Ubuntu24.04/Python3.12가 모두 성공했다. 두 OS job의 Python coverage, JavaScript 검사, 정적 검사, 의존성 audit, 브라우저 및 실제 API 합성 fixture 단계도 success다.
+
+코드 `99d5681a50c2322f4a326d7f2d4bc59e66e0e43e`와 검증 head `f336830`의 차이는 보고서 두 파일뿐이다. `99d5681` 자체의 별도 CI run은 없으므로 해당 코드 commit을 대상으로 별도 CI를 실행했다고 주장하지 않는다. 최초 로컬 Python 오류와 이후 표적 수리 이력도 위에 그대로 남긴다. 이 CI 결과를 기록하는 후속 문서 커밋은 새 코드 변경이나 별도의 CI 성공 증거가 아니다.
+
+오프라인 배포 후보는 `99d5681`로 고정했다. 과거 마지막 확인 base `c414a519`의 Git archive 2,268파일과 후보 2,273파일의 집합·hash·mode·bytes 및 delta 변경21/삭제0을 독립 비교했다. 기존 strict verifier로 추출 후보 전체를 검사하고 추가 파일·mode 변형의 차단도 확인했다. C0는 오프라인 결과와 다음 실제 파일 해시를 대조했다.
+
+- 후보 manifest SHA-256: `e78850c57f2f1494bfa9b33226252ae300f31c215996bb4da24af6897fdac56a`
+- 후보 delta SHA-256: `0d035aa10ce7007ad44a1770b8235b0395222413c23f2c1d7f9873b14534c33d`
+- 과거 base manifest SHA-256: `536e37d2391081153c40e985f23592516d68c71e796b12eae4be46398879913b`
+
+기존 W04C builder/deployer와의 차이는 base SHA, base manifest 경로·hash 및 정확 target assertion에 한정됨을 C0가 비교했다. 도구·패키지는 비공개 로컬 자료이며 로봇에 전송하거나 실행하지 않았다. private 절차 문서의 과거 map1 revision 오기 1개는 기존 C1.4 읽기 기록과 대조해 수정했다. 지도 자체나 실행 설정의 변경은 없다.
+
+실제 배포 전에는 당시의 PID/cwd/selector/base와 파일·소유권·정지 조건, 지도/P1/P2/교정/센서·주행 설정을 새로 확인한다. 현재 base가 과거 c414a519와 다르면 이 base 전용 도구를 사용하지 않는다. 기존 release·백업 및 현재 데이터를 보존하고 복구는 기존 selector-only 정상 절차로 수행한다. 실제 stage/activate/rollback은 모두 NOT_RUN이다.
+
+현재 남은 필수 입력은 C1.4가 이미 질문 UI에 요청한 W05 정지 확인이다. 답변 전 장비 변경은 없으며, 답변 뒤에도 W05의 관측 한 번·정보성 제안 한 번·정상 종료/복구 범위를 지킨다. 그 실제 증거를 C0가 검토한 다음 새 코드 배포와 운영 위치추정→TF/Nav2 비이동 검증을 결정한다. 실제 P1/P2 주행·녹색 버튼·경사로 운영 추정은 이후 새 현장 시험 범위에 속한다. 완료된 소프트웨어 검사를 반복하거나 정기 heartbeat를 재개하지 않는다.

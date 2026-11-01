@@ -12,6 +12,7 @@
 | 자기 global job의 종료·소유권 관리 | 완료·배포 | source 복원 후 재사용, 교정 경합, 외부 job ID 충돌, 관측 종료 cleanup, session 전 pose 경계 회귀 PASS | 실기 resource scope·cleanup NOT_RUN |
 | 전체 통합 회귀 | 검토 완료 | Python 3,237건 OK(2 skip), Node 78 PASS, 문법 113개, 기존 pinned 통합 270 PASS, 로컬 실제 API 합성 E2E 10 PASS. 주 browser 최초 237 PASS/3 환경 FAIL → 해당 3건만 지정 환경에서 3 PASS. 전후 14파일 hash 일치 | 로봇 접근 없는 로컬 검사 |
 | 초기 가설의 새 Nav2 실행 전달 | 로컬 구현·수리 후 동결 | 코드 99d5681 통합. 독립 21 PASS, 주 브라우저 253/Node715/pinned270/API브라우저10 PASS. Python 최초 3286건 중 오류1·skip2 → 테스트 대역 보완 후 API모듈18 PASS; 단일 전체 PASS로 합산하지 않음 | 미배포, 실제 가설·정상 전환·TF/Nav2 검증 BLOCKED/NOT_RUN |
+| 후속 연결 코드 CI·배포 후보 | 코드 99d5681, 문서 head f336830 CI 완료 | Ubuntu22/Python3.10·Ubuntu24/Python3.12·통합 job PASS, 오프라인 후보 strict 검사 PASS | 실제 새 코드 배포 NOT_RUN, W05 사용자 정지 확인 대기 |
 | 저장 지도 지속 보정→TF→Nav2 / P1→버튼→P2 / 경사로 운영 추정 | 기존 코드 보존 | 기존 결과 유지 | 이번 실제 실행 BLOCKED/NOT_RUN, 목표·이동 명령 없음 |
 
 ## 구현의 의미와 한계
