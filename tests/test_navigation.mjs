@@ -300,12 +300,22 @@ test('locked parameters and occupancy safety are enforced by the rendered contro
   assert.match(indexSource, /SOFTWARE STOP은 물리 E-stop이 아니므로/);
 });
 
-test('active navigation map is pinned to its exact catalog revision', () => {
+test('active navigation map is pinned to its exact catalog revision', async () => {
+  const source = readFileSync(new URL('../robot_dashboard/static/features/navigation/pose_draft.js', import.meta.url), 'utf8');
+  const { navigationActiveMapMatches: matches } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+  const active = { id: 'map-id', revision: 'revision' };
+  assert.equal(matches(true, active, active, active, [active]), true);
+  for (const [selected, loaded, catalog] of [
+    [{ ...active, id: 'other' }, active, [active]],
+    [{ ...active, revision: 'other' }, active, [active]],
+    [active, { ...active, revision: 'other' }, [active]],
+    [active, active, [{ ...active, id: 'other' }]],
+    [active, active, [{ ...active, revision: 'other' }]],
+    [null, active, [active]],
+  ]) assert.equal(matches(true, active, selected, loaded, catalog), false);
+  assert.equal(matches(true, {}, active, active, [active]), false);
   assert.match(appSource, /function navigationActiveMapMatchesSelection\(\)/);
-  assert.match(appSource, /navigationSelectedMapMeta\?\.id === activeId/);
-  assert.match(appSource, /navigationSelectedMapMeta\?\.revision \|\| ''\) === activeRevision/);
-  assert.match(appSource, /navigationMapSnapshot\?\.revision \|\| ''\) === activeRevision/);
-  assert.match(appSource, /entry\.id === activeId && String\(entry\.revision \|\| ''\) === activeRevision/);
+  assert.match(appSource, /return navigationActiveMapMatches\(navigationEngine\?\.pipelineActive\(navigationSnapshot\), navigationSnapshot\?\.map,\s*navigationSelectedMapMeta, navigationMapSnapshot, navigationMapCandidates\(\)\)/);
   assert.match(appSource, /pipelineActive && !exactActiveMap/);
   assert.match(appSource, /!navigationActiveMapMatchesSelection\(\)/);
   assert.match(appSource, /navigationSelectedMapMeta\?\.revision \|\| ''\) !== serverMapRevision/);

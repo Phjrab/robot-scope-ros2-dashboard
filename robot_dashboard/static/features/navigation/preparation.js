@@ -239,6 +239,7 @@ export function preparationModel({ state, navigation = {}, draft3d, draft2d, err
 
 export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect, api, context, onChange, actions }) {
   let state = null, busy = false, available = false, error = '', fetchError = '', checkedAt = 0, refreshing = false, draftTouched = false, actionStep = null;
+  let draftContextEpoch = 0, draftContextConfirmed = false, draftRefreshPending = false;
   let lastContext = '', invalidated = '', selected3d = '', draft3dRevision = '', geometryGeneration = '';
   let inputs = null, inputsError = '', observationError = '', observationBusy = false, inputsRevision = 0, inputsRequestedAt = 0;
   let proposal = null, proposalError = '', proposalFailureDetail = '', proposalBusy = false, proposalEpoch = 0, proposalContext = null, proposalVerified = false, proposalCheckedAt = 0, proposalTimer = null, proposalExpiryTimer = null;
@@ -590,11 +591,12 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
   async function refresh(force = false) {
     if (refreshing || busy || (!force && Date.now() - checkedAt < 2500)) return;
     refreshing = true;
-    const inputToken = ++inputsRevision, requestedAt = performance.now();
+    const inputToken = ++inputsRevision, requestedAt = performance.now(), draftEpoch = draftContextEpoch;
+    draftRefreshPending = false;
     let readValue = null;
     try {
       const value = readValue = await api('/api/v1/navigation/operational-3d/preparation-inputs', { signal: AbortSignal.timeout(10000) });
-      if (inputToken !== inputsRevision) return;
+      if (inputToken !== inputsRevision || draftEpoch !== draftContextEpoch || busy) return;
       const status = value?.operational_state;
       if (value?.schema !== 'robot-scope.navigation-preparation-inputs.v1' || !status || value.operational_state_error
           || !Object.hasOwn(status, 'selected') || !Object.hasOwn(status, 'pair') || !['LEGACY_2D', 'NEXT_NAVIGATION_START'].includes(status.activation)) {
@@ -604,6 +606,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
           || status.selected.generation !== value.pair.generation || status.pair.generation !== value.pair.generation
           || !samePin(status.selected.localization_3d, value.pair.localization_3d) || !samePin(status.selected.navigation_2d, value.pair.navigation_2d))) throw new Error('CONTEXT_CHANGED');
       inputs = value; inputsRequestedAt = requestedAt; inputsError = ''; state = status; available = true; fetchError = '';
+      draftContextConfirmed = draftEpoch === draftContextEpoch && !busy;
       if (Object.hasOwn(status, 'initialization_handoff') && status.initialization_handoff !== null) setHandoff(status.initialization_handoff, requestedAt);
       else {
         clearHandoff();
@@ -623,8 +626,8 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
         setTimeout(updateAge, 1000);
       }
     } catch (failure) {
-      if (inputToken === inputsRevision) { inputs = readValue?.observation ? { observation: readValue.observation } : null; state = null; available = false; inputsError = failure.message; fetchError = `상태 확인 실패: ${INPUT_REASONS[failure.message] || '연결 또는 서버 응답을 확인하세요.'}`; clearHandoff(); if (handoffAwaitingStatus) handoffError = '가설 확인 결과를 읽지 못했습니다. 재전송하지 않고 서버 상태를 확인하세요.'; handoffAwaitingStatus = false; }
-    } finally { checkedAt = Date.now(); refreshing = false; render(); onChange(); if ((handoffAwaitingStatus && !handoffBusy) || (advisoryRefreshPending && !busy)) { advisoryRefreshPending = false; checkedAt = 0; queueMicrotask(() => { void refresh(true); }); } }
+      if (inputToken === inputsRevision && draftEpoch === draftContextEpoch && !busy) { draftContextConfirmed = false; inputs = readValue?.observation ? { observation: readValue.observation } : null; state = null; available = false; inputsError = failure.message; fetchError = `상태 확인 실패: ${INPUT_REASONS[failure.message] || '연결 또는 서버 응답을 확인하세요.'}`; clearHandoff(); if (handoffAwaitingStatus) handoffError = '가설 확인 결과를 읽지 못했습니다. 재전송하지 않고 서버 상태를 확인하세요.'; handoffAwaitingStatus = false; }
+    } finally { checkedAt = Date.now(); refreshing = false; render(); onChange(); if (!busy && (draftRefreshPending || (handoffAwaitingStatus && !handoffBusy) || advisoryRefreshPending)) { advisoryRefreshPending = false; checkedAt = 0; queueMicrotask(() => { void refresh(true); }); } }
   }
   async function observe(action) {
     const session = inputs?.observation;
@@ -642,10 +645,11 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
   async function run(path, body, method = 'POST') {
     if (busy) return;
     if (!path.endsWith('/match')) invalidateProposal();
+    ++draftContextEpoch; draftContextConfirmed = false; draftRefreshPending = true;
     busy = true; error = ''; actionStep = path.endsWith('/seed-geometry') ? 2 : path.endsWith('/match') ? 5 : 1; render(); onChange();
     try { state = await api(path, { method, ...(body === undefined ? {} : { body: JSON.stringify(body) }), signal: AbortSignal.timeout(15000) }); available = true; invalidated = ''; }
     catch (failure) { error = failure.message; }
-    finally { busy = false; actionStep = null; checkedAt = 0; await refresh(true); render(); onChange(); }
+    finally { busy = false; actionStep = null; checkedAt = 0; if (!refreshing) await refresh(true); render(); onChange(); }
   }
   async function match() {
     const { model, navigation } = current();
@@ -743,5 +747,6 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
   el('confirm-handoff').onclick = () => { void confirmHandoff(); };
   return { render() { const result = render(); const next = current().draft3d; if (selected3d && next?.id === selected3d && draft3dRevision && next.revision !== draft3dRevision) invalidated = '3D 지도 revision이 변경됐습니다. ①부터 다시 확인하세요.'; return result; }, refresh,
     canStart: () => { const value = current(); return !busy && !handoffBusy && !handoffAwaitingStatus && !observationBusy && value.model.canStart && (state?.selected?.seed_geometry?.source !== 'proposal_confirmed' || value.handoffInfo.unexpired && handoff?.state === 'OBSERVATION_STOPPED' && state?.pair?.can_start === true); }, permitsGoal: () => available && (!current().model.enabled || current().model.tracking),
-    state: () => state };
+    state: () => state,
+    draftContext: () => ({ state, available: available && draftContextConfirmed && !busy }) };
 }

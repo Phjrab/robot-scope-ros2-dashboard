@@ -22,6 +22,7 @@ import { connectionButtonLabel, connectionOutcomeNote, createReleaseAckTracker, 
 import { initializeNavigationLogFeature } from './features/navigation/log_controller.js';
 import { createNavigationPresetCatalog, initializeNavigationPresetFeature } from './features/navigation/presets.js';
 import { initializeNavigationPreparation } from './features/navigation/preparation.js';
+import { createPreNavigationDraftController, navigationMapCandidatesFrom, navigationCanvasPointFrom, navigationActiveMapMatches } from './features/navigation/pose_draft.js';
 import { createDatasetFeature } from './features/datasets/capture.js';
 import { renderSavedMapDownloadState } from './features/maps/download.js';
 import { initializeSavedMapObservations } from './features/maps/global_observation_integration.js';
@@ -520,6 +521,7 @@ let navigationMapCells = null;
 let navigationMapLayout = null;
 let navigationMapTool = '';
 let navigationStagedPose = null;
+let navigationPreDraftToolBinding = null;
 let navigationPointer = null;
 let navigationRenderFrame = 0;
 let mapAnnotationFeature = null, mapCropFeature = null;
@@ -3405,28 +3407,11 @@ function navigationManualControlConflict() {
   );
 }
 
-function navigationMapCandidates() {
-  return savedMapCatalog.filter((entry) => (
-    entry.kind === 'occupancy2d' &&
-    entry.format === 'map-server-pgm' &&
-    typeof entry.revision === 'string' &&
-    entry.revision.length > 0
-  ));
-}
+function navigationMapCandidates() { return navigationMapCandidatesFrom(savedMapCatalog); }
 
 function navigationActiveMapMatchesSelection() {
-  if (!navigationEngine?.pipelineActive(navigationSnapshot)) return true;
-  const active = navigationSnapshot?.map || {};
-  const activeId = String(active.id || '');
-  const activeRevision = String(active.revision || '');
-  return Boolean(
-    activeId &&
-    activeRevision &&
-    navigationSelectedMapMeta?.id === activeId &&
-    String(navigationSelectedMapMeta?.revision || '') === activeRevision &&
-    String(navigationMapSnapshot?.revision || '') === activeRevision &&
-    navigationMapCandidates().some((entry) => entry.id === activeId && String(entry.revision || '') === activeRevision)
-  );
+  return navigationActiveMapMatches(navigationEngine?.pipelineActive(navigationSnapshot), navigationSnapshot?.map,
+    navigationSelectedMapMeta, navigationMapSnapshot, navigationMapCandidates());
 }
 
 async function syncNavigationMapOptions() {
@@ -3644,14 +3629,7 @@ function scheduleNavigationMapDraw() {
   });
 }
 
-function navigationCanvasPoint(event) {
-  const bounds = ui.navigationMapCanvas.getBoundingClientRect();
-  if (!bounds.width || !bounds.height) return null;
-  return {
-    x: (event.clientX - bounds.left) * (ui.navigationMapCanvas.width / bounds.width),
-    y: (event.clientY - bounds.top) * (ui.navigationMapCanvas.height / bounds.height),
-  };
-}
+function navigationCanvasPoint(event) { return navigationCanvasPointFrom(ui.navigationMapCanvas, event); }
 
 function navigationPoseToolAllowed(mode) {
   const state = String(navigationSnapshot?.pipeline?.state || '').toLowerCase();
@@ -3666,8 +3644,25 @@ function navigationPoseToolAllowed(mode) {
     !navigationEngine?.goalActive(navigationSnapshot);
 }
 
+// Pre-navigation placement is a local, non-sendable draft bound to its entire context.
+const preNavigationDraft = createPreNavigationDraftController({
+  inputs: () => { const context = navigationPreparation?.draftContext(), status = context?.state;
+    return { selected: status?.selected, pair: status?.pair, mapMeta: navigationSelectedMapMeta,
+      mapData: navigationMapSnapshot, maps: savedMapCatalog, selected2d: ui.navigationMapSelect.value,
+      selected3d: $('#navigationLocalizationMapSelect').value, navigation: navigationSnapshot,
+      available: navigationApiAvailable && context?.available === true }; },
+  binding: () => navigationPointer?.preBinding || navigationStagedPose?.preBinding || navigationPreDraftToolBinding,
+  clear: () => { navigationMapTool = ''; navigationPreDraftToolBinding = null; discardNavigationPose(false); },
+});
+const currentPreNavigationDraftBinding = () => preNavigationDraft.current();
+const invalidatePreNavigationDraft = () => preNavigationDraft.invalidate();
+function navigationPosePlacementAllowed(mode) {
+  return navigationPoseToolAllowed(mode) || (mode === 'initial' && Boolean(currentPreNavigationDraftBinding()));
+}
+
 function renderNavigationPoseSelection() {
-  const initialAllowed = navigationPoseToolAllowed('initial');
+  invalidatePreNavigationDraft();
+  const initialAllowed = navigationPosePlacementAllowed('initial');
   const goalAllowed = navigationPoseToolAllowed('goal');
   ui.navigationInitialPoseTool.disabled = navigationOperationBusy || !initialAllowed;
   ui.navigationGoalPoseTool.disabled = navigationOperationBusy || !goalAllowed;
@@ -3677,12 +3672,12 @@ function renderNavigationPoseSelection() {
   ui.navigationGoalPoseTool.setAttribute('aria-pressed', navigationMapTool === 'goal' ? 'true' : 'false');
   const staged = navigationStagedPose;
   ui.navigationPoseMode.textContent = staged
-    ? `${staged.mode === 'initial' ? 'INITIAL' : 'GOAL'} · STAGED`
-    : navigationMapTool ? `${navigationMapTool === 'initial' ? 'INITIAL' : 'GOAL'} · DRAW ON MAP` : 'NO TOOL';
+    ? staged.preBinding ? 'INITIAL · 미전송 로컬 초안' : `${staged.mode === 'initial' ? 'INITIAL' : 'GOAL'} · STAGED`
+    : navigationPreDraftToolBinding ? 'INITIAL · 미전송 로컬 초안 지정' : navigationMapTool ? `${navigationMapTool === 'initial' ? 'INITIAL' : 'GOAL'} · DRAW ON MAP` : 'NO TOOL';
   ui.navigationPoseCoordinates.textContent = staged
-    ? `X ${staged.x.toFixed(3)} · Y ${staged.y.toFixed(3)} · YAW ${staged.yaw.toFixed(3)} · ${staged.mode === 'initial' ? '사용자 초기 위치 점·방향' : '목표 정지 자세 (URDF 또는 방향 마커)'}`
+    ? `X ${staged.x.toFixed(3)} · Y ${staged.y.toFixed(3)} · YAW ${staged.yaw.toFixed(3)} · ${staged.preBinding ? '미전송 사용자 초안 · 실제 위치와 높이·기울기 확인 아님' : staged.mode === 'initial' ? '사용자 초기 위치 점·방향' : '목표 정지 자세 (URDF 또는 방향 마커)'}`
     : 'X — · Y — · YAW —';
-  const stagedAllowed = staged && navigationPoseToolAllowed(staged.mode);
+  const stagedAllowed = staged && !staged.preBinding && navigationPoseToolAllowed(staged.mode);
   ui.navigationPoseDiscard.disabled = !staged || navigationOperationBusy;
   ui.navigationPoseSend.disabled = !stagedAllowed || navigationOperationBusy;
   ui.navigationPoseSend.textContent = staged?.mode === 'goal' ? 'SEND GOAL' : 'SEND POSE';
@@ -3699,13 +3694,15 @@ function discardNavigationPose(render = true) {
 }
 
 function selectNavigationTool(mode) {
+  invalidatePreNavigationDraft();
   const normalized = mode === 'goal' ? 'goal' : 'initial';
-  if (!navigationPoseToolAllowed(normalized)) {
+  if (!navigationPosePlacementAllowed(normalized)) {
     showToast(normalized === 'goal' ? '목표 전송 조건이 준비되지 않았습니다.' : '초기 위치 지정 조건이 준비되지 않았습니다.', true);
     return;
   }
   mapAnnotationFeature?.cancelDrawing({ render: false });
   navigationMapTool = navigationMapTool === normalized ? '' : normalized;
+  navigationPreDraftToolBinding = navigationMapTool === 'initial' && !navigationPoseToolAllowed('initial') ? currentPreNavigationDraftBinding() : null;
   navigationStagedPose = null;
   renderNavigationPoseSelection();
   drawNavigationMap();
@@ -3715,7 +3712,9 @@ function beginNavigationPose(event) {
   const canvasPoint = navigationCanvasPoint(event);
   if (mapAnnotationFeature?.beginPointer(event, canvasPoint)) return;
   if (event.button !== 0 || !navigationMapTool || navigationOperationBusy || !navigationMapLayout) return;
-  if (!navigationPoseToolAllowed(navigationMapTool)) return;
+  invalidatePreNavigationDraft();
+  if (!navigationMapTool || !navigationPosePlacementAllowed(navigationMapTool)) return;
+  const preBinding = navigationPreDraftToolBinding;
   const point = navigationCanvasPoint(event);
   let occupancy = null;
   try {
@@ -3735,15 +3734,19 @@ function beginNavigationPose(event) {
   }
   event.preventDefault();
   ui.navigationMapHint.classList.remove('is-error');
-  ui.navigationMapHint.textContent = '진행 방향으로 드래그한 뒤 SEND 버튼으로 확인하세요.';
+  ui.navigationMapHint.textContent = preBinding ? '방향을 드래그해 미전송 로컬 초안을 표시합니다. 실제 위치·높이·기울기의 확인이 아닙니다.' : '진행 방향으로 드래그한 뒤 SEND 버튼으로 확인하세요.';
   try { ui.navigationMapCanvas.setPointerCapture(event.pointerId); } catch (_) {}
-  navigationPointer = { id: event.pointerId, start: point, end: point, mode: navigationMapTool };
+  navigationPointer = { id: event.pointerId, start: point, end: point, mode: navigationMapTool, preBinding };
   ui.navigationMapCanvas.classList.add('is-dragging');
   updateNavigationStagedPose();
 }
 
 function updateNavigationStagedPose() {
+  invalidatePreNavigationDraft();
   if (!navigationPointer || !navigationMapLayout) return;
+  if (navigationPointer.preBinding && Math.hypot(navigationPointer.end.x - navigationPointer.start.x, navigationPointer.end.y - navigationPointer.start.y) < 4) {
+    navigationStagedPose = null; renderNavigationPoseSelection(); scheduleNavigationMapDraw(); return;
+  }
   const fallbackYaw = Number(navigationSnapshot?.localization?.pose?.yaw) || 0;
   const pose = navigationEngine.poseFromDrag(
     navigationMapLayout,
@@ -3751,7 +3754,7 @@ function updateNavigationStagedPose() {
     navigationPointer.end,
     fallbackYaw,
   );
-  navigationStagedPose = pose ? { mode: navigationPointer.mode, ...pose } : null;
+  navigationStagedPose = pose ? { mode: navigationPointer.mode, ...pose, ...(navigationPointer.preBinding ? { preBinding: navigationPointer.preBinding } : {}) } : null;
   renderNavigationPoseSelection();
   scheduleNavigationMapDraw();
 }
@@ -4155,7 +4158,7 @@ async function stopNavigation() {
 
 async function sendNavigationPose() {
   const staged = navigationStagedPose;
-  if (!staged || !navigationSelectedMapMeta || !navigationPoseToolAllowed(staged.mode)) return;
+  if (!staged || staged.preBinding || !navigationSelectedMapMeta || !navigationPoseToolAllowed(staged.mode)) return;
   if (navigationManualControlConflict()) {
     showToast('수동 제어가 활성화되어 위치·목표 명령을 보낼 수 없습니다.', true);
     return;
