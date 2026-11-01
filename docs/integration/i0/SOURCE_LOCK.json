@@ -1,0 +1,1339 @@
+{
+  "schema": "robot-scope.i0-source-lock.v1",
+  "baseline": {
+    "ref": "main",
+    "sha": "846121b4988ed2932d329020857925558f8f2c79"
+  },
+  "c0_read_only_start": {
+    "ref": "review/20261030-c0-3d-field-sweep",
+    "sha": "4f90612379705b7b7c8c86cca99941266e3ae611"
+  },
+  "repository": "https://github.com/Phjrab/robot-scope-ros2-dashboard",
+  "roles": {
+    "D1": {
+      "ref": "review/20261029-x-d1-multimap",
+      "sha": "203c144f6b4a90966839c34b603ae12ee676cb12",
+      "prefixes": [
+        "robot_dashboard/multimap_core/",
+        "tests/expansion_d1/",
+        "experiments/expansion_20261029/d1_multimap/"
+      ],
+      "files": [
+        {
+          "path": "experiments/expansion_20261029/d1_multimap/generate.py",
+          "git_blob": "25165080101b86b5b408d9e4e7c1f0688a875a5a",
+          "sha256": "8be84d08a16b9e65bd7d16d5fc62661e7a8759cfba772dc847a5d883267a971f"
+        },
+        {
+          "path": "experiments/expansion_20261029/d1_multimap/reproduce.py",
+          "git_blob": "f840e2da75a5013b47c0d7ca044015e6375a7573",
+          "sha256": "266bf57e703ca0d84f38dbecb3483c0647706c69fc70a60af032751bbec2f227"
+        },
+        {
+          "path": "robot_dashboard/multimap_core/__init__.py",
+          "git_blob": "30e7802b37a2bd46bb39b1135455790146685ac8",
+          "sha256": "68e603d58fd5c676fdd1ad51af48a45a41907632cc6333a61a7801154fa18a8c"
+        },
+        {
+          "path": "robot_dashboard/multimap_core/__main__.py",
+          "git_blob": "9e0b7e98ed97ce23dffed77dfdafa6102aa952cf",
+          "sha256": "9db24b27f244044d82b5486b29771408d259efa20080f1a807b1f0b36e8c76c2"
+        },
+        {
+          "path": "robot_dashboard/multimap_core/contract_adapter.py",
+          "git_blob": "f062303ffa3f936362cc75bf192b5b05d7307eae",
+          "sha256": "039f7a1c30e3a566d592d9b1f31f2f0ffd37579a86d11a95cb1410d1745a3c1c"
+        },
+        {
+          "path": "robot_dashboard/multimap_core/exporter.py",
+          "git_blob": "1a6038f46a90e0c710b4992e4dd23ffdf1a95627",
+          "sha256": "0b835c4db8cb93807324b71b7a0c7381ed41aa5b7093a32954ad7deedb0751fb"
+        },
+        {
+          "path": "robot_dashboard/multimap_core/solver.py",
+          "git_blob": "b2a14d82ace4a7135574b8e741dc43557d573e48",
+          "sha256": "f4bde1952b0752c58c75f2b52a13ff9cefd581142ce4a61fb295237916f91e87"
+        },
+        {
+          "path": "tests/expansion_d1/__init__.py",
+          "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "tests/expansion_d1/test_contract_adapter.py",
+          "git_blob": "bc840a3475fa85b4d05279b7dda9e3f93d6693b4",
+          "sha256": "5fc14d1c1995f5570344ded4da5ab927f47c3e7ef4a81bc4692961893646b809"
+        },
+        {
+          "path": "tests/expansion_d1/test_export.py",
+          "git_blob": "fbc6cd2a5c20db7bf13e5278ea1afb863c759695",
+          "sha256": "f399fda914c3c9067ef91ff789c7e04601fc4b6688830f685806c5658a087db8"
+        },
+        {
+          "path": "tests/expansion_d1/test_incremental.py",
+          "git_blob": "5170cdcadea77b2ea057087d63b1b5356c274b92",
+          "sha256": "20ec36d04c60f49812f18a84a9285544d257a763c1842608c24976dae3192929"
+        },
+        {
+          "path": "tests/expansion_d1/test_round2_connection.py",
+          "git_blob": "816143e586b06495dcb8f98b5db64d4b6859c176",
+          "sha256": "08b4db277d9b4b3a53f7794a4b27d665e0485e929ce51fa349febec17fccea59"
+        },
+        {
+          "path": "tests/expansion_d1/test_solver.py",
+          "git_blob": "e3b661873a4edaeb0faa2990ec785a19d56af2df",
+          "sha256": "2264a259ca11c6f4f935b550c81411f2a5976bc741ce1b859830a9599b6d4f73"
+        },
+        {
+          "path": "tests/expansion_d1/test_zero_rmse.py",
+          "git_blob": "2a637229ce7a04cf4abed328422bbf022d072b66",
+          "sha256": "170acabc825ea924fd9ecc3ac64dedacb9ff6894f47b02b250d670b673664870"
+        }
+      ],
+      "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/tree/203c144f6b4a90966839c34b603ae12ee676cb12"
+    },
+    "C1": {
+      "ref": "review/20261029-x-c1-services",
+      "sha": "8fd42bdd5a1cdf2b5bf26eeab830e071988ac7d3",
+      "prefixes": [
+        "robot_dashboard/expansion_contracts/",
+        "robot_dashboard/expansion_services/",
+        "tests/expansion_c1/",
+        "tests/expansion_contracts/",
+        "tests/expansion_services/",
+        "experiments/expansion_20261029/c1_service_host/"
+      ],
+      "files": [
+        {
+          "path": "experiments/expansion_20261029/c1_service_host/README.md",
+          "git_blob": "dc5fac39e81bfd3f398648e73fe27a742e29c86b",
+          "sha256": "ff5fd357d8bb47f316c467a1b6c097f1674351e306ae7be7edd5d5c70b921127"
+        },
+        {
+          "path": "experiments/expansion_20261029/c1_service_host/host.py",
+          "git_blob": "f225881be0b67abfe4080b9383abfeb45dacdcac",
+          "sha256": "b43bbc3b7d0f747781359e0eb7b4072b823fbb084e18b6aebb53696a6dd18791"
+        },
+        {
+          "path": "experiments/expansion_20261029/c1_service_host/smoke.py",
+          "git_blob": "bd740f9af308c3d3ae02913eca4fcf4b60cf1cba",
+          "sha256": "4b9d49989ce07c51dc957c9fabdc632cd34702f406dc82e46d06087a5e0e42c4"
+        },
+        {
+          "path": "robot_dashboard/expansion_contracts/__init__.py",
+          "git_blob": "3272fe8490a3f4977cb1ad59a622fd31b7c5fc72",
+          "sha256": "28f281af20c9dd72ea3cbbeacad550e9b99a492a499a9e627692407d25245de3"
+        },
+        {
+          "path": "robot_dashboard/expansion_contracts/fixtures.py",
+          "git_blob": "3df64fcb9bf8fb25d5abff13210b5d32cfbcb610",
+          "sha256": "e3fa192c044c5eab687b6e80584e755d345b4ddbed8bbda598a7c237113ced45"
+        },
+        {
+          "path": "robot_dashboard/expansion_contracts/messages.py",
+          "git_blob": "1d92cc3a22b09dd52dbe6d8ec583f37495bea37a",
+          "sha256": "17cd2a5fa0645fbe540796fd30fc38307dd6b2f1cb104ef5507dcf30d7ead508"
+        },
+        {
+          "path": "robot_dashboard/expansion_contracts/time_binding.py",
+          "git_blob": "a4f462011bd3e9025926aee7c8c539666bad81ec",
+          "sha256": "73893ef7abe877a96fa253f14aad7f9ef3f2acf2c14b94b8243dbd42aa7f211f"
+        },
+        {
+          "path": "robot_dashboard/expansion_services/__init__.py",
+          "git_blob": "6b358aeb3c694047613baa199b2cb86e89c960c4",
+          "sha256": "53232f88f05bff6db541dd8b9bdd2b8e33eadc04e3dfd9a6fe365d089f4faca7"
+        },
+        {
+          "path": "robot_dashboard/expansion_services/catalogue.py",
+          "git_blob": "223123c35fea8b729c3d6eb47968b9b2bfce6268",
+          "sha256": "6b0eb51c8239af14d03f3c0c418a93c8043ee277b215ab6df62536d3dc9d0365"
+        },
+        {
+          "path": "robot_dashboard/expansion_services/errors.py",
+          "git_blob": "a8f31b78e4bcc216072cf54764596924c10c13ad",
+          "sha256": "1531104beaf998a902922d17ccf742f4d8ce8879e11b1ff25ef74c6a86e4148e"
+        },
+        {
+          "path": "robot_dashboard/expansion_services/export.py",
+          "git_blob": "7d5826591eb45bc202060d093baafb4a14ef3d89",
+          "sha256": "1e1fc2e932384f080f5d1cc125ece1f2bd0bb1aad7942df101226adf41b2d74d"
+        },
+        {
+          "path": "robot_dashboard/expansion_services/jobs.py",
+          "git_blob": "289482cd8c1c922893e60b941746a967df8bfd5b",
+          "sha256": "e298b5145d36f4c92dc6c67eef7e8fd10d600d71eabd114e63589a28e9741a2c"
+        },
+        {
+          "path": "robot_dashboard/expansion_services/router.py",
+          "git_blob": "08102c602b3ac3ef7bc19a3beff5ac6b089160c9",
+          "sha256": "5b6ae15b5f23ab427a414a951bb19afd8b7701474a7e5ec3d04fb4fb5c107502"
+        },
+        {
+          "path": "robot_dashboard/expansion_services/scene.py",
+          "git_blob": "e281fa30014b5ef6f71d64225bdcd756cd5ffee0",
+          "sha256": "316d757fcd3cb79ad9497f4a1a2c66aab802835ea596658d8a0f3f1b27902ad6"
+        },
+        {
+          "path": "robot_dashboard/expansion_services/scene_assets.py",
+          "git_blob": "fce3de14c8d9fba55e7c360a3398dff589cbe93e",
+          "sha256": "99137b9408c9700eafbbea8f43ac19439e790bb7dae2a9daade375f0201617d8"
+        },
+        {
+          "path": "tests/expansion_c1/__init__.py",
+          "git_blob": "53142b9e8c4f236c3bcc6eb3b9c7f4726318a98e",
+          "sha256": "0b10a814e5c04ce7fc8816160b5075490ddbb311870bda0bf1b9247633775a1a"
+        },
+        {
+          "path": "tests/expansion_c1/test_contracts.py",
+          "git_blob": "d60634bef3cd150467691392c4e8a2ecbafb5165",
+          "sha256": "7f1935827b660198b13e10aab9950d32cda6f9ad86acc2e9882f7045b68da297"
+        },
+        {
+          "path": "tests/expansion_c1/test_services.py",
+          "git_blob": "72f6e03152fc9749690636ec7dc67d7d5e452c79",
+          "sha256": "fe47e7f6c7193e2eae3b8266755cffc67c1b7461bbd3fa89bd4165d9ee6cabd4"
+        },
+        {
+          "path": "tests/expansion_contracts/__init__.py",
+          "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "tests/expansion_contracts/test_time_binding.py",
+          "git_blob": "aa72c9e5282b04926491782849f835f332fa28ad",
+          "sha256": "537fbbbe7102d8b8d8e9b68dd05209584ee88adfcf4cd35a347018de706d63e9"
+        },
+        {
+          "path": "tests/expansion_services/__init__.py",
+          "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "tests/expansion_services/check_consumers.mjs",
+          "git_blob": "ff47a60829d454fb85987bf23c41d614dca286eb",
+          "sha256": "a193fa49e17d21e14c38b7346a67d9374055d70f1c1f4e72e5d1d2e028b69aa8"
+        },
+        {
+          "path": "tests/expansion_services/check_followup_consumer.mjs",
+          "git_blob": "0ea0fbb93fbedd6ca12b7b32ca8fbb4d18ed709e",
+          "sha256": "254507af62c9d14fd87731cda666920fe49a26d5a0263930e89e4d9933dcfdee"
+        },
+        {
+          "path": "tests/expansion_services/composition.py",
+          "git_blob": "9e4f1c9986fae6fe2c67fea1773340338a7049e2",
+          "sha256": "39ac03ce11315e3344f35d8a5f2c51f1ab370718016fcb92c0d4eb5f12b197bf"
+        },
+        {
+          "path": "tests/expansion_services/current_composition.py",
+          "git_blob": "1837e9e88edc9de81e48e193ea1b5a42fa8cd5f9",
+          "sha256": "3386584ea48c751e2675fab8f51e177e24dd498e0294d8d77c2b6415429d3fe4"
+        },
+        {
+          "path": "tests/expansion_services/current_consumer.mjs",
+          "git_blob": "a0dc882321f8eca425ac0d6a7fda2fb22d76de4a",
+          "sha256": "1ecef483271674a595f24d27be0768e3491c2b641dce09997ed9d357ce4a0370"
+        },
+        {
+          "path": "tests/expansion_services/current_pins.json",
+          "git_blob": "1bc769c3a2e58fe856f9d65e17ccebbf1da5ac02",
+          "sha256": "affbb9a8423bece4a4e72cef17e2f8ebbfa120bbb6c4e56f6ab0f3b1b83aaad5"
+        },
+        {
+          "path": "tests/expansion_services/followup_composition.py",
+          "git_blob": "80a839d06cf6e7850dc7d6320085f6532afebd49",
+          "sha256": "6ce1acb65a258440974d9ebcd8b2c6d15d2b8a745c87842a11dc4ec760e48042"
+        },
+        {
+          "path": "tests/expansion_services/followup_pins.json",
+          "git_blob": "a7334170abb46390b5896dec94c9a506087df6fa",
+          "sha256": "c6bb1eda893001532c7a887eab0f605d0f42ec9f7e47353ff8cb660788b50f03"
+        },
+        {
+          "path": "tests/expansion_services/http_client.py",
+          "git_blob": "9ce7255a09dd94f0430aa0ebf52e2b0d758b2dd3",
+          "sha256": "03f9002f153099ec058f32cf23c5a0d7d85741f80847c5f6b6e74515a6146b1c"
+        },
+        {
+          "path": "tests/expansion_services/pins.json",
+          "git_blob": "bdd818f0eeae7601e8c86a7114701d6b776f621a",
+          "sha256": "ecac8c512271ef3bc1482bc88964db5170f80071ecc10653bcd0ed44369170e1"
+        },
+        {
+          "path": "tests/expansion_services/prepare_dependencies.py",
+          "git_blob": "adebc2a874dfc033a72cda2bda96d8b6281988a4",
+          "sha256": "e92b39af1c5fa567768a8ed47d537d1492dbfef06b9e1ce41dd8c003c637d0ce"
+        },
+        {
+          "path": "tests/expansion_services/reproduce_ci_import.py",
+          "git_blob": "641eb8de815af2a2f2cd6c43c89bbacba625f15a",
+          "sha256": "ef3dc7f5fe4f0c06e2a9175cf50b0aa7baf2065de9bbc34a564a1790785e1840"
+        },
+        {
+          "path": "tests/expansion_services/test_errors.py",
+          "git_blob": "343bafb2342b285e887e193846105ef40e8d939d",
+          "sha256": "c870dd54dfa7edd97d3fe6af75d8ec8bbd92abca86392b1580d6d9bdbf19fe8b"
+        },
+        {
+          "path": "tests/expansion_services/test_scene.py",
+          "git_blob": "33b47602269511ae5a294844298854be6772c748",
+          "sha256": "d17bfe1e29f736cc131d88d4b5d55283c5a3f8abc7689f5365316b0d263ee259"
+        }
+      ],
+      "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/tree/8fd42bdd5a1cdf2b5bf26eeab830e071988ac7d3"
+    },
+    "C2": {
+      "ref": "review/20261029-x-c2-map-ui",
+      "sha": "7625c87ede2489143c44862d883e10fc1791df28",
+      "prefixes": [
+        "robot_dashboard/static/features/multimap_fusion/",
+        "tests/expansion_c2/",
+        "experiments/expansion_20261029/c2_map_ui/"
+      ],
+      "files": [
+        {
+          "path": "experiments/expansion_20261029/c2_map_ui/README.md",
+          "git_blob": "cb33e2f5ea8da149e31b9058c7b32f9384e66dd9",
+          "sha256": "3f9b0da984a2e06241770207998a2c07f8c273e6d40550980d4fec454ef689e1"
+        },
+        {
+          "path": "experiments/expansion_20261029/c2_map_ui/c1_host.mjs",
+          "git_blob": "8ebac77a78330893b43b29cb8fc384d70fa6833b",
+          "sha256": "36c9f9f8f352dc9af530e8e16a891ccfc582067d49e7fccfafc2df1d8478bc0d"
+        },
+        {
+          "path": "experiments/expansion_20261029/c2_map_ui/exact_service_host.py",
+          "git_blob": "4865161dc33008ad387180c91a531294773188e1",
+          "sha256": "70d185fe7e0932acfbbd964547094d1f07bddd4899522ee5b0f07035cb044bc7"
+        },
+        {
+          "path": "experiments/expansion_20261029/c2_map_ui/export_c1_fixture.py",
+          "git_blob": "23ef54f4d83e6280900090bb41b88297633f8377",
+          "sha256": "db7bf3895bd5b2a3bec9ea2c5aaebe9cca3ebc621a72e653308c390ed47affc5"
+        },
+        {
+          "path": "experiments/expansion_20261029/c2_map_ui/fixture.mjs",
+          "git_blob": "390cb9cbc62a4f1473d4fc4516c73a71e71132cd",
+          "sha256": "3f1877f7c0de77d7ee938d0fd7f9aaf894a1d0fffa5e0b744d3e583f7e5c40bf"
+        },
+        {
+          "path": "experiments/expansion_20261029/c2_map_ui/generator.mjs",
+          "git_blob": "300968c618a4bcd9295d00e9ecb7c089df93c54f",
+          "sha256": "99ccd347775c5e120cf4a6e71f1ebd1b8e8e4fa1c5b05e21e1745ec702f79ec5"
+        },
+        {
+          "path": "experiments/expansion_20261029/c2_map_ui/host.html",
+          "git_blob": "2009f5391312d7e0bd1c39f38da528f8ecadaf43",
+          "sha256": "6e8c7202dda45469e4b027c6d456a6a7b0a326d2181f49310176f36f02fd9acc"
+        },
+        {
+          "path": "experiments/expansion_20261029/c2_map_ui/server.mjs",
+          "git_blob": "282d73dd40e212e9b885480b7392101a6e73fc10",
+          "sha256": "b80a66133cc8c420e9f7678906ac13f0578e020ae3b865192b20a975b77c6c0f"
+        },
+        {
+          "path": "robot_dashboard/static/features/multimap_fusion/c1_contract.js",
+          "git_blob": "64c4d788be6fb8e6f8d3b3b593e6a6b6cbd116f5",
+          "sha256": "77e68fb9fa9d293a07f2b405d12a3d967828c7687043d0355220f7be8be8a6ef"
+        },
+        {
+          "path": "robot_dashboard/static/features/multimap_fusion/c1_ports.js",
+          "git_blob": "65677aa8952bed3d7036cd056f259c16ea6db83b",
+          "sha256": "77d000f0fb12f88f3889f3b7e5adcc85a67a3931053ac6e62c9e49dc0ecf47de"
+        },
+        {
+          "path": "robot_dashboard/static/features/multimap_fusion/contract.js",
+          "git_blob": "435c75398574731eb14984bb55819099de568740",
+          "sha256": "fd7e3c49ffb7028da5a7644ee97314a31f72e07f4347e909ff2aa89b4f0bb235"
+        },
+        {
+          "path": "robot_dashboard/static/features/multimap_fusion/index.js",
+          "git_blob": "2fac9095147c73e3c91dcfdf924dd07c0b255059",
+          "sha256": "be495c25a3728f31d833f59d791e1d70405a5997b773f8e429fce15dfeed8b57"
+        },
+        {
+          "path": "robot_dashboard/static/features/multimap_fusion/overlay.js",
+          "git_blob": "b32a7e4abac6188d66843531df86d5dca70297ea",
+          "sha256": "77ded2b6207d96ba9785df3ae33f298a9b1660036998986d08eba5d01ebdadd4"
+        },
+        {
+          "path": "robot_dashboard/static/features/multimap_fusion/session.js",
+          "git_blob": "c9031e5e023f5950e2b97d0e1721651f7a4678d7",
+          "sha256": "ff7977f5e00dd343f7818d5f988302cae695519f680b2347ceaff3b1d28a36ce"
+        },
+        {
+          "path": "robot_dashboard/static/features/multimap_fusion/style.css",
+          "git_blob": "d25c5d8e0e0dec4107d9bf665ce419eed2b6849a",
+          "sha256": "48f20dc1a6d9c838685af874abcd4057e2dc5ac3ab02a654b2d16d1bee34fad6"
+        },
+        {
+          "path": "tests/expansion_c2/browser.e2e.mjs",
+          "git_blob": "f63a1b4e2feee1f55addcfc37627ef5249cafccc",
+          "sha256": "1ffb254e908a056d006796c7edc2779e7de9f3ca0b8c64963cb875189cacca0c"
+        },
+        {
+          "path": "tests/expansion_c2/c1_exact.test.mjs",
+          "git_blob": "78c10a0f1bda202be84ad78450228e1b5613ed09",
+          "sha256": "73d082d62c6056319ce214b9f67ee0525ae3757e2ebfbf9caa49d5645b0d07e0"
+        },
+        {
+          "path": "tests/expansion_c2/c1_ports.test.mjs",
+          "git_blob": "c5fd27e696cd8becf5dbc8ee1207d36dc093f862",
+          "sha256": "7e0c8d316306110f57f9417c4f370f6f3f60a41b5e4b7cecc0e363cf9d2850ba"
+        },
+        {
+          "path": "tests/expansion_c2/contract.test.mjs",
+          "git_blob": "0b4587103ff2339bf47278188b5920f914798f33",
+          "sha256": "abae71e34ada72986d41c629b6a318dee358c5b937be96c7719fc77ae553267e"
+        },
+        {
+          "path": "tests/expansion_c2/round2_browser.mjs",
+          "git_blob": "7e1f4bc1dc8271e3f7f6e430998bdf8c2bb94408",
+          "sha256": "6f89a3b46fe2bafcfb620d87fced4e574a702562c68ea73ce9fa6e4a221038c4"
+        },
+        {
+          "path": "tests/expansion_c2/round2_service_check.py",
+          "git_blob": "5898315cd91afb5182508f4f677668757baed46c",
+          "sha256": "40683249d636ee9c048fe0163913ff66ea7aba80b636e1207f7e50b2b44e57fb"
+        },
+        {
+          "path": "tests/expansion_c2/urdf_probe.mjs",
+          "git_blob": "40995a89fd5a979ca2e52fa6d027fa5922074254",
+          "sha256": "e08129c3d6ed03fd2866e8dbe4d9b7a93a4139f174a02f9c8b1b3ff3b4d80912"
+        }
+      ],
+      "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/tree/7625c87ede2489143c44862d883e10fc1791df28"
+    },
+    "C3": {
+      "ref": "review/20261029-x-c3-scene-ui",
+      "sha": "e394b090221c555cf0649021d132163596c19fe2",
+      "prefixes": [
+        "robot_dashboard/static/features/obstacle_scene/",
+        "tests/expansion_c3/",
+        "tests/test_expansion_c3.py",
+        "experiments/expansion_20261029/c3_scene_ui/"
+      ],
+      "files": [
+        {
+          "path": "experiments/expansion_20261029/c3_scene_ui/README.md",
+          "git_blob": "0fa83460e4cc563059df3a6013c905796f315a30",
+          "sha256": "fcec77e4b670e2693a2a393b81f9eb6f1855d57651d016eb0c36f6f832357d5d"
+        },
+        {
+          "path": "experiments/expansion_20261029/c3_scene_ui/actual_service.py",
+          "git_blob": "2fe9f0343a43335f7602ac194b284e212835e5f9",
+          "sha256": "21f75b29e74abef5b0f4b41c8c6eccd7f7baf6723bd4620f800a3a49035a1826"
+        },
+        {
+          "path": "experiments/expansion_20261029/c3_scene_ui/fixture.html",
+          "git_blob": "0a0f3007a57f819dd69463d389278d93894b3900",
+          "sha256": "0f7e010846b19297d996ccddb04fad0fbb1f3d832edf84cb3f008b556527ac5d"
+        },
+        {
+          "path": "experiments/expansion_20261029/c3_scene_ui/fixture.js",
+          "git_blob": "22e2cb0ebc1eb0e00b48e1460eee8612aeb7a45a",
+          "sha256": "c56445a0d80dc295751e9384b2badec82e8ddd7f0577eaf49751cf4196b2d197"
+        },
+        {
+          "path": "experiments/expansion_20261029/c3_scene_ui/host.js",
+          "git_blob": "412a9f41ce43512d3ade069933799617d53a00fe",
+          "sha256": "4fefd5bdb9ae960342d302e9ac7d0e49c47dec0ff6c2b91cde45746d1c1974a7"
+        },
+        {
+          "path": "experiments/expansion_20261029/c3_scene_ui/native_replay.py",
+          "git_blob": "5492cce325e1c07b33768c06656dd66da2f59812",
+          "sha256": "c2ff5652e90c522b6bed7ac6f4725487564c6ec4432a2b930c534c0665ac4927"
+        },
+        {
+          "path": "experiments/expansion_20261029/c3_scene_ui/prepare_dependencies.py",
+          "git_blob": "d6c1ee5b2df8f37496c3ac2e2c9a310c846edf53",
+          "sha256": "cba1cfa933725dcc8b9967661a4ffb07541fecb2868cf52239268416e7e92e52"
+        },
+        {
+          "path": "experiments/expansion_20261029/c3_scene_ui/serve.py",
+          "git_blob": "16ba973efee9a79adbd0b6c3c443e9c4344c9eb4",
+          "sha256": "9df08d4c086dea7e676fa75235ec176d2efe829384cd3c67aebad73d68491d4d"
+        },
+        {
+          "path": "robot_dashboard/static/features/obstacle_scene/c1_adapter.js",
+          "git_blob": "a7b8b095faeeb2c70036a6b957cdf04e22edcc76",
+          "sha256": "6f4dd8f6c25441e8df14620c41430a1d2816c361bf2e87619950436294d83edc"
+        },
+        {
+          "path": "robot_dashboard/static/features/obstacle_scene/c1_assets.js",
+          "git_blob": "8978aedeaaaa6c685c17fb8c829b5a3d4861fb79",
+          "sha256": "7b39c2a79dcfa2397db08f71673cc162aafc2fa03974b4070421d93f475d2a96"
+        },
+        {
+          "path": "robot_dashboard/static/features/obstacle_scene/consumer.js",
+          "git_blob": "6993c856c52b13951a9141f04f6447afd43a81f5",
+          "sha256": "826dd50fc8b49afeaf02d9f233d10fc97564693a73fc643c264ea4250768211b"
+        },
+        {
+          "path": "robot_dashboard/static/features/obstacle_scene/draw.js",
+          "git_blob": "22d2aac37dc36a3b27e0677f0be4b5d794445073",
+          "sha256": "ef62fe72665ea799249fe28b8b341b363364d6b1f0bb8bc66df3ad295543ffa0"
+        },
+        {
+          "path": "robot_dashboard/static/features/obstacle_scene/index.js",
+          "git_blob": "e863e30a80d64d80df31478f38c990f31fdc6bc8",
+          "sha256": "565d58ab2f7d217a5ba0575a3f3c7c62fa6b80f83835d0d6c536e7d7b2df0edc"
+        },
+        {
+          "path": "robot_dashboard/static/features/obstacle_scene/obstacle_scene.css",
+          "git_blob": "e971b8221edccdde44d75013cd2555cc66c6c13c",
+          "sha256": "a7e30d9ac7d91d3c81b0aa104134d9c1c546630cecadb5b4564e519fc700fb3b"
+        },
+        {
+          "path": "tests/expansion_c3/__init__.py",
+          "git_blob": "adcd6cce5ea318556ee63b8c19185f0484979ca8",
+          "sha256": "b01587f67b2c7e34a964b52611019e90a7f1eb44138917f7766714e467f4bf96"
+        },
+        {
+          "path": "tests/expansion_c3/actual_browser.mjs",
+          "git_blob": "5a472962bec9e7e6bfa6d96b628a589fffcdef64",
+          "sha256": "eb80a333adc8490e664135e105c4b8a9faba0f4329743bfe5eaa1451d96318db"
+        },
+        {
+          "path": "tests/expansion_c3/browser.mjs",
+          "git_blob": "3cc1cb81f5f0eaddd1a5f5bd5ec793b00185c4ff",
+          "sha256": "61dea8ec95e13607423159e72c3a783d98840e9dc25a824c394cdef419be0355"
+        },
+        {
+          "path": "tests/expansion_c3/c1_compatibility.py",
+          "git_blob": "0379cc2d19d78615ed98d4a59edc997735486979",
+          "sha256": "05d34ffc9551aa800aec5c0abf71f95adfb64a647588be96f4092d09aa34fad4"
+        },
+        {
+          "path": "tests/expansion_c3/check_c1.mjs",
+          "git_blob": "75ba7629148e51e89e1e4089d50bed40b0a836a0",
+          "sha256": "51dfd7e5b1b702df03f9e37ea275b6c4d54de74cf319fa171e938644c63ca798"
+        },
+        {
+          "path": "tests/expansion_c3/paused_browser.mjs",
+          "git_blob": "87181c63f43233a9714aa77caf83f3ccfcfc3919",
+          "sha256": "a65e6c0944db5728717337279ad57a7f1c6bf9d88905ec8eec825dcaeccfa9cd"
+        },
+        {
+          "path": "tests/expansion_c3/test_assets.mjs",
+          "git_blob": "3139ae3b4149af18e23c2e1a12aedf4ab373b398",
+          "sha256": "2d43ca992a82c5c2622b5b4b932878f78aded2b748d9aabb750be23b56a4cec7"
+        },
+        {
+          "path": "tests/expansion_c3/test_canonical.mjs",
+          "git_blob": "c501a6b7fc74c05737556bc5cef3dab2ba59a3a2",
+          "sha256": "b4d5f35435cca9de5f46018646a5d83e6d80ec72e93d3bd4b2d2dc33a569d366"
+        },
+        {
+          "path": "tests/expansion_c3/test_consumer.mjs",
+          "git_blob": "b5e6f3c2c4edaf7a4bb93cafd0e5951dff3d5bfe",
+          "sha256": "1c793892c7bd015996f7c1bf7065d882da5bfef64d4babe4737ed9e7dbae0f5f"
+        },
+        {
+          "path": "tests/expansion_c3/test_module.py",
+          "git_blob": "583b1475f7d6a2d73a38348cc3f409c9f601cc45",
+          "sha256": "33c00dcbcc533cab9db745e40674169d04364776023268cf71ac7c5cb23f4131"
+        }
+      ],
+      "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/tree/e394b090221c555cf0649021d132163596c19fe2"
+    },
+    "D2": {
+      "ref": "review/20261029-x-d2-perception",
+      "sha": "7313f0a31c00ae87ae216b84ca41a23804e91917",
+      "prefixes": [
+        "robot_dashboard/obstacle_fusion_core/",
+        "tests/expansion_d2/",
+        "experiments/expansion_20261029/d2_perception/"
+      ],
+      "files": [
+        {
+          "path": "experiments/expansion_20261029/d2_perception/check_c1.py",
+          "git_blob": "a60205b51b5148180a115fcf811e11ae9391f593",
+          "sha256": "167563120231bd7dc249f39b401966cbb87b523932dd5ce94fab8365aa7a09d5"
+        },
+        {
+          "path": "experiments/expansion_20261029/d2_perception/regression_without_known_blocks.py",
+          "git_blob": "1e2343e2fdd3859bb614781787f259396b71f3c7",
+          "sha256": "e3bf965230e1d47bf0c51cfbd051ea93bb21c5d086154e2f7d1915ce30d5dc6d"
+        },
+        {
+          "path": "experiments/expansion_20261029/d2_perception/reproduce.py",
+          "git_blob": "15abe820982dcb7b925508fba13684db10b1b080",
+          "sha256": "b858d7cad6efba87f0b6167016f86d17d3c57219e955abd6999a91678aba0151"
+        },
+        {
+          "path": "experiments/expansion_20261029/d2_perception/round2_check.py",
+          "git_blob": "5eaa6b104c7cb4f088384f53d93b2631b367e0ef",
+          "sha256": "0d8e97e8ff43b6f16d8dfe03226830780f3b46eb73d7c1feeac82edf1c16c3cf"
+        },
+        {
+          "path": "experiments/expansion_20261029/d2_perception/scenarios.py",
+          "git_blob": "0373ff0659bf69ddbe01db3bc56b7a9573248702",
+          "sha256": "cb280da47b47c8e232f599a2e9eaa552058943df2067b700321801d6d3be19c8"
+        },
+        {
+          "path": "robot_dashboard/obstacle_fusion_core/__init__.py",
+          "git_blob": "622a209a576c0d0d321e5e6a8728920333d9ff97",
+          "sha256": "65de72d5546c6531f74442f125b93937832817bb41863a72aa99cb0593ecf6f3"
+        },
+        {
+          "path": "robot_dashboard/obstacle_fusion_core/__main__.py",
+          "git_blob": "86ae36ee5ab78121354073819bdfe807d851484e",
+          "sha256": "b3836d7a8789aec6cfeec2e50a73a9370c80ee890d596677e9c142a6520eb39e"
+        },
+        {
+          "path": "robot_dashboard/obstacle_fusion_core/consumer_port.py",
+          "git_blob": "c2fe23ee1fb6e48d13cf03dba0f4db85433565fa",
+          "sha256": "d736348d9f5ae6c34e51251f0d2d9002b52f8a9f0ca70c6f8936c521005d56c2"
+        },
+        {
+          "path": "robot_dashboard/obstacle_fusion_core/core.py",
+          "git_blob": "f8037e4a67cbc3208a990e5679987c342fdeb79a",
+          "sha256": "33269a0cf55889ef294f12aeb5a9f7dd9af4ff7b9358079fd6535f04efd8f0f3"
+        },
+        {
+          "path": "tests/expansion_d2/__init__.py",
+          "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "tests/expansion_d2/test_core.py",
+          "git_blob": "272d9e33a333ea69fa26677f9600fc0c064bfba8",
+          "sha256": "b59d7c13beb872a3eb97baef8afc641580fa81a7b864150ce41decee5f86b1a2"
+        },
+        {
+          "path": "tests/expansion_d2/test_round2_ports.py",
+          "git_blob": "0e400ad637832a80862c6f276fd8f30fdc633873",
+          "sha256": "d258e7925d8e8728cc9a5e935c64ad8a51b3b37627f87118d12c5969513845fc"
+        }
+      ],
+      "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/tree/7313f0a31c00ae87ae216b84ca41a23804e91917"
+    },
+    "D3": {
+      "ref": "review/20261029-x-d3-collision-sim",
+      "sha": "0bb91b70b4ffd3801a5a5562637309eb595813c9",
+      "prefixes": [
+        "robot_dashboard/collision_geometry_core/",
+        "tests/expansion_d3/",
+        "experiments/expansion_20261029/d3_collision_sim/"
+      ],
+      "files": [
+        {
+          "path": "experiments/expansion_20261029/d3_collision_sim/c4_input_fixture.py",
+          "git_blob": "84c5ae6b73e8f0201320f65f6037effa3534e527",
+          "sha256": "189440b64905f436b2709e2ed9963de45dd7c790d43fbf1d811a2351066a1c3d"
+        },
+        {
+          "path": "experiments/expansion_20261029/d3_collision_sim/c4_readiness.py",
+          "git_blob": "982fdb22bb92545bf0addbc5e6b999f979bed99a",
+          "sha256": "6c74cde3af536c7a53800bbc73b8ac5f2e6a31cb46c74c81c99a37022f80ba46"
+        },
+        {
+          "path": "experiments/expansion_20261029/d3_collision_sim/compatibility.py",
+          "git_blob": "0a9ad28a2ec61e0a049001a54b54e3ebef9dc30d",
+          "sha256": "4cfe5292f4169edb2520b83c52051079c7b9b74e1b1e7c03443b717618da9f3e"
+        },
+        {
+          "path": "experiments/expansion_20261029/d3_collision_sim/fixtures.py",
+          "git_blob": "509cfdf9994b1fa114baf9d22eeb48942935ae7b",
+          "sha256": "b4d1c6ff9ebf59a49cadb24cc07b2d7f78db064b91b1897dfb63adcff38a1127"
+        },
+        {
+          "path": "experiments/expansion_20261029/d3_collision_sim/native_ci.py",
+          "git_blob": "9e9fb913c849d0ff925c0381d7c1521d4e5f1251",
+          "sha256": "18cb4c50c1b1a14861dd9e0ebed18dabcc7140081f5ec7e53fef9b01ab5601fd"
+        },
+        {
+          "path": "experiments/expansion_20261029/d3_collision_sim/observer.py",
+          "git_blob": "d04ccc5b3a8cfb82821761d7bea4e6bb53b4ac42",
+          "sha256": "711291aec17600aaadb73cd7f345bc62c581cd8b9818cde36191c203a3156fb3"
+        },
+        {
+          "path": "experiments/expansion_20261029/d3_collision_sim/preflight.py",
+          "git_blob": "785503e3b80406c0f22df7fc7aaad0b617dcfb5a",
+          "sha256": "504b715a88e42055b5dc4ea666b18212e44e8b9aefa273141634d589af36e615"
+        },
+        {
+          "path": "experiments/expansion_20261029/d3_collision_sim/reproduce.py",
+          "git_blob": "57388ff322dac89322739b8eea6b8462b9b0c830",
+          "sha256": "ceeb2874243631a77e61a669c78eeaf601cdd57b1a57ae58645ab15e0214acaa"
+        },
+        {
+          "path": "experiments/expansion_20261029/d3_collision_sim/round2_compatibility.py",
+          "git_blob": "c89123cf74750face87067e8eeb501dbc3c35b56",
+          "sha256": "51828ff2c7c09f7c4d3b39a847ec16f3b7c5cabe351b680f5cfe34c23be75cf7"
+        },
+        {
+          "path": "robot_dashboard/collision_geometry_core/UNITREE_LICENSE.txt",
+          "git_blob": "e472bbd9217c60020b6949b6d8f3b3ede72acb11",
+          "sha256": "2b794acf1e250f5545ae5a47d81e5685ea5488ce077d1087ed8be5f81e9ba5c0"
+        },
+        {
+          "path": "robot_dashboard/collision_geometry_core/__init__.py",
+          "git_blob": "749421a6fbdd3ec3be6947fa4aac0f96147dd084",
+          "sha256": "fe69f934fb083a343a51ace1dc3af31e39d9fd41d5ed2022eabbd0cbcb07fa0b"
+        },
+        {
+          "path": "robot_dashboard/collision_geometry_core/assessment.py",
+          "git_blob": "59d1858fefafc8cba2661dd9c141a34eaa492132",
+          "sha256": "c778af46df73d1e329abd787caa0e64ccfbf1f1127bcaddab91b7e4d5ac385c6"
+        },
+        {
+          "path": "robot_dashboard/collision_geometry_core/contracts.py",
+          "git_blob": "8d0e122fd47cfca6a7f55591638cf1da427efde4",
+          "sha256": "5786ec92f022e4ee71c7d96f66cfd45a90a00689f4961017b59e0552bb7181bb"
+        },
+        {
+          "path": "robot_dashboard/collision_geometry_core/coverage.py",
+          "git_blob": "45a1e7a97fe0cbdde6db551ffedad5937fa8a000",
+          "sha256": "ab8ba9f19095e679b8aef025158f9cc8f970bee0297050f412e96f85bd517aab"
+        },
+        {
+          "path": "robot_dashboard/collision_geometry_core/geometry.py",
+          "git_blob": "9b81d58a8e939da69188c830a11680826fce91ab",
+          "sha256": "190dbd809897a3edf3572d52a88187f75480a7335f5320fc03895c787ec569af"
+        },
+        {
+          "path": "robot_dashboard/collision_geometry_core/go2_collision_source.urdf",
+          "git_blob": "c49e3dc969dac92cdedc1447472196811a80bdee",
+          "sha256": "8f4571b49f35ce04b8833d561c403bddeb9cd8f7077e2ddbee82895726de487c"
+        },
+        {
+          "path": "tests/expansion_d3/__init__.py",
+          "git_blob": "d6d41d145a270732fcda352c4b78938568a63c33",
+          "sha256": "656ef752f542059b859995ac8d66598ff9330d12a164bbc8872ae5e44580574e"
+        },
+        {
+          "path": "tests/expansion_d3/test_c4_input_fixture.py",
+          "git_blob": "4bbd4f9c7f96e25d9f018656b73da1bfe6ae64b2",
+          "sha256": "225859d5fed5e703996067724c73e162aa29865eeb1ecf118477d6e5cba2aa05"
+        },
+        {
+          "path": "tests/expansion_d3/test_collision.py",
+          "git_blob": "0447349de1255e8f18a461bf1d16b7b75f0cc7ab",
+          "sha256": "cac433f2438bee2c03e63efc1e73c25dbff60891c3012dae1ab005f031ffe543"
+        },
+        {
+          "path": "tests/expansion_d3/test_native_namespace.py",
+          "git_blob": "6f9322133d3192bf739a49460bf44992eb854426",
+          "sha256": "d999f850386a575511d47d67f3928525eac7cb0307a71212b156af0cae3339e6"
+        },
+        {
+          "path": "tests/expansion_d3/test_round2.py",
+          "git_blob": "746a46038a86cecd683a6199e4f7dabd70386c87",
+          "sha256": "64907336934bdbf88c6032c792e0de8fd4b757c17c20f782209b2ef7b9cdd754"
+        }
+      ],
+      "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/tree/0bb91b70b4ffd3801a5a5562637309eb595813c9"
+    },
+    "C4": {
+      "ref": "review/20261029-x-c4-runtime",
+      "sha": "b7242fca7c1b863ef111978debe444b2a74cc3d3",
+      "prefixes": [
+        "robot_dashboard/expansion_runtime/",
+        "robot_dashboard/obstacle_runtime_adapter/",
+        "tests/expansion_runtime/",
+        "tests/expansion_c4/",
+        "experiments/expansion_20261029/c4_runtime/",
+        "ros2/robot_scope_obstacle_adapter/"
+      ],
+      "files": [
+        {
+          "path": "experiments/expansion_20261029/c4_runtime/README.md",
+          "git_blob": "eb0fdbd5c8bfa7081cd3979ff2af19f9d6f79e45",
+          "sha256": "f967247812362fdf0fabcf8534ac926aacee8bae9862a41c8cba1275c546e4cd"
+        },
+        {
+          "path": "experiments/expansion_20261029/c4_runtime/compat_c1.py",
+          "git_blob": "e28787791d17b3109395fa66b1bbf150eb2d55ad",
+          "sha256": "f5cce221cfc95ae376f35ab1959f538b084a1d3a36542009111cf5ea492052ac"
+        },
+        {
+          "path": "experiments/expansion_20261029/c4_runtime/followup/README.md",
+          "git_blob": "b35f7b4c05ad4b26038481a813aeee80fdf5f889",
+          "sha256": "5ab57aa1af4772a1a75e2e62aaf3225e427bce84294c2c23c16737349e713660"
+        },
+        {
+          "path": "experiments/expansion_20261029/c4_runtime/followup/consumer_check.mjs",
+          "git_blob": "0f50df429ff175caadfb02d2d49efdbe8ad9c8b0",
+          "sha256": "9f185c013dfed3d9a4266a930fdd361853ddc3743399cb3f73ad8c5c241fc814"
+        },
+        {
+          "path": "experiments/expansion_20261029/c4_runtime/followup/dependencies.py",
+          "git_blob": "b6eb6881b659eb5e4e8fbcd9ff10796c9b9f95e6",
+          "sha256": "eab1e204bbe8da5221e22bfed07b9fe1b25f6bac002b460529c9ac4121a3eb7e"
+        },
+        {
+          "path": "experiments/expansion_20261029/c4_runtime/followup/report.py",
+          "git_blob": "187cf3228c47d2e15fa965a14e5bd9006ce444ea",
+          "sha256": "0f95689ca7ed5d038df5d58de6f0ce5f44fbe8c97f6e873d0ea2025206503e21"
+        },
+        {
+          "path": "experiments/expansion_20261029/c4_runtime/offline_test_guard.py",
+          "git_blob": "bb4e294f60ced54372bd2d255a353c93286faa76",
+          "sha256": "34993e78e6ca6d10218a3687d07791aafd35d1d0ade79b5e680e71b4707df47c"
+        },
+        {
+          "path": "experiments/expansion_20261029/c4_runtime/prepare_profile.py",
+          "git_blob": "9773185b52d616b09f27254fe6510e5df117d010",
+          "sha256": "88bbbf856a664a3cfe56b881530f290c2ac661bb86bcca29e74c914c464726f7"
+        },
+        {
+          "path": "experiments/expansion_20261029/c4_runtime/ros_bridge/Dockerfile",
+          "git_blob": "6bffef40dca441dd8f4e5d6cf94044b438bb7f9c",
+          "sha256": "e2a61a87efb3258d20d674d664b9a92bd9209a4b6b3b68fa2eaffc9a36812314"
+        },
+        {
+          "path": "experiments/expansion_20261029/c4_runtime/ros_bridge/README.md",
+          "git_blob": "6c60045b95dc1617e2655241749ad4cefb21acca",
+          "sha256": "54d86ce6135aa6c9d310007bb81d28ecb63dd3965537b8e24a7eb86c965402b1"
+        },
+        {
+          "path": "experiments/expansion_20261029/c4_runtime/ros_bridge/consumer_check.mjs",
+          "git_blob": "61b6a21f5f87cd2874a478c68edbb32a9a033d88",
+          "sha256": "a64a19cb9e859305b6e0f770862ed63c1ec0d03a38d7e52ca7d68a46348f118a"
+        },
+        {
+          "path": "experiments/expansion_20261029/c4_runtime/ros_bridge/dependencies.py",
+          "git_blob": "bcf14b25d0a73c172ba10b13b68cf6a5353e36b8",
+          "sha256": "49f1d658af6a872f5ac401b36eb04de062ada6c859a9ea0fbf37a0c554f2650a"
+        },
+        {
+          "path": "experiments/expansion_20261029/c4_runtime/ros_bridge/http_probe.py",
+          "git_blob": "c595b64e7907c47618fdedd08255bcadba2f3a23",
+          "sha256": "12f1407a062c0d8a8be38afc6c566369153af9817a22b434a5c8e1463a42e87e"
+        },
+        {
+          "path": "experiments/expansion_20261029/c4_runtime/ros_bridge/native_ci.py",
+          "git_blob": "e99b399b8d318ff143619e30ec1af776358eb0a7",
+          "sha256": "41a4efbd9a2b9f658eac090df17cb9ecedc71811b4cac2f9ce7535a75e3321fe"
+        },
+        {
+          "path": "experiments/expansion_20261029/c4_runtime/ros_bridge/native_probe.py",
+          "git_blob": "fca806304a9a340f83ad57909ede7b99bd18d3dc",
+          "sha256": "0bd8587c7efd5811f4a73a4e557f634acfec9252b184500c1fe64891cff6a7cd"
+        },
+        {
+          "path": "experiments/expansion_20261029/c4_runtime/round2/README.md",
+          "git_blob": "76e0a5eba260d9770098eec0a06352d7cf5954cb",
+          "sha256": "5dbee71aeb2561053932649dff18862f57b3324d6869a25f6ffe4f9b01d6f562"
+        },
+        {
+          "path": "experiments/expansion_20261029/c4_runtime/round2/consumer_check.mjs",
+          "git_blob": "bca13e4dcbf161eefc955487f35bda6a609672d4",
+          "sha256": "0018d684c0a51f9c6cbad39d68a88a949c2f4eeb053ef89545a7d63dfbaae276"
+        },
+        {
+          "path": "experiments/expansion_20261029/c4_runtime/round2/dependencies.py",
+          "git_blob": "52d875a37b1bc58fa7bae37ec9fe33af0d70db7d",
+          "sha256": "89719ab2d3b0d16f19a69ecd1094b4ae2dcec06b804fd6eb0dafa6625edbb686"
+        },
+        {
+          "path": "experiments/expansion_20261029/c4_runtime/round2/prepare_dependencies.py",
+          "git_blob": "0e2939eed0b69fc440b56c8cd54da41bd1a267e8",
+          "sha256": "41e0ce109ceedc7fff0b1df3e925da5593f433c10ea44865a1d25deea79ece96"
+        },
+        {
+          "path": "experiments/expansion_20261029/c4_runtime/round2/report.py",
+          "git_blob": "a3aaa789bc2b8329d3bdc80e2d22ee107caae244",
+          "sha256": "3fc269fb0f7bcc5a00dc0adec8bc0a88bf599186985e622c166f0b7c27c7fa50"
+        },
+        {
+          "path": "experiments/expansion_20261029/c4_runtime/smoke.py",
+          "git_blob": "418409693dc1c619942a5cf5e4ae518f39985bdd",
+          "sha256": "757b2e87584697efbad6642c91a89b6d4e264c240fe108dab3eaf9abc52abd95"
+        },
+        {
+          "path": "robot_dashboard/expansion_runtime/__init__.py",
+          "git_blob": "fc2d62fa0680bfffbecf4123670e2987f00346a3",
+          "sha256": "62cf3982a8298708f0a3902a0fe830b5a34e8519f02b0755269712d0e8ad2aaf"
+        },
+        {
+          "path": "robot_dashboard/expansion_runtime/async_adapter.py",
+          "git_blob": "618b594a1c822495ad08d1a9ac383a4dcc76e54b",
+          "sha256": "34377ed1e089d036a58b2bda908f346f91736d177eb9a54fae7a8f04d5de0f16"
+        },
+        {
+          "path": "robot_dashboard/expansion_runtime/binding.py",
+          "git_blob": "fd168a9ed78daff9fe9d19ebc9288d79fde253c7",
+          "sha256": "074ef5ab4fd3a3276d0e38e940b4cc110004508cceee513c933b8ea3d92a06a6"
+        },
+        {
+          "path": "robot_dashboard/expansion_runtime/canonical_ports.py",
+          "git_blob": "03926f7cb80466df7c55efa6f16e696e01e3d3ed",
+          "sha256": "f0a3929e395b25a0e80062a6e10b1dccee9617650efb0c342f0a172029a597ec"
+        },
+        {
+          "path": "robot_dashboard/expansion_runtime/composition.py",
+          "git_blob": "7b3eb0acca7ebb47ecb3010119817aeaf436ff72",
+          "sha256": "3a5358174374529db77d05e56adaa71c333fb77ac0014f089f9356fb5198ddbd"
+        },
+        {
+          "path": "robot_dashboard/expansion_runtime/intent.py",
+          "git_blob": "415a5afe215a86a3b03c5153e1c7e88a09150f49",
+          "sha256": "9367933450e09095a5ba2d0e498fc2dd6c8161b72a1c7b6ec82175632fe1b937"
+        },
+        {
+          "path": "robot_dashboard/expansion_runtime/marking_ros.py",
+          "git_blob": "857a2a94a3ec9e80df1769611dd0430481d19faf",
+          "sha256": "3345e7e60afd05067f2de68957ae0de26c16ab4eb17627a8dc41bff5c361c1b3"
+        },
+        {
+          "path": "robot_dashboard/expansion_runtime/owner_identity.py",
+          "git_blob": "31bce421a208959c7cf54d7d1353365f79a84748",
+          "sha256": "0877d61c28230895b9b3323bbff74760da43cdc52a18356f257d08546bcac389"
+        },
+        {
+          "path": "robot_dashboard/expansion_runtime/ports.py",
+          "git_blob": "6478afe5d0a18d83e19df24860d385d68720bad1",
+          "sha256": "8b5305dbb13866e74898cf275dba1e7323e4bde7618b80ada8f1e4d4c6e21f29"
+        },
+        {
+          "path": "robot_dashboard/expansion_runtime/sensor.py",
+          "git_blob": "570fda04e81b14ec4b5be07b90e4f0a090d38df6",
+          "sha256": "e38d536ac3306d1a0133a2dd1ce5028d5a0e5608eea4d140be3920a9d05e406d"
+        },
+        {
+          "path": "robot_dashboard/obstacle_runtime_adapter/__init__.py",
+          "git_blob": "551c7dc448642b0444a66512e1c5dc161572baf8",
+          "sha256": "b316c902a9dc99c36369a564a2f0baf7a58fe1975cdd85f526286f87da2bd630"
+        },
+        {
+          "path": "robot_dashboard/obstacle_runtime_adapter/c1_ports.py",
+          "git_blob": "28a7cb2b879b3465cbc54a4c1e59f26f5a3629d1",
+          "sha256": "b665f5a9dcfc340048cb837abf5381e58872c628c171f638ab56d4ec7d629bc5"
+        },
+        {
+          "path": "robot_dashboard/obstacle_runtime_adapter/command.py",
+          "git_blob": "5a331dcc9a142768050a8efb6c22289d5d758880",
+          "sha256": "8ea5bff4334a1ff8b650b5776e131adac4d3d18f4a584b22b705f5039f22eda7"
+        },
+        {
+          "path": "robot_dashboard/obstacle_runtime_adapter/evidence.py",
+          "git_blob": "0ed168d7300006ece2133754f18f2c7381bd41ce",
+          "sha256": "09f645af9602f71b0328874ef68d88e70ce01364434bcf799924a51ae0e0c39c"
+        },
+        {
+          "path": "robot_dashboard/obstacle_runtime_adapter/isolation.py",
+          "git_blob": "606d6d42ef4885ea4fe3b1c438d6e46ad0d67f64",
+          "sha256": "45be976c0a0696d6012515776bef427094bb84e9038014c206425094e4ef6067"
+        },
+        {
+          "path": "robot_dashboard/obstacle_runtime_adapter/messages.py",
+          "git_blob": "efb50a4bcc60a76786e75545a0d177a77edef950",
+          "sha256": "dd5b73d9b99f59081d2f7fc8be2a1ce04e08cbce60d6615be5963c52f1986287"
+        },
+        {
+          "path": "robot_dashboard/obstacle_runtime_adapter/nav2.py",
+          "git_blob": "e71100372126f64870db03448c44d3706e729e0e",
+          "sha256": "491529dee7be007888b5408101ba67b87dbdc8f7dc7ea1fa3c410758daf1a31a"
+        },
+        {
+          "path": "robot_dashboard/obstacle_runtime_adapter/ros_port.py",
+          "git_blob": "b817902b7d203f644ad44b35d99405421dadfee0",
+          "sha256": "42298f4988aa53e47bfbc2e56b65a2e2304776e93971a9cc35de11912f538387"
+        },
+        {
+          "path": "robot_dashboard/obstacle_runtime_adapter/runtime.py",
+          "git_blob": "86b9c393d07703f460d67bc74c4600a73ea10bb9",
+          "sha256": "f4db81225429248b9c7971ce4677959659ee8a5d1a79157a1ead007d2a281f48"
+        },
+        {
+          "path": "ros2/robot_scope_obstacle_adapter/config/replan.xml",
+          "git_blob": "ceaa054db6e89ffcdcdaed3824c6cfc0a169d31d",
+          "sha256": "936e0ecd848be9b8986a4074f31d3e42ae6d1b07eebe159d9ad09cff87665948"
+        },
+        {
+          "path": "ros2/robot_scope_obstacle_adapter/launch/review.launch.py",
+          "git_blob": "22a39fc32c0d01fec139b79942c98da7c441f203",
+          "sha256": "87c09642eee5fe9efab5e270f019fd9c18af7e138137929429f06bd7f2de3ef5"
+        },
+        {
+          "path": "ros2/robot_scope_obstacle_adapter/package.xml",
+          "git_blob": "7ddb0b71fe7eeafbc87925b48f7ff9e502c94f1e",
+          "sha256": "f5c060246772944f3a35033e922f417521e4d5136e2450e2c01873f5dadcdaaa"
+        },
+        {
+          "path": "tests/expansion_c4/__init__.py",
+          "git_blob": "be214978681d0959676e29e70835d7da37138cae",
+          "sha256": "48cb0bab37b3b999d8982dc4c36ebcd03a02d0961c5f7bba24136d5d97b175f0"
+        },
+        {
+          "path": "tests/expansion_c4/fixtures.py",
+          "git_blob": "4f8e5938dcbaa482350cef0beb6eefed74a3614d",
+          "sha256": "2f9481823b6961e38ddb07a7b533c22105186b6c0b836799579ace2837c07ef5"
+        },
+        {
+          "path": "tests/expansion_c4/test_command.py",
+          "git_blob": "381f3d6e427b7fc6fc1d4ae1b736d9899edc78fa",
+          "sha256": "20295e1e80f5a545cb4265fb719c8a6c6154d7a6e9c92e40877ea7ece31d108a"
+        },
+        {
+          "path": "tests/expansion_c4/test_evidence_profile_isolation.py",
+          "git_blob": "655a52b4155adf781bc1b7c74112b6b63925fbc2",
+          "sha256": "e26f1ea4b2bc7a43bdf08303f8f888b32d2f6f29e4f165eafbbf2a3351d06f2e"
+        },
+        {
+          "path": "tests/expansion_c4/test_messages.py",
+          "git_blob": "1fbd68cc16ba9e1d932e40b5eec7a0a599ce3fa2",
+          "sha256": "f7f4cfa8c6c4d826a362b4a4cedc8b9c32da737d99a4f3f6de33b3899a01d72e"
+        },
+        {
+          "path": "tests/expansion_c4/test_ports.py",
+          "git_blob": "d2fd51b7af4d362133bb481fbaf4bb915601f1aa",
+          "sha256": "f76475748609a300fc866f6b127bee6d8ae725d555a15b77993e7729df94835f"
+        },
+        {
+          "path": "tests/expansion_c4/test_runtime.py",
+          "git_blob": "41542729d20b73d5e6f03343aefc68bc8d5c9c5f",
+          "sha256": "6ae06e1521237bc09d0c2c9d0df348e107f4bd1eacf02b9304ca89b23da495ab"
+        },
+        {
+          "path": "tests/expansion_runtime/__init__.py",
+          "git_blob": "dd753b2eb202b50e1108a1d7b4f6475341326384",
+          "sha256": "93cec857d0cbadb8685e1fc718c3778a5eaa54f84447d77d5736667e502573a8"
+        },
+        {
+          "path": "tests/expansion_runtime/async_cases.py",
+          "git_blob": "11cfd23613a8f513f993f7573de7f15d52da329d",
+          "sha256": "481813709d2c1f6290780b22150486a709a14bbc593d7c60ad0854c5938354ec"
+        },
+        {
+          "path": "tests/expansion_runtime/async_fixtures.py",
+          "git_blob": "1970ff662d7a89592ac735473093f635542eb011",
+          "sha256": "922b9b4a298d62e2e9746dd0e44661f101ffadfbf49ab7446bf3dbe7998c786e"
+        },
+        {
+          "path": "tests/expansion_runtime/fixtures.py",
+          "git_blob": "49dfc075bf7af26e0e0e272d9cf5219a8ac59423",
+          "sha256": "5275b85cccb07ab8c110c0d5a670a372efe881cd4d19f43ad3ac6899ef7f7978"
+        },
+        {
+          "path": "tests/expansion_runtime/latest_cases.py",
+          "git_blob": "dec278b47d809503017da8a8079203bc435deef2",
+          "sha256": "e3d4e1d0901d27e89a44c64065512c6eb88577a449fd238dd8c2289f5e27ef83"
+        },
+        {
+          "path": "tests/expansion_runtime/latest_fixtures.py",
+          "git_blob": "6bcb8d3e0ea844128174725d267912432e599fd5",
+          "sha256": "1ebe9b40e1296f1217e686b34e76bec569c5e07d1715f644842a1e8ee91d5f16"
+        },
+        {
+          "path": "tests/expansion_runtime/test_async.py",
+          "git_blob": "509d45f597ec0ad795acb20f9bc3947ce1b530cc",
+          "sha256": "05c4da7247fe1f2b052c5de6746347945db6d6f5b17afb4816ca0420011a6b51"
+        },
+        {
+          "path": "tests/expansion_runtime/test_binding.py",
+          "git_blob": "78f3b9fc6d82197b3ced68c123d422192eca7c4f",
+          "sha256": "4291290ab23f8b3d4c5e91583471ce85c37973039bc11149426fa70fa8dddee6"
+        },
+        {
+          "path": "tests/expansion_runtime/test_latest.py",
+          "git_blob": "c10104fa61807097b236f5b2517cba2cdf1e968f",
+          "sha256": "83b7aac251ce073d2058f47f16c9cd948dac75997ac15776de3fec2c44e051e0"
+        },
+        {
+          "path": "tests/expansion_runtime/test_real_composition.py",
+          "git_blob": "6bdb59d962d2d55d052a2f997f28b61e30deeb5d",
+          "sha256": "7aca01dfebe84ce972d6fcb049aeb7c40b274323e61b3bef7c6d1f13e7e10176"
+        }
+      ],
+      "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/tree/b7242fca7c1b863ef111978debe444b2a74cc3d3"
+    },
+    "C5": {
+      "ref": "review/20261030-x-c5-ui-usability",
+      "sha": "2a51d9906c39bd332191ce4c570b4152f13c2676",
+      "prefixes": [
+        "robot_dashboard/static/features/operator_usability/",
+        "tests/expansion_c5/"
+      ],
+      "files": [
+        {
+          "path": "robot_dashboard/static/features/operator_usability/index.js",
+          "git_blob": "b5f59e1c911ddb25afe18a1343ef01623dd76457",
+          "sha256": "1064041bfd0ff3cd1854976ae2af720ff52eda60786e94c9132532720b4e4f9d"
+        },
+        {
+          "path": "robot_dashboard/static/features/operator_usability/operator_usability.css",
+          "git_blob": "5a2070af99bffe9196772eb3e7349a31fb20cedb",
+          "sha256": "c06617cb38f4ad4fafd8e46e5aa387c7c747ab9b7e99f0875ef35c6645ac9a73"
+        },
+        {
+          "path": "tests/expansion_c5/audit.mjs",
+          "git_blob": "1c41aeaac87a4554718d3f09787766ecf40f2bdf",
+          "sha256": "deb8c4bbb048f958127abfaec4a254d85e26c842753885a1973b40bdc7e7fe1b"
+        },
+        {
+          "path": "tests/expansion_c5/browser.mjs",
+          "git_blob": "4b7ab12d976de7a392b2136553a4a3e4b6751a2e",
+          "sha256": "d6710ca4f6af12dc9d65dfa754d0edfd1417bade2847f26026618977868c59cf"
+        },
+        {
+          "path": "tests/expansion_c5/hosts.mjs",
+          "git_blob": "80c8cedbc980d499e6ecf526b392b62c277344f9",
+          "sha256": "29153541231a0dbd54ce8cd69d93001920f9a6cf5e5acaff3a99d599f94dad42"
+        },
+        {
+          "path": "tests/expansion_c5/peer_review.mjs",
+          "git_blob": "3464606169f92b5f5187158e47727d98744b1f93",
+          "sha256": "a63dad8d12cb050b528c606d254403d107ce3b6fc390be5e86981c43efabaed3"
+        },
+        {
+          "path": "tests/expansion_c5/regression.config.mjs",
+          "git_blob": "1bb786abc9a5168c457e60a73d0a846ed62d404c",
+          "sha256": "80f9f278b2cbbceee3ba1d8e4b4d76c6901cca92a8b3d1c937f7ec9d6df44a1f"
+        },
+        {
+          "path": "tests/expansion_c5/scene_capture.mjs",
+          "git_blob": "9aa19ad2ce9f0d938b8c0749ca13d8e9b0a31b20",
+          "sha256": "c9dfadede9d87d84a7c747ca4654bc429a8a0f099ef7dc22e422f3236c18f5f6"
+        }
+      ],
+      "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/tree/2a51d9906c39bd332191ce4c570b4152f13c2676"
+    },
+    "C6": {
+      "ref": "review/20261030-x-c6-run-review",
+      "sha": "23da4f7360dbc0336496a6cd4c8b2e664062af74",
+      "prefixes": [
+        "robot_dashboard/run_review/",
+        "robot_dashboard/static/features/run_review/",
+        "tests/expansion_c6/",
+        "experiments/expansion_20261030/c6_run_review/"
+      ],
+      "files": [
+        {
+          "path": "experiments/expansion_20261030/c6_run_review/README.md",
+          "git_blob": "036bd31133ee30d5977ed427ad6e9483a8e46b08",
+          "sha256": "780f2bb3608d2a9678edbdd857195e8027c893063ef32c61817a534b65994aa7"
+        },
+        {
+          "path": "experiments/expansion_20261030/c6_run_review/host.js",
+          "git_blob": "4f5e039220b3704ba0d7cd4bbf906f395617f849",
+          "sha256": "4dde39b7daf91d8c57f22ccd1d6ea9935dcac6e9ef211cd9777b3bd889f7b73c"
+        },
+        {
+          "path": "experiments/expansion_20261030/c6_run_review/review.html",
+          "git_blob": "b4190ea6adff2f3afe08260bbc3a7b334e025cbd",
+          "sha256": "35db784cf020d1b861819c09a07308396bfd99e3faeb4ad1079a18eb789fa0de"
+        },
+        {
+          "path": "experiments/expansion_20261030/c6_run_review/serve.py",
+          "git_blob": "43df6ff190ece36dcde688e809a0b8367654c465",
+          "sha256": "023cfeef8ab0517dcd40c127e9a0aeaf98029a091e7d5e65e3c5f1867c1a9b0c"
+        },
+        {
+          "path": "robot_dashboard/run_review/__init__.py",
+          "git_blob": "a89c18c6ea2f7c20fdbae30c2484634c5188041a",
+          "sha256": "feb961491693bd89b407b45f60043b6990d873625f0f8641adee2def3adf3e02"
+        },
+        {
+          "path": "robot_dashboard/run_review/__main__.py",
+          "git_blob": "f494aef6a2f011ad490cb91703657e02bfb9ab55",
+          "sha256": "b3d7000273a864959c9eaf1cba95ac0a38eb59f49a06652e65bb3661b9e700f7"
+        },
+        {
+          "path": "robot_dashboard/run_review/dependencies.py",
+          "git_blob": "4ef0775bae0a06add52333efd01dd94ea29b4e30",
+          "sha256": "99be161449f66572dabb07d8d4768e93ee99d6f13332146ad5eb907e6aec0a59"
+        },
+        {
+          "path": "robot_dashboard/run_review/io.py",
+          "git_blob": "9f90fa5b24e816202312e9f7c82ccf298e050d0d",
+          "sha256": "b2db21f1eed0af13f4b087707d229df4700dcb8ff686e45864f8ce57b8dee329"
+        },
+        {
+          "path": "robot_dashboard/run_review/review.py",
+          "git_blob": "c5e99ba067993b30325a100befee579aa6736494",
+          "sha256": "abd071eba33520f38597688831f0004dfb3cd43bacf08c18ef7d0cab37e129e6"
+        },
+        {
+          "path": "robot_dashboard/run_review/summary.py",
+          "git_blob": "ce1c8fbb9f54103899acb7c8f0eac2180d4f0a20",
+          "sha256": "be9d4a1822639c1f2228e08a61b4e31c2399f0f0b4b1ff38960cebe61b3ee956"
+        },
+        {
+          "path": "robot_dashboard/static/features/run_review/index.js",
+          "git_blob": "3b09bdd74e44fa300ae4554ec928f08a25a352d2",
+          "sha256": "2659562631e84237dda1c31e9384cf65fde9f30d6e15b75c51731783dc889088"
+        },
+        {
+          "path": "robot_dashboard/static/features/run_review/replay.js",
+          "git_blob": "4c6d5e73980c77c01c86baa92f808a81f0c1d472",
+          "sha256": "ca84146aae2ff2a7a17bcba3bd3a4e9eaa496009e29f365f74b4cfec3df08f2a"
+        },
+        {
+          "path": "robot_dashboard/static/features/run_review/review.css",
+          "git_blob": "695f02627e9de939411cc67b5e141552ace0140f",
+          "sha256": "591e59bdf99f2bc0c6f0d6e4713a1f330dd3a2dff57b353e91462084e2e2f791"
+        },
+        {
+          "path": "tests/expansion_c6/__init__.py",
+          "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "tests/expansion_c6/actual_c3.mjs",
+          "git_blob": "fa20e52000f5e1c39d809fabec5775c239534a05",
+          "sha256": "da5d7f5dfe1c4b6708a2ab1dca9f0d596da834a3153a6ebdc167a5df51302730"
+        },
+        {
+          "path": "tests/expansion_c6/browser.mjs",
+          "git_blob": "4c55e14e633a74b3b43835cc92a8ce99009054eb",
+          "sha256": "07a24dfe66e881ddb8d74ca20c4a25d733a64e2300e7251c9c6305c9741673d1"
+        },
+        {
+          "path": "tests/expansion_c6/fixtures.py",
+          "git_blob": "853692cb35f8b47d7d2040ff4eb74c59cedbc1d1",
+          "sha256": "0d4a8ebd0caf46b37df8ed7cb7976ca040d14b4f752474f368150c01cd5303e6"
+        },
+        {
+          "path": "tests/expansion_c6/pins.json",
+          "git_blob": "14e5fc63c5cc3dfaa2b511b1bf48c492403af5ea",
+          "sha256": "81cd0ae1749ec0827d2209ac1b0fc2ac832f8adb2f8562fcf70bfabcd60532f6"
+        },
+        {
+          "path": "tests/expansion_c6/prepare_dependencies.py",
+          "git_blob": "d5c08ab861cf41ef6d212994638ae97bdc77e5ae",
+          "sha256": "872f69b9092de90eb1f147d615d912c8e3024fa75dfc586e9ac4c400539f7d90"
+        },
+        {
+          "path": "tests/expansion_c6/prepare_native.py",
+          "git_blob": "45dea668535b6d1f0d49429b911efb3152c3021d",
+          "sha256": "861ff4977a387fb460fe7959aaa08446ceafe1021d1b20e0cd5c4b3083e30a0d"
+        },
+        {
+          "path": "tests/expansion_c6/test_replay.mjs",
+          "git_blob": "e3a12419339686d6841a9fc75c086490d38583d9",
+          "sha256": "eb53d9ecfe5d7e7bfba6561359b922a33566dea2714df4aea5064aab75635876"
+        },
+        {
+          "path": "tests/expansion_c6/test_review.py",
+          "git_blob": "dd638831546e3523db9a557ba541dfa91c0cf677",
+          "sha256": "501e04f96adaa9f5779a2c590660e0d8d2ad96fdc664cfc0a30d9ed14acb73a5"
+        },
+        {
+          "path": "tests/expansion_c6/verify_artifacts.py",
+          "git_blob": "7b390a77681b28a4426781c2711eee17395934c3",
+          "sha256": "bff6d9a9815bedf4138c988888429bbff283245fec5963d0df58b8af92861407"
+        }
+      ],
+      "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/tree/23da4f7360dbc0336496a6cd4c8b2e664062af74"
+    },
+    "C7": {
+      "ref": "review/20261030-x-c7-capacity-diagnostics",
+      "sha": "ec724dafd33db92ecb27db17e0bdd2eee5a30455",
+      "prefixes": [
+        "robot_dashboard/expansion_diagnostics/",
+        "tests/expansion_c7/",
+        "experiments/expansion_20261030/c7_capacity/ci/",
+        "experiments/expansion_20261030/c7_capacity/README.md"
+      ],
+      "files": [
+        {
+          "path": "experiments/expansion_20261030/c7_capacity/README.md",
+          "git_blob": "2b8f7863ca67d12e6d4682caa3a73e5170d5a735",
+          "sha256": "f1c6c5c6b28a535999084ebc5abcf40f460fc5ce3ee6667bdb9b647e2e3a0944"
+        },
+        {
+          "path": "experiments/expansion_20261030/c7_capacity/ci/README.md",
+          "git_blob": "d0af63de6628e4118c456f4cb3c728e35fce6d1c",
+          "sha256": "f3316d07356596600a3d9d7a194ee9c26cb064c3ea8779283e9f1df0edea906b"
+        },
+        {
+          "path": "experiments/expansion_20261030/c7_capacity/ci/history_poll_probe.mjs",
+          "git_blob": "1f612d5cfd848f158b755041ea64dc2e0d705788",
+          "sha256": "e37186dfb350604eb9d1d0d768bfc397b2a8f59661259577def3d5f7996de217"
+        },
+        {
+          "path": "experiments/expansion_20261030/c7_capacity/ci/socket_cleanup_probe.mjs",
+          "git_blob": "174c568e5b6419ec1638bd0af8cc1a2ce99992d8",
+          "sha256": "47ceb4c1c19a3fe227fcfa25a17bcfc6d73227df19d7eea11d47c02f08551922"
+        },
+        {
+          "path": "experiments/expansion_20261030/c7_capacity/ci/summarize_original_traces.py",
+          "git_blob": "c4aa1988986250504fe2bf56ecb863c55a57a48e",
+          "sha256": "0a1bba684b2ff6cd13dd5dfd8711fbf7cd1a5dbf5081c7a8e95dd72d4b5bca6b"
+        },
+        {
+          "path": "robot_dashboard/expansion_diagnostics/__init__.py",
+          "git_blob": "b9f6ad283d9c6330c747bdb3e1888423563e30ac",
+          "sha256": "31e4e58f0d852c33cd47f6d09b2a4846b850fc9ec74e2aa508cf8dbc9cb2fb71"
+        },
+        {
+          "path": "robot_dashboard/expansion_diagnostics/__main__.py",
+          "git_blob": "de32305dea58f8d0b8eba63d60b4e7ba0b7b12fc",
+          "sha256": "880c95db9aefb455076e31d90660d603431f6e9005a7c354db57ac2696968c9e"
+        },
+        {
+          "path": "robot_dashboard/expansion_diagnostics/browser.py",
+          "git_blob": "9c1de11937517b6353bc51e1e31e621ea30eaaac",
+          "sha256": "06b891174bf52896fb23f0f57382c70a326336c99ac9d726612f9a4c10f5b5f0"
+        },
+        {
+          "path": "robot_dashboard/expansion_diagnostics/cache.mjs",
+          "git_blob": "db5b7b5e0ebb72e90e86055dff22fce9bf87bb66",
+          "sha256": "39eec8301b36e969fc1af50a66cec1529ac3d5aaea4c759c34acdcae690edf0a"
+        },
+        {
+          "path": "robot_dashboard/expansion_diagnostics/consumer.mjs",
+          "git_blob": "bd5eedfebb65359d8fb141195f3584980ee51408",
+          "sha256": "5150eca9fd8f7bef6f648431d6532e5544f132a0d99bcde228d1769ca648bd27"
+        },
+        {
+          "path": "robot_dashboard/expansion_diagnostics/dependencies.py",
+          "git_blob": "259d5a514c53af3b43e4b66c9a59826395d2d92c",
+          "sha256": "01c7dfa690b4dd4e673a18de2da7d2bbf201ce43e705b229e813774d3387c566"
+        },
+        {
+          "path": "robot_dashboard/expansion_diagnostics/measure.py",
+          "git_blob": "9012807262aed83ef0460dd23f7e9dc26064d114",
+          "sha256": "13e0cf6117abc457545a5e38ef611550e1f5df65d80584fcf21c793c4215635f"
+        },
+        {
+          "path": "robot_dashboard/expansion_diagnostics/observations.py",
+          "git_blob": "7d6cf0152bb801ac9c85be3c8969a4a0f6fb39e5",
+          "sha256": "5c4a75d1c71cfb42b3c991cfb44e488ff2383bf5eba17b1d24b924b8699a35d7"
+        },
+        {
+          "path": "robot_dashboard/expansion_diagnostics/report.py",
+          "git_blob": "71d64623ccada946c682113fdd9d2632a0466c14",
+          "sha256": "e132e16f4e5ed220fdcaee59b39fdb4814a22a8db0ea4a693f690fca21865f5a"
+        },
+        {
+          "path": "robot_dashboard/expansion_diagnostics/runner.py",
+          "git_blob": "cc9b0edd68b46e4637388acd6c384c1bdee62cc7",
+          "sha256": "f10c19d91125762ced82822401abec0aa4ab70ed377958c1159d8c7e73b66ae0"
+        },
+        {
+          "path": "robot_dashboard/expansion_diagnostics/workloads.py",
+          "git_blob": "c48150dd8c3528358ba85b916cc7951e44f43bb1",
+          "sha256": "08ec59dc9c6da754aecff815fce3909dcf46abf2600e392260dc05c39c846095"
+        },
+        {
+          "path": "tests/expansion_c7/__init__.py",
+          "git_blob": "c25fc7968172e2a10bfb5ac98ea23e3aba64abeb",
+          "sha256": "0c8abebab33e9d9f33ede771b01df33c05cc072c7a8d8297df8ce7e69ab1358f"
+        },
+        {
+          "path": "tests/expansion_c7/integration_check.py",
+          "git_blob": "1153acf42b4837d82d1433c4e1a75f483029cfa0",
+          "sha256": "ff54e20698b25c45170446a6e11fb3227279da2971fbd6d31bd5e04c15101841"
+        },
+        {
+          "path": "tests/expansion_c7/test_diagnostics.py",
+          "git_blob": "3c9aa2f822b2f8e169efb9f6690920e5b0f4f5ce",
+          "sha256": "96d21f3c6af54fe7c9c2976ba8c934fcfbc73822fc6bd4d1cadab6108ea9298e"
+        }
+      ],
+      "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/tree/ec724dafd33db92ecb27db17e0bdd2eee5a30455"
+    }
+  },
+  "excluded": [
+    "all peer shared app/navigation/controller/config files",
+    "peer workflows",
+    "raw artifacts, maps, PCD, rosbag, captures",
+    "historical result logs and screenshots"
+  ],
+  "strategy": "explicit paths at exact SHA; no branch merges or cherry-picks"
+}
