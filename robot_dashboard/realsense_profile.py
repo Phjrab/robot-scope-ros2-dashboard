@@ -154,7 +154,7 @@ class FixedLocalRealSenseProfileRunner:
         allowed = {STATUS_ACTION, *(f"realsense-profile-{item}" for item in ALLOWED_PROFILES)}
         if action not in allowed:
             raise ValueError("RealSense profile action is not allowlisted")
-        return (LOCAL_PYTHON, "-I", str(LOCAL_HELPER), action)
+        return (LOCAL_PYTHON, "-I", "-B", str(LOCAL_HELPER), action)
 
     def __call__(self, action: str, timeout_seconds: float) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
