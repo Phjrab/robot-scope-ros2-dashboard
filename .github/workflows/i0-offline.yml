@@ -1,0 +1,57 @@
+name: I0 offline product integration
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [integration/20261101-expansion]
+
+permissions:
+  contents: read
+
+jobs:
+  product-and-capacity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      OPENBLAS_NUM_THREADS: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install offline dependencies
+        run: |
+          python -m pip install -r requirements.txt -r requirements-competition-offline.txt
+          npm ci --ignore-scripts
+          npx playwright install --with-deps chromium
+      - name: Installed core, authorization, replay and default-OFF boundaries
+        run: python -m unittest discover -s tests/integration_i0 -t . -v
+      - name: Expansion JavaScript contracts
+        run: node --test tests/expansion_c2/*.test.mjs tests/expansion_c3/test_*.mjs tests/expansion_c6/test_replay.mjs
+      - name: Actual product host, generated inputs, responsive UI and replay
+        run: npx playwright test --config playwright.i0.config.mjs --reporter=line --output=i0-test-results
+      - name: Verify shared fixture timer cleanup
+        run: |
+          node experiments/expansion_20261030/c7_capacity/ci/socket_cleanup_probe.mjs . > i0-timer.json
+          python -c "import json; r=json.load(open('i0-timer.json')); assert r['result']=='NO_LEAK_OBSERVED', r"
+      - name: Exact pinned offline diagnostic sources
+        run: |
+          python -c "from robot_dashboard.expansion_diagnostics.dependencies import PINS; import subprocess; [subprocess.run(['git','fetch','--no-tags','--depth=1','origin',sha],check=True) for sha in PINS.values()]"
+          python -m robot_dashboard.expansion_diagnostics prepare --repo . --output /tmp/i0-pinned
+      - name: Baseline and bounded diagnostics without changing any limits
+        run: |
+          python -m robot_dashboard.expansion_diagnostics run --deps /tmp/i0-pinned --profile baseline --output /tmp/i0-baseline.json
+          python -m robot_dashboard.expansion_diagnostics run --deps /tmp/i0-pinned --profile bounded --config-snapshot /tmp/i0-baseline.json --output /tmp/i0-bounded.json
+      - name: Preserve synthetic product screenshots and traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: i0-synthetic-product-evidence
+          path: |
+            i0-test-results/**/*.png
+            i0-test-results/**/trace.zip
+            i0-timer.json
+          if-no-files-found: ignore

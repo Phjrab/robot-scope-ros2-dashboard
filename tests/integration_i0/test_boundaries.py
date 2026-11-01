@@ -1,0 +1,39 @@
+from pathlib import Path
+import unittest
+from unittest.mock import patch
+
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from robot_dashboard.expansion_integration.bootstrap import configure_expansion
+from robot_dashboard.expansion_integration.flags import ExpansionFlags
+from robot_dashboard.expansion_integration.host import ExpansionOwner, install_expansion
+
+
+class ProductBoundaries(unittest.TestCase):
+    def test_all_flags_off_has_no_routes_workers_or_index_change(self):
+        app = FastAPI()
+        before = list(app.routes)
+        with patch('robot_dashboard.expansion_integration.host.install_expansion',
+                   side_effect=AssertionError('OFF must not install services')):
+            index = configure_expansion(app, {})
+        self.assertEqual(app.routes, before)
+        response = index(headers={"Cache-Control": "no-store"})
+        self.assertEqual(Path(response.path).read_bytes(),
+            (Path(__file__).parents[2] / "robot_dashboard/static/index.html").read_bytes())
+        self.assertEqual(response.headers["cache-control"], "no-store")
+        self.assertFalse(ExpansionFlags.from_environ({"ROBOT_SCOPE_EXPANSION_SCENE":"true"}).enabled)
+
+    def test_unconfigured_product_auth_and_independent_flags_fail_closed(self):
+        app = FastAPI()
+        install_expansion(app, ExpansionFlags(multimap=True))
+        with TestClient(app) as client:
+            self.assertEqual(client.get('/api/v1/extensions/multimap/sources').status_code, 401)
+            self.assertEqual(client.post('/api/v1/extensions/multimap/jobs', json={}).status_code, 401)
+            self.assertEqual(client.get('/api/v1/extensions/scene/context').status_code, 404)
+            self.assertIn('BLOCKED_AUTH', client.get('/extensions').text)
+        app = FastAPI()
+        install_expansion(app, ExpansionFlags(multimap=True), ExpansionOwner(authorize=lambda _:None))
+        with TestClient(app) as client:
+            self.assertEqual(client.post('/api/v1/extensions/multimap/jobs', json={},
+                headers={'Origin':'http://testserver'}).status_code, 403)
+            self.assertEqual(client.get('/api/v1/extensions/multimap/sources').status_code, 503)

@@ -15,8 +15,9 @@ from typing import Any, Dict
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
+from .expansion_integration.bootstrap import configure_expansion
 from .application.lifecycle_coordinator import LifecycleCoordinator, LifecycleTransitionBusy
 from .application.mapping_coordinator import (
     MappingCoordinator,
@@ -613,6 +614,8 @@ def saved_map_error(exc: Exception) -> HTTPException:
 app.include_router(create_map_families_router(saved_maps, saved_map_error))
 app.include_router(create_pcd_editing_router(saved_maps, saved_map_error, RUNTIME))
 
+expansion_index = configure_expansion(app, os.environ)
+
 
 def parse_saved_point_limit(value: str) -> int | None:
     normalized = value.strip().lower()
@@ -634,11 +637,8 @@ def parse_saved_point_limit(value: str) -> int | None:
 
 
 @app.get("/")
-async def index() -> FileResponse:
-    return FileResponse(
-        STATIC_DIR / "index.html",
-        headers={"Cache-Control": "no-store"},
-    )
+async def index() -> Response:
+    return expansion_index(headers={"Cache-Control": "no-store"})
 
 
 @app.get("/api/v1/control")
