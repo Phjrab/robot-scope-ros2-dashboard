@@ -1,0 +1,47 @@
+{
+  "diagnostic_appearing_obstacle.manifest": {
+    "mode": "REPLAY",
+    "data_kind": "SIMULATION",
+    "source_sha": "fa8e26e02194d3c99ccc7b8e45eb3177a6fce19d",
+    "events": 752,
+    "frames": 717,
+    "parse": "PASS",
+    "actual_execution": "NOT_RUN"
+  },
+  "diagnostic_single_obstacle.manifest": {
+    "mode": "REPLAY",
+    "data_kind": "SIMULATION",
+    "source_sha": "fa8e26e02194d3c99ccc7b8e45eb3177a6fce19d",
+    "events": 688,
+    "frames": 656,
+    "parse": "PASS",
+    "actual_execution": "NOT_RUN"
+  },
+  "empty.manifest": {
+    "mode": "REPLAY",
+    "data_kind": "SIMULATION",
+    "source_sha": "fa8e26e02194d3c99ccc7b8e45eb3177a6fce19d",
+    "events": 444,
+    "frames": 424,
+    "parse": "PASS",
+    "actual_execution": "NOT_RUN"
+  },
+  "fully_blocked.manifest": {
+    "mode": "REPLAY",
+    "data_kind": "SIMULATION",
+    "source_sha": "fa8e26e02194d3c99ccc7b8e45eb3177a6fce19d",
+    "events": 194,
+    "frames": 181,
+    "parse": "PASS",
+    "actual_execution": "NOT_RUN"
+  },
+  "sensor_stale.manifest": {
+    "mode": "REPLAY",
+    "data_kind": "SIMULATION",
+    "source_sha": "fa8e26e02194d3c99ccc7b8e45eb3177a6fce19d",
+    "events": 153,
+    "frames": 145,
+    "parse": "PASS",
+    "actual_execution": "NOT_RUN"
+  }
+}

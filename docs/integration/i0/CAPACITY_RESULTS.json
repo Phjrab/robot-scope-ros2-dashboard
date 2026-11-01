@@ -1,0 +1,1837 @@
+{
+  "report_version": "c7-diagnostic-1",
+  "profile": "bounded",
+  "purpose": "READ_ONLY_DIAGNOSTIC_NOT_DRIVING_AUTHORIZATION",
+  "generated_utc": "2026-11-01T04:30:29.673213+00:00",
+  "pins": {
+    "main": "846121b4988ed2932d329020857925558f8f2c79",
+    "C1": "8fd42bdd5a1cdf2b5bf26eeab830e071988ac7d3",
+    "C2": "7625c87ede2489143c44862d883e10fc1791df28",
+    "C3": "e394b090221c555cf0649021d132163596c19fe2",
+    "C4": "b7242fca7c1b863ef111978debe444b2a74cc3d3",
+    "D1": "203c144f6b4a90966839c34b603ae12ee676cb12",
+    "D2": "7313f0a31c00ae87ae216b84ca41a23804e91917",
+    "D3": "0bb91b70b4ffd3801a5a5562637309eb595813c9"
+  },
+  "configuration": {
+    "d2": {
+      "max_points": 30000,
+      "max_objects": 64,
+      "voxel_m": 0.06,
+      "range_m": 30.0,
+      "ground_band_m": 0.025,
+      "track_ttl_ns": 1000000000,
+      "max_delay_ns": 150000000
+    },
+    "wire_bytes": 131072,
+    "c4_frame_bytes": 524288,
+    "scene_defaults": {
+      "stream_epoch": "scene-0",
+      "host_clock_id": "c1-host",
+      "max_history": 16,
+      "max_sample_bytes": 16384,
+      "schema_version": "0.1",
+      "max_age_ns": 500000000
+    },
+    "asset_defaults": {
+      "max_bytes": 8388608,
+      "max_asset_bytes": 2097152,
+      "max_items": 8
+    },
+    "catalogue_defaults": {
+      "preview": null,
+      "max_sources": 128,
+      "max_bytes": 268435456
+    },
+    "export_defaults": {
+      "max_bytes": 268435456,
+      "max_points": 20000000,
+      "chunk_points": 16384,
+      "max_cells": 1000000,
+      "resolution": 0.25
+    },
+    "source_inspected_constants": {
+      "c1_latest_bytes": 81920,
+      "c1_response_reserve": 16384,
+      "d2_service_reserve": 2048,
+      "c3_asset_bytes": 2097152,
+      "c3_asset_total_bytes": 8388608,
+      "c3_asset_count": 8
+    },
+    "config_sha_note": "Constants cite pinned owner sources; no runtime thresholds changed."
+  },
+  "config_sha256": "ea05d9d549a5793ca16990485ac9835d5e17560dc631ad78afbe84f1caee86df",
+  "clocks": {
+    "operation_duration": "python.perf_counter_ns measured around the named real call",
+    "CPU": "python.process_time_ns (process aggregate, excludes child processes)",
+    "scenario": "explicit synthetic source/host clocks; never used as benchmark duration",
+    "sensor_to_render_latency": "UNKNOWN: no measured source-host-browser clock mapping",
+    "controller_execution": "NOT_RUN; receive intervals are not controller execution time"
+  },
+  "checks": {
+    "baseline": "PASS",
+    "c3_cache": "PASS",
+    "exact_sample_boundary": "PASS",
+    "exact_wire_boundary": "PASS",
+    "exact_compactor_boundary": "PASS",
+    "aggregate_and_assets": "PASS",
+    "full_geometry": "PASS",
+    "stale_map_clock": "PASS",
+    "bounded_queue": "PASS",
+    "canonical_connection": "PASS",
+    "browser_load": "PASS",
+    "protected_sources": "PASS"
+  },
+  "not_measured": [
+    "ROS/native/device",
+    "Jetson or real-time qualification",
+    "physical disk I/O (logical reads only)",
+    "sensor capture/transport latency",
+    "controller function execution",
+    "peak concurrent browser heap"
+  ],
+  "exact_sample_boundary": [
+    {
+      "bytes": 16383,
+      "wire": {
+        "status": "ACCEPTED",
+        "reason": null
+      },
+      "ingest": {
+        "status": "ACCEPTED",
+        "reason": null
+      },
+      "objects": 1
+    },
+    {
+      "bytes": 16384,
+      "wire": {
+        "status": "ACCEPTED",
+        "reason": null
+      },
+      "ingest": {
+        "status": "ACCEPTED",
+        "reason": null
+      },
+      "objects": 1
+    },
+    {
+      "bytes": 16385,
+      "wire": {
+        "status": "ACCEPTED",
+        "reason": null
+      },
+      "ingest": {
+        "status": "REJECTED",
+        "reason": "document exceeds byte limit",
+        "exception": "ContractError"
+      },
+      "objects": 1
+    }
+  ],
+  "exact_wire_boundary": [
+    {
+      "bytes": 131071,
+      "wire": {
+        "status": "ACCEPTED",
+        "reason": null
+      }
+    },
+    {
+      "bytes": 131072,
+      "wire": {
+        "status": "ACCEPTED",
+        "reason": null
+      }
+    },
+    {
+      "bytes": 131073,
+      "wire": {
+        "status": "REJECTED",
+        "reason": "document exceeds byte limit",
+        "exception": "ContractError"
+      }
+    }
+  ],
+  "exact_compactor_boundary": [
+    {
+      "compact_bytes": 14335,
+      "reserve_bytes": 2048,
+      "total_bytes": 16383,
+      "result": {
+        "status": "ACCEPTED",
+        "reason": null
+      }
+    },
+    {
+      "compact_bytes": 14336,
+      "reserve_bytes": 2048,
+      "total_bytes": 16384,
+      "result": {
+        "status": "ACCEPTED",
+        "reason": null
+      }
+    },
+    {
+      "compact_bytes": 14337,
+      "reserve_bytes": 2048,
+      "total_bytes": 16385,
+      "result": {
+        "status": "REJECTED",
+        "reason": "FRAME_BUDGET_EXCEEDED:14337+2048>16384",
+        "exception": "ValueError"
+      }
+    }
+  ],
+  "first_observed_rejections": [
+    {
+      "family": "sparse",
+      "metadata_bytes": 0,
+      "first_observed_objects": 32,
+      "reason": "FRAME_BUDGET_EXCEEDED:22419+2048>16384",
+      "scope": "FIRST_SAMPLED_FAILURE; only cone metadata0 has adjacent 15/16 check"
+    },
+    {
+      "family": "sparse",
+      "metadata_bytes": 4096,
+      "first_observed_objects": 16,
+      "reason": "FRAME_BUDGET_EXCEEDED:16277+2048>16384",
+      "scope": "FIRST_SAMPLED_FAILURE; only cone metadata0 has adjacent 15/16 check"
+    },
+    {
+      "family": "cone",
+      "metadata_bytes": 0,
+      "first_observed_objects": 16,
+      "reason": "FRAME_BUDGET_EXCEEDED:14763+2048>16384",
+      "scope": "FIRST_SAMPLED_FAILURE; only cone metadata0 has adjacent 15/16 check"
+    },
+    {
+      "family": "cone",
+      "metadata_bytes": 4096,
+      "first_observed_objects": 12,
+      "reason": "FRAME_BUDGET_EXCEEDED:15680+2048>16384",
+      "scope": "FIRST_SAMPLED_FAILURE; only cone metadata0 has adjacent 15/16 check"
+    }
+  ],
+  "counts": {
+    "case_inputs_including_warmup": 99,
+    "measured_case_inputs": 75,
+    "core_processing_attempts": 99,
+    "table_cases": 26,
+    "table_delivered": 18,
+    "table_not_sent": 8,
+    "note": "Table counts are one retained result per case; repetitions include one excluded warm-up. Queue/C4 composition counters separate."
+  },
+  "timings": {
+    "baseline/cone/1/metadata0/C4_PointCloud2_decode": {
+      "n": 1,
+      "p50_ms": 0.887629,
+      "p95_ms": 0.887629,
+      "max_ms": 0.887629
+    },
+    "baseline/cone/1/metadata0/D2_C4CorePort_process_including_compaction": {
+      "n": 1,
+      "p50_ms": 1.564464,
+      "p95_ms": 1.564464,
+      "max_ms": 1.564464
+    },
+    "baseline/cone/1/metadata0/D2_provenance_compaction": {
+      "n": 1,
+      "p50_ms": 0.123954,
+      "p95_ms": 0.123954,
+      "max_ms": 0.123954
+    },
+    "baseline/cone/1/metadata0/C1_full_frame_wire_validation": {
+      "n": 1,
+      "p50_ms": 0.222359,
+      "p95_ms": 0.222359,
+      "max_ms": 0.222359
+    },
+    "baseline/cone/1/metadata0/C4_projection": {
+      "n": 1,
+      "p50_ms": 0.140249,
+      "p95_ms": 0.140249,
+      "max_ms": 0.140249
+    },
+    "baseline/cone/1/metadata0/C1_service_ingest": {
+      "n": 1,
+      "p50_ms": 0.471501,
+      "p95_ms": 0.471501,
+      "max_ms": 0.471501
+    },
+    "baseline/cone/1/metadata0/C1_snapshot_and_contract_serialization": {
+      "n": 1,
+      "p50_ms": 0.4781,
+      "p95_ms": 0.4781,
+      "max_ms": 0.4781
+    },
+    "baseline/cone/1/metadata0/C1_canonical_response_encoding": {
+      "n": 1,
+      "p50_ms": 0.037445,
+      "p95_ms": 0.037445,
+      "max_ms": 0.037445
+    },
+    "baseline/cone/1/metadata0/D3_assess_full_retained_geometry": {
+      "n": 1,
+      "p50_ms": 36.401419,
+      "p95_ms": 36.401419,
+      "max_ms": 36.401419
+    },
+    "sparse/0/metadata0/C4_PointCloud2_decode": {
+      "n": 3,
+      "p50_ms": 0.011624,
+      "p95_ms": 0.011989,
+      "max_ms": 0.011989
+    },
+    "sparse/0/metadata0/D2_C4CorePort_process_including_compaction": {
+      "n": 3,
+      "p50_ms": 0.340566,
+      "p95_ms": 0.344869,
+      "max_ms": 0.344869
+    },
+    "sparse/0/metadata0/D2_provenance_compaction": {
+      "n": 3,
+      "p50_ms": 0.07171,
+      "p95_ms": 0.073887,
+      "max_ms": 0.073887
+    },
+    "sparse/0/metadata0/C1_full_frame_wire_validation": {
+      "n": 3,
+      "p50_ms": 0.113343,
+      "p95_ms": 0.115699,
+      "max_ms": 0.115699
+    },
+    "sparse/0/metadata0/C4_projection": {
+      "n": 3,
+      "p50_ms": 0.09471,
+      "p95_ms": 0.167907,
+      "max_ms": 0.167907
+    },
+    "sparse/0/metadata0/C1_service_ingest": {
+      "n": 3,
+      "p50_ms": 0.314264,
+      "p95_ms": 0.323028,
+      "max_ms": 0.323028
+    },
+    "sparse/0/metadata0/C1_snapshot_and_contract_serialization": {
+      "n": 3,
+      "p50_ms": 0.356577,
+      "p95_ms": 0.356676,
+      "max_ms": 0.356676
+    },
+    "sparse/0/metadata0/C1_canonical_response_encoding": {
+      "n": 3,
+      "p50_ms": 0.029049,
+      "p95_ms": 0.02949,
+      "max_ms": 0.02949
+    },
+    "sparse/0/metadata0/D3_assess_full_retained_geometry": {
+      "n": 3,
+      "p50_ms": 0.407962,
+      "p95_ms": 0.419733,
+      "max_ms": 0.419733
+    },
+    "sparse/0/metadata4096/C4_PointCloud2_decode": {
+      "n": 3,
+      "p50_ms": 0.011006,
+      "p95_ms": 0.012127,
+      "max_ms": 0.012127
+    },
+    "sparse/0/metadata4096/D2_C4CorePort_process_including_compaction": {
+      "n": 3,
+      "p50_ms": 0.331789,
+      "p95_ms": 0.336659,
+      "max_ms": 0.336659
+    },
+    "sparse/0/metadata4096/D2_provenance_compaction": {
+      "n": 3,
+      "p50_ms": 0.074489,
+      "p95_ms": 0.081971,
+      "max_ms": 0.081971
+    },
+    "sparse/0/metadata4096/C1_full_frame_wire_validation": {
+      "n": 3,
+      "p50_ms": 0.121597,
+      "p95_ms": 0.128027,
+      "max_ms": 0.128027
+    },
+    "sparse/0/metadata4096/C4_projection": {
+      "n": 3,
+      "p50_ms": 0.097245,
+      "p95_ms": 0.097299,
+      "max_ms": 0.097299
+    },
+    "sparse/0/metadata4096/C1_service_ingest": {
+      "n": 3,
+      "p50_ms": 0.363775,
+      "p95_ms": 0.384789,
+      "max_ms": 0.384789
+    },
+    "sparse/0/metadata4096/C1_snapshot_and_contract_serialization": {
+      "n": 3,
+      "p50_ms": 0.398748,
+      "p95_ms": 0.452329,
+      "max_ms": 0.452329
+    },
+    "sparse/0/metadata4096/C1_canonical_response_encoding": {
+      "n": 3,
+      "p50_ms": 0.040565,
+      "p95_ms": 0.095743,
+      "max_ms": 0.095743
+    },
+    "sparse/0/metadata4096/D3_assess_full_retained_geometry": {
+      "n": 3,
+      "p50_ms": 0.412912,
+      "p95_ms": 0.435232,
+      "max_ms": 0.435232
+    },
+    "sparse/1/metadata0/C4_PointCloud2_decode": {
+      "n": 3,
+      "p50_ms": 0.012841,
+      "p95_ms": 0.01334,
+      "max_ms": 0.01334
+    },
+    "sparse/1/metadata0/D2_C4CorePort_process_including_compaction": {
+      "n": 3,
+      "p50_ms": 0.530931,
+      "p95_ms": 0.550782,
+      "max_ms": 0.550782
+    },
+    "sparse/1/metadata0/D2_provenance_compaction": {
+      "n": 3,
+      "p50_ms": 0.117372,
+      "p95_ms": 0.118079,
+      "max_ms": 0.118079
+    },
+    "sparse/1/metadata0/C1_full_frame_wire_validation": {
+      "n": 3,
+      "p50_ms": 0.207477,
+      "p95_ms": 0.212942,
+      "max_ms": 0.212942
+    },
+    "sparse/1/metadata0/C4_projection": {
+      "n": 3,
+      "p50_ms": 0.136389,
+      "p95_ms": 0.138197,
+      "max_ms": 0.138197
+    },
+    "sparse/1/metadata0/C1_service_ingest": {
+      "n": 3,
+      "p50_ms": 0.458489,
+      "p95_ms": 0.463795,
+      "max_ms": 0.463795
+    },
+    "sparse/1/metadata0/C1_snapshot_and_contract_serialization": {
+      "n": 3,
+      "p50_ms": 0.54777,
+      "p95_ms": 0.547993,
+      "max_ms": 0.547993
+    },
+    "sparse/1/metadata0/C1_canonical_response_encoding": {
+      "n": 3,
+      "p50_ms": 0.038799,
+      "p95_ms": 0.04196,
+      "max_ms": 0.04196
+    },
+    "sparse/1/metadata0/D3_assess_full_retained_geometry": {
+      "n": 3,
+      "p50_ms": 0.748776,
+      "p95_ms": 0.75494,
+      "max_ms": 0.75494
+    },
+    "sparse/1/metadata4096/C4_PointCloud2_decode": {
+      "n": 3,
+      "p50_ms": 0.012692,
+      "p95_ms": 0.013357,
+      "max_ms": 0.013357
+    },
+    "sparse/1/metadata4096/D2_C4CorePort_process_including_compaction": {
+      "n": 3,
+      "p50_ms": 0.52624,
+      "p95_ms": 0.529541,
+      "max_ms": 0.529541
+    },
+    "sparse/1/metadata4096/D2_provenance_compaction": {
+      "n": 3,
+      "p50_ms": 0.122562,
+      "p95_ms": 0.124357,
+      "max_ms": 0.124357
+    },
+    "sparse/1/metadata4096/C1_full_frame_wire_validation": {
+      "n": 3,
+      "p50_ms": 0.229865,
+      "p95_ms": 0.280094,
+      "max_ms": 0.280094
+    },
+    "sparse/1/metadata4096/C4_projection": {
+      "n": 3,
+      "p50_ms": 0.142608,
+      "p95_ms": 0.145953,
+      "max_ms": 0.145953
+    },
+    "sparse/1/metadata4096/C1_service_ingest": {
+      "n": 3,
+      "p50_ms": 0.495807,
+      "p95_ms": 0.50314,
+      "max_ms": 0.50314
+    },
+    "sparse/1/metadata4096/C1_snapshot_and_contract_serialization": {
+      "n": 3,
+      "p50_ms": 0.50667,
+      "p95_ms": 0.547653,
+      "max_ms": 0.547653
+    },
+    "sparse/1/metadata4096/C1_canonical_response_encoding": {
+      "n": 3,
+      "p50_ms": 0.048387,
+      "p95_ms": 0.048569,
+      "max_ms": 0.048569
+    },
+    "sparse/1/metadata4096/D3_assess_full_retained_geometry": {
+      "n": 3,
+      "p50_ms": 0.703158,
+      "p95_ms": 0.7424,
+      "max_ms": 0.7424
+    },
+    "sparse/4/metadata0/C4_PointCloud2_decode": {
+      "n": 3,
+      "p50_ms": 0.014427,
+      "p95_ms": 0.014891,
+      "max_ms": 0.014891
+    },
+    "sparse/4/metadata0/D2_C4CorePort_process_including_compaction": {
+      "n": 3,
+      "p50_ms": 0.960053,
+      "p95_ms": 1.028896,
+      "max_ms": 1.028896
+    },
+    "sparse/4/metadata0/D2_provenance_compaction": {
+      "n": 3,
+      "p50_ms": 0.22282,
+      "p95_ms": 0.232196,
+      "max_ms": 0.232196
+    },
+    "sparse/4/metadata0/C1_full_frame_wire_validation": {
+      "n": 3,
+      "p50_ms": 0.424916,
+      "p95_ms": 0.450023,
+      "max_ms": 0.450023
+    },
+    "sparse/4/metadata0/C4_projection": {
+      "n": 3,
+      "p50_ms": 0.242212,
+      "p95_ms": 0.243163,
+      "max_ms": 0.243163
+    },
+    "sparse/4/metadata0/C1_service_ingest": {
+      "n": 3,
+      "p50_ms": 0.805146,
+      "p95_ms": 0.812657,
+      "max_ms": 0.812657
+    },
+    "sparse/4/metadata0/C1_snapshot_and_contract_serialization": {
+      "n": 3,
+      "p50_ms": 0.807968,
+      "p95_ms": 0.810049,
+      "max_ms": 0.810049
+    },
+    "sparse/4/metadata0/C1_canonical_response_encoding": {
+      "n": 3,
+      "p50_ms": 0.055568,
+      "p95_ms": 0.05997,
+      "max_ms": 0.05997
+    },
+    "sparse/4/metadata0/D3_assess_full_retained_geometry": {
+      "n": 3,
+      "p50_ms": 1.522787,
+      "p95_ms": 1.525293,
+      "max_ms": 1.525293
+    },
+    "sparse/4/metadata4096/C4_PointCloud2_decode": {
+      "n": 3,
+      "p50_ms": 0.014087,
+      "p95_ms": 0.014416,
+      "max_ms": 0.014416
+    },
+    "sparse/4/metadata4096/D2_C4CorePort_process_including_compaction": {
+      "n": 3,
+      "p50_ms": 0.961461,
+      "p95_ms": 1.074466,
+      "max_ms": 1.074466
+    },
+    "sparse/4/metadata4096/D2_provenance_compaction": {
+      "n": 3,
+      "p50_ms": 0.230845,
+      "p95_ms": 0.232188,
+      "max_ms": 0.232188
+    },
+    "sparse/4/metadata4096/C1_full_frame_wire_validation": {
+      "n": 3,
+      "p50_ms": 0.442631,
+      "p95_ms": 0.465742,
+      "max_ms": 0.465742
+    },
+    "sparse/4/metadata4096/C4_projection": {
+      "n": 3,
+      "p50_ms": 0.248507,
+      "p95_ms": 0.285999,
+      "max_ms": 0.285999
+    },
+    "sparse/4/metadata4096/C1_service_ingest": {
+      "n": 3,
+      "p50_ms": 0.84439,
+      "p95_ms": 0.849447,
+      "max_ms": 0.849447
+    },
+    "sparse/4/metadata4096/C1_snapshot_and_contract_serialization": {
+      "n": 3,
+      "p50_ms": 0.804038,
+      "p95_ms": 0.812174,
+      "max_ms": 0.812174
+    },
+    "sparse/4/metadata4096/C1_canonical_response_encoding": {
+      "n": 3,
+      "p50_ms": 0.06606,
+      "p95_ms": 0.068774,
+      "max_ms": 0.068774
+    },
+    "sparse/4/metadata4096/D3_assess_full_retained_geometry": {
+      "n": 3,
+      "p50_ms": 1.513648,
+      "p95_ms": 1.561161,
+      "max_ms": 1.561161
+    },
+    "sparse/12/metadata0/C4_PointCloud2_decode": {
+      "n": 3,
+      "p50_ms": 0.020003,
+      "p95_ms": 0.039345,
+      "max_ms": 0.039345
+    },
+    "sparse/12/metadata0/D2_C4CorePort_process_including_compaction": {
+      "n": 3,
+      "p50_ms": 2.285198,
+      "p95_ms": 3.284798,
+      "max_ms": 3.284798
+    },
+    "sparse/12/metadata0/D2_provenance_compaction": {
+      "n": 3,
+      "p50_ms": 0.526195,
+      "p95_ms": 0.643296,
+      "max_ms": 0.643296
+    },
+    "sparse/12/metadata0/C1_full_frame_wire_validation": {
+      "n": 3,
+      "p50_ms": 1.112317,
+      "p95_ms": 1.135495,
+      "max_ms": 1.135495
+    },
+    "sparse/12/metadata0/C4_projection": {
+      "n": 3,
+      "p50_ms": 0.567782,
+      "p95_ms": 0.570693,
+      "max_ms": 0.570693
+    },
+    "sparse/12/metadata0/C1_service_ingest": {
+      "n": 3,
+      "p50_ms": 1.881966,
+      "p95_ms": 2.051344,
+      "max_ms": 2.051344
+    },
+    "sparse/12/metadata0/C1_snapshot_and_contract_serialization": {
+      "n": 3,
+      "p50_ms": 1.675301,
+      "p95_ms": 3.074555,
+      "max_ms": 3.074555
+    },
+    "sparse/12/metadata0/C1_canonical_response_encoding": {
+      "n": 3,
+      "p50_ms": 0.121689,
+      "p95_ms": 0.210135,
+      "max_ms": 0.210135
+    },
+    "sparse/12/metadata0/D3_assess_full_retained_geometry": {
+      "n": 3,
+      "p50_ms": 4.278619,
+      "p95_ms": 6.21025,
+      "max_ms": 6.21025
+    },
+    "sparse/12/metadata4096/C4_PointCloud2_decode": {
+      "n": 3,
+      "p50_ms": 0.018407,
+      "p95_ms": 0.018967,
+      "max_ms": 0.018967
+    },
+    "sparse/12/metadata4096/D2_C4CorePort_process_including_compaction": {
+      "n": 3,
+      "p50_ms": 2.130501,
+      "p95_ms": 2.416903,
+      "max_ms": 2.416903
+    },
+    "sparse/12/metadata4096/D2_provenance_compaction": {
+      "n": 3,
+      "p50_ms": 0.494967,
+      "p95_ms": 0.525186,
+      "max_ms": 0.525186
+    },
+    "sparse/12/metadata4096/C1_full_frame_wire_validation": {
+      "n": 3,
+      "p50_ms": 1.017893,
+      "p95_ms": 1.062005,
+      "max_ms": 1.062005
+    },
+    "sparse/12/metadata4096/C4_projection": {
+      "n": 3,
+      "p50_ms": 0.522209,
+      "p95_ms": 0.542568,
+      "max_ms": 0.542568
+    },
+    "sparse/12/metadata4096/C1_service_ingest": {
+      "n": 3,
+      "p50_ms": 1.718683,
+      "p95_ms": 1.858221,
+      "max_ms": 1.858221
+    },
+    "sparse/12/metadata4096/C1_snapshot_and_contract_serialization": {
+      "n": 3,
+      "p50_ms": 1.590527,
+      "p95_ms": 1.629697,
+      "max_ms": 1.629697
+    },
+    "sparse/12/metadata4096/C1_canonical_response_encoding": {
+      "n": 3,
+      "p50_ms": 0.115647,
+      "p95_ms": 0.118522,
+      "max_ms": 0.118522
+    },
+    "sparse/12/metadata4096/D3_assess_full_retained_geometry": {
+      "n": 3,
+      "p50_ms": 3.578441,
+      "p95_ms": 3.581703,
+      "max_ms": 3.581703
+    },
+    "sparse/16/metadata0/C4_PointCloud2_decode": {
+      "n": 3,
+      "p50_ms": 0.022466,
+      "p95_ms": 0.02273,
+      "max_ms": 0.02273
+    },
+    "sparse/16/metadata0/D2_C4CorePort_process_including_compaction": {
+      "n": 3,
+      "p50_ms": 2.741639,
+      "p95_ms": 2.925376,
+      "max_ms": 2.925376
+    },
+    "sparse/16/metadata0/D2_provenance_compaction": {
+      "n": 3,
+      "p50_ms": 0.647282,
+      "p95_ms": 0.668685,
+      "max_ms": 0.668685
+    },
+    "sparse/16/metadata0/C1_full_frame_wire_validation": {
+      "n": 3,
+      "p50_ms": 1.366768,
+      "p95_ms": 1.38192,
+      "max_ms": 1.38192
+    },
+    "sparse/16/metadata0/C4_projection": {
+      "n": 3,
+      "p50_ms": 0.697578,
+      "p95_ms": 0.731611,
+      "max_ms": 0.731611
+    },
+    "sparse/16/metadata0/C1_service_ingest": {
+      "n": 3,
+      "p50_ms": 2.232659,
+      "p95_ms": 2.369602,
+      "max_ms": 2.369602
+    },
+    "sparse/16/metadata0/C1_snapshot_and_contract_serialization": {
+      "n": 3,
+      "p50_ms": 2.107323,
+      "p95_ms": 2.489343,
+      "max_ms": 2.489343
+    },
+    "sparse/16/metadata0/C1_canonical_response_encoding": {
+      "n": 3,
+      "p50_ms": 0.144469,
+      "p95_ms": 0.15754,
+      "max_ms": 0.15754
+    },
+    "sparse/16/metadata0/D3_assess_full_retained_geometry": {
+      "n": 3,
+      "p50_ms": 5.077193,
+      "p95_ms": 5.0833,
+      "max_ms": 5.0833
+    },
+    "sparse/16/metadata4096/C4_PointCloud2_decode": {
+      "n": 3,
+      "p50_ms": 0.02318,
+      "p95_ms": 0.023559,
+      "max_ms": 0.023559
+    },
+    "sparse/16/metadata4096/D2_C4CorePort_process_including_compaction": {
+      "n": 3,
+      "p50_ms": 2.850092,
+      "p95_ms": 2.858433,
+      "max_ms": 2.858433
+    },
+    "sparse/16/metadata4096/D2_provenance_compaction": {
+      "n": 3,
+      "p50_ms": 0.724576,
+      "p95_ms": 0.756308,
+      "max_ms": 0.756308
+    },
+    "sparse/16/metadata4096/C1_full_frame_wire_validation": {
+      "n": 3,
+      "p50_ms": 1.416538,
+      "p95_ms": 1.770497,
+      "max_ms": 1.770497
+    },
+    "sparse/16/metadata4096/C4_projection": {
+      "n": 3,
+      "p50_ms": 0.720302,
+      "p95_ms": 0.727626,
+      "max_ms": 0.727626
+    },
+    "sparse/16/metadata4096/C1_snapshot_and_contract_serialization": {
+      "n": 3,
+      "p50_ms": 0.081891,
+      "p95_ms": 0.08331,
+      "max_ms": 0.08331
+    },
+    "sparse/16/metadata4096/C1_canonical_response_encoding": {
+      "n": 3,
+      "p50_ms": 0.01166,
+      "p95_ms": 0.012425,
+      "max_ms": 0.012425
+    },
+    "sparse/16/metadata4096/D3_assess_full_retained_geometry": {
+      "n": 3,
+      "p50_ms": 5.054405,
+      "p95_ms": 5.138738,
+      "max_ms": 5.138738
+    },
+    "sparse/32/metadata0/C4_PointCloud2_decode": {
+      "n": 3,
+      "p50_ms": 0.034502,
+      "p95_ms": 0.036049,
+      "max_ms": 0.036049
+    },
+    "sparse/32/metadata0/D2_C4CorePort_process_including_compaction": {
+      "n": 3,
+      "p50_ms": 3.557995,
+      "p95_ms": 3.663483,
+      "max_ms": 3.663483
+    },
+    "sparse/32/metadata0/D2_provenance_compaction": {
+      "n": 3,
+      "p50_ms": 1.347717,
+      "p95_ms": 1.402635,
+      "max_ms": 1.402635
+    },
+    "sparse/32/metadata0/C1_full_frame_wire_validation": {
+      "n": 3,
+      "p50_ms": 2.659896,
+      "p95_ms": 2.679804,
+      "max_ms": 2.679804
+    },
+    "sparse/32/metadata0/C4_projection": {
+      "n": 3,
+      "p50_ms": 1.328331,
+      "p95_ms": 1.334997,
+      "max_ms": 1.334997
+    },
+    "sparse/32/metadata0/C1_snapshot_and_contract_serialization": {
+      "n": 3,
+      "p50_ms": 0.082409,
+      "p95_ms": 0.083114,
+      "max_ms": 0.083114
+    },
+    "sparse/32/metadata0/C1_canonical_response_encoding": {
+      "n": 3,
+      "p50_ms": 0.011676,
+      "p95_ms": 0.012108,
+      "max_ms": 0.012108
+    },
+    "sparse/32/metadata0/D3_assess_full_retained_geometry": {
+      "n": 3,
+      "p50_ms": 9.523219,
+      "p95_ms": 9.945765,
+      "max_ms": 9.945765
+    },
+    "sparse/32/metadata4096/C4_PointCloud2_decode": {
+      "n": 3,
+      "p50_ms": 0.033281,
+      "p95_ms": 0.034139,
+      "max_ms": 0.034139
+    },
+    "sparse/32/metadata4096/D2_C4CorePort_process_including_compaction": {
+      "n": 3,
+      "p50_ms": 3.42215,
+      "p95_ms": 3.540081,
+      "max_ms": 3.540081
+    },
+    "sparse/32/metadata4096/D2_provenance_compaction": {
+      "n": 3,
+      "p50_ms": 1.269536,
+      "p95_ms": 1.649928,
+      "max_ms": 1.649928
+    },
+    "sparse/32/metadata4096/C1_full_frame_wire_validation": {
+      "n": 3,
+      "p50_ms": 2.56244,
+      "p95_ms": 2.644773,
+      "max_ms": 2.644773
+    },
+    "sparse/32/metadata4096/C4_projection": {
+      "n": 3,
+      "p50_ms": 1.285262,
+      "p95_ms": 1.322738,
+      "max_ms": 1.322738
+    },
+    "sparse/32/metadata4096/C1_snapshot_and_contract_serialization": {
+      "n": 3,
+      "p50_ms": 0.079816,
+      "p95_ms": 0.085423,
+      "max_ms": 0.085423
+    },
+    "sparse/32/metadata4096/C1_canonical_response_encoding": {
+      "n": 3,
+      "p50_ms": 0.011434,
+      "p95_ms": 0.012211,
+      "max_ms": 0.012211
+    },
+    "sparse/32/metadata4096/D3_assess_full_retained_geometry": {
+      "n": 3,
+      "p50_ms": 9.132919,
+      "p95_ms": 9.261019,
+      "max_ms": 9.261019
+    },
+    "cone/0/metadata0/C4_PointCloud2_decode": {
+      "n": 3,
+      "p50_ms": 0.687058,
+      "p95_ms": 0.719564,
+      "max_ms": 0.719564
+    },
+    "cone/0/metadata0/D2_C4CorePort_process_including_compaction": {
+      "n": 3,
+      "p50_ms": 0.511689,
+      "p95_ms": 0.536836,
+      "max_ms": 0.536836
+    },
+    "cone/0/metadata0/D2_provenance_compaction": {
+      "n": 3,
+      "p50_ms": 0.062604,
+      "p95_ms": 0.066347,
+      "max_ms": 0.066347
+    },
+    "cone/0/metadata0/C1_full_frame_wire_validation": {
+      "n": 3,
+      "p50_ms": 0.105471,
+      "p95_ms": 0.108864,
+      "max_ms": 0.108864
+    },
+    "cone/0/metadata0/C4_projection": {
+      "n": 3,
+      "p50_ms": 0.092525,
+      "p95_ms": 0.093165,
+      "max_ms": 0.093165
+    },
+    "cone/0/metadata0/C1_service_ingest": {
+      "n": 3,
+      "p50_ms": 0.296095,
+      "p95_ms": 0.297216,
+      "max_ms": 0.297216
+    },
+    "cone/0/metadata0/C1_snapshot_and_contract_serialization": {
+      "n": 3,
+      "p50_ms": 0.326564,
+      "p95_ms": 0.331415,
+      "max_ms": 0.331415
+    },
+    "cone/0/metadata0/C1_canonical_response_encoding": {
+      "n": 3,
+      "p50_ms": 0.027938,
+      "p95_ms": 0.028498,
+      "max_ms": 0.028498
+    },
+    "cone/0/metadata0/D3_assess_full_retained_geometry": {
+      "n": 3,
+      "p50_ms": 0.385437,
+      "p95_ms": 0.430073,
+      "max_ms": 0.430073
+    },
+    "cone/0/metadata4096/C4_PointCloud2_decode": {
+      "n": 3,
+      "p50_ms": 0.688415,
+      "p95_ms": 0.712874,
+      "max_ms": 0.712874
+    },
+    "cone/0/metadata4096/D2_C4CorePort_process_including_compaction": {
+      "n": 3,
+      "p50_ms": 0.511126,
+      "p95_ms": 0.52565,
+      "max_ms": 0.52565
+    },
+    "cone/0/metadata4096/D2_provenance_compaction": {
+      "n": 3,
+      "p50_ms": 0.069728,
+      "p95_ms": 0.071077,
+      "max_ms": 0.071077
+    },
+    "cone/0/metadata4096/C1_full_frame_wire_validation": {
+      "n": 3,
+      "p50_ms": 0.119808,
+      "p95_ms": 0.191754,
+      "max_ms": 0.191754
+    },
+    "cone/0/metadata4096/C4_projection": {
+      "n": 3,
+      "p50_ms": 0.094503,
+      "p95_ms": 0.1011,
+      "max_ms": 0.1011
+    },
+    "cone/0/metadata4096/C1_service_ingest": {
+      "n": 3,
+      "p50_ms": 0.336276,
+      "p95_ms": 0.371922,
+      "max_ms": 0.371922
+    },
+    "cone/0/metadata4096/C1_snapshot_and_contract_serialization": {
+      "n": 3,
+      "p50_ms": 0.362616,
+      "p95_ms": 0.612096,
+      "max_ms": 0.612096
+    },
+    "cone/0/metadata4096/C1_canonical_response_encoding": {
+      "n": 3,
+      "p50_ms": 0.038126,
+      "p95_ms": 0.063836,
+      "max_ms": 0.063836
+    },
+    "cone/0/metadata4096/D3_assess_full_retained_geometry": {
+      "n": 3,
+      "p50_ms": 0.370609,
+      "p95_ms": 0.413511,
+      "max_ms": 0.413511
+    },
+    "cone/1/metadata0/C4_PointCloud2_decode": {
+      "n": 3,
+      "p50_ms": 0.809889,
+      "p95_ms": 0.823833,
+      "max_ms": 0.823833
+    },
+    "cone/1/metadata0/D2_C4CorePort_process_including_compaction": {
+      "n": 3,
+      "p50_ms": 1.232837,
+      "p95_ms": 1.259477,
+      "max_ms": 1.259477
+    },
+    "cone/1/metadata0/D2_provenance_compaction": {
+      "n": 3,
+      "p50_ms": 0.111859,
+      "p95_ms": 0.115239,
+      "max_ms": 0.115239
+    },
+    "cone/1/metadata0/C1_full_frame_wire_validation": {
+      "n": 3,
+      "p50_ms": 0.200605,
+      "p95_ms": 0.201711,
+      "max_ms": 0.201711
+    },
+    "cone/1/metadata0/C4_projection": {
+      "n": 3,
+      "p50_ms": 0.129428,
+      "p95_ms": 0.137781,
+      "max_ms": 0.137781
+    },
+    "cone/1/metadata0/C1_service_ingest": {
+      "n": 3,
+      "p50_ms": 0.434222,
+      "p95_ms": 0.435001,
+      "max_ms": 0.435001
+    },
+    "cone/1/metadata0/C1_snapshot_and_contract_serialization": {
+      "n": 3,
+      "p50_ms": 0.459434,
+      "p95_ms": 0.501602,
+      "max_ms": 0.501602
+    },
+    "cone/1/metadata0/C1_canonical_response_encoding": {
+      "n": 3,
+      "p50_ms": 0.036628,
+      "p95_ms": 0.039759,
+      "max_ms": 0.039759
+    },
+    "cone/1/metadata0/D3_assess_full_retained_geometry": {
+      "n": 3,
+      "p50_ms": 0.696215,
+      "p95_ms": 0.737782,
+      "max_ms": 0.737782
+    },
+    "cone/1/metadata4096/C4_PointCloud2_decode": {
+      "n": 3,
+      "p50_ms": 0.823401,
+      "p95_ms": 0.843652,
+      "max_ms": 0.843652
+    },
+    "cone/1/metadata4096/D2_C4CorePort_process_including_compaction": {
+      "n": 3,
+      "p50_ms": 1.27522,
+      "p95_ms": 1.326838,
+      "max_ms": 1.326838
+    },
+    "cone/1/metadata4096/D2_provenance_compaction": {
+      "n": 3,
+      "p50_ms": 0.116733,
+      "p95_ms": 0.118628,
+      "max_ms": 0.118628
+    },
+    "cone/1/metadata4096/C1_full_frame_wire_validation": {
+      "n": 3,
+      "p50_ms": 0.207998,
+      "p95_ms": 0.213565,
+      "max_ms": 0.213565
+    },
+    "cone/1/metadata4096/C4_projection": {
+      "n": 3,
+      "p50_ms": 0.142133,
+      "p95_ms": 0.152521,
+      "max_ms": 0.152521
+    },
+    "cone/1/metadata4096/C1_service_ingest": {
+      "n": 3,
+      "p50_ms": 0.475844,
+      "p95_ms": 0.496597,
+      "max_ms": 0.496597
+    },
+    "cone/1/metadata4096/C1_snapshot_and_contract_serialization": {
+      "n": 3,
+      "p50_ms": 0.481685,
+      "p95_ms": 0.488894,
+      "max_ms": 0.488894
+    },
+    "cone/1/metadata4096/C1_canonical_response_encoding": {
+      "n": 3,
+      "p50_ms": 0.046421,
+      "p95_ms": 0.047068,
+      "max_ms": 0.047068
+    },
+    "cone/1/metadata4096/D3_assess_full_retained_geometry": {
+      "n": 3,
+      "p50_ms": 0.667392,
+      "p95_ms": 0.697552,
+      "max_ms": 0.697552
+    },
+    "cone/4/metadata0/C4_PointCloud2_decode": {
+      "n": 3,
+      "p50_ms": 1.220129,
+      "p95_ms": 1.220973,
+      "max_ms": 1.220973
+    },
+    "cone/4/metadata0/D2_C4CorePort_process_including_compaction": {
+      "n": 3,
+      "p50_ms": 2.631672,
+      "p95_ms": 2.669419,
+      "max_ms": 2.669419
+    },
+    "cone/4/metadata0/D2_provenance_compaction": {
+      "n": 3,
+      "p50_ms": 0.225703,
+      "p95_ms": 0.225732,
+      "max_ms": 0.225732
+    },
+    "cone/4/metadata0/C1_full_frame_wire_validation": {
+      "n": 3,
+      "p50_ms": 0.430444,
+      "p95_ms": 0.497942,
+      "max_ms": 0.497942
+    },
+    "cone/4/metadata0/C4_projection": {
+      "n": 3,
+      "p50_ms": 0.246686,
+      "p95_ms": 0.248708,
+      "max_ms": 0.248708
+    },
+    "cone/4/metadata0/C1_service_ingest": {
+      "n": 3,
+      "p50_ms": 0.900553,
+      "p95_ms": 0.901374,
+      "max_ms": 0.901374
+    },
+    "cone/4/metadata0/C1_snapshot_and_contract_serialization": {
+      "n": 3,
+      "p50_ms": 0.820318,
+      "p95_ms": 0.849608,
+      "max_ms": 0.849608
+    },
+    "cone/4/metadata0/C1_canonical_response_encoding": {
+      "n": 3,
+      "p50_ms": 0.063905,
+      "p95_ms": 0.063943,
+      "max_ms": 0.063943
+    },
+    "cone/4/metadata0/D3_assess_full_retained_geometry": {
+      "n": 3,
+      "p50_ms": 1.458395,
+      "p95_ms": 1.540205,
+      "max_ms": 1.540205
+    },
+    "cone/4/metadata4096/C4_PointCloud2_decode": {
+      "n": 3,
+      "p50_ms": 1.344436,
+      "p95_ms": 1.35521,
+      "max_ms": 1.35521
+    },
+    "cone/4/metadata4096/D2_C4CorePort_process_including_compaction": {
+      "n": 3,
+      "p50_ms": 2.66067,
+      "p95_ms": 2.782052,
+      "max_ms": 2.782052
+    },
+    "cone/4/metadata4096/D2_provenance_compaction": {
+      "n": 3,
+      "p50_ms": 0.237356,
+      "p95_ms": 0.238521,
+      "max_ms": 0.238521
+    },
+    "cone/4/metadata4096/C1_full_frame_wire_validation": {
+      "n": 3,
+      "p50_ms": 0.455386,
+      "p95_ms": 0.471508,
+      "max_ms": 0.471508
+    },
+    "cone/4/metadata4096/C4_projection": {
+      "n": 3,
+      "p50_ms": 0.262491,
+      "p95_ms": 0.262914,
+      "max_ms": 0.262914
+    },
+    "cone/4/metadata4096/C1_service_ingest": {
+      "n": 3,
+      "p50_ms": 0.968635,
+      "p95_ms": 0.971101,
+      "max_ms": 0.971101
+    },
+    "cone/4/metadata4096/C1_snapshot_and_contract_serialization": {
+      "n": 3,
+      "p50_ms": 0.84339,
+      "p95_ms": 0.854275,
+      "max_ms": 0.854275
+    },
+    "cone/4/metadata4096/C1_canonical_response_encoding": {
+      "n": 3,
+      "p50_ms": 0.076969,
+      "p95_ms": 0.077224,
+      "max_ms": 0.077224
+    },
+    "cone/4/metadata4096/D3_assess_full_retained_geometry": {
+      "n": 3,
+      "p50_ms": 1.531153,
+      "p95_ms": 1.640885,
+      "max_ms": 1.640885
+    },
+    "cone/12/metadata0/C4_PointCloud2_decode": {
+      "n": 3,
+      "p50_ms": 2.45029,
+      "p95_ms": 2.542868,
+      "max_ms": 2.542868
+    },
+    "cone/12/metadata0/D2_C4CorePort_process_including_compaction": {
+      "n": 3,
+      "p50_ms": 6.459556,
+      "p95_ms": 6.616222,
+      "max_ms": 6.616222
+    },
+    "cone/12/metadata0/D2_provenance_compaction": {
+      "n": 3,
+      "p50_ms": 0.55812,
+      "p95_ms": 0.817428,
+      "max_ms": 0.817428
+    },
+    "cone/12/metadata0/C1_full_frame_wire_validation": {
+      "n": 3,
+      "p50_ms": 1.457357,
+      "p95_ms": 1.524139,
+      "max_ms": 1.524139
+    },
+    "cone/12/metadata0/C4_projection": {
+      "n": 3,
+      "p50_ms": 0.559829,
+      "p95_ms": 0.604608,
+      "max_ms": 0.604608
+    },
+    "cone/12/metadata0/C1_service_ingest": {
+      "n": 3,
+      "p50_ms": 2.033364,
+      "p95_ms": 2.069663,
+      "max_ms": 2.069663
+    },
+    "cone/12/metadata0/C1_snapshot_and_contract_serialization": {
+      "n": 3,
+      "p50_ms": 1.829088,
+      "p95_ms": 1.931344,
+      "max_ms": 1.931344
+    },
+    "cone/12/metadata0/C1_canonical_response_encoding": {
+      "n": 3,
+      "p50_ms": 0.148817,
+      "p95_ms": 0.150925,
+      "max_ms": 0.150925
+    },
+    "cone/12/metadata0/D3_assess_full_retained_geometry": {
+      "n": 3,
+      "p50_ms": 3.740043,
+      "p95_ms": 3.908518,
+      "max_ms": 3.908518
+    },
+    "cone/12/metadata4096/C4_PointCloud2_decode": {
+      "n": 3,
+      "p50_ms": 2.323517,
+      "p95_ms": 2.408229,
+      "max_ms": 2.408229
+    },
+    "cone/12/metadata4096/D2_C4CorePort_process_including_compaction": {
+      "n": 3,
+      "p50_ms": 6.33344,
+      "p95_ms": 6.410812,
+      "max_ms": 6.410812
+    },
+    "cone/12/metadata4096/D2_provenance_compaction": {
+      "n": 3,
+      "p50_ms": 0.537444,
+      "p95_ms": 0.551469,
+      "max_ms": 0.551469
+    },
+    "cone/12/metadata4096/C1_full_frame_wire_validation": {
+      "n": 3,
+      "p50_ms": 1.107445,
+      "p95_ms": 1.116339,
+      "max_ms": 1.116339
+    },
+    "cone/12/metadata4096/C4_projection": {
+      "n": 3,
+      "p50_ms": 0.556587,
+      "p95_ms": 0.572519,
+      "max_ms": 0.572519
+    },
+    "cone/12/metadata4096/C1_snapshot_and_contract_serialization": {
+      "n": 3,
+      "p50_ms": 0.07505,
+      "p95_ms": 0.079387,
+      "max_ms": 0.079387
+    },
+    "cone/12/metadata4096/C1_canonical_response_encoding": {
+      "n": 3,
+      "p50_ms": 0.011112,
+      "p95_ms": 0.011321,
+      "max_ms": 0.011321
+    },
+    "cone/12/metadata4096/D3_assess_full_retained_geometry": {
+      "n": 3,
+      "p50_ms": 3.600825,
+      "p95_ms": 3.954095,
+      "max_ms": 3.954095
+    },
+    "cone/16/metadata0/C4_PointCloud2_decode": {
+      "n": 3,
+      "p50_ms": 2.790534,
+      "p95_ms": 2.878352,
+      "max_ms": 2.878352
+    },
+    "cone/16/metadata0/D2_C4CorePort_process_including_compaction": {
+      "n": 3,
+      "p50_ms": 7.106663,
+      "p95_ms": 7.540644,
+      "max_ms": 7.540644
+    },
+    "cone/16/metadata0/D2_provenance_compaction": {
+      "n": 3,
+      "p50_ms": 0.670575,
+      "p95_ms": 0.685891,
+      "max_ms": 0.685891
+    },
+    "cone/16/metadata0/C1_full_frame_wire_validation": {
+      "n": 3,
+      "p50_ms": 1.416477,
+      "p95_ms": 1.504434,
+      "max_ms": 1.504434
+    },
+    "cone/16/metadata0/C4_projection": {
+      "n": 3,
+      "p50_ms": 0.695995,
+      "p95_ms": 0.713438,
+      "max_ms": 0.713438
+    },
+    "cone/16/metadata0/C1_snapshot_and_contract_serialization": {
+      "n": 3,
+      "p50_ms": 0.075951,
+      "p95_ms": 0.078586,
+      "max_ms": 0.078586
+    },
+    "cone/16/metadata0/C1_canonical_response_encoding": {
+      "n": 3,
+      "p50_ms": 0.010735,
+      "p95_ms": 0.011462,
+      "max_ms": 0.011462
+    },
+    "cone/16/metadata0/D3_assess_full_retained_geometry": {
+      "n": 3,
+      "p50_ms": 4.641137,
+      "p95_ms": 4.779377,
+      "max_ms": 4.779377
+    },
+    "cone/16/metadata4096/C4_PointCloud2_decode": {
+      "n": 3,
+      "p50_ms": 2.927812,
+      "p95_ms": 3.054384,
+      "max_ms": 3.054384
+    },
+    "cone/16/metadata4096/D2_C4CorePort_process_including_compaction": {
+      "n": 3,
+      "p50_ms": 7.259528,
+      "p95_ms": 7.274683,
+      "max_ms": 7.274683
+    },
+    "cone/16/metadata4096/D2_provenance_compaction": {
+      "n": 3,
+      "p50_ms": 0.688632,
+      "p95_ms": 0.705297,
+      "max_ms": 0.705297
+    },
+    "cone/16/metadata4096/C1_full_frame_wire_validation": {
+      "n": 3,
+      "p50_ms": 1.468117,
+      "p95_ms": 1.487164,
+      "max_ms": 1.487164
+    },
+    "cone/16/metadata4096/C4_projection": {
+      "n": 3,
+      "p50_ms": 0.73321,
+      "p95_ms": 0.735301,
+      "max_ms": 0.735301
+    },
+    "cone/16/metadata4096/C1_snapshot_and_contract_serialization": {
+      "n": 3,
+      "p50_ms": 0.079178,
+      "p95_ms": 0.08159,
+      "max_ms": 0.08159
+    },
+    "cone/16/metadata4096/C1_canonical_response_encoding": {
+      "n": 3,
+      "p50_ms": 0.010927,
+      "p95_ms": 0.011208,
+      "max_ms": 0.011208
+    },
+    "cone/16/metadata4096/D3_assess_full_retained_geometry": {
+      "n": 3,
+      "p50_ms": 4.879149,
+      "p95_ms": 5.838799,
+      "max_ms": 5.838799
+    },
+    "cone/32/metadata0/C4_PointCloud2_decode": {
+      "n": 3,
+      "p50_ms": 5.129105,
+      "p95_ms": 5.439722,
+      "max_ms": 5.439722
+    },
+    "cone/32/metadata0/D2_C4CorePort_process_including_compaction": {
+      "n": 3,
+      "p50_ms": 13.695466,
+      "p95_ms": 13.831252,
+      "max_ms": 13.831252
+    },
+    "cone/32/metadata0/D2_provenance_compaction": {
+      "n": 3,
+      "p50_ms": 1.352731,
+      "p95_ms": 1.371893,
+      "max_ms": 1.371893
+    },
+    "cone/32/metadata0/C1_full_frame_wire_validation": {
+      "n": 3,
+      "p50_ms": 2.803294,
+      "p95_ms": 2.811787,
+      "max_ms": 2.811787
+    },
+    "cone/32/metadata0/C4_projection": {
+      "n": 3,
+      "p50_ms": 1.319183,
+      "p95_ms": 1.323818,
+      "max_ms": 1.323818
+    },
+    "cone/32/metadata0/C1_snapshot_and_contract_serialization": {
+      "n": 3,
+      "p50_ms": 0.081923,
+      "p95_ms": 0.08423,
+      "max_ms": 0.08423
+    },
+    "cone/32/metadata0/C1_canonical_response_encoding": {
+      "n": 3,
+      "p50_ms": 0.011213,
+      "p95_ms": 0.011315,
+      "max_ms": 0.011315
+    },
+    "cone/32/metadata0/D3_assess_full_retained_geometry": {
+      "n": 3,
+      "p50_ms": 8.920081,
+      "p95_ms": 9.51714,
+      "max_ms": 9.51714
+    },
+    "cone/32/metadata4096/C4_PointCloud2_decode": {
+      "n": 3,
+      "p50_ms": 5.01006,
+      "p95_ms": 5.413127,
+      "max_ms": 5.413127
+    },
+    "cone/32/metadata4096/D2_C4CorePort_process_including_compaction": {
+      "n": 3,
+      "p50_ms": 13.25753,
+      "p95_ms": 14.085443,
+      "max_ms": 14.085443
+    },
+    "cone/32/metadata4096/D2_provenance_compaction": {
+      "n": 3,
+      "p50_ms": 1.276572,
+      "p95_ms": 1.3352,
+      "max_ms": 1.3352
+    },
+    "cone/32/metadata4096/C1_full_frame_wire_validation": {
+      "n": 3,
+      "p50_ms": 2.648072,
+      "p95_ms": 2.650739,
+      "max_ms": 2.650739
+    },
+    "cone/32/metadata4096/C4_projection": {
+      "n": 3,
+      "p50_ms": 1.329003,
+      "p95_ms": 1.446018,
+      "max_ms": 1.446018
+    },
+    "cone/32/metadata4096/C1_snapshot_and_contract_serialization": {
+      "n": 3,
+      "p50_ms": 0.083846,
+      "p95_ms": 0.107836,
+      "max_ms": 0.107836
+    },
+    "cone/32/metadata4096/C1_canonical_response_encoding": {
+      "n": 3,
+      "p50_ms": 0.011477,
+      "p95_ms": 0.012495,
+      "max_ms": 0.012495
+    },
+    "cone/32/metadata4096/D3_assess_full_retained_geometry": {
+      "n": 3,
+      "p50_ms": 8.924221,
+      "p95_ms": 9.012145,
+      "max_ms": 9.012145
+    },
+    "cone/14/metadata0_boundary/C4_PointCloud2_decode": {
+      "n": 1,
+      "p50_ms": 2.715816,
+      "p95_ms": 2.715816,
+      "max_ms": 2.715816
+    },
+    "cone/14/metadata0_boundary/D2_C4CorePort_process_including_compaction": {
+      "n": 1,
+      "p50_ms": 7.248058,
+      "p95_ms": 7.248058,
+      "max_ms": 7.248058
+    },
+    "cone/14/metadata0_boundary/D2_provenance_compaction": {
+      "n": 1,
+      "p50_ms": 0.739086,
+      "p95_ms": 0.739086,
+      "max_ms": 0.739086
+    },
+    "cone/14/metadata0_boundary/C1_full_frame_wire_validation": {
+      "n": 1,
+      "p50_ms": 1.454136,
+      "p95_ms": 1.454136,
+      "max_ms": 1.454136
+    },
+    "cone/14/metadata0_boundary/C4_projection": {
+      "n": 1,
+      "p50_ms": 0.617718,
+      "p95_ms": 0.617718,
+      "max_ms": 0.617718
+    },
+    "cone/14/metadata0_boundary/C1_service_ingest": {
+      "n": 1,
+      "p50_ms": 2.192529,
+      "p95_ms": 2.192529,
+      "max_ms": 2.192529
+    },
+    "cone/14/metadata0_boundary/C1_snapshot_and_contract_serialization": {
+      "n": 1,
+      "p50_ms": 1.925493,
+      "p95_ms": 1.925493,
+      "max_ms": 1.925493
+    },
+    "cone/14/metadata0_boundary/C1_canonical_response_encoding": {
+      "n": 1,
+      "p50_ms": 0.170415,
+      "p95_ms": 0.170415,
+      "max_ms": 0.170415
+    },
+    "cone/14/metadata0_boundary/D3_assess_full_retained_geometry": {
+      "n": 1,
+      "p50_ms": 4.047907,
+      "p95_ms": 4.047907,
+      "max_ms": 4.047907
+    },
+    "cone/15/metadata0_boundary/C4_PointCloud2_decode": {
+      "n": 1,
+      "p50_ms": 2.884598,
+      "p95_ms": 2.884598,
+      "max_ms": 2.884598
+    },
+    "cone/15/metadata0_boundary/D2_C4CorePort_process_including_compaction": {
+      "n": 1,
+      "p50_ms": 8.078133,
+      "p95_ms": 8.078133,
+      "max_ms": 8.078133
+    },
+    "cone/15/metadata0_boundary/D2_provenance_compaction": {
+      "n": 1,
+      "p50_ms": 0.650961,
+      "p95_ms": 0.650961,
+      "max_ms": 0.650961
+    },
+    "cone/15/metadata0_boundary/C1_full_frame_wire_validation": {
+      "n": 1,
+      "p50_ms": 1.361688,
+      "p95_ms": 1.361688,
+      "max_ms": 1.361688
+    },
+    "cone/15/metadata0_boundary/C4_projection": {
+      "n": 1,
+      "p50_ms": 0.669333,
+      "p95_ms": 0.669333,
+      "max_ms": 0.669333
+    },
+    "cone/15/metadata0_boundary/C1_service_ingest": {
+      "n": 1,
+      "p50_ms": 2.352983,
+      "p95_ms": 2.352983,
+      "max_ms": 2.352983
+    },
+    "cone/15/metadata0_boundary/C1_snapshot_and_contract_serialization": {
+      "n": 1,
+      "p50_ms": 2.052697,
+      "p95_ms": 2.052697,
+      "max_ms": 2.052697
+    },
+    "cone/15/metadata0_boundary/C1_canonical_response_encoding": {
+      "n": 1,
+      "p50_ms": 0.171513,
+      "p95_ms": 0.171513,
+      "max_ms": 0.171513
+    },
+    "cone/15/metadata0_boundary/D3_assess_full_retained_geometry": {
+      "n": 1,
+      "p50_ms": 4.573903,
+      "p95_ms": 4.573903,
+      "max_ms": 4.573903
+    },
+    "current_C4_D2_D3_C1/C4_port_perceive": {
+      "n": 3,
+      "p50_ms": 0.563612,
+      "p95_ms": 0.564173,
+      "max_ms": 0.564173
+    },
+    "current_C4_D2_D3_C1/C4_port_assess": {
+      "n": 3,
+      "p50_ms": 2.25479,
+      "p95_ms": 2.568937,
+      "max_ms": 2.568937
+    },
+    "current_C4_D2_D3_C1/C4_port_canonical_assessment": {
+      "n": 3,
+      "p50_ms": 0.791258,
+      "p95_ms": 0.792347,
+      "max_ms": 0.792347
+    },
+    "current_C4_D2_D3_C1/C4_Runtime_process": {
+      "n": 3,
+      "p50_ms": 3.985234,
+      "p95_ms": 4.297774,
+      "max_ms": 4.297774
+    },
+    "current_C4_D2_D3_C1/C4_compact_and_C1_ingest_scene": {
+      "n": 3,
+      "p50_ms": 2.516546,
+      "p95_ms": 2.529697,
+      "max_ms": 2.529697
+    },
+    "current_C4_D2_D3_C1/C1_loopback_HTTP_response_including_fixture_setup": {
+      "n": 3,
+      "p50_ms": 217.290075,
+      "p95_ms": 217.541145,
+      "max_ms": 217.541145
+    },
+    "map/400_per_source/D1_solve_contract_small_only": {
+      "n": 1,
+      "p50_ms": 8.128331,
+      "p95_ms": 8.128331,
+      "max_ms": 8.128331
+    },
+    "map/400_per_source/source_list": {
+      "n": 3,
+      "p50_ms": 0.436,
+      "p95_ms": 0.441527,
+      "max_ms": 0.441527
+    },
+    "map/400_per_source/source_preview_160": {
+      "n": 3,
+      "p50_ms": 0.525515,
+      "p95_ms": 0.541385,
+      "max_ms": 0.541385
+    },
+    "map/400_per_source/full_export": {
+      "n": 1,
+      "p50_ms": 7.773207,
+      "p95_ms": 7.773207,
+      "max_ms": 7.773207
+    },
+    "map/400_per_source/bundle_list": {
+      "n": 3,
+      "p50_ms": 0.722367,
+      "p95_ms": 0.848112,
+      "max_ms": 0.848112
+    },
+    "map/20000_per_source/source_list": {
+      "n": 3,
+      "p50_ms": 1.212902,
+      "p95_ms": 1.471828,
+      "max_ms": 1.471828
+    },
+    "map/20000_per_source/source_preview_160": {
+      "n": 3,
+      "p50_ms": 1.04813,
+      "p95_ms": 1.161519,
+      "max_ms": 1.161519
+    },
+    "map/20000_per_source/full_export": {
+      "n": 1,
+      "p50_ms": 35.782133,
+      "p95_ms": 35.782133,
+      "max_ms": 35.782133
+    },
+    "map/20000_per_source/bundle_list": {
+      "n": 3,
+      "p50_ms": 0.953093,
+      "p95_ms": 1.001507,
+      "max_ms": 1.001507
+    },
+    "map/200000_per_source/source_list": {
+      "n": 3,
+      "p50_ms": 6.817946,
+      "p95_ms": 7.220424,
+      "max_ms": 7.220424
+    },
+    "map/200000_per_source/source_preview_160": {
+      "n": 3,
+      "p50_ms": 3.662082,
+      "p95_ms": 3.771355,
+      "max_ms": 3.771355
+    },
+    "map/200000_per_source/full_export": {
+      "n": 1,
+      "p50_ms": 289.341907,
+      "p95_ms": 289.341907,
+      "max_ms": 289.341907
+    },
+    "map/200000_per_source/bundle_list": {
+      "n": 3,
+      "p50_ms": 6.606228,
+      "p95_ms": 6.663596,
+      "max_ms": 6.663596
+    }
+  },
+  "queue": {
+    "input": 60,
+    "accepted_at_ingress": 60,
+    "processed": 2,
+    "replaced_pending": 58,
+    "invalid": 0,
+    "pending_max": 1,
+    "executing_limit": 1,
+    "pending_limit": 1,
+    "queue_after_close": 0,
+    "latest_after_close": null
+  },
+  "provenance": "I0 executed CLI against exact owner sources, verified before and after. Allowlisted projection; private environment, import paths, packets and raw maps omitted.",
+  "browser_load": {
+    "kind": "UI_FIXTURE",
+    "input": "SYNTHETIC only; not native Nav2 or robot replay",
+    "browser": "151.0.7922.34",
+    "errors": [],
+    "stress": {
+      "count": 1200,
+      "elapsedMs": 30000.400000095367,
+      "rateHz": 39.99946667365053,
+      "rafCallbacks": 1801,
+      "maxRafGapMs": 30.100000381469727,
+      "timerDelayP95Ms": 9.299999713897705,
+      "diagnostics": {
+        "accepted": 1213,
+        "rejected": 3,
+        "resets": 2,
+        "history": 1,
+        "retainedPackets": 1,
+        "lastSequence": 1224,
+        "error": "",
+        "geometryCopies": 0,
+        "cachedLayers": 0,
+        "received": 1227,
+        "rendered": 1259,
+        "dropped": 11,
+        "pending": 0,
+        "maxPending": 1,
+        "maxDrawMs": 2.1999998092651367,
+        "paused": false,
+        "destroyed": false,
+        "boxScratchBytes": 192,
+        "renderedObjects": 3
+      },
+      "heapBeforeGcBytes": 3141308,
+      "heapAfterGcBytes": 3342908,
+      "heapDeltaBytes": 201600,
+      "interactionMs": [
+        22,
+        64,
+        47,
+        36,
+        49,
+        65
+      ],
+      "burst": {
+        "accepted": 1214,
+        "rejected": 3,
+        "resets": 2,
+        "history": 1,
+        "retainedPackets": 1,
+        "lastSequence": 2424,
+        "error": "",
+        "geometryCopies": 0,
+        "cachedLayers": 0,
+        "received": 2427,
+        "rendered": 1261,
+        "dropped": 1210,
+        "pending": 0,
+        "maxPending": 1,
+        "maxDrawMs": 2.1999998092651367,
+        "paused": false,
+        "destroyed": false,
+        "boxScratchBytes": 192,
+        "renderedObjects": 3
+      }
+    },
+    "request_count": 22,
+    "c3_sha": "e394b090221c555cf0649021d132163596c19fe2",
+    "exit_code": 0,
+    "local_only": true,
+    "evidence_kind": "ACTUAL_BROWSER_UI_FIXTURE_NOT_NUMERICAL_COMPOSITION"
+  },
+  "diagnostic_code_head": "974653ff0468ca5f62f435e0f7600b39d11d1d08"
+}

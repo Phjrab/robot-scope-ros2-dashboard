@@ -1,0 +1,30 @@
+{
+  "result": "NO_LEAK_OBSERVED",
+  "sha": "07092ac6f5e5c9092a6af3670fbad7c56482cfb8",
+  "playwright": "1.62.1",
+  "browser": "151.0.7922.34",
+  "rounds": [
+    {
+      "round": 1,
+      "contextClosed": true,
+      "socketCloseCallbacks": 0,
+      "unclearedIntervals": 0,
+      "callbacksAfterContextClose": 0
+    },
+    {
+      "round": 2,
+      "contextClosed": true,
+      "socketCloseCallbacks": 0,
+      "unclearedIntervals": 0,
+      "callbacksAfterContextClose": 0
+    },
+    {
+      "round": 3,
+      "contextClosed": true,
+      "socketCloseCallbacks": 0,
+      "unclearedIntervals": 0,
+      "callbacksAfterContextClose": 0
+    }
+  ],
+  "cleanup": "All intervals captured by this probe are cleared in finally."
+}

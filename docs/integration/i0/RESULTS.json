@@ -1,0 +1,181 @@
+{
+  "schema": "robot-scope.i0-integration-results.v1",
+  "generated_utc": "2026-11-01T04:32:21.514742+00:00",
+  "validated_code_head": "974653ff0468ca5f62f435e0f7600b39d11d1d08",
+  "branch": "integration/20261101-expansion",
+  "repository": "https://github.com/Phjrab/robot-scope-ros2-dashboard",
+  "baseline": {
+    "ref": "main",
+    "sha": "846121b4988ed2932d329020857925558f8f2c79"
+  },
+  "c0_start": {
+    "ref": "review/20261030-c0-3d-field-sweep",
+    "sha": "4f90612379705b7b7c8c86cca99941266e3ae611"
+  },
+  "final_read_only_refs": {
+    "main": "846121b4988ed2932d329020857925558f8f2c79",
+    "review/20261030-c0-3d-field-sweep": "7321251f36ede748c73f8252f913b4cf2ac91fbd"
+  },
+  "scope": {
+    "upstream_roles": 10,
+    "imported_paths": 238,
+    "whole_branch_merges": 0,
+    "cherry_picks": 0,
+    "device_connections": 0,
+    "deployments": 0,
+    "robot_commands": 0,
+    "new_native_runs": 0
+  },
+  "tests": {
+    "python": {
+      "run": 3370,
+      "passed": 3335,
+      "skipped": 35,
+      "failures": 0,
+      "errors": 0,
+      "seconds": 105.793
+    },
+    "installed_integration": {
+      "run": 18,
+      "passed": 18,
+      "skipped": 0
+    },
+    "javascript": {
+      "files": 84,
+      "run": 776,
+      "passed": 774,
+      "skipped": 2,
+      "failures": 0
+    },
+    "syntax": {
+      "modules": 129,
+      "status": "PASS"
+    },
+    "ruff": "PASS",
+    "mypy": {
+      "files": 4,
+      "status": "PASS"
+    },
+    "secret_scan": "PASS",
+    "existing_browser": {
+      "passed": 227,
+      "minutes": 7.7
+    },
+    "mission_api_browser": {
+      "passed": 10,
+      "seconds": 39.8
+    },
+    "product_browser": {
+      "passed": 9,
+      "seconds": 11.3
+    },
+    "historical_native_browser": {
+      "passed": 1,
+      "seconds": 2.2,
+      "new_native_execution": false
+    },
+    "historical_native_parser": {
+      "cases": 5,
+      "status": "PASS"
+    },
+    "no_optional_http_clients": {
+      "api_tests": 4,
+      "diagnostic_http": "PASS"
+    },
+    "c7": {
+      "baseline": "PASS",
+      "c3_cache": "PASS",
+      "exact_sample_boundary": "PASS",
+      "exact_wire_boundary": "PASS",
+      "exact_compactor_boundary": "PASS",
+      "aggregate_and_assets": "PASS",
+      "full_geometry": "PASS",
+      "stale_map_clock": "PASS",
+      "bounded_queue": "PASS",
+      "canonical_connection": "PASS",
+      "browser_load": "PASS",
+      "protected_sources": "PASS"
+    }
+  },
+  "skip_explanation": {
+    "python": "32 original exact-export gates + 1 ROS native + optional SVG + rosbags; installed actual paths covered separately",
+    "javascript": "2 original C2 tests requiring historical C1 export fixture; current real C1/D1 product flow covered separately"
+  },
+  "baseline_local": {
+    "python": 3132,
+    "python_skips": 2,
+    "js_files": 77,
+    "browser": 227,
+    "ruff": "PASS",
+    "mypy": "PASS"
+  },
+  "native_status": "BLOCKED_NATIVE_IDENTITY",
+  "protection": "ADVISORY_ONLY",
+  "clearing": "NOT_PROVEN",
+  "sensor_to_render_latency": "UNKNOWN",
+  "production_auth": "BLOCKED_AUTH",
+  "default_flags": "ALL_OFF",
+  "remaining": [
+    {
+      "id": "production_authority",
+      "status": "BLOCKED_AUTH",
+      "action": "Approve and inject real authentication, mutation policy and source qualification owner; test-only header cannot be promoted"
+    },
+    {
+      "id": "c4_native",
+      "status": "BLOCKED_NATIVE_IDENTITY",
+      "action": "Establish genuine source/owner identity and isolated ROS environment; separately prove marking, evidence-based clearing, planner change, actuator"
+    },
+    {
+      "id": "opaque_display_assets",
+      "status": "BLOCKED_INPUTS",
+      "action": "Define reviewed production decoder and authenticated immutable asset registration"
+    },
+    {
+      "id": "shared_history_poll_race",
+      "status": "REPRODUCED_EXISTING",
+      "action": "Notify reading changes and serialize accepted explicit open behind status poll with all context/ownership fences"
+    },
+    {
+      "id": "device_and_c0_merge",
+      "status": "NOT_RUN",
+      "action": "Separate C0 reconciliation and authorized device validation"
+    }
+  ],
+  "ci": {
+    "snapshot_note": "First code HEAD failed optional HTTP dependency; corrected in validated_code_head. Final report commit CI occurs after this file is committed; final chat reports every run/job for exact final HEAD. Query commands in VALIDATION.md.",
+    "first_code_runs": [
+      {
+        "id": 41272699859,
+        "name": "I0 offline product integration",
+        "head_sha": "b899f746dff27d4d1825f02fc15ea00fab7d92cd",
+        "status": "completed",
+        "conclusion": "failure",
+        "html_url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41272699859"
+      },
+      {
+        "id": 41272699684,
+        "name": "CI",
+        "head_sha": "b899f746dff27d4d1825f02fc15ea00fab7d92cd",
+        "status": "completed",
+        "conclusion": "failure",
+        "html_url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41272699684"
+      }
+    ],
+    "existing_workflow_changed": false,
+    "dedicated_offline_workflow": ".github/workflows/i0-offline.yml"
+  },
+  "local_evidence_log_hashes": {
+    "final-python-ci-fix.log": "be9006e5efd1013130777613a1f658133babccb408695fba14fd8f67bae12ff8",
+    "final-js.log": "17d8f89953d5d4c1a4db3f9aa7ef1eacaeae9d38fc1c475ca75cd6d8f48433ba",
+    "final-syntax.log": "2094022bf6c7ce6d8dc0c475e89189db20beb68ffbab5dfebc70c8747fa244df",
+    "final-ruff.log": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+    "final-mypy.log": "71144743c83babea384888a735db0c4daba3d4d7b7942b6839984bd5c21b52bb",
+    "final-browser.log": "9349a837db94c89df89c30c4b6d323eda40f82c4a5c05b775f0e59e3f1dd60ec",
+    "final-mission-browser.log": "623ac875ea2d3fdd8f67fe0547039c4b8ebda16d83f9aedf509f7ef3077dae23",
+    "product-theme-final.log": "5bf9c9541aaf9c8fa87bfc3b3e54a1aa1fe28217a9a9ff29589ecded070b7cc9",
+    "native-theme-final.log": "571ff92a807a0a1c311c72a7d20c7df40b5e8bf6f24fe5d12bb28c389d625bc5",
+    "no-optional-http.log": "ab17737a1760fefbddcc624ebfcbf105d4aec69fdb36c1acfe101d9e6f7f877c",
+    "c7-final.log": "2ce061c6ff603d2934e7122f8f75bbe6cf82db1c2d639bc27ce36f5a2057d8ac"
+  }
+}
