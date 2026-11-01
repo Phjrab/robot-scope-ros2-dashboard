@@ -97,7 +97,10 @@ class GlobalObservationCoordinator:
             return self._public(self._get(job_id))
 
     def start(self, request_id: str, map_id: str, map_revision: str, *, input_kind: str = "raw",
-              provenance_mode: str = "native_publisher", search_mode: str = "global", seed=None) -> dict[str, Any]:
+              provenance_mode: str = "native_publisher", search_mode: str = "global", seed=None,
+              retained_candidates: bool = False) -> dict[str, Any]:
+        if type(retained_candidates) is not bool:
+            raise GlobalObservationValidationError('INVALID_RETAINED_CANDIDATES')
         if (not isinstance(request_id, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}", request_id)
                 or not isinstance(map_id, str) or not re.fullmatch(r"[a-f0-9]{24}", map_id)
                 or not isinstance(map_revision, str) or not re.fullmatch(r"[a-f0-9]{64}", map_revision)):
@@ -115,7 +118,7 @@ class GlobalObservationCoordinator:
             previous = self._requests.get(request_id)
             if previous:
                 job = self._jobs[previous]
-                if (job["map_id"], job["map_revision"], job["input_kind"], job["provenance_mode"]) != (map_id, map_revision, input_kind, provenance_mode) or job.get("seed") != seed or job.get("search_mode", "global") != search_mode:
+                if (job["map_id"], job["map_revision"], job["input_kind"], job["provenance_mode"]) != (map_id, map_revision, input_kind, provenance_mode) or job.get("seed") != seed or job.get("search_mode", "global") != search_mode or job.get('_retained_candidates', False) != retained_candidates:
                     raise GlobalObservationConflict("request_id was already used for different input")
                 return self._public(job)
             if self._closed:
@@ -151,7 +154,7 @@ class GlobalObservationCoordinator:
             job = dict(schema="robot-scope.raw-global-observation-job.v1", job_id=job_id,
                        request_id=request_id, generation=self._generation, map_id=map_id,
                        input_kind=input_kind, provenance_mode=provenance_mode, search_mode=search_mode, seed=seed,
-                       _seed_binding=binding,
+                       _seed_binding=binding, _retained_candidates=retained_candidates,
                        map_revision=map_revision, state="capturing", reason=None,
                        captured_context=None, observed_completion_context=None,
                        created_monotonic_s=started, completed_monotonic_s=None,
@@ -324,6 +327,8 @@ class GlobalObservationCoordinator:
             if anchor_capture is not None:
                 context.update(anchor_capture=anchor_capture, full_original_scope="CACHED_REGISTERED_XYZ_REBASED_TO_IMU",
                                source_stamp_basis="FASTLIO_OUTPUT_STAMP_EXACT", pose_reference="FASTLIO_IMU")
+            if job.get('_retained_candidates'):
+                context['retained_candidates_requested'] = True
             if job.get('seed') is not None:
                 from ..relocalization.experimental_se3 import compose
                 binding = job['_seed_binding']

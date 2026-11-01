@@ -6,17 +6,23 @@ Admission and reads are serialized by the caller's pipeline coordination lock.
 from __future__ import annotations
 
 import copy
+import hashlib
+import json
 import math
 import secrets
 import threading
 import time
 
-from .anchor_proposal import source_contract
+from .anchor_proposal import source_contract, imu_matrix, current_imu
 from .ownership_readback import ownership_readback
 from .navigation_preparation_inputs import _source_identity
 from .operational_navigation import _navigation_map_body_pose
+from .planar_prior_selection import select_candidates, validate_prior, PriorRejected
 from ..observation_service import inputs_ready
-from ..relocalization.experimental_se3 import _rpy, from_translation_rpy, validate_transform
+from ..relocalization.experimental_se3 import _rpy, from_translation_rpy, validate_transform, inverse
+from ..relocalization.handoff_policy import MAX_XY_M, MAX_YAW_RAD
+from ..relocalization.external_global_observation import ExternalGlobalObservationError
+from ..relocalization.v031_observation_compat import supports_pin
 from ..relocalization.global_observation_jobs import (
     GlobalObservationBusy, GlobalObservationConflict, GlobalObservationNotFound, GlobalObservationUnavailable,
 )
@@ -88,7 +94,7 @@ class NavigationInitializationProposals:
         except Exception as exc:
             raise ProposalUnavailable('OWNERSHIP_READBACK_UNAVAILABLE') from exc
 
-    def _source(self, session, expected_identity=None):
+    def _source(self, session, expected_identity=None, *, capture_anchor=False):
         agent = self.runtime.agent
         if agent is None:
             raise ProposalUnavailable('OBSERVATION_INPUTS_UNAVAILABLE')
@@ -112,6 +118,10 @@ class NavigationInitializationProposals:
                 raise ProposalConflict('SOURCE_OR_CONTEXT_CHANGED')
             project_query(cloud, pose, now, provenance_mode=mode)
             stamps = (int(cloud['observation']['source_stamp_ns']), int(latest['observation']['source_stamp_ns']))
+            if capture_anchor:
+                return contract, identity, stamps, {'T_odom_imu': imu_matrix(pose).tolist(),
+                    'stamp_ns': pose['observation']['source_stamp_ns'],
+                    'received_monotonic_s': pose['observation']['received_monotonic_s']}
             return contract, identity, stamps
         except ProposalConflict:
             raise
@@ -212,13 +222,19 @@ class NavigationInitializationProposals:
         with record['gate_lock']:
             record['cleanup']['state'] = 'CLEANUP_UNCONFIRMED'
 
-    def start(self, request_id, generation, session_id):
+    def start(self, request_id, generation, session_id, *, operator_prior=None):
         """Admission must be called under the shared pipeline lock."""
         with self._lock:
+            if operator_prior is not None:
+                try:
+                    operator_prior = validate_prior(operator_prior)
+                except PriorRejected as exc:
+                    raise ProposalConflict(str(exc)) from exc
             prior = self._requests.get(request_id)
             if prior:
                 record = self._records[prior]
-                if (record['pair']['generation'], record['session']['session_id']) != (generation, session_id):
+                if ((record['pair']['generation'], record['session']['session_id']) != (generation, session_id)
+                        or record.get('operator_prior') != operator_prior):
                     raise ProposalConflict('REQUEST_ID_CONTEXT_CHANGED')
                 return self.get(prior)
             if len(self._records) >= 32:
@@ -246,6 +262,18 @@ class NavigationInitializationProposals:
                     or self._session_binding(self._session(session_id)) != self._session_binding(session)
                     or self._source(session, identity)[0] != contract):
                 raise ProposalConflict('MAP_OR_SESSION_CHANGED')
+            prior_anchor = None
+            if operator_prior is not None:
+                if ((operator_prior['navigation_map_id'], operator_prior['navigation_map_revision'],
+                        operator_prior['calibration_sha256']) !=
+                        (pair['navigation_2d']['map_id'], pair['navigation_2d']['revision'], pair['calibration_sha256'])):
+                    raise ProposalConflict('MAP_PAIR_CHANGED')
+                anchor_contract, anchor_identity, anchor_stamps, prior_anchor = self._source(session, identity, capture_anchor=True)
+                if anchor_contract != contract or anchor_identity != identity or any(a < b for a, b in zip(anchor_stamps, stamps)):
+                    raise ProposalConflict('SOURCE_OR_CONTEXT_CHANGED')
+                prior_anchor['accepted_monotonic_s'] = time.monotonic()
+                prior_anchor['expires_monotonic_s'] = prior_anchor['accepted_monotonic_s'] + 120.
+                prior_anchor['prior_id'] = secrets.token_hex(16)
             self._ownership()
             owner = self.runtime.global_observation
             if owner is None or not owner.provider_status().get('available'):
@@ -258,9 +286,11 @@ class NavigationInitializationProposals:
                     global_request_id = 'navigation-proposal-' + secrets.token_hex(16)
                     if global_request_id in owner._requests:
                         raise ProposalConflict('GLOBAL_REQUEST_ID_COLLISION')
+                    start_options = dict(input_kind='fastlio_imu', provenance_mode='subscription_observation', search_mode='global')
+                    if operator_prior is not None:
+                        start_options['retained_candidates'] = True
                     job = owner.start(global_request_id, pair['localization_3d']['map_id'],
-                                      pair['localization_3d']['revision'], input_kind='fastlio_imu',
-                                      provenance_mode='subscription_observation', search_mode='global')
+                                      pair['localization_3d']['revision'], **start_options)
             except GlobalObservationUnavailable as exc:
                 raise ProposalUnavailable(str(exc)) from exc
             except (GlobalObservationBusy, GlobalObservationConflict, ValueError) as exc:
@@ -269,6 +299,7 @@ class NavigationInitializationProposals:
                       'pair': pair, 'session': self._session_binding(session),
                       'source_contract': contract, 'source_identity': identity, 'initial_stamps': stamps,
                       'T_imu_base': transform, 'T_nav_map_from_localization_map': nav_transform,
+                      'operator_prior': copy.deepcopy(operator_prior), 'prior_anchor': copy.deepcopy(prior_anchor),
                       'cleanup': {'state': 'MONITORING', 'cancellation_requested': False},
                       'gate_lock': threading.Lock()}
             self._records[job['job_id']] = record
@@ -288,6 +319,16 @@ class NavigationInitializationProposals:
                         record['cleanup'] = {'state': 'CANCEL_FAILED', 'cancellation_requested': False}
                 raise ProposalUnavailable('PROPOSAL_MONITOR_UNAVAILABLE') from exc
             return self._empty(record, job['state'], job.get('reason'))
+
+    def validate_conditional_confirmation(self, proposal_id, expected_resolution):
+        """Recompute from the owner record, never trust a client-provided proof."""
+        with self._lock:
+            current = self.get(proposal_id)
+            if (current.get('state') != 'ready'
+                    or current.get('classification') != 'CONDITIONAL_ON_OPERATOR_PRIOR'
+                    or current.get('operator_prior_resolution') != expected_resolution):
+                raise ProposalConflict('OPERATOR_PRIOR_PROOF_CHANGED')
+            return current
 
     def handoff_watch_context(self, proposal_id, session_id):
         """Revalidate and capture the real source identity for the handoff watcher."""
@@ -367,16 +408,63 @@ class NavigationInitializationProposals:
                         or context['map']['source_sha256'] != record['pair']['localization_3d']['sha256']):
                     raise ProposalConflict('SOURCE_OR_CONTEXT_CHANGED')
                 observation = job['result']['observation']
-                if ((observation.get('ambiguity_override') or {}).get('applied') is True
+                ambiguous = ((observation.get('ambiguity_override') or {}).get('applied') is True
                         or observation.get('estimate_label') == 'AMBIGUOUS_UNVERIFIED_ESTIMATE'
-                        or 'AMBIGUOUS_ALTERNATIVES' in (observation.get('gate_reasons') or [])):
+                        or 'AMBIGUOUS_ALTERNATIVES' in (observation.get('gate_reasons') or []))
+                resolution = None
+                if record.get('operator_prior') is not None:
+                    anchor = record['prior_anchor']
+                    if not 0 < anchor['expires_monotonic_s'] - time.monotonic() <= 120.:
+                        raise ProposalConflict('OPERATOR_PRIOR_EXPIRED')
+                    if (job['result']['captured_context'] != context or job['result']['historical_only'] is not True
+                            or int(context['source_stamp_ns']) < int(anchor['stamp_ns'])
+                            or scan['received_monotonic_s'] < anchor['received_monotonic_s']):
+                        raise ProposalConflict('SOURCE_OR_CONTEXT_CHANGED')
+                    try:
+                        _, _, source_pin, pin_sha = owner._runner._configuration()
+                    except (AttributeError, KeyError, TypeError, ValueError, OSError, ExternalGlobalObservationError) as exc:
+                        raise ProposalConflict('CANDIDATE_RETENTION_UNCONFIRMED') from exc
+                    if (not supports_pin(source_pin['files']) or observation.get('execution', {}).get('source_pin_sha256') != pin_sha
+                            or observation.get('execution', {}).get('worker_reaped') is not True):
+                        raise ProposalConflict('CANDIDATE_RETENTION_UNCONFIRMED')
+                    try:
+                        resolution = select_candidates(observation, context, record['operator_prior'],
+                            nav_from_localization=record['T_nav_map_from_localization_map'],
+                            odom_from_imu_at_prior=anchor['T_odom_imu'], imu_from_base=record['T_imu_base'],
+                            allow_ambiguous=owner.provider_status()['allow_ambiguous'])
+                    except PriorRejected as exc:
+                        return self._empty(record, 'rejected', str(exc))
+                    selected = observation['candidates'][resolution['candidate_index']]
+                    _, current_pose, odom_now, now = current_imu(self.runtime.agent, context)
+                    map_imu = validate_transform(selected['map_from_scan']) @ inverse(validate_transform(captured['T_odom_imu'])) @ odom_now
+                    angles = [math.degrees(v) for v in _rpy(map_imu[:3, :3])]
+                    proposal = {'pose': dict(zip(('x','y','z','roll','pitch','yaw'), [*map(float,map_imu[:3,3]), *angles])),
+                        'pose_reference': 'FASTLIO_IMU', 'units': 'metres_degrees',
+                        'map': {'id':pin['map_id'], 'revision':pin['revision'], 'frame':pin['frame']},
+                        'capture_stamp_ns': context['source_stamp_ns'],
+                        'proposal_stamp_ns': current_pose['observation']['source_stamp_ns'],
+                        'pose_age_s': now-current_pose['observation']['received_monotonic_s'],
+                        'ambiguity_unresolved': ambiguous, 'overlap': selected['overlap'], 'rmse_m': selected['rmse_m']}
+                    proposal_read_at = time.monotonic()
+                    resolution.update(schema='robot-scope.operator-prior-resolution.v1', prior_id=anchor['prior_id'],
+                        operator_prior=copy.deepcopy(record['operator_prior']),
+                        accepted_monotonic_s=anchor['accepted_monotonic_s'], expires_monotonic_s=anchor['expires_monotonic_s'],
+                        prior_anchor_stamp_ns=anchor['stamp_ns'], bundle_generation=record['pair']['generation'],
+                        localization_3d=copy.deepcopy(record['pair']['localization_3d']),
+                        navigation_2d=copy.deepcopy(record['pair']['navigation_2d']),
+                        observation_session_id=session['session_id'], calibration_sha256=record['pair']['calibration_sha256'],
+                        source_contract_sha256=hashlib.sha256(json.dumps(record['source_contract'], sort_keys=True, allow_nan=False).encode()).hexdigest(),
+                        original_observation_sha256=hashlib.sha256(json.dumps(observation,sort_keys=True,separators=(',', ':'),allow_nan=False).encode()).hexdigest(),
+                        projection_basis='NAV_LOCALIZATION_CAPTURE_TO_PRIOR_ODOM_IMU_BASE')
+                elif ambiguous:
                     return self._empty(record, 'rejected', 'GLOBAL_AMBIGUOUS')
-                if observation.get('selected_candidate') is None:
-                    return self._empty(record, 'rejected', 'GLOBAL_CANDIDATE_REJECTED')
-                proposal = owner.anchor_proposal(proposal_id)
-                proposal_read_at = time.monotonic()
-                if proposal.get('ambiguity_unresolved') is not False:
-                    return self._empty(record, 'rejected', 'GLOBAL_AMBIGUOUS')
+                else:
+                    if observation.get('selected_candidate') is None:
+                        return self._empty(record, 'rejected', 'GLOBAL_CANDIDATE_REJECTED')
+                    proposal = owner.anchor_proposal(proposal_id)
+                    proposal_read_at = time.monotonic()
+                    if proposal.get('ambiguity_unresolved') is not False:
+                        return self._empty(record, 'rejected', 'GLOBAL_AMBIGUOUS')
                 imu = proposal['pose']
                 if (proposal.get('pose_reference') != 'FASTLIO_IMU' or proposal.get('units') != 'metres_degrees'
                         or proposal.get('map') != {'id': pin['map_id'], 'revision': pin['revision'], 'frame': pin['frame']}):
@@ -406,6 +494,8 @@ class NavigationInitializationProposals:
                 pose_age = proposal['pose_age_s'] + time.monotonic() - proposal_read_at
                 if not math.isfinite(pose_age) or not 0 <= pose_age <= 1.:
                     raise ProposalConflict('OBSERVATION_INPUTS_UNAVAILABLE')
+                if resolution is not None and not 0 < resolution['expires_monotonic_s'] - time.monotonic() <= 120.:
+                    raise ProposalConflict('OPERATOR_PRIOR_EXPIRED')
                 with record['gate_lock']:
                     invalidated = record.get('invalidated_reason')
                 if invalidated:
@@ -421,7 +511,7 @@ class NavigationInitializationProposals:
                     'hypothesis_overlap_min': .6, 'operational_initial_overlap_min': .85,
                     'residual_selection_gate_enabled': False,
                     'qualification': 'GLOBAL_HYPOTHESIS_ONLY_NOT_OPERATIONAL_QUALITY',
-                    'ambiguity_unresolved': False},
+                    'ambiguity_unresolved': ambiguous if resolution is not None else False},
                     provenance={'source_contract': copy.deepcopy(record['source_contract']),
                     'capture_stamp_ns': proposal['capture_stamp_ns'], 'proposal_stamp_ns': proposal['proposal_stamp_ns'],
                     'pose_age_s': pose_age, 'capture_age_s': max(0., time.monotonic() - scan['received_monotonic_s']),
@@ -430,9 +520,22 @@ class NavigationInitializationProposals:
                     'calibration_sha256': record['pair']['calibration_sha256'],
                     'observation_session_id': record['session']['session_id'],
                     'bundle_generation': record['pair']['generation']})
+                if resolution is not None:
+                    result['operator_prior_resolution'] = resolution
+                    result['classification'] = 'CONDITIONAL_ON_OPERATOR_PRIOR'
+                    prior_pose = record['operator_prior']['pose']
+                    prior_bounds = record['operator_prior']['bounds']
+                    dx, dy = navigation_pose['x'] - prior_pose['x'], navigation_pose['y'] - prior_pose['y']
+                    yaw_delta = math.atan2(math.sin(navigation_pose['yaw'] - prior_pose['yaw']),
+                                           math.cos(navigation_pose['yaw'] - prior_pose['yaw']))
+                    distance = math.hypot(dx, dy)
+                    result['current_vs_prior'] = {'xy_distance_m': distance, 'yaw_delta_rad': yaw_delta,
+                        'within_prior_bounds': distance <= prior_bounds['xy_m'] and abs(yaw_delta) <= prior_bounds['yaw_rad'],
+                        'within_existing_handoff_reference': distance <= MAX_XY_M and abs(yaw_delta) <= MAX_YAW_RAD,
+                        'pose_stamp_ns': proposal['proposal_stamp_ns'], 'pose_age_s': pose_age}
                 return result
-            except (ProposalConflict, ProposalUnavailable, GlobalObservationConflict, ObservationAlignmentError,
-                    KeyError, TypeError, ValueError, OSError) as exc:
+            except (ProposalConflict, ProposalUnavailable, GlobalObservationConflict, ObservationAlignmentError, ExternalGlobalObservationError,
+                    AttributeError, KeyError, TypeError, ValueError, OSError, OverflowError) as exc:
                 reason = str(exc) or 'SOURCE_OR_CONTEXT_CHANGED'
                 if reason in {'MAP_PAIR_REQUIRED', 'MAP_PAIR_CHANGED', 'OBSERVATION_SESSION_CHANGED',
                               'SOURCE_OR_CONTEXT_CHANGED', 'CALIBRATION_CHANGED'}:

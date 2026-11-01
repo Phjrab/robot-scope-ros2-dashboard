@@ -14,7 +14,7 @@ import time
 
 from ..relocalization.experimental_se3 import from_translation_rpy, validate_transform
 from ..relocalization.operational import SCHEMA, digest, validate_bundle, display_pose
-from ..relocalization.handoff_policy import POLICY_ID, TTL_S, MAX_XY_M, MAX_YAW_RAD, process_identity, validate_handoff, validate_candidate
+from ..relocalization.handoff_policy import POLICY_ID, CONDITIONAL_POLICY_ID, TTL_S, MAX_XY_M, MAX_YAW_RAD, process_identity, validate_handoff, validate_candidate
 from ..saved_maps import SavedMapError
 from .runtime_health_sample import RuntimeHealthSample
 
@@ -173,7 +173,7 @@ class OperationalNavigation:
                     or calibration.get('navigation_profile') != self.jobs.navigation_profile):
                 raise ValueError('CALIBRATION_PROFILE_OR_MAP_MISMATCH')
 
-    def confirm_proposal(self, proposal_owner, observation, proposal_id, request_id, generation, session_id):
+    def confirm_proposal(self, proposal_owner, observation, proposal_id, request_id, generation, session_id, *, conditional_prior_acknowledged=False):
         with self.lock:
             key = (proposal_id, generation, session_id)
             prior = self._handoff_requests.get(request_id)
@@ -192,6 +192,19 @@ class OperationalNavigation:
                         or proposal.get('observation_session_id') != session_id
                         or proposal.get('pair', {}).get('generation') != generation):
                     raise ValueError('MAP_PAIR_CHANGED')
+                resolution = proposal.get('operator_prior_resolution')
+                conditional = proposal.get('classification') == 'CONDITIONAL_ON_OPERATOR_PRIOR'
+                if conditional:
+                    if conditional_prior_acknowledged is not True or not isinstance(resolution, dict):
+                        raise ValueError('CONDITIONAL_PRIOR_CONFIRMATION_REQUIRED')
+                    proposal = proposal_owner.validate_conditional_confirmation(proposal_id, resolution)
+                    proposal_read_at = time.monotonic()
+                    resolution = proposal['operator_prior_resolution']
+                    if (resolution.get('classification') != 'CONDITIONAL_ON_OPERATOR_PRIOR'
+                            or resolution.get('candidate_vs_prior', {}).get('within_existing_handoff_reference') is not True):
+                        raise ValueError('PRIOR_HANDOFF_MISMATCH')
+                elif resolution is not None:
+                    raise ValueError('OPERATOR_PRIOR_PROOF_CHANGED')
                 provenance = proposal.get('provenance') or {}
                 pair = proposal.get('pair') or {}
                 if (pair.get('localization_3d') != bundle['localization_3d']
@@ -200,7 +213,8 @@ class OperationalNavigation:
                         or provenance.get('bundle_generation') != generation
                         or provenance.get('observation_session_id') != session_id
                         or provenance.get('calibration_sha256') != bundle['map_binding']['calibration_sha256']
-                        or (proposal.get('quality') or {}).get('ambiguity_unresolved') is not False
+                        or (proposal.get('quality') or {}).get('ambiguity_unresolved') is not
+                           (resolution['original_ambiguity_unresolved'] if conditional else False)
                         or (proposal.get('body_candidate') or {}).get('pose_reference') != 'base_link'
                         or (proposal.get('body_candidate') or {}).get('units') != 'metres_radians'):
                     raise ValueError('SOURCE_OR_CONTEXT_CHANGED')
@@ -212,6 +226,15 @@ class OperationalNavigation:
                     raise ValueError('OBSERVATION_SESSION_CHANGED')
                 body = proposal['body_candidate']['pose']
                 pose = _navigation_map_body_pose(bundle['calibration'], body)
+                if conditional:
+                    prior = resolution['operator_prior']
+                    angle = math.atan2(math.sin(pose['yaw']-prior['pose']['yaw']), math.cos(pose['yaw']-prior['pose']['yaw']))
+                    if (math.hypot(pose['x']-prior['pose']['x'], pose['y']-prior['pose']['y']) > MAX_XY_M
+                            or abs(angle) > MAX_YAW_RAD
+                            or math.hypot(pose['x']-prior['pose']['x'], pose['y']-prior['pose']['y']) > prior['bounds']['xy_m']
+                            or abs(angle) > prior['bounds']['yaw_rad']
+                            or time.monotonic() >= resolution['expires_monotonic_s']):
+                        raise ValueError('PRIOR_HANDOFF_MISMATCH')
                 identifier = uuid.uuid4().hex
                 try:
                     watch_context = proposal_owner.handoff_watch_context(proposal_id, session_id)
@@ -227,7 +250,7 @@ class OperationalNavigation:
                     raise ValueError('HANDOFF_MONITOR_UNAVAILABLE')
                 observation.reserve_handoff_receipt(identifier, session_id, session['started_monotonic_s'])
                 now = time.monotonic()
-                proof = {'policy_id': POLICY_ID, 'handoff_id': identifier, 'proposal_id': proposal_id,
+                proof = {'policy_id': CONDITIONAL_POLICY_ID if conditional else POLICY_ID, 'handoff_id': identifier, 'proposal_id': proposal_id,
                     'bundle_generation': generation, 'observation_session_id': session_id,
                     'calibration_sha256': bundle['map_binding']['calibration_sha256'],
                     'localization_map_id': bundle['localization_3d']['map_id'],
@@ -238,8 +261,10 @@ class OperationalNavigation:
                     'capture_stamp_ns': str(provenance['capture_stamp_ns']),
                     'source_contract_sha256': hashlib.sha256(json.dumps(provenance['source_contract'], sort_keys=True, allow_nan=False).encode()).hexdigest(),
                     'reference': {k: pose[k] for k in ('x','y','yaw')},
-                    'expires_monotonic_s': now + TTL_S, 'owner_pid': os.getpid(),
+                    'expires_monotonic_s': min(now + TTL_S, resolution['expires_monotonic_s']) if conditional else now + TTL_S, 'owner_pid': os.getpid(),
                     'owner_start_ticks': process_identity(os.getpid()), 'stop_nonce': '', 'stop_state': 'NOT_REQUESTED'}
+                if conditional:
+                    proof['operator_prior_resolution'] = copy.deepcopy(resolution)
                 geometry = {k: pose[k] for k in ('z','roll','pitch')}
                 geometry.update(source='proposal_confirmed', frame='map', confirmed_at=time.time(), handoff=proof)
                 self.selected = copy.deepcopy(bundle)
@@ -522,7 +547,7 @@ class OperationalNavigation:
                 'source': 'proposal_confirmed', 'frame': 'map', 'bundle_generation': record['generation'],
                 'observation_session_id': record['session_id'], 'job_id': record['job_id'],
                 'expires_in_s': max(0., proof['expires_monotonic_s']-time.monotonic()),
-                'policy': {'id': POLICY_ID, 'ttl_s': TTL_S, 'max_xy_m': MAX_XY_M, 'max_yaw_rad': MAX_YAW_RAD},
+                'policy': {'id': proof['policy_id'], 'ttl_s': TTL_S, 'max_xy_m': MAX_XY_M, 'max_yaw_rad': MAX_YAW_RAD},
                 'continuity': 'SUPERVISED_GAP_UNMEASURED', 'stop_receipt': {'state': receipt['state']},
                 'match_history': copy.deepcopy(record['match_binding']),
                 'geometry': ({k: geometry[k] for k in ('z','roll','pitch')} if reason is None else None),

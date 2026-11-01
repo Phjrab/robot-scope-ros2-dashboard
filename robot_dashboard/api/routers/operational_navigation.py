@@ -3,9 +3,10 @@ from __future__ import annotations
 
 import asyncio
 import time
+from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Request, Response
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ...saved_maps import SavedMapError
 from ...control import ControlError
@@ -47,16 +48,53 @@ class SeedGeometry(BaseModel):
     pitch: float = Field(ge=-1.5707963267948966, le=1.5707963267948966)
 
 
+class OperatorPriorPose(BaseModel):
+    model_config = ConfigDict(extra='forbid', allow_inf_nan=False, strict=True)
+    x: float = Field(ge=-1000, le=1000)
+    y: float = Field(ge=-1000, le=1000)
+    yaw: float = Field(ge=-3.141592653589793, le=3.141592653589793)
+
+
+class OperatorPriorBounds(BaseModel):
+    model_config = ConfigDict(extra='forbid', allow_inf_nan=False, strict=True)
+    xy_m: float = Field(ge=.1, le=3.)
+    yaw_rad: float = Field(ge=0.017453292519943295, le=1.5707963267948966)
+
+
+class OperatorPrior(BaseModel):
+    model_config = ConfigDict(extra='forbid', allow_inf_nan=False, strict=True)
+    frame: Literal['map']
+    pose_reference: Literal['base_link']
+    units: Literal['metres_radians']
+    pose: OperatorPriorPose
+    bounds: OperatorPriorBounds
+    source: Literal['OPERATOR_CURRENT_MAP_DRAFT']
+    stationary_current_pose_confirmed: bool
+
+    @field_validator('stationary_current_pose_confirmed')
+    @classmethod
+    def stationary_confirmation_required(cls, value):
+        if value is not True:
+            raise ValueError('current stationary confirmation required')
+        return value
+
+    navigation_map_id: str = Field(pattern=r'^[a-f0-9]{24}$')
+    navigation_map_revision: str = Field(pattern=r'^[a-f0-9]{64}$')
+    calibration_sha256: str = Field(pattern=r'^[a-f0-9]{64}$')
+
+
 class InitializationProposalRequest(BaseModel):
     model_config = ConfigDict(extra='forbid', strict=True)
     request_id: str = Field(pattern=r'^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$')
     bundle_generation: str = Field(pattern=r'^[a-f0-9]{32}$')
     observation_session_id: str = Field(pattern=r'^[a-f0-9]{32}$')
+    operator_prior: OperatorPrior | None = None
 
 
 class HandoffConfirmation(InitializationProposalRequest):
     confirmed: bool
     stationary_supervision_acknowledged: bool
+    conditional_prior_acknowledged: bool = False
 
 
 def _proposal_owner(runtime):
@@ -107,8 +145,11 @@ async def start_initialization_proposal(body: InitializationProposalRequest, req
     require_manual_operation_mode(runtime)
     async with runtime.pipeline_coordination_lock:
         try:
-            return await asyncio.to_thread(_proposal_owner(runtime).start, body.request_id,
-                                           body.bundle_generation, body.observation_session_id)
+            args = (body.request_id, body.bundle_generation, body.observation_session_id)
+            if body.operator_prior is not None:
+                return await asyncio.to_thread(_proposal_owner(runtime).start, *args,
+                                               operator_prior=body.operator_prior.model_dump())
+            return await asyncio.to_thread(_proposal_owner(runtime).start, *args)
         except ProposalConflict as exc:
             raise HTTPException(409, str(exc)) from exc
         except ProposalUnavailable as exc:
@@ -135,14 +176,19 @@ async def confirm_proposal_geometry(proposal_id: str, body: HandoffConfirmation,
     runtime = runtime_from_request(request)
     require_competition_unlocked(runtime, 'initial geometry confirmation')
     require_manual_operation_mode(runtime)
+    if body.operator_prior is not None:
+        raise HTTPException(409, 'OPERATOR_PRIOR_PROOF_SERVER_OWNED')
     if body.confirmed is not True or body.stationary_supervision_acknowledged is not True:
         raise HTTPException(409, 'CONFIRMATION_REQUIRED')
     manager = require_component(runtime.operational_navigation, 'operational localization is not configured')
     observation = require_component(runtime.fastlio_observation, 'observation is not configured')
     async with runtime.pipeline_coordination_lock:
         try:
-            return await asyncio.to_thread(manager.confirm_proposal, _proposal_owner(runtime), observation,
-                proposal_id, body.request_id, body.bundle_generation, body.observation_session_id)
+            args = (_proposal_owner(runtime), observation, proposal_id, body.request_id,
+                    body.bundle_generation, body.observation_session_id)
+            if body.conditional_prior_acknowledged:
+                return await asyncio.to_thread(manager.confirm_proposal, *args, conditional_prior_acknowledged=True)
+            return await asyncio.to_thread(manager.confirm_proposal, *args)
         except ProposalNotFound as exc:
             raise HTTPException(404, str(exc)) from exc
         except ProposalUnavailable as exc:
