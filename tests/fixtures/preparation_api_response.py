@@ -28,6 +28,11 @@ async def response(case, selected):
         manager.status = changed
     elif case == 'subscription_missing':
         agent.pose['observation']['observer_id'] = None
+    elif case == 'bad_units':
+        agent.cloud['units'] = 'mm'
+    elif case == 'unknown_states':
+        agent.pose['state'] = 'initializing'
+        agent.cloud['observation']['subscription_evidence']['graph']['state'] = 'unresolved'
     elif case != 'success':
         raise ValueError('Unknown synthetic case')
     runtime = ApplicationRuntime()

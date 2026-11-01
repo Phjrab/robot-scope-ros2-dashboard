@@ -339,7 +339,7 @@ async function diagnosticFixture(page) {
   return f;
 }
 
-for (const scenario of ['success', 'missing_receipt', 'source_changed', 'subscription_missing']) {
+for (const scenario of ['success', 'missing_receipt', 'source_changed', 'subscription_missing', 'bad_units', 'unknown_states']) {
   test(`preparation diagnostics preserve the actual Python API contract: ${scenario}`, async ({ page }) => {
     const f = await diagnosticFixture(page), before = f.writes.length;
     const selected = { generation: 'pairgen',
@@ -367,6 +367,14 @@ for (const scenario of ['success', 'missing_receipt', 'source_changed', 'subscri
       }
       if (scenario === 'missing_receipt') expect(expected.failure_sample.pose.receipt_age_s).toBeNull();
       if (scenario === 'subscription_missing') expect(expected.failure_code).toBe('SUBSCRIPTION_EVIDENCE_UNAVAILABLE');
+      if (scenario === 'bad_units') {
+        expect(expected.failure_sample.cloud.units).toBe('mm');
+        expect(expected.checks[0].failures).toContain('CLOUD_UNITS');
+      }
+      if (scenario === 'unknown_states') {
+        expect(expected.failure_sample.pose.state).toBe('initializing');
+        expect(expected.failure_sample.cloud.graph_state).toBe('unresolved');
+      }
     }
     expect(f.writes).toHaveLength(before);
     expect(await page.evaluate(() => window.fixtureActions)).toEqual([]);
@@ -395,7 +403,7 @@ test('diagnostics describe first rejection independently of final evidence and p
   expect(f.writes).toHaveLength(before);
 });
 
-test('optional diagnostics reject unknown schema and bound malformed metadata and enums', async ({ page }) => {
+test('optional diagnostics reject unknown schema and bound malformed metadata and failure enums', async ({ page }) => {
   const f = await diagnosticFixture(page), before = f.writes.length;
   f.inputs.evidence = { valid: true, reason: null, diagnostics: { ...diagnosticSample(), failure_stage: null, failure_code: null, checks: [] } };
   await page.evaluate(() => window.preparation.refresh(true));
@@ -408,9 +416,9 @@ test('optional diagnostics reject unknown schema and bound malformed metadata an
   const malformed = diagnosticSample();
   malformed.failure_stage = 'UNKNOWN_STAGE'; malformed.failure_code = 'UNKNOWN_CODE';
   malformed.checks = Array.from({ length: 7 }, (_, i) => ({ ...diagnosticSample().checks[0], ready: i ? 'true' : false,
-    failures: ['UNKNOWN_FAILURE', 'POSE_RECEIPT'], pose: { topic: 'x'.repeat(129), frame_id: '<img src=x onerror=alert(1)>', source_stamp_ns: 'NaN', receipt_age_s: NaN, graph_age_s: null, graph_state: 'UNKNOWN_STATE', graph_endpoint_count: -1, graph_publisher_count: 1 } }));
+    failures: ['UNKNOWN_FAILURE', 'POSE_RECEIPT'], pose: { topic: 'x'.repeat(129), frame_id: '<img src=x onerror=alert(1)>', source_stamp_ns: 'NaN', receipt_age_s: NaN, graph_age_s: null, graph_state: 'x'.repeat(129), graph_endpoint_count: -1, graph_publisher_count: 1 } }));
   malformed.phase_ms = { total: -1, initial_capture: '1', response_fence: Infinity, extraneous: 500 };
-  Object.assign(malformed.checks[0].pose, { state: 'UNKNOWN_STATE', units: 'mm', sent_points: -1,
+  Object.assign(malformed.checks[0].pose, { state: '\u0000invalid', units: 'x'.repeat(129), sent_points: -1,
     subscription_session_id: 'x'.repeat(129), graph_fingerprint: 'x'.repeat(129), receipt_after_session_start: 0 });
   malformed.failure_sample = { stage: 'initial_latest', pose: malformed.checks[0].pose, cloud: { points_bytes: 'never displayed' } };
   f.inputs.evidence.diagnostics = malformed;

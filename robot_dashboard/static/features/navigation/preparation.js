@@ -117,13 +117,14 @@ function preparationDiagnostics(value) {
     if (!source || typeof source !== 'object' || Array.isArray(source)) return null;
     const result = {};
     for (const key of ['topic', 'frame_id', 'child_frame_id', 'observer_id', 'publisher_epoch', 'subscription_session_id', 'graph_fingerprint']) result[key] = text(source[key]);
-    result.state = ['ok', 'waiting', 'stale', 'unavailable', 'error'].includes(source.state) ? source.state : null;
-    result.units = source.units === 'm' ? source.units : null;
+    // Diagnostics retain rejected observed values; admission uses separate gates.
+    result.state = text(source.state);
+    result.units = text(source.units);
     result.sent_points = Number.isInteger(source.sent_points) && source.sent_points >= 0 && source.sent_points <= 2147483647 ? source.sent_points : null;
     result.receipt_after_session_start = typeof source.receipt_after_session_start === 'boolean' ? source.receipt_after_session_start : null;
     result.source_stamp_ns = typeof source.source_stamp_ns === 'string' && /^\d{1,20}$/.test(source.source_stamp_ns) ? source.source_stamp_ns : null;
     for (const key of ['receipt_age_s', 'graph_age_s']) result[key] = finite(source[key]) && Math.abs(source[key]) <= 1e9 ? source[key] : null;
-    result.graph_state = ['ok', 'unavailable'].includes(source.graph_state) ? source.graph_state : null;
+    result.graph_state = text(source.graph_state);
     for (const key of ['graph_endpoint_count', 'graph_publisher_count']) result[key] = Number.isInteger(source[key]) && source[key] >= 0 && source[key] <= 2147483647 ? source[key] : null;
     return result;
   };

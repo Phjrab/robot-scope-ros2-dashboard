@@ -123,6 +123,41 @@ class CaptureOrderTests(unittest.TestCase):
         self.assert_rejected(self.collect())
         self.assertGreater(self.clock.monotonic() - self.agent.cloud['observation']['received_monotonic_s'], 1.)
 
+    def test_intermediate_failure_preserves_the_sample_that_expired_during_health(self):
+        def slow_health(_):
+            self.clock.advance(1.12)
+            return {}
+        self.agent._navigation_runtime_health_snapshot = slow_health
+        result = self.collect()
+        self.assert_rejected(result)
+        diagnostics = result['evidence']['diagnostics']
+        self.assertEqual(diagnostics['failure_stage'], 'context_fence')
+        sample = diagnostics['failure_sample']
+        self.assertIsNotNone(sample)
+        for name in ('pose', 'cloud'):
+            self.assertEqual(sample[name]['source_stamp_ns'], '12345')
+            self.assertAlmostEqual(sample[name]['receipt_age_s'], 1.12)
+            self.assertAlmostEqual(diagnostics['checks'][0][name]['receipt_age_s'], 0.)
+
+    def test_intermediate_pose_read_failure_preserves_only_the_captured_cloud(self):
+        original_pose_snapshot = self.agent.pose_snapshot
+        calls = 0
+        def pose_snapshot():
+            nonlocal calls
+            calls += 1
+            if calls == 3:
+                raise OSError('synthetic pose snapshot unavailable')
+            return original_pose_snapshot()
+        self.agent.pose_snapshot = pose_snapshot
+        result = self.collect()
+        self.assert_rejected(result)
+        diagnostics = result['evidence']['diagnostics']
+        self.assertEqual(diagnostics['failure_stage'], 'context_fence')
+        sample = diagnostics['failure_sample']
+        self.assertIsNotNone(sample)
+        self.assertEqual(sample['cloud']['source_stamp_ns'], '12345')
+        self.assertTrue(all(value is None for value in sample['pose'].values()))
+
     def test_slow_handoff_status_is_inside_the_final_freshness_boundary(self):
         self.state['initialization_handoff'] = {'state': 'SNAPSHOTTED'}
         self.state['selected']['seed_geometry'] = {

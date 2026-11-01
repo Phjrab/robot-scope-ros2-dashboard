@@ -336,28 +336,36 @@ def preparation_inputs(manager, observation_session, agent):
                or any(end_session.get(k) != session.get(k) for k in
                       ('session_id', 'state', 'active', 'started_monotonic_s')))
     if capture_identity is not None and not changed:
+        intermediate_cloud = intermediate_pose = None
+        intermediate_at = None
         try:
-            intermediate_cloud, intermediate_pose = agent.pointcloud_binary_snapshot(), agent.pose_snapshot()
+            # Keep a successfully captured side even if the other read fails.
+            intermediate_cloud = agent.pointcloud_binary_snapshot()
+            intermediate_pose = agent.pose_snapshot()
+            intermediate_at = time.monotonic()
             if (_source_identity(intermediate_cloud), _source_identity(intermediate_pose)) != capture_identity:
                 changed = True
                 fail('context_fence', 'CONTEXT_CHANGED', intermediate_pose, intermediate_cloud,
-                     time.monotonic(), session.get('started_monotonic_s'))
+                     intermediate_at, session.get('started_monotonic_s'))
             elif evidence['valid']:
                 intermediate_stamps = _stamps(intermediate_cloud, intermediate_pose)
                 if any(a < b for a, b in zip(intermediate_stamps, last_stamps or initial_stamps)):
                     changed = True
                     fail('context_fence', 'STAMP_REGRESSION', intermediate_pose, intermediate_cloud,
-                         time.monotonic(), session.get('started_monotonic_s'))
+                         intermediate_at, session.get('started_monotonic_s'))
                 elif source_contract(intermediate_cloud, intermediate_pose,
-                        'subscription_observation', time.monotonic()) != contract:
+                        'subscription_observation', intermediate_at) != contract:
                     changed = True
+                    fail('context_fence', 'CONTEXT_CHANGED', intermediate_pose, intermediate_cloud,
+                         intermediate_at, session.get('started_monotonic_s'))
                 last_stamps = intermediate_stamps
         except Exception:
             # A stale/temporarily unavailable input alone is not proof of a
             # source transition. Never retain the reference in that case.
             reference = None
             evidence.update(valid=False, reason='OBSERVATION_STALE_OR_SOURCE_INVALID', cloud=None, pose=None)
-            fail('context_fence', 'OBSERVATION_STALE_OR_SOURCE_INVALID')
+            fail('context_fence', 'OBSERVATION_STALE_OR_SOURCE_INVALID', intermediate_pose, intermediate_cloud,
+                 intermediate_at, session.get('started_monotonic_s'))
     if changed:
         reference = None
         evidence.update(valid=False, reason='CONTEXT_CHANGED', cloud=None, pose=None)
