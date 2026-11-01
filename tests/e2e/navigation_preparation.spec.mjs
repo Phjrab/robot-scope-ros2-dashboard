@@ -1,5 +1,6 @@
 // DOM and HTTP fixtures only: no ROS, control bridge or robot consumer.
 import { expect, test } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
 
 const cloud = { id: 'a'.repeat(24), revision: 'b'.repeat(64), kind: 'pointcloud3d', name: 'map1' };
 const grid = { id: 'c'.repeat(24), revision: 'd'.repeat(64), kind: 'occupancy2d', name: 'map1_2D', frame_id: 'map' };
@@ -31,6 +32,7 @@ async function fixture(page) {
   let proposalState = 'ready', proposalReason = null, proposalRejected = false, wrongProposalSource = false, ambiguousProposal = false, proposalReads = null, releaseProposalReads = null;
   let proposalCleanup = { state: 'SETTLED', cancellation_requested: false, worker_active: false, terminal_state: 'succeeded' };
   let handoff = null, confirmMode = 'success', heldConfirm = null, releaseConfirm = null, heldHandoffRead = null, releaseHandoffRead = null;
+  let heldInputsRead = null, releaseInputsRead = null;
   await page.route('**/api/v1/observations/fastlio/**', async route => {
     const path = new URL(route.request().url()).pathname, body = route.request().postDataJSON();
     writes.push({ path, method: route.request().method(), body });
@@ -48,7 +50,9 @@ async function fixture(page) {
     if (path.endsWith('/preparation-inputs')) {
       if (failingReads > 0) { failingReads--; return json({ detail: 'SYNTHETIC_READ_TIMEOUT' }, 503); }
       if (invalidOperationalState) return json({ ...inputs, operational_state: null, operational_state_error: 'CONTEXT_CHANGED' });
-      return json({ ...inputs, operational_state: { ...state, pair: state.pair && { ...state.pair, generation: state.selected?.generation, calibration_sha256: inputs.pair?.calibration_sha256 }, activation: state.selected ? 'NEXT_NAVIGATION_START' : 'LEGACY_2D' }, operational_state_error: null });
+      const snapshot = structuredClone({ ...inputs, operational_state: { ...state, pair: state.pair && { ...state.pair, generation: state.selected?.generation, calibration_sha256: inputs.pair?.calibration_sha256 }, activation: state.selected ? 'NEXT_NAVIGATION_START' : 'LEGACY_2D' }, operational_state_error: null });
+      if (heldInputsRead) await heldInputsRead;
+      return json(snapshot);
     }
     if (method !== 'GET') writes.push({ path, method, body });
     if (path.endsWith('/confirm-geometry')) {
@@ -108,6 +112,8 @@ async function fixture(page) {
     releaseConfirm() { releaseConfirm?.(); heldConfirm = null; releaseConfirm = null; },
     holdHandoffRead() { heldHandoffRead = new Promise(resolve => { releaseHandoffRead = resolve; }); },
     releaseHandoffRead() { releaseHandoffRead?.(); heldHandoffRead = null; releaseHandoffRead = null; },
+    holdInputsRead() { heldInputsRead = new Promise(resolve => { releaseInputsRead = resolve; }); },
+    releaseInputsRead() { releaseInputsRead?.(); heldInputsRead = null; releaseInputsRead = null; },
     async reload() { await page.reload(); await mount(page); },
     holdProposalReads() { proposalReads = new Promise(resolve => { releaseProposalReads = resolve; }); },
     releaseProposalReads() { releaseProposalReads?.(); proposalReads = null; releaseProposalReads = null; },
@@ -317,6 +323,138 @@ test('sensor evidence and individual candidates are descriptive and never applie
   await expect(page.locator('[data-prep="details"]')).toContainText('"state": "STOPPED"');
   await expect(page.getByRole('button', { name: '센서 관측 시작' })).toBeDisabled();
   expect(f.writes.at(-1).body).toEqual({ confirmed: true, session_id: 'a'.repeat(32) });
+});
+
+const diagnosticSample = () => ({ schema: 'robot-scope.preparation-diagnostics.v1', failure_stage: 'initial_latest', failure_code: 'OBSERVATION_STALE_OR_SOURCE_INVALID',
+  checks: [{ stage: 'initial_latest', sample: 'initial', ready: false, failures: ['POSE_RECEIPT', 'CLOUD_GRAPH'],
+    pose: { topic: '/Odometry', frame_id: 'camera_init', child_frame_id: 'body', observer_id: 'observer', publisher_epoch: 'epoch', source_stamp_ns: '12345', receipt_age_s: -0.1, graph_age_s: 0.2, graph_state: 'ok', graph_endpoint_count: 1, graph_publisher_count: 1 },
+    cloud: { topic: '/cloud_registered', frame_id: 'camera_init', child_frame_id: null, receipt_age_s: 1.4, graph_age_s: null, graph_state: 'unavailable', graph_endpoint_count: 0, graph_publisher_count: null } }],
+  phase_ms: { initial_snapshot: 1.2, initial_capture: 3.4, final_capture: null, total: 5.6 } });
+
+async function diagnosticFixture(page) {
+  const f = await fixture(page);
+  await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
+  await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
+  await expect(page.locator('[data-prep="selected"]')).toContainText('서버 준비 구성: map1 / map1_2D');
+  return f;
+}
+
+for (const scenario of ['success', 'missing_receipt', 'source_changed', 'subscription_missing']) {
+  test(`preparation diagnostics preserve the actual Python API contract: ${scenario}`, async ({ page }) => {
+    const f = await diagnosticFixture(page), before = f.writes.length;
+    const selected = { generation: 'pairgen',
+      localization_3d: { map_id: cloud.id, revision: cloud.revision },
+      navigation_2d: { map_id: grid.id, revision: grid.revision } };
+    const response = JSON.parse(execFileSync('python3', ['-B', 'tests/fixtures/preparation_api_response.py'], {
+      encoding: 'utf8', timeout: 10000, input: JSON.stringify({ case: scenario, selected }),
+      env: { ...process.env, PYTHONPATH: 'tests:.', PYTHONDONTWRITEBYTECODE: '1' },
+    }));
+    // Keep the UI's synthetic map selection; evidence is the unmodified ASGI response.
+    f.inputs.evidence = response.evidence;
+    const expected = response.evidence.diagnostics;
+    await page.evaluate(() => window.preparation.refresh(true));
+    const actual = JSON.parse(await page.locator('[data-prep="details"]').textContent()).preparation_inputs.evidence.diagnostics;
+    expect(actual).toEqual(expected);
+    if (scenario === 'success') {
+      expect(expected.checks).toHaveLength(5);
+      await expect(page.locator('[data-prep="issues"]')).not.toContainText('최초 거절 검사');
+    } else {
+      await expect(page.locator('[data-prep="issues"]')).toContainText('최초 거절 검사');
+      if (scenario === 'source_changed') {
+        expect(expected.failure_stage).toBe('context_fence');
+        expect(expected.failure_sample.cloud.publisher_epoch).toBe('9'.repeat(32));
+        expect(expected.checks.every(check => check.stage !== 'context_fence')).toBe(true);
+      }
+      if (scenario === 'missing_receipt') expect(expected.failure_sample.pose.receipt_age_s).toBeNull();
+      if (scenario === 'subscription_missing') expect(expected.failure_code).toBe('SUBSCRIPTION_EVIDENCE_UNAVAILABLE');
+    }
+    expect(f.writes).toHaveLength(before);
+    expect(await page.evaluate(() => window.fixtureActions)).toEqual([]);
+    expect(await page.evaluate(() => window.preparation.canStart())).toBe(false);
+  });
+}
+
+test('diagnostics describe first rejection independently of final evidence and preserve controls', async ({ page }) => {
+  const f = await diagnosticFixture(page);
+  await expect(page.locator('[data-prep="issues"]')).not.toContainText('최초 거절 검사');
+  f.inputs.evidence = { valid: false, reason: 'CONTEXT_CHANGED', cloud: null, pose: null, diagnostics: diagnosticSample() };
+  const before = f.writes.length;
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="issues"]')).toContainText('최초 거절 검사(검사 당시): 최초 최신 점군·자세 검사');
+  await expect(page.locator('[data-prep="issues"]')).toContainText('자세 수신 시각 조건 미충족');
+  await expect(page.locator('[data-prep="issues"]')).toContainText('점군 graph 출처 조건 미충족');
+  await expect(page.locator('[data-prep="evidence"]')).toContainText('조회 중 지도 또는 관측 실행이 바뀌었습니다');
+  const detail = JSON.parse(await page.locator('[data-prep="details"]').textContent());
+  expect(detail.preparation_inputs.evidence.diagnostics.checks[0].pose.receipt_age_s).toBe(-0.1);
+  expect(detail.preparation_inputs.evidence.diagnostics.checks[0].cloud.graph_age_s).toBeNull();
+  expect(detail.preparation_inputs.evidence.diagnostics.phase_ms.total).toBe(5.6);
+  expect(detail.diagnostics_note).toContain('네트워크 왕복이나 lock 전용시간이 아닙니다');
+  expect(await page.evaluate(() => window.preparation.canStart())).toBe(false);
+  for (const name of ['Nav2 시작', 'INITIAL POSE 지정', 'GOAL POSE 지정']) await expect(page.locator('#host').getByRole('button', { name, exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '정합 시작', exact: true })).toBeDisabled();
+  expect(f.writes).toHaveLength(before);
+});
+
+test('optional diagnostics reject unknown schema and bound malformed metadata and enums', async ({ page }) => {
+  const f = await diagnosticFixture(page), before = f.writes.length;
+  f.inputs.evidence = { valid: true, reason: null, diagnostics: { ...diagnosticSample(), failure_stage: null, failure_code: null, checks: [] } };
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="issues"]')).not.toContainText('최초 거절 검사');
+  expect(JSON.parse(await page.locator('[data-prep="details"]').textContent()).preparation_inputs.evidence.diagnostics.failure_stage).toBeNull();
+  f.inputs.evidence = { valid: false, reason: 'OBSERVATION_STALE_OR_SOURCE_INVALID', diagnostics: { ...diagnosticSample(), schema: 'other', failure_stage: 'initial_latest' } };
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="issues"]')).not.toContainText('최초 거절 검사');
+  expect(JSON.parse(await page.locator('[data-prep="details"]').textContent()).preparation_inputs.evidence.diagnostics).toBeUndefined();
+  const malformed = diagnosticSample();
+  malformed.failure_stage = 'UNKNOWN_STAGE'; malformed.failure_code = 'UNKNOWN_CODE';
+  malformed.checks = Array.from({ length: 7 }, (_, i) => ({ ...diagnosticSample().checks[0], ready: i ? 'true' : false,
+    failures: ['UNKNOWN_FAILURE', 'POSE_RECEIPT'], pose: { topic: 'x'.repeat(129), frame_id: '<img src=x onerror=alert(1)>', source_stamp_ns: 'NaN', receipt_age_s: NaN, graph_age_s: null, graph_state: 'UNKNOWN_STATE', graph_endpoint_count: -1, graph_publisher_count: 1 } }));
+  malformed.phase_ms = { total: -1, initial_capture: '1', response_fence: Infinity, extraneous: 500 };
+  Object.assign(malformed.checks[0].pose, { state: 'UNKNOWN_STATE', units: 'mm', sent_points: -1,
+    subscription_session_id: 'x'.repeat(129), graph_fingerprint: 'x'.repeat(129), receipt_after_session_start: 0 });
+  malformed.failure_sample = { stage: 'initial_latest', pose: malformed.checks[0].pose, cloud: { points_bytes: 'never displayed' } };
+  f.inputs.evidence.diagnostics = malformed;
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="issues"]')).not.toContainText('최초 거절 검사');
+  const detail = JSON.parse(await page.locator('[data-prep="details"]').textContent()).preparation_inputs.evidence.diagnostics;
+  expect(detail.failure_stage).toBeNull(); expect(detail.failure_code).toBeNull(); expect(detail.checks).toHaveLength(5);
+  expect(detail.checks[0].failures).toEqual(['POSE_RECEIPT']); expect(detail.checks[1].ready).toBeNull();
+  expect(detail.checks[0].pose).toMatchObject({ topic: null, source_stamp_ns: null, receipt_age_s: null, graph_age_s: null, graph_state: null, graph_endpoint_count: null });
+  expect(detail.checks[0].pose).toMatchObject({ state: null, units: null, sent_points: null,
+    subscription_session_id: null, graph_fingerprint: null, receipt_after_session_start: null });
+  expect(detail.failure_sample).toBeNull();
+  expect(detail.phase_ms).toMatchObject({ total: null, initial_capture: null, response_fence: null });
+  expect(detail.phase_ms.extraneous).toBeUndefined();
+  expect(await page.locator('[data-prep="details"] img').count()).toBe(0);
+  expect(f.writes).toHaveLength(before);
+});
+
+test('stale diagnostics and late responses cannot describe a changed map selection', async ({ page }) => {
+  const f = await diagnosticFixture(page), before = f.writes.length;
+  f.inputs.evidence = { valid: false, reason: 'OBSERVATION_STALE_OR_SOURCE_INVALID', diagnostics: diagnosticSample() };
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="issues"]')).toContainText('최초 거절 검사');
+  await page.evaluate(() => { window.originalNow = performance.now.bind(performance); Object.defineProperty(performance, 'now', { configurable: true, value: () => window.originalNow() + 11000 }); window.preparation.render(); });
+  await expect(page.locator('[data-prep="issues"]')).not.toContainText('최초 거절 검사');
+  expect(JSON.parse(await page.locator('[data-prep="details"]').textContent()).preparation_inputs.evidence.diagnostics).toBeUndefined();
+  await page.evaluate(() => { delete performance.now; });
+  f.inputs.pair.generation = 'different-generation';
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="issues"]')).not.toContainText('최초 거절 검사');
+  expect(await page.evaluate(() => window.preparation.canStart())).toBe(false);
+  f.inputs.pair.generation = 'pairgen';
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="issues"]')).toContainText('최초 거절 검사');
+  f.holdInputsRead();
+  const readsBefore = f.reads.filter(path => path.endsWith('/preparation-inputs')).length;
+  await page.evaluate(() => { window.pendingDiagnosticRead = window.preparation.refresh(true); });
+  await expect.poll(() => f.reads.filter(path => path.endsWith('/preparation-inputs')).length).toBeGreaterThan(readsBefore);
+  await page.getByLabel('3D 위치추정 지도').selectOption('');
+  f.releaseInputsRead();
+  await page.evaluate(() => window.pendingDiagnosticRead);
+  await expect(page.locator('[data-prep="issues"]')).not.toContainText('최초 거절 검사');
+  expect(JSON.parse(await page.locator('[data-prep="details"]').textContent()).preparation_inputs.evidence.diagnostics).toBeUndefined();
+  expect(f.writes).toHaveLength(before);
 });
 
 test('observation rejection exposes bridge reason and does not retry or bypass the server', async ({ page }) => {

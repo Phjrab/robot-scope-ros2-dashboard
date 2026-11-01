@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module';
+import { onFixtureSocketClose } from './fixture_socket_lifecycle.mjs';
 
 const require = createRequire(import.meta.url);
 const navigationContract = require('../../robot_dashboard/static/navigation.js');
@@ -230,15 +231,16 @@ export async function installDashboardBackend(page, options = {}) {
     state.wsConnections[kind] += 1;
     const cameraSourceId = kind === 'camera' ? String(socketUrl.searchParams.get('source_id') || '') : '';
     if (cameraSourceId) state.cameraConnectionsBySource[cameraSourceId] = (state.cameraConnectionsBySource[cameraSourceId] || 0) + 1;
-    let cameraTimer = null;
-    socket.onClose(() => {
+    let cameraTimer = null, reconnectTimer = null;
+    onFixtureSocketClose(page, socket, () => {
       if (kind === 'camera' || kind === 'pointcloud') state.wsCloses[kind] += 1;
       if (cameraSourceId) state.cameraClosesBySource[cameraSourceId] = (state.cameraClosesBySource[cameraSourceId] || 0) + 1;
       if (cameraTimer) clearInterval(cameraTimer);
+      if (reconnectTimer) clearTimeout(reconnectTimer);
     });
     const closeFirstSockets = Array.isArray(options.closeFirstSockets) ? options.closeFirstSockets : [];
     if ((options.closeFirstSocket === kind || closeFirstSockets.includes(kind)) && state.wsConnections[kind] === 1) {
-      setTimeout(() => socket.close({ code: 1012, reason: 'fake reconnect' }), 30);
+      reconnectTimer = setTimeout(() => socket.close({ code: 1012, reason: 'fake reconnect' }), 30);
     } else if (kind === 'pointcloud' && options.pointcloudFrame) {
       let sequence = 0;
       const send = () => { const frame = options.pointcloudFrame(++sequence); if (frame) socket.send(frame); };

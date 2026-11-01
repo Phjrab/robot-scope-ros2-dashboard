@@ -37,6 +37,21 @@ const INPUT_REASONS = {
   NAVIGATION_JOB_NOT_RUNNING: '현재 주행 실행이 없습니다 → 지도 추정이 필요한 조건을 확인하세요.',
   CONTEXT_CHANGED: '조회 중 지도 또는 관측 실행이 바뀌었습니다 → 현재 상태를 다시 확인하세요.',
   SOURCE_CHANGED: '조회 중 센서 출처가 바뀌었습니다 → 현재 입력을 다시 확인하세요.',
+  STALE_INPUT: '검사 당시 센서 입력이 오래됐습니다 → 현재 입력을 확인하세요.',
+  FASTLIO_REGISTERED_IMU_REQUIRED: '검사 당시 필요한 FAST-LIO 입력 출처가 확인되지 않았습니다 → 센서 출처를 확인하세요.',
+  RECEIPT_TIME_MISMATCH: '검사 당시 수신 시각이 맞지 않았습니다 → 센서 수신 상태를 확인하세요.',
+  SUBSCRIPTION_TYPE_MISMATCH: '검사 당시 구독 입력 유형이 맞지 않았습니다 → 센서 출처를 확인하세요.',
+  INVALID_QUATERNION: '검사 당시 자세 회전값을 사용할 수 없었습니다 → 자세 입력을 확인하세요.',
+  INVALID_INPUT: '검사 당시 입력 형식이 유효하지 않았습니다 → 센서 입력을 확인하세요.',
+  STAMP_REGRESSION: '조회 중 센서 시각이 역행했습니다 → 센서 출처와 시각을 확인하세요.',
+  EXACT_STAMP_MISMATCH: '검사 당시 점군과 자세 시각이 맞지 않았습니다 → 같은 시각의 입력을 확인하세요.',
+  INPUT_UNAVAILABLE: '검사 당시 입력을 확인하지 못했습니다 → 센서와 서버 상태를 확인하세요.',
+  FASTLIO_SOURCE_TIME_MISMATCH: '검사 당시 FAST-LIO 점군과 자세 시각이 맞지 않았습니다 → 같은 시각의 입력을 확인하세요.',
+  NO_PAIRED_POSE: '검사 당시 점군과 짝을 이루는 자세가 없었습니다 → 같은 시각의 자세 수신을 확인하세요.',
+  POSE_SOURCE_CHANGED: '검사 중 자세 출처가 바뀌었습니다 → 현재 센서 출처를 확인하세요.',
+  SOURCE_IDENTITY_UNAVAILABLE: '검사 당시 센서 출처 식별 근거가 없었습니다 → 출처 정보를 확인하세요.',
+  SUBSCRIPTION_EVIDENCE_CHANGED: '검사 중 구독 출처 근거가 바뀌었습니다 → 현재 구독 상태를 확인하세요.',
+  SUBSCRIPTION_EVIDENCE_UNAVAILABLE: '검사 당시 구독 출처 근거를 확인하지 못했습니다 → 현재 구독 상태를 확인하세요.',
   OBSERVATION_SESSION_NOT_STARTABLE: '관측 세션을 시작할 수 없는 상태입니다 → 현재 관측 상태를 확인하세요.',
   CONTROL_BRIDGE_NOT_INACTIVE: '제어 bridge가 비활성 상태가 아닙니다 → 기존 안전 절차로 상태를 확인하세요.',
   CONTROL_BRIDGE_STATE_UNKNOWN: '제어 bridge 상태를 확인하지 못했습니다 → 연결과 상태를 확인하세요.',
@@ -76,6 +91,58 @@ function inputReason(code) {
   return '상세 원인을 확인하지 못했습니다 → 기술 상세에서 서버의 검사 결과를 확인하세요.';
 }
 const finite = value => typeof value === 'number' && Number.isFinite(value);
+const DIAGNOSTIC_STAGES = {
+  session: '관측 세션 확인', initial_latest: '최초 최신 점군·자세 검사', initial_pairing: '최초 동일 시각 자세 확보',
+  initial_paired: '최초 동일 시각 입력 검사', pair_validation: '지도 구성 검증', context_fence: '지도·관측 문맥 확인',
+  health_and_handoff: '실행 상태·가설 확인', final_latest: '최종 최신 점군·자세 검사', final_pairing: '최종 동일 시각 자세 확보',
+  final_paired: '최종 동일 시각 입력 검사', calibration_fence: '교정 최종 확인', response_fence: '응답 전 문맥 확인', response_pair: '응답 직전 입력 검사',
+};
+const DIAGNOSTIC_FAILURES = {
+  POSE_STATE: '자세 입력 상태 미충족', POSE_TOPIC: '자세 topic 불일치', POSE_FRAME: '자세 좌표계 불일치', POSE_CHILD_FRAME: '자세 본체 좌표계 불일치',
+  CLOUD_TOPIC: '점군 topic 불일치', CLOUD_FRAME: '점군 좌표계 불일치', CLOUD_UNITS: '점군 단위 불일치', CLOUD_POINTS: '점군 포인트 부족',
+  SESSION_START: '관측 시작 시각 미확인', POSE_RECEIPT: '자세 수신 시각 조건 미충족', CLOUD_RECEIPT: '점군 수신 시각 조건 미충족',
+  POSE_GRAPH: '자세 graph 출처 조건 미충족', CLOUD_GRAPH: '점군 graph 출처 조건 미충족', INPUT_MISSING_OR_INVALID: '검사 입력 누락 또는 형식 오류',
+};
+const DIAGNOSTIC_CODES = new Set(['OBSERVATION_INACTIVE', 'OBSERVATION_INPUTS_UNAVAILABLE', 'MAP_PAIR_REQUIRED', 'MAP_PAIR_INVALID', 'CONTEXT_CHANGED',
+  'OBSERVATION_STALE_OR_SOURCE_INVALID', 'POSE_PAIR_UNAVAILABLE', 'SOURCE_CHANGED', 'STALE_INPUT', 'FASTLIO_REGISTERED_IMU_REQUIRED',
+  'RECEIPT_TIME_MISMATCH', 'SUBSCRIPTION_TYPE_MISMATCH', 'INVALID_QUATERNION', 'INVALID_INPUT', 'CALIBRATION_CHANGED', 'STAMP_REGRESSION', 'EXACT_STAMP_MISMATCH', 'INPUT_UNAVAILABLE',
+  'FASTLIO_SOURCE_TIME_MISMATCH', 'NO_PAIRED_POSE', 'POSE_SOURCE_CHANGED', 'SOURCE_IDENTITY_UNAVAILABLE', 'SUBSCRIPTION_EVIDENCE_CHANGED', 'SUBSCRIPTION_EVIDENCE_UNAVAILABLE']);
+const DIAGNOSTIC_CHECK_STAGES = new Set(['initial_latest', 'initial_paired', 'final_latest', 'final_paired', 'response_pair']);
+const DIAGNOSTIC_PHASES = ['initial_snapshot', 'initial_capture', 'pair_validation', 'health_and_handoff', 'final_capture', 'calibration_fence', 'response_fence', 'total'];
+// Keep the optional server snapshot bounded; it never participates in admission decisions.
+function preparationDiagnostics(value) {
+  if (!value || typeof value !== 'object' || value.schema !== 'robot-scope.preparation-diagnostics.v1') return null;
+  const text = item => typeof item === 'string' && item.length > 0 && item.length <= 128 && !/[\u0000-\u001f\u007f]/.test(item) ? item : null;
+  const metadata = source => {
+    if (!source || typeof source !== 'object' || Array.isArray(source)) return null;
+    const result = {};
+    for (const key of ['topic', 'frame_id', 'child_frame_id', 'observer_id', 'publisher_epoch', 'subscription_session_id', 'graph_fingerprint']) result[key] = text(source[key]);
+    result.state = ['ok', 'waiting', 'stale', 'unavailable', 'error'].includes(source.state) ? source.state : null;
+    result.units = source.units === 'm' ? source.units : null;
+    result.sent_points = Number.isInteger(source.sent_points) && source.sent_points >= 0 && source.sent_points <= 2147483647 ? source.sent_points : null;
+    result.receipt_after_session_start = typeof source.receipt_after_session_start === 'boolean' ? source.receipt_after_session_start : null;
+    result.source_stamp_ns = typeof source.source_stamp_ns === 'string' && /^\d{1,20}$/.test(source.source_stamp_ns) ? source.source_stamp_ns : null;
+    for (const key of ['receipt_age_s', 'graph_age_s']) result[key] = finite(source[key]) && Math.abs(source[key]) <= 1e9 ? source[key] : null;
+    result.graph_state = ['ok', 'unavailable'].includes(source.graph_state) ? source.graph_state : null;
+    for (const key of ['graph_endpoint_count', 'graph_publisher_count']) result[key] = Number.isInteger(source[key]) && source[key] >= 0 && source[key] <= 2147483647 ? source[key] : null;
+    return result;
+  };
+  const checks = Array.isArray(value.checks) ? value.checks.slice(0, 5).flatMap(check => {
+    if (!check || !DIAGNOSTIC_CHECK_STAGES.has(check.stage) || !['initial', 'final', 'response'].includes(check.sample)) return [];
+    return [{ stage: check.stage, sample: check.sample, ready: typeof check.ready === 'boolean' ? check.ready : null,
+      failures: Array.isArray(check.failures) ? check.failures.slice(0, 14).filter(code => typeof code === 'string' && Object.hasOwn(DIAGNOSTIC_FAILURES, code)) : [],
+      pose: metadata(check.pose), cloud: metadata(check.cloud) }];
+  }) : [];
+  const phase_ms = {};
+  for (const key of DIAGNOSTIC_PHASES) phase_ms[key] = finite(value.phase_ms?.[key]) && value.phase_ms[key] >= 0 && value.phase_ms[key] <= 86400000 ? value.phase_ms[key] : null;
+  const failure_stage = typeof value.failure_stage === 'string' && Object.hasOwn(DIAGNOSTIC_STAGES, value.failure_stage) ? value.failure_stage : null;
+  const sample = value.failure_sample;
+  // A failure outside readiness checks has its own sample. Never substitute a later check.
+  const failure_sample = failure_stage && sample && typeof sample === 'object' && !Array.isArray(sample) && sample.stage === failure_stage
+    ? { stage: failure_stage, pose: metadata(sample.pose), cloud: metadata(sample.cloud) } : null;
+  return { schema: value.schema, failure_stage, failure_code: DIAGNOSTIC_CODES.has(value.failure_code) ? value.failure_code : null,
+    failure_sample, checks, phase_ms };
+}
 const pin = map => map && `${map.map_id || map.id}:${map.revision}`;
 const issue = (code, current, required, remedy, step) => ({ code, current, required, remedy, step });
 const samePin = (a, b) => Boolean(a && b && pin(a) === pin(b));
@@ -430,6 +497,10 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     const provenance = value => value ? `출처 ${value.topic || '미확인'} · 좌표 ${value.frame_id || '미확인'} · 센서 시각 ${value.source_stamp_ns ? '기록됨' : '미확인'}` : '입력 없음';
     const reference = inputsCurrent && evidence?.valid === true && observation?.active === true && observation?.state === 'READY' ? inputs?.reference_pose : null;
     const requestAge = Math.max(0, (performance.now() - inputsRequestedAt) / 1000);
+    const diagnostics = inputsCurrent && requestAge <= 10 ? preparationDiagnostics(evidence?.diagnostics) : null;
+    const failedCheck = diagnostics?.checks.find(check => check.stage === diagnostics.failure_stage && check.ready === false);
+    const diagnosticIssue = evidence?.valid === false && diagnostics?.failure_stage && diagnostics.failure_code
+      ? `서버 최초 거절 검사(검사 당시): ${DIAGNOSTIC_STAGES[diagnostics.failure_stage]} · ${inputReason(diagnostics.failure_code)}${failedCheck?.failures.length ? ` · 실패 조건: ${failedCheck.failures.map(code => DIAGNOSTIC_FAILURES[code]).join(' · ')}` : ''}` : '';
     const vector = (value, keys) => keys.map(key => `${key} ${finite(value?.[key]) ? value[key].toFixed(3) : '미확인'}`).join(' · ');
     el('evidence').replaceChildren(
       node('p', `준비 구성: ${inputsCurrent ? '현재 선택과 일치' : '현재 선택과 일치 미확인'} · 관측 검사(조회 시점): ${evidence?.valid === true && inputsCurrent ? '통과' : evidence?.reason ? inputReason(evidence.reason) : '미확인'} · 조회 요청 후 ${inputs ? requestAge.toFixed(1) + '초 경과' : '시간 미확인'}`),
@@ -507,8 +578,12 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
       if (step.number === 5) { const button = node('button', '정합 시작'); button.type = 'button'; button.disabled = busy || navigationBusy || !model.canMatch; button.onclick = match; item.append(button); }
       return item;
     }));
-    el('issues').replaceChildren(...(model.issues.length ? model.issues.map(value => { const item = node('p'); item.append(node('strong', `${value.step}단계 · ${value.current}`), document.createElement('br'), node('span', `필요: ${value.required} → 해결: ${value.remedy}`)); return item; }) : [node('p', model.enabled ? '현재 확인된 필수 항목 충족. 다음 단계 버튼으로 진행하세요.' : '3D 지도를 선택하면 단계별 저장 지도 위치추정 준비가 시작됩니다. 기존 2D 모드의 상태는 아래에서 확인하세요.')]));
-    el('details').textContent = JSON.stringify({ selected: selected ? { generation: selected.generation, localization_3d: selected.localization_3d, navigation_2d: selected.navigation_2d, seed_geometry: geometry } : null, pair: state?.pair, runtime: source, readiness: navigation.readiness, metrics: navigation.localization_health?.metrics, errors: model.issues.map(value => value.code), preparation_inputs: inputs, preparation_inputs_error: inputsError, observation_error: observationError, initialization_proposal: proposal, proposal_cleanup: cleanup, proposal_display_valid: Boolean(validPoses), proposal_error: proposalError, proposal_failure_detail: proposalFailureDetail, initialization_handoff: handoff, handoff_error: handoffError, handoff_failure_detail: handoffFailureDetail }, null, 2);
+    const issueNodes = model.issues.map(value => { const item = node('p'); item.append(node('strong', `${value.step}단계 · ${value.current}`), document.createElement('br'), node('span', `필요: ${value.required} → 해결: ${value.remedy}`)); return item; });
+    if (diagnosticIssue) issueNodes.push(node('p', `② ${diagnosticIssue} · 최종 관측 결과는 위 관측 검사를 확인하세요. 검사 값은 실시간이 아닙니다.`));
+    el('issues').replaceChildren(...(issueNodes.length ? issueNodes : [node('p', model.enabled ? '현재 확인된 필수 항목 충족. 다음 단계 버튼으로 진행하세요.' : '3D 지도를 선택하면 단계별 저장 지도 위치추정 준비가 시작됩니다. 기존 2D 모드의 상태는 아래에서 확인하세요.')]));
+    const detailInputs = inputs ? { ...inputs, evidence: inputs.evidence ? { ...inputs.evidence } : inputs.evidence } : null;
+    if (detailInputs?.evidence) { delete detailInputs.evidence.diagnostics; if (diagnostics) detailInputs.evidence.diagnostics = diagnostics; }
+    el('details').textContent = JSON.stringify({ selected: selected ? { generation: selected.generation, localization_3d: selected.localization_3d, navigation_2d: selected.navigation_2d, seed_geometry: geometry } : null, pair: state?.pair, runtime: source, readiness: navigation.readiness, metrics: navigation.localization_health?.metrics, errors: model.issues.map(value => value.code), preparation_inputs: detailInputs, diagnostics_note: diagnostics ? '검사 당시 값이며 실시간이 아닙니다. phase_ms는 서버 구간 경과이며 네트워크 왕복이나 lock 전용시간이 아닙니다.' : undefined, preparation_inputs_error: inputsError, observation_error: observationError, initialization_proposal: proposal, proposal_cleanup: cleanup, proposal_display_valid: Boolean(validPoses), proposal_error: proposalError, proposal_failure_detail: proposalFailureDetail, initialization_handoff: handoff, handoff_error: handoffError, handoff_failure_detail: handoffFailureDetail }, null, 2);
     return model;
   }
   async function refresh(force = false) {
@@ -541,6 +616,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
       const ages = Object.values(value.candidates || {}).map(item => item?.provenance?.age_s).filter(age => finite(age) && age >= 0);
       const oldestMs = ages.length ? Math.max(...ages) * 1000 : 500;
       setTimeout(() => { if (inputToken === inputsRevision) render(); }, Math.max(0, 501 - oldestMs - (performance.now() - requestedAt)));
+      if (value.evidence?.diagnostics) setTimeout(() => { if (inputToken === inputsRevision) render(); }, Math.max(0, 10001 - (performance.now() - requestedAt)));
       if (value.reference_pose) {
         const updateAge = () => { if (inputToken === inputsRevision) { render(); setTimeout(updateAge, 1000); } };
         setTimeout(updateAge, 1000);

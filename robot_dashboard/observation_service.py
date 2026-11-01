@@ -148,42 +148,45 @@ class ObservationService:
             )
 
 
-def inputs_ready(
-    pose: dict, cloud: dict, started: float, *, now: float | None = None
-) -> bool:
+def inspect_inputs(pose: dict, cloud: dict, started: float, *, now: float | None = None):
+    """One pure readiness predicate shared by admission and diagnostics."""
+    now = time.monotonic() if now is None else now
+    failures = []
+    def missing():
+        if 'INPUT_MISSING_OR_INVALID' not in failures:
+            failures.append('INPUT_MISSING_OR_INVALID')
+    def check(condition, code):
+        try:
+            if not condition():
+                failures.append(code)
+        except (AttributeError, KeyError, TypeError, ValueError):
+            failures.append(code)
+            missing()
+    check(lambda: pose.get('state') == 'ok', 'POSE_STATE')
+    check(lambda: pose['topic'] == '/Odometry', 'POSE_TOPIC')
+    check(lambda: pose['frame_id'] == 'camera_init', 'POSE_FRAME')
+    check(lambda: pose['child_frame_id'] == 'body', 'POSE_CHILD_FRAME')
+    check(lambda: cloud['topic'] == '/cloud_registered', 'CLOUD_TOPIC')
+    check(lambda: cloud['frame_id'] == 'camera_init', 'CLOUD_FRAME')
+    check(lambda: cloud.get('units') == 'm', 'CLOUD_UNITS')
+    check(lambda: cloud.get('sent_points', 0) > 0, 'CLOUD_POINTS')
+    check(lambda: not started <= 0, 'SESSION_START')
+    for sample, prefix in ((pose, 'POSE'), (cloud, 'CLOUD')):
+        def receipt_ok():
+            received = sample['observation']['received_monotonic_s']
+            return (type(received) in (int, float) and math.isfinite(received)
+                    and 0 <= now - received <= 1 and not received < started)
+        def graph_ok():
+            graph = sample['observation']['subscription_evidence']['graph']
+            graph_at = graph.get('observed_monotonic_s')
+            return (graph.get('state') == 'ok' and graph.get('endpoint_count') == 1
+                    and type(graph_at) in (int, float) and math.isfinite(graph_at)
+                    and 0 <= now - graph_at <= 3 and graph.get('reported_publisher_count') == 1)
+        check(receipt_ok, prefix + '_RECEIPT')
+        check(graph_ok, prefix + '_GRAPH')
+    return {'ready': not failures, 'failures': failures}
+
+
+def inputs_ready(pose: dict, cloud: dict, started: float, *, now: float | None = None) -> bool:
     """Readiness means current inputs, never map registration or body accuracy."""
-    try:
-        now = time.monotonic() if now is None else now
-        if (
-            pose.get("state") != "ok"
-            or pose["topic"] != "/Odometry"
-            or pose["frame_id"] != "camera_init"
-            or pose["child_frame_id"] != "body"
-            or cloud["topic"] != "/cloud_registered"
-            or cloud["frame_id"] != "camera_init"
-            or cloud.get("units") != "m"
-            or not cloud.get("sent_points", 0) > 0
-            or started <= 0
-        ):
-            return False
-        for sample in (pose, cloud):
-            observation = sample["observation"]
-            received = observation["received_monotonic_s"]
-            graph = observation["subscription_evidence"]["graph"]
-            graph_at = graph.get("observed_monotonic_s")
-            if (
-                type(received) not in (int, float)
-                or not math.isfinite(received)
-                or not 0 <= now - received <= 1
-                or received < started
-                or graph.get("state") != "ok"
-                or graph.get("endpoint_count") != 1
-                or type(graph_at) not in (int, float)
-                or not math.isfinite(graph_at)
-                or not 0 <= now - graph_at <= 3
-                or graph.get("reported_publisher_count") != 1
-            ):
-                return False
-        return True
-    except (KeyError, TypeError, ValueError):
-        return False
+    return inspect_inputs(pose, cloud, started, now=now)["ready"]

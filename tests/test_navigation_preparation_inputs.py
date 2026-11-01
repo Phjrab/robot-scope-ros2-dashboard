@@ -304,6 +304,186 @@ class PreparationTests(unittest.TestCase):
         self.assertIsNone(result['reference_pose'])
 
 
+class PreparationRefreshTests(unittest.TestCase):
+    @staticmethod
+    def refresh(agent, stamp='12346'):
+        now = time.monotonic()
+        for sample in (agent.cloud, agent.pose):
+            sample['observation']['received_monotonic_s'] = now
+            sample['observation']['source_stamp_ns'] = stamp
+            sample['observation']['subscription_evidence']['graph']['observed_monotonic_s'] = now
+
+    def test_new_exact_pair_after_slow_map_or_health_is_used(self):
+        for phase in ('map', 'health'):
+            with self.subTest(phase=phase):
+                manager, service, agent, state, _ = fixture()
+                manager.preparation_snapshot = lambda: copy.deepcopy(state)
+                def slow_status():
+                    if phase == 'map':
+                        time.sleep(1.05); self.refresh(agent)
+                    return copy.deepcopy(state)
+                def health(_):
+                    if phase == 'health':
+                        time.sleep(1.05); self.refresh(agent)
+                    return {}
+                manager.status = slow_status
+                agent._navigation_runtime_health_snapshot = health
+                result = preparation_inputs(manager, service, agent)
+                self.assertTrue(result['evidence']['valid'], result['evidence'])
+                self.assertEqual(result['reference_pose']['source_stamp_ns'], '12346')
+                self.assertEqual(result['evidence']['pose']['source_stamp_ns'], '12346')
+                diagnostic = result['evidence']['diagnostics']
+                self.assertIsNone(diagnostic['failure_stage'])
+                checks = {entry['stage']: entry for entry in diagnostic['checks']}
+                self.assertEqual(checks['initial_paired']['cloud']['source_stamp_ns'], '12345')
+                self.assertEqual(checks['final_paired']['cloud']['source_stamp_ns'], '12346')
+                self.assertTrue(checks['response_pair']['ready'])
+                self.assertGreaterEqual(diagnostic['phase_ms']['pair_validation' if phase == 'map' else 'health_and_handoff'], 1000.)
+
+    def test_intermediate_freshness_clock_follows_source_snapshot(self):
+        manager, service, agent, state, _ = fixture()
+        manager.preparation_snapshot = lambda: copy.deepcopy(state)
+        original = agent.pointcloud_binary_snapshot
+        reads = [0]
+        def updating():
+            reads[0] += 1
+            if reads[0] == 2:
+                self.refresh(agent)
+            return original()
+        agent.pointcloud_binary_snapshot = updating
+        result = preparation_inputs(manager, service, agent)
+        self.assertTrue(result['evidence']['valid'], result['evidence'])
+        self.assertEqual(result['reference_pose']['source_stamp_ns'], '12346')
+
+    def test_handoff_work_finishes_before_final_pair_capture(self):
+        manager, service, agent, state, _ = fixture()
+        manager.preparation_snapshot = lambda: copy.deepcopy(state)
+        execution = manager.preparation_execution()
+        state['selected']['seed_geometry'] = {'source':'proposal_confirmed', 'handoff':{'job_id':execution['job_id'], 'handoff_id':'1'*32}}
+        state['initialization_handoff'] = {'state':'SNAPSHOTTED'}
+        agent.health = active_health(state['pair'])
+        source = agent.health['operational_3d']
+        source.update(match_armed=True, match_receipt={'accepted':True, 'localization_generation':source['localization_generation']})
+        def record(*args):
+            time.sleep(1.05); self.refresh(agent)
+        manager.record_match_armed = record
+        manager.handoff_status = lambda *args, **kwargs: {'state':'MATCH_ARMED'}
+        result = preparation_inputs(manager, service, agent)
+        self.assertTrue(result['evidence']['valid'], result['evidence'])
+        self.assertEqual(result['reference_pose']['source_stamp_ns'], '12346')
+        self.assertFalse(result['operational_state']['runtime_fresh'])
+        self.assertEqual(result['operational_state']['initialization_handoff']['state'], 'OUTCOME_UNKNOWN')
+        self.assertGreaterEqual(result['evidence']['diagnostics']['phase_ms']['health_and_handoff'], 1000.)
+
+    def test_final_calibration_delay_expires_captured_pair_at_response(self):
+        manager, service, agent, state, _ = fixture()
+        manager.preparation_snapshot = lambda: copy.deepcopy(state)
+        def slow_verify(*args):
+            time.sleep(1.05); self.refresh(agent)
+        manager.verify_preparation_calibration = slow_verify
+        result = preparation_inputs(manager, service, agent)
+        self.assertFalse(result['evidence']['valid'])
+        self.assertIsNone(result['reference_pose'])
+        diagnostic = result['evidence']['diagnostics']
+        self.assertEqual(diagnostic['failure_stage'], 'response_pair')
+        last = diagnostic['checks'][-1]
+        self.assertEqual(last['stage'], 'response_pair')
+        self.assertFalse(last['ready'])
+        self.assertIn('POSE_RECEIPT', last['failures'])
+        self.assertGreater(last['pose']['receipt_age_s'], 1.)
+        self.assertEqual(last['pose']['source_stamp_ns'], '12345')
+
+    def test_final_calibration_change_rejects_new_pair(self):
+        manager, service, agent, state, _ = fixture()
+        manager.preparation_snapshot = lambda: copy.deepcopy(state)
+        def invalid_calibration(*args):
+            raise ValueError('CALIBRATION_CHANGED')
+        manager.verify_preparation_calibration = invalid_calibration
+        result = preparation_inputs(manager, service, agent)
+        self.assertFalse(result['evidence']['valid'])
+        self.assertEqual(result['evidence']['reason'], 'CONTEXT_CHANGED')
+        self.assertIsNone(result['reference_pose'])
+        self.assertIsNone(result['operational_state'])
+        diagnostic = result['evidence']['diagnostics']
+        self.assertEqual((diagnostic['failure_stage'], diagnostic['failure_code']),
+                         ('calibration_fence', 'CALIBRATION_CHANGED'))
+        self.assertIsNone(diagnostic['failure_sample'])
+
+    def test_observed_stamp_regression_and_wrong_new_exact_pair_fail_closed(self):
+        manager, service, agent, state, _ = fixture()
+        manager.preparation_snapshot = lambda: copy.deepcopy(state)
+        def regress():
+            self.refresh(agent, '12344')
+            return copy.deepcopy(state)
+        manager.status = regress
+        result = preparation_inputs(manager, service, agent)
+        self.assertFalse(result['evidence']['valid'])
+        self.assertEqual(result['evidence']['reason'], 'CONTEXT_CHANGED')
+        self.assertEqual(result['evidence']['diagnostics']['failure_code'], 'STAMP_REGRESSION')
+        manager, service, agent, state, _ = fixture()
+        manager.preparation_snapshot = lambda: copy.deepcopy(state)
+        calls = [0]
+        original = agent.observation_pose_near
+        def mismatched(*args, **kwargs):
+            calls[0] += 1
+            pose = original(*args, **kwargs)
+            if calls[0] == 2:
+                pose['observation']['source_stamp_ns'] = '12344'
+            return pose
+        agent.observation_pose_near = mismatched
+        result = preparation_inputs(manager, service, agent)
+        self.assertFalse(result['evidence']['valid'])
+        self.assertEqual(result['evidence']['diagnostics']['failure_stage'], 'final_paired')
+        self.assertEqual(result['evidence']['diagnostics']['failure_code'], 'EXACT_STAMP_MISMATCH')
+
+    def test_first_diagnostic_remains_when_later_context_changes_reason(self):
+        manager, service, agent, state, _ = fixture()
+        manager.preparation_snapshot = lambda: copy.deepcopy(state)
+        agent.pose['topic'] = '/wrong'
+        def changed():
+            result = copy.deepcopy(state)
+            result['pair']['generation'] = '9'*32
+            return result
+        manager.status = changed
+        result = preparation_inputs(manager, service, agent)
+        self.assertEqual(result['evidence']['reason'], 'CONTEXT_CHANGED')
+        diag = result['evidence']['diagnostics']
+        self.assertEqual((diag['failure_stage'], diag['failure_code']),
+                         ('initial_latest', 'OBSERVATION_STALE_OR_SOURCE_INVALID'))
+        self.assertEqual(diag['failure_sample']['pose']['topic'], '/wrong')
+        self.assertIsNone(diag['phase_ms']['final_capture'])
+
+    def test_missing_session_skips_capture_and_uses_null_not_fake_duration(self):
+        manager, service, agent, state, session = fixture()
+        session.update(active=False, state='STOPPED', session_id=None)
+        result = preparation_inputs(manager, service, agent)
+        diag = result['evidence']['diagnostics']
+        self.assertEqual(diag['failure_stage'], 'session')
+        self.assertIsNone(diag['phase_ms']['initial_capture'])
+        self.assertIsNone(diag['phase_ms']['final_capture'])
+        self.assertIsNone(diag['failure_sample'])
+        self.assertEqual(diag['checks'], [])
+
+    def test_diagnostics_preserve_first_failure_and_bound_metadata(self):
+        manager, service, agent, state, _ = fixture()
+        manager.preparation_snapshot = lambda: copy.deepcopy(state)
+        agent.pose['topic'] = '/wrong'
+        del agent.pose['observation']['received_monotonic_s']
+        result = preparation_inputs(manager, service, agent)
+        diagnostic = result['evidence']['diagnostics']
+        self.assertFalse(result['evidence']['valid'])
+        self.assertEqual(diagnostic['failure_stage'], 'initial_latest')
+        first = diagnostic['checks'][0]
+        self.assertFalse(first['ready'])
+        self.assertIn('POSE_TOPIC', first['failures'])
+        self.assertIn('POSE_RECEIPT', first['failures'])
+        self.assertIsNone(first['pose']['receipt_age_s'])
+        self.assertNotIn('points_bytes', json.dumps(diagnostic))
+        self.assertNotIn('position', json.dumps(diagnostic))
+        self.assertNotIn('orientation', json.dumps(diagnostic))
+        self.assertIsNone(diagnostic['phase_ms']['final_capture'])
+
+
 class PreparationTransportTests(unittest.IsolatedAsyncioTestCase):
     async def test_get_is_read_only_and_returns_contract(self):
         runtime = ApplicationRuntime()
