@@ -1,0 +1,94 @@
+{
+  "checkpoint_head": "cdf9e04e3da6478409c19c2be3e1e35a58b229be",
+  "branch": "integration/20261101-expansion",
+  "prior_documents_sha256": {
+    "CAPACITY_RESULTS.json": "8f039f80876e8b19ab65eb3c91b487d4fa38b34123df5834dc176609b0b2688a",
+    "TIMER_AFTER.json": "91f33f610ee9c4dc591435a303276ab1a9d342686fa9b1920f3f3a463949f33e",
+    "SOURCE_LOCK.json": "904b1eabaa4f6e63dce4b430767f5938899c35db7f76bfee69de00abb744b4c7",
+    "SECURITY_AND_SAFETY.md": "ea42cda7278b384f4f911ab95a779070299844aa762afabf828d71f4bcc09847",
+    "POLL_BEFORE_HOST.json": "e0fb3f25483d8b7d9572c91b667d6c6d899290cd9b784c82418e1fd10beed483",
+    "SOURCE_CI.json": "a9d681a883924d0b24a4a678d8b40cc2af0c0ce82e0edfb1e46603f7ef281d8c",
+    "NATIVE_REPLAY_RESULTS.json": "f42617edfd8fd9897acb8bda2cf31f2cdd55296897d95711de87dd40af7dabd0",
+    "INTEGRATION_MATRIX.md": "ca6fb5f88bd8a0cf9b92a62865362f85bd6e58239c1d3fbeb3f137d041e19308",
+    "VALIDATION.md": "cc11fd5017777153ff71f57cf28b86ce94baee0d7e4131e4b18963a855ca31d5",
+    "RESULTS.json": "3167b3cfcc75c7377e7cd29e590fe30ebf11a396391f2bb52dafe80955e77ba1",
+    "C0_RECONCILIATION.md": "a53f87f961a076a2bde3f858cdc7b4c42948b5742c8c4b4459649bfbbb7c08b8",
+    "TIMER_BEFORE.json": "d620100cb3e6f34f776227c1bad3f6f443161f992262aa52ea0439a771f3eaea",
+    "FEATURE_FLAGS_AND_ROLLBACK.md": "eb8f60c36f2406f43b44c1ba3ea7c38f7470403e2a280a7098da06b85fc23a0c",
+    "HANDOFF.md": "5706c74bfc8264a0d12cf07de572d7d623888da7bb4340fe308869bb38b8b4bc"
+  },
+  "prior_exact_head_ci": {
+    "checked_utc": "2026-11-01T04:50:32.325475+00:00",
+    "head": "cdf9e04e3da6478409c19c2be3e1e35a58b229be",
+    "runs": [
+      {
+        "id": 41273486738,
+        "name": "I0 offline product integration",
+        "head_sha": "cdf9e04e3da6478409c19c2be3e1e35a58b229be",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41273486738",
+        "jobs": [
+          {
+            "id": 124750861050,
+            "name": "product-and-capacity",
+            "status": "completed",
+            "conclusion": "success",
+            "html_url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41273486738/job/124750861050",
+            "started_at": "2026-11-01T04:32:28Z",
+            "completed_at": "2026-11-01T04:33:58Z"
+          }
+        ]
+      },
+      {
+        "id": 41273486735,
+        "name": "CI",
+        "head_sha": "cdf9e04e3da6478409c19c2be3e1e35a58b229be",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41273486735",
+        "jobs": [
+          {
+            "id": 124750860628,
+            "name": "competition-offline-integration",
+            "status": "completed",
+            "conclusion": "success",
+            "html_url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41273486735/job/124750860628",
+            "started_at": "2026-11-01T04:32:33Z",
+            "completed_at": "2026-11-01T04:33:36Z"
+          },
+          {
+            "id": 124750860806,
+            "name": "hardware-free-tests (ubuntu-24.04, 3.12)",
+            "status": "completed",
+            "conclusion": "success",
+            "html_url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41273486735/job/124750860806",
+            "started_at": "2026-11-01T04:32:28Z",
+            "completed_at": "2026-11-01T04:50:11Z"
+          },
+          {
+            "id": 124750860873,
+            "name": "hardware-free-tests (ubuntu-22.04, 3.10)",
+            "status": "completed",
+            "conclusion": "success",
+            "html_url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41273486735/job/124750860873",
+            "started_at": "2026-11-01T04:32:28Z",
+            "completed_at": "2026-11-01T04:48:21Z"
+          }
+        ]
+      }
+    ]
+  },
+  "input_zip_sha256": "81661d5f3c64f30543b939949b0d5ffe1cf1777f65555dfd7c0206c34388fe2c",
+  "note": "Immutable prior completion is available at checkpoint_head. Follow-up evidence is separate.",
+  "fresh_baseline": {
+    "python": {
+      "log_sha256": "43ab4cc31578b299c04a41ad7d7c5949e28a8e0056bff65ae61dc7297f71f253",
+      "tail": "nt_terminates_owned_process_group (test_offline_registration.OfflineRegistrationTests.test_cancel_event_terminates_owned_process_group) ... ok\ntest_confidence_never_promotes_ambiguous_or_sparse_geometry (test_offline_registration.OfflineRegistrationTests.test_confidence_never_promotes_ambiguous_or_sparse_geometry) ... ok\ntest_distinct_synthetic_corpus_meets_translation_and_yaw_targets (test_offline_registration.OfflineRegistrationTests.test_distinct_synthetic_corpus_meets_translation_and_yaw_targets) ... ok\ntest_extended_matrix_records_failures_separately_from_acceptance (test_offline_registration.OfflineRegistrationTests.test_extended_matrix_records_failures_separately_from_acceptance) ... "
+    },
+    "js": {
+      "log_sha256": "28a55ee8af90bf8f47b7d5799cf893e443a44b64fc8c09def362a0decd804997",
+      "tail": "own state and blocker codes stay verbatim instead of acquiring an invented cause\nok 730 - unknown state and blocker codes stay verbatim instead of acquiring an invented cause\n  ---\n  duration_ms: 0.201554\n  ...\n# Subtest: synthetic and replay labels never describe live data\nok 731 - synthetic and replay labels never describe live data\n  ---\n  duration_ms: 0.117004\n  ...\n# Subtest: navigation blockers identify only their reported condition and a relevant check\nok 732 - navigation blockers identify only their reported condition and a relevant check\n  ---\n  duration_ms: 0.200338\n  ...\n1..732\n# tests 776\n# suites 0\n# pass 774\n# fail 0\n# cancelled 0\n# skipped 2\n# todo 0\n# duration_ms 2930.012121\n"
+    }
+  }
+}
