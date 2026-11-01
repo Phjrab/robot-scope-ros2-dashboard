@@ -9,6 +9,7 @@ import threading
 import time
 from .measure import encoded, fingerprint, stats
 from .observations import owners, sample
+from .http_probe import http_snapshot
 
 
 async def queue_probe(deps):
@@ -94,7 +95,7 @@ def canonical_composition(deps, measure, node):
             return dict(status='FAIL', reason=result.intent.reason, stage='C4 Runtime', evidence_kind='ACTUAL_CODE')
         try:
             service = measure.call('C4_compact_and_C1_ingest_scene', fixtures.scene, runtime, result, clock)
-            raw = measure.call('C1_ASGI_HTTP_response_including_fixture_setup', fixtures.http_snapshot, service)
+            raw = measure.call('C1_loopback_HTTP_response_including_fixture_setup', http_snapshot, service)
         except (ValueError, TypeError, KeyError, AssertionError) as exc:
             measure.warmup = False
             return dict(status='FAIL', reason=str(exc), stage='C4_C1_SCENE_HTTP', evidence_kind='ACTUAL_CODE')
@@ -110,7 +111,7 @@ def canonical_composition(deps, measure, node):
     if consumer.get('timings'):
         consumer['timing_summary'] = {stage:stats([e[stage] for e in consumer['timings'] if not e['warmup']])
                                      for stage in ('parse_ms','adapt_ms','consume_ms')}
-    return dict(status=consumer['status'], actual_http='ASGI_IN_PROCESS_NO_TCP',
+    return dict(status=consumer['status'], actual_http='TCP_LOOPBACK_STDLIB_CLIENT',
         input='C4 existing latest_fixtures; actual numerical cores; explicit generated clock mapping',
         results=records, c3=consumer, product_enforcement=False,
         end_to_end_latency='UNKNOWN; Python and JS clocks have no mapping',

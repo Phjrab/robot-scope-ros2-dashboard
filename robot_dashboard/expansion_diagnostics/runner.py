@@ -34,7 +34,7 @@ def run_diagnostics(repo, deps, profile, node, browser_report=None, config_snaps
         diagnostic_source_sha256={}, diagnostic_working_tree=git(repo,'status','--porcelain').decode().strip(),
         environment=dict(python=sys.version, platform=platform.platform(), machine=platform.machine(),
             node=subprocess.check_output([node, '--version'], text=True).strip(),
-            packages={n: importlib.metadata.version(n) for n in ('numpy','scipy','fastapi','pydantic','httpx')},
+            packages={n: importlib.metadata.version(n) for n in ('numpy','scipy','fastapi','pydantic','uvicorn')},
             thread_environment={k:os.environ.get(k, 'UNSET') for k in ('OPENBLAS_NUM_THREADS','OMP_NUM_THREADS','MKL_NUM_THREADS')},
             load_average=os.getloadavg(), concurrent_external_work='NOT_CONTROLLED_OR_MEASURED; other chats/processes may overlap'),
         configuration=config, config_sha256=fingerprint(config), baseline=baseline, cases=[],

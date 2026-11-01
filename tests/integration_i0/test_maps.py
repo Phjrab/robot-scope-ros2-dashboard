@@ -4,7 +4,7 @@ import time
 import unittest
 
 from fastapi import FastAPI
-from fastapi.testclient import TestClient
+from tests.expansion_services.http_client import TestClient
 
 from robot_dashboard.expansion_contracts import FusionRequest
 from robot_dashboard.expansion_integration.flags import ExpansionFlags
@@ -16,7 +16,7 @@ class MapIntegrationTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="i0-maps-")
         self.composition = compose(self.temp.name)
-        self.client = TestClient(self.composition.app)
+        self.client = TestClient(self.composition.app, base_url="http://testserver")
         self.client.__enter__()
         self.headers = {"x-i0-synthetic-fixture": "local-test-only", "Origin": "http://testserver"}
 
@@ -37,7 +37,7 @@ class MapIntegrationTests(unittest.TestCase):
         self.assertIsNone(install_expansion(app))
         self.assertEqual(before, app.routes)
         install_expansion(app, ExpansionFlags(multimap=True))
-        with TestClient(app) as client:
+        with TestClient(app, base_url="http://testserver") as client:
             self.assertEqual(client.get('/api/v1/extensions/multimap/sources').status_code,401)
             self.assertIn('BLOCKED_AUTH',client.get('/extensions').text)
         for path in ['/multimap/sources','/scene/assets/'+'1'*24+'/'+'1'*64]:

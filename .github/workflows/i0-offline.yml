@@ -29,6 +29,8 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Installed core, authorization, replay and default-OFF boundaries
         run: python -m unittest discover -s tests/integration_i0 -t . -v
+      - name: Deny undeclared optional HTTP clients
+        run: python -m tests.integration_i0.verify_declared_dependencies
       - name: Expansion JavaScript contracts
         run: node --test tests/expansion_c2/*.test.mjs tests/expansion_c3/test_*.mjs tests/expansion_c6/test_replay.mjs
       - name: Actual product host, generated inputs, responsive UI and replay

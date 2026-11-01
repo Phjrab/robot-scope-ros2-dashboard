@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import patch
 
 from fastapi import FastAPI
-from fastapi.testclient import TestClient
+from tests.expansion_services.http_client import TestClient
 from robot_dashboard.expansion_integration.bootstrap import configure_expansion
 from robot_dashboard.expansion_integration.flags import ExpansionFlags
 from robot_dashboard.expansion_integration.host import ExpansionOwner, install_expansion
@@ -26,14 +26,14 @@ class ProductBoundaries(unittest.TestCase):
     def test_unconfigured_product_auth_and_independent_flags_fail_closed(self):
         app = FastAPI()
         install_expansion(app, ExpansionFlags(multimap=True))
-        with TestClient(app) as client:
+        with TestClient(app, base_url="http://testserver") as client:
             self.assertEqual(client.get('/api/v1/extensions/multimap/sources').status_code, 401)
             self.assertEqual(client.post('/api/v1/extensions/multimap/jobs', json={}).status_code, 401)
             self.assertEqual(client.get('/api/v1/extensions/scene/context').status_code, 404)
             self.assertIn('BLOCKED_AUTH', client.get('/extensions').text)
         app = FastAPI()
         install_expansion(app, ExpansionFlags(multimap=True), ExpansionOwner(authorize=lambda _:None))
-        with TestClient(app) as client:
+        with TestClient(app, base_url="http://testserver") as client:
             self.assertEqual(client.post('/api/v1/extensions/multimap/jobs', json={},
                 headers={'Origin':'http://testserver'}).status_code, 403)
             self.assertEqual(client.get('/api/v1/extensions/multimap/sources').status_code, 503)
