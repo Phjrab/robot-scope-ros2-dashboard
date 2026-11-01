@@ -11,8 +11,8 @@ export const PREPARATION_STEPS = [
 
 const REASONS = {
   WAITING_EXPLICIT_INITIAL_POSE: ['초기 위치·방향 미지정', '실제 정지 상태에서 INITIAL POSE를 지정·전송하세요.'],
-  WAITING_EXPLICIT_MAP_MATCH: ['정합 시작 입력 필요', '초기 위치 접수 후 ⑤ 정합 시작을 누르세요.'],
-  WAITING_EXPLICIT_MATCH: ['정합 시작 입력 필요', '초기 위치 접수 후 ⑤ 정합 시작을 누르세요.'],
+  WAITING_EXPLICIT_MAP_MATCH: ['정합 시작 입력 필요', '초기 위치 접수 후 ④ 정합 시작을 누르세요.'],
+  WAITING_EXPLICIT_MATCH: ['정합 시작 입력 필요', '초기 위치 접수 후 ④ 정합 시작을 누르세요.'],
   WAITING_EXACT_STAMP_PAIR: ['동일 시각 점군·자세 입력 부족', '센서 입력·시각과 TF 상태를 확인한 뒤 해당 단계에서 다시 확인하세요.'],
   INITIAL_REFINEMENT_LOW_OVERLAP: ['지도와 겹치는 관측 부족', '실제 위치·방향과 현재 관측 가능한 구조를 확인하세요.'],
   INITIAL_REFINEMENT_REQUIRES_STOP: ['실제 정지·대기 미충족', '로봇을 정지하고 관측된 정지 시간이 충족된 뒤 다시 확인하세요.'],
@@ -62,6 +62,15 @@ const INPUT_REASONS = {
   GLOBAL_BACKEND_UNAVAILABLE: '전역 위치 제안 기능을 사용할 수 없습니다 → 서버 구성을 확인하세요.',
   GLOBAL_JOB_NOT_READY: '위치 제안 계산이 아직 준비되지 않았습니다 → 현재 상태를 확인하세요.',
   GLOBAL_AMBIGUOUS: '서로 구분되지 않는 위치 후보가 있습니다 → 관측과 지도 단서를 확인하세요.',
+  PRIOR_NO_MATCH: '초안 범위 안에 조건을 충족하는 후보가 없습니다 → 초안과 관측을 다시 확인하세요.',
+  PRIOR_MULTIPLE_MATCHES: '초안 범위 안에 여러 후보가 있습니다 → 모호성이 남아 있습니다.',
+  CANDIDATE_RETENTION_UNCONFIRMED: '비교할 후보 집합의 완전성을 확인하지 못했습니다.',
+  CANDIDATE_QUALITY_UNAVAILABLE: '후보 품질을 모두 확인하지 못했습니다.',
+  OPERATOR_PRIOR_EXPIRED: '사용자 초안의 사용 시간이 지났습니다 → 현재 위치를 다시 확인하세요.',
+  PRIOR_HANDOFF_MISMATCH: '초안과 후보가 기존 초기 위치 허용 범위를 벗어났습니다 → 다시 확인하세요.',
+  CONDITIONAL_PRIOR_CONFIRMATION_REQUIRED: '조건부 후보의 명시적 확인이 필요합니다.',
+  OPERATOR_PRIOR_PROOF_CHANGED: '초안 또는 후보 근거가 변경됐습니다 → 다시 확인하세요.',
+  INITIAL_POSE_PRIOR_MISMATCH: '초기 위치가 사용자 초안 범위를 벗어났습니다 → 다시 확인하세요.',
   GLOBAL_CANDIDATE_REJECTED: '위치 제안이 품질 검사를 통과하지 못했습니다 → 현재 관측을 확인하세요.',
   CALIBRATION_CHANGED: '교정이 변경됐습니다 → 지도와 교정 상태를 다시 확인하세요.',
   OWNERSHIP_BUSY_OR_UNKNOWN: '다른 작업이 점유 중이거나 점유 상태를 확인하지 못했습니다 → 현재 작업 상태를 확인하세요.',
@@ -148,6 +157,36 @@ function preparationDiagnostics(value) {
     failure_sample, checks, phase_ms };
 }
 const pin = map => map && `${map.map_id || map.id}:${map.revision}`;
+const CONDITIONAL_POLICY = 'robot-scope.proposal-handoff.operator-prior-v1';
+function sameOperatorPrior(a, b) {
+  const keys = (value, expected) => value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === expected.length && expected.every(key => Object.hasOwn(value, key));
+  const shape = value => keys(value, ['frame','pose_reference','units','pose','bounds','source','stationary_current_pose_confirmed','navigation_map_id','navigation_map_revision','calibration_sha256']) && keys(value.pose, ['x','y','yaw']) && keys(value.bounds, ['xy_m','yaw_rad']);
+  return Boolean(shape(a) && shape(b) && ['frame', 'pose_reference', 'units', 'source', 'stationary_current_pose_confirmed', 'navigation_map_id', 'navigation_map_revision', 'calibration_sha256'].every(key => a[key] === b[key])
+    && ['x', 'y', 'yaw'].every(key => a.pose?.[key] === b.pose?.[key]) && ['xy_m', 'yaw_rad'].every(key => a.bounds?.[key] === b.bounds?.[key]));
+}
+function validConditionalResolution(proof, ctx) {
+  const prior = proof?.operator_prior, diagnostic = proof?.candidate_vs_prior;
+  const distanceOk = finite(diagnostic?.xy_distance_m) && diagnostic.xy_distance_m >= 0 && finite(diagnostic?.absolute_wrapped_yaw_rad) && diagnostic.absolute_wrapped_yaw_rad >= 0;
+  return Boolean(proof?.schema === 'robot-scope.operator-prior-resolution.v1' && proof.classification === 'CONDITIONAL_ON_OPERATOR_PRIOR'
+    && proof.original_ambiguity_preserved === true && typeof proof.original_ambiguity_unresolved === 'boolean' && proof.global_uniqueness_verified === false && proof.absolute_accuracy_m === null
+    && /^[a-f0-9]{32}$/.test(proof.prior_id || '') && /^[a-f0-9]{64}$/.test(proof.source_contract_sha256 || '') && /^[a-f0-9]{64}$/.test(proof.original_observation_sha256 || '')
+    && /^[1-9][0-9]{0,19}$/.test(proof.prior_anchor_stamp_ns || '') && finite(proof.accepted_monotonic_s) && finite(proof.expires_monotonic_s)
+    && proof.accepted_monotonic_s >= 0 && proof.expires_monotonic_s > proof.accepted_monotonic_s && proof.expires_monotonic_s - proof.accepted_monotonic_s <= 120
+    && proof.bundle_generation === ctx.generation && proof.observation_session_id === ctx.session_id && proof.calibration_sha256 === ctx.calibration_sha256
+    && samePin(proof.localization_3d, ctx.localization_3d) && samePin(proof.navigation_2d, ctx.navigation_2d)
+    && prior?.frame === 'map' && prior.pose_reference === 'base_link' && prior.units === 'metres_radians' && prior.source === 'OPERATOR_CURRENT_MAP_DRAFT'
+    && prior.stationary_current_pose_confirmed === true && prior.navigation_map_id === ctx.navigation_2d?.map_id && prior.navigation_map_revision === ctx.navigation_2d?.revision
+    && prior.calibration_sha256 === ctx.calibration_sha256 && sameOperatorPrior(prior, prior) && ['x','y','yaw'].every(key => finite(prior.pose?.[key])) && Math.abs(prior.pose.x) <= 1000 && Math.abs(prior.pose.y) <= 1000 && Math.abs(prior.pose.yaw) <= Math.PI
+    && finite(prior.bounds?.xy_m) && prior.bounds.xy_m >= .1 && prior.bounds.xy_m <= 3 && finite(prior.bounds?.yaw_rad) && prior.bounds.yaw_rad >= Math.PI / 180 && prior.bounds.yaw_rad <= Math.PI / 2
+    && (!ctx.operatorPrior || sameOperatorPrior(prior, ctx.operatorPrior))
+    && Number.isInteger(proof.candidate_index) && Number.isInteger(proof.retained_candidate_count) && Number.isInteger(proof.eligible_candidate_count)
+    && proof.candidate_index >= 0 && proof.candidate_index < proof.retained_candidate_count && proof.retained_candidate_count <= 18
+    && proof.eligible_candidate_count >= 1 && proof.eligible_candidate_count <= proof.retained_candidate_count && proof.matching_candidate_count === 1
+    && proof.projection_basis === 'NAV_LOCALIZATION_CAPTURE_TO_PRIOR_ODOM_IMU_BASE' && distanceOk
+    && diagnostic.xy_distance_m <= prior.bounds.xy_m && diagnostic.absolute_wrapped_yaw_rad <= prior.bounds.yaw_rad
+    && typeof diagnostic.within_existing_handoff_reference === 'boolean'
+    && diagnostic.within_existing_handoff_reference === (diagnostic.xy_distance_m <= .25 && diagnostic.absolute_wrapped_yaw_rad <= .20));
+}
 const issue = (code, current, required, remedy, step) => ({ code, current, required, remedy, step });
 const samePin = (a, b) => Boolean(a && b && pin(a) === pin(b));
 
@@ -209,10 +248,10 @@ export function preparationModel({ state, navigation = {}, draft3d, draft2d, err
   }
   if (nodesReady && !marker) issues.push(issue('INITIAL_POSE_REQUIRED', '이번 실행의 초기 위치 접수 없음', '현재 지도·실행에 접수된 사용자 위치·방향', '④ INITIAL POSE로 지도에서 현재 위치·방향을 지정하고 SEND POSE를 누르세요.', 4));
   if (marker && !tracking) {
-    const [reason, remedy] = REASONS[source.state] || [`정합 확인 필요: ${source.state || '입력 없음'}`, '⑤의 현재 잔차·겹침·입력·정지 상태와 주행 로그를 확인하세요.'];
+    const [reason, remedy] = REASONS[source.state] || [`정합 확인 필요: ${source.state || '입력 없음'}`, '④의 현재 잔차·겹침·입력·정지 상태와 주행 로그를 확인하세요.'];
     issues.push(issue(source.state || 'MATCH_REQUIRED', reason, '품질 검사에 통과한 신선한 저장 지도 보정', remedy, 5));
   }
-  if (tracking && !goalReady) issues.push(issue('GOAL_CONDITIONS_REQUIRED', (navigation.safety?.blockers || []).join(' · ') || '목표 전송 조건 미충족', '기존 source·TF·정지·대기·제어 조건', '아래 안전 상태와 정지·대기 증거를 확인하세요. 조건이 회복되면 ⑥부터 다시 확인합니다.', 6));
+  if (tracking && !goalReady) issues.push(issue('GOAL_CONDITIONS_REQUIRED', (navigation.safety?.blockers || []).join(' · ') || '목표 전송 조건 미충족', '기존 source·TF·정지·대기·제어 조건', '아래 안전 상태와 정지·대기 증거를 확인하세요. 조건이 회복되면 ⑤부터 다시 확인합니다.', 6));
   if (!available) issues.unshift(issue('STATUS_UNAVAILABLE', '현재 준비 상태 수신 실패', '신선한 서버 상태', '연결을 확인하고 현재 단계 다시 확인을 누르세요.', 1));
   if (error) issues.unshift(issue('REQUEST_REJECTED', error, '서버 검증 통과', '표시된 항목을 해결한 뒤 해당 버튼으로 다시 확인하세요.', 1));
   const statuses = ['미시작', '미시작', '미시작', '미시작', '미시작', '미시작', '미시작'];
@@ -240,9 +279,9 @@ export function preparationModel({ state, navigation = {}, draft3d, draft2d, err
   };
 }
 
-export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect, api, context, onChange, actions }) {
+export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect, api, context, onChange, actions, getOperatorDraft = () => ({ status: 'none' }) }) {
   let state = null, busy = false, available = false, error = '', fetchError = '', checkedAt = 0, refreshing = false, draftTouched = false, actionStep = null;
-  let draftContextEpoch = 0, draftContextConfirmed = false, draftRefreshPending = false;
+  let draftContextEpoch = 0, draftContextConfirmed = false, draftRefreshPending = false, priorAckRevision = null, observationDraftPending = false, observationDraftAction = null;
   let lastContext = '', invalidated = '', selected3d = '', draft3dRevision = '', geometryGeneration = '';
   let inputs = null, inputsError = '', observationError = '', observationBusy = false, inputsRevision = 0, inputsRequestedAt = 0;
   let proposal = null, proposalError = '', proposalFailureDetail = '', proposalBusy = false, proposalEpoch = 0, proposalContext = null, proposalVerified = false, proposalCheckedAt = 0, proposalTimer = null, proposalExpiryTimer = null;
@@ -253,12 +292,15 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
   host.innerHTML = `<div class="panel-header compact"><div><div class="eyebrow">STORED MAP NAVIGATION</div><h2>단계별 주행 준비</h2></div><button type="button" data-prep="refresh">현재 단계 다시 확인</button></div>
     <p data-prep="current"></p><p data-prep="selected"></p><p data-prep="applied"></p><p data-prep="invalidation" role="status"></p>
     <div class="navigation-preparation-actions"><button type="button" data-prep="pair">① 지도 연결 확인·적용</button><button type="button" data-prep="clear">기존 2D 모드로 복구</button></div>
+    <section aria-label="① 사용자 위치 초안"><h3>① 사용자 위치 초안</h3><p>아래 지도 조작부의 기존 INITIAL POSE 도구로 현재 위치와 방향을 그리세요. 미전송 사용자 가정이며 센서 측정이나 실제 위치 정확도가 아닙니다.</p>
+    <p data-prep="prior-status" role="status"></p><label>위치 불확실 반경 (m)<input type="number" data-prep="prior-xy" min="0.1" max="3" step="any" placeholder="미지정"></label><label>방향 불확실 ± (도)<input type="number" data-prep="prior-yaw" min="1" max="90" step="any" placeholder="미지정"></label>
+    <label><input type="checkbox" data-prep="prior-stationary"> 이 초안이 현재 지도에서 정지 중인 로봇의 위치·방향에 대한 제 가정임을 확인합니다. 실제 정지나 정확도를 측정한 증거는 아닙니다.</label></section>
     <section class="navigation-preparation-observation" aria-label="② 센서 관측과 초기값"><h3>② 센서 관측과 초기값</h3><p>관측은 정지 상태의 센서 입력 확인 전용입니다. 시작 조건은 서버가 다시 검사하며, 지도 선택이나 후보 확인만으로 정합·주행을 시작하지 않습니다.</p>
     <div class="navigation-preparation-actions"><button type="button" data-prep="observe-start">센서 관측 시작</button><button type="button" data-prep="observe-stop">센서 관측 종료</button></div>
     <p data-prep="observation-status" role="status"></p><p data-prep="observation-error" role="alert"></p><div data-prep="evidence"></div><div data-prep="candidates"></div>
     <button type="button" data-prep="proposal">초기 위치 제안 계산</button><div data-prep="proposal-result" role="status"></div><p data-prep="geometry-preview" role="status"></p><p data-prep="geometry-applied" role="status"></p>
     <label class="navigation-handoff-supervision"><input type="checkbox" data-prep="supervision"> 현장 정지 상태를 직접 감독하며 관측 종료와 다음 절차를 진행하겠습니다. 이 확인은 정지 측정이 아닙니다.</label>
-    <button type="button" data-prep="confirm-handoff">제안값 확인·②에 적용</button><div data-prep="handoff-result" role="status"></div></section>
+    <label data-prep="conditional-label" hidden><input type="checkbox" data-prep="conditional-ack"> 사용자 초안 범위에 조건부로 한 후보가 선택되었고 전역 유일성·실제 위치 정확도는 확인되지 않았음을 이해합니다.</label><button type="button" data-prep="confirm-handoff">제안값 확인·②에 적용</button><div data-prep="handoff-result" role="status"></div></section>
     <details class="navigation-seed-geometry"><summary>② 초기 높이·기울기 입력</summary><p>현재 로봇 본체 원점(base_link)의 지도 좌표 높이(m), roll·pitch(rad)를 확인해 입력하세요. 바닥 높이와 본체 원점의 높이는 다릅니다. 임의의 0이나 이전 실행값을 사용하지 않습니다. 제안값은 위에 별도 표시되며 아래 수동 입력칸에 복사되지 않습니다. 빈 칸은 수동 입력이 없다는 뜻이며 위의 서버 확인값과 별개입니다.</p>
     <div><label>높이 z (m)<input data-geometry="z" type="number" step="0.001" placeholder="미지정"></label><label>roll (rad)<input data-geometry="roll" type="number" step="0.001" placeholder="미지정"></label><label>pitch (rad)<input data-geometry="pitch" type="number" step="0.001" placeholder="미지정"></label><button type="button" data-prep="geometry">초기 높이·기울기 저장</button></div><p data-prep="geometry-source"></p></details>
     <ol class="navigation-preparation-steps" data-prep="steps"></ol>
@@ -282,13 +324,15 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
   }
   function currentHandoff(draft3d, draft2d, navigation) {
     const selected = state?.selected, proof = selected?.seed_geometry?.handoff;
+    const conditionalProof = proof?.operator_prior_resolution;
+    const conditionalContext = { generation: selected?.generation, session_id: handoff?.observation_session_id, calibration_sha256: proof?.calibration_sha256, localization_3d: selected?.localization_3d, navigation_2d: selected?.navigation_2d };
     const identified = Boolean(available && handoff?.schema === 'robot-scope.proposal-geometry-handoff.v1'
       && handoff.source === 'proposal_confirmed' && handoff.frame === 'map' && /^[a-f0-9]{32}$/.test(handoff.handoff_id || '')
       && handoff.handoff_id === proof?.handoff_id && handoff.bundle_generation === selected?.generation
       && handoff.observation_session_id === proof?.observation_session_id && selected?.seed_geometry?.source === 'proposal_confirmed'
       && handoff.proposal_id === proof?.proposal_id && handoff.bundle_generation === proof?.bundle_generation
       && proof?.calibration_sha256 && proof.calibration_sha256 === state?.pair?.calibration_sha256
-      && handoff.policy?.id === 'robot-scope.proposal-handoff.local-v1' && handoff.policy?.ttl_s === 120
+      && ((handoff.policy?.id === 'robot-scope.proposal-handoff.local-v1' && !conditionalProof) || (handoff.policy?.id === CONDITIONAL_POLICY && proof?.policy_id === CONDITIONAL_POLICY && validConditionalResolution(conditionalProof, conditionalContext) && conditionalProof.source_contract_sha256 === proof.source_contract_sha256 && conditionalProof.candidate_vs_prior.within_existing_handoff_reference === true)) && handoff.policy?.ttl_s === 120
       && handoff.policy?.max_xy_m === 0.25 && handoff.policy?.max_yaw_rad === 0.20
       && samePin(selected?.localization_3d, draft3d) && samePin(selected?.navigation_2d, draft2d) && handoffRuntimeCompatible(handoff, selected, navigation));
     const remaining = finite(handoff?.expires_in_s) ? Math.max(0, handoff.expires_in_s - Math.max(0, performance.now() - handoffReadAt) / 1000) : null;
@@ -392,9 +436,25 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
         || cloud.source_stamp_ns !== pose?.source_stamp_ns) return null;
     return { observer_id: cloud.observer_id, cloud_epoch: cloud.publisher_epoch, pose_epoch: pose.publisher_epoch };
   }
+  function operatorPriorInput() {
+    const draft = getOperatorDraft() || { status: 'none' };
+    if (draft.status === 'none') return { status: state?.selected?.workflow === 'staged_navigation_pair' ? 'required' : 'none' };
+    if (draft.status !== 'ready' || !draft.pose || ![draft.pose.x, draft.pose.y, draft.pose.yaw].every(finite) || Math.abs(draft.pose.x) > 1000 || Math.abs(draft.pose.y) > 1000 || Math.abs(draft.pose.yaw) > Math.PI || !Number.isSafeInteger(draft.revision)) return { status: 'unavailable' };
+    const xyText = el('prior-xy').value.trim(), yawText = el('prior-yaw').value.trim();
+    const xy = Number(xyText), degrees = Number(yawText), pair = inputs?.pair;
+    if (!xyText || !yawText || !finite(xy) || xy < .1 || xy > 3 || !finite(degrees) || degrees < 1 || degrees > 90
+        || !el('prior-stationary').checked || priorAckRevision !== draft.revision || !pair?.calibration_sha256
+        || draft.bundle_generation !== pair.generation || draft.navigation_map?.id !== pair.navigation_2d?.map_id
+        || draft.navigation_map?.revision !== pair.navigation_2d?.revision || draft.localization_map?.id !== pair.localization_3d?.map_id || draft.localization_map?.revision !== pair.localization_3d?.revision) return { status: 'incomplete' };
+    return { status: 'ready', revision: draft.revision, prior: { frame: 'map', pose_reference: 'base_link', units: 'metres_radians',
+      pose: { ...draft.pose }, bounds: { xy_m: xy, yaw_rad: degrees * Math.PI / 180 }, source: 'OPERATOR_CURRENT_MAP_DRAFT',
+      stationary_current_pose_confirmed: true, navigation_map_id: draft.navigation_map.id,
+      navigation_map_revision: draft.navigation_map.revision, calibration_sha256: pair.calibration_sha256 } };
+  }
   function proposalContextMatches(ctx = proposalContext) {
     const { model } = current(), pair = inputs?.pair, session = inputs?.observation, source = proposalSource(inputs?.evidence);
-    return Boolean(ctx && available && model.matched && pair?.valid === true && pair.generation === ctx.generation
+    const currentPrior = ctx?.operatorPrior ? operatorPriorInput() : null;
+    return Boolean(ctx && (!ctx.operatorPrior || currentPrior?.status === 'ready' && currentPrior.revision === ctx.draftRevision && JSON.stringify(currentPrior.prior) === JSON.stringify(ctx.operatorPrior)) && available && model.matched && pair?.valid === true && pair.generation === ctx.generation
       && state?.selected?.generation === ctx.generation && samePin(pair.localization_3d, ctx.localization_3d)
       && samePin(pair.navigation_2d, ctx.navigation_2d) && pair.calibration_sha256 === ctx.calibration_sha256
       && session?.state === 'READY' && session.active === true && session.session_id === ctx.session_id && source
@@ -404,7 +464,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     if (!proposalContext && !proposal && !proposalBusy) return;
     ++proposalEpoch; clearTimeout(proposalTimer); clearTimeout(proposalExpiryTimer); proposalTimer = null; proposalExpiryTimer = null;
     proposal = null; proposalContext = null; proposalVerified = false; proposalError = message;
-    el('supervision').checked = false;
+    el('supervision').checked = false; el('conditional-ack').checked = false;
     if (cleanupId && !cleanupSettled()) scheduleCleanupPoll();
   }
   function cleanupSettled() { return cleanup?.state === 'SETTLED' && cleanup.worker_active === false; }
@@ -446,13 +506,14 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     const age = proposal?.provenance?.pose_age_s;
     const fresh = finite(age) && age >= 0 && age + (performance.now() - proposalCheckedAt) / 1000 <= 1;
     const cleanupUnsafe = cleanup && (['CANCELLING', 'CANCEL_PENDING', 'CANCEL_FAILED', 'CLEANUP_UNCONFIRMED', 'JOB_UNAVAILABLE'].includes(cleanup.state) || cleanup.cancellation_requested === true);
-    return Boolean(proposalVerified && proposal?.state === 'ready' && proposalContextMatches() && fresh && !cleanupUnsafe
+    const conditional = proposalContext?.operatorPrior ? proposal?.classification === 'CONDITIONAL_ON_OPERATOR_PRIOR' && typeof proposal?.quality?.ambiguity_unresolved === 'boolean' && proposal.quality.ambiguity_unresolved === proposal.operator_prior_resolution?.original_ambiguity_unresolved && validConditionalResolution(proposal.operator_prior_resolution, proposalContext) : proposal?.quality?.ambiguity_unresolved === false && !proposal?.operator_prior_resolution && !proposal?.classification;
+    return Boolean(conditional && proposalVerified && proposal?.state === 'ready' && proposalContextMatches() && fresh && !cleanupUnsafe
       && proposal.imu_hypothesis?.pose_reference === 'FASTLIO_IMU' && proposal.imu_hypothesis?.units === 'metres_degrees'
       && proposal.imu_hypothesis?.approximate_only === true && proposal.imu_hypothesis?.requires_reanchor === true
       && proposal.body_candidate?.pose_reference === 'base_link' && proposal.body_candidate?.units === 'metres_radians'
       && proposal.body_candidate?.qualification === 'INFORMATIONAL_LOCALIZATION_MAP_ONLY'
       && proposal.imu_hypothesis?.frame && proposal.imu_hypothesis.frame === proposalContext?.localization_3d?.frame
-      && proposal.body_candidate.frame === proposal.imu_hypothesis.frame && proposal.quality?.ambiguity_unresolved === false
+      && proposal.body_candidate.frame === proposal.imu_hypothesis.frame
       && proposal.navigation_geometry_candidate?.frame === 'map' && proposal.navigation_geometry_candidate?.pose_reference === 'base_link'
       && proposal.navigation_geometry_candidate?.units === 'metres_radians' && validGeometry(proposal.navigation_geometry_candidate.pose)
       && proposal.quality?.qualification === 'GLOBAL_HYPOTHESIS_ONLY_NOT_OPERATIONAL_QUALITY' && proposal.quality?.residual_selection_gate_enabled === false
@@ -477,7 +538,15 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
       host.querySelectorAll('[data-geometry]').forEach(input => { input.value = ''; });
     }
     const mapName = pinValue => (context().maps || []).find(entry => samePin(entry, pinValue))?.name || pinValue?.map_id || '없음';
-    const nextStep = busy && actionStep ? model.steps[actionStep - 1] : model.steps.find(step => step.status !== '완료') || model.steps[6];
+    const stageOnePrior = operatorPriorInput();
+    const stageOneReady = stageOnePrior.status === 'ready' || selected?.seed_geometry?.source === 'operator' || (selected?.seed_geometry?.source === 'proposal_confirmed' && handoffInfo.active);
+    const stageOne = { ...model.steps[0], title: '지도 연결·사용자 위치 초안', condition: '지도 연결 후 미전송 위치·방향 초안과 범위·현재 정지 가정 확인; 수동 geometry는 별도 경로', status: model.matched && selected?.workflow === 'staged_navigation_pair' && !stageOneReady ? '사용자 입력 필요' : model.steps[0].status };
+    const viewSteps = [stageOne, ...model.steps.slice(1, 3), { ...model.steps[4], number: 4, title: 'INITIAL POSE 접수·지도 정합',
+      condition: '사용자 위치 접수 후 명시적으로 정합 시작·품질 확인', status: model.marker ? model.steps[4].status : model.steps[3].status,
+      result: `${model.steps[3].result} · ${model.steps[4].result}`, issues: [...model.steps[3].issues, ...model.steps[4].issues] },
+      { ...model.steps[5], number: 5 }, { ...model.steps[6], number: 6 }];
+    viewSteps.forEach(step => { step.next = step.status === '완료'; });
+    const nextStep = busy && actionStep ? viewSteps[actionStep > 4 ? actionStep - 2 : actionStep - 1] : viewSteps.find(step => step.status !== '완료') || viewSteps[5];
     el('current').textContent = model.enabled || busy ? `현재 단계: ${nextStep.number}. ${nextStep.title} · ${busy ? '확인 중' : nextStep.status}` : '현재 모드: 기존 2D · 저장 지도 위치추정은 3D 지도 선택 후 준비';
     el('selected').textContent = `화면 선택: 3D ${draft3d?.name || '미선택'} / 2D ${map?.name || '미선택'} · 서버 준비 구성: ${selected ? `${mapName(selected.localization_3d)} / ${mapName(selected.navigation_2d)}` : '기존 2D 모드'}`;
     el('applied').textContent = source ? `실제 실행: ${source.source || 'source 미확인'} · 3D ${mapName({ map_id: source.localization_map_id, revision: source.localization_map_revision })} / 2D ${mapName(navigation.map)} · ${model.applied ? '준비 구성과 일치' : '구성 일치 미확인'} · ${model.tracking ? '추적 중' : '지도상 현재 위치 미확인'}` : '실제 실행: 저장 3D 지도 위치추정 미적용';
@@ -526,7 +595,11 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
       const stale = candidate?.available === true && !fresh ? '후보 신선도 만료 또는 미확인 → 새 상태를 확인하세요.' : '';
       return node('p', usable ? `${key}: 자동 후보 ${candidate.value} ${key === 'z' ? 'm' : 'rad'} · 지도 좌표 · 현재 추정 기준 · 읽기 전용, 자동 입력·적용 없음` : `${key}: 부족 · ${inputsCurrent ? stale || (candidate?.available === true && !candidateContext ? '현재 실행·추정 상태가 다릅니다 → 현재 실행을 다시 확인하세요.' : candidate?.reason ? inputReason(candidate.reason) : '서버 후보가 없습니다 → 필요한 근거를 확인하세요.') : '현재 지도·실행 일치 미확인 → 지도 연결과 현재 상태를 확인하세요.'}`);
     }), node('p', `지도 추정: ${inputs?.map_estimate_reason ? inputReason(inputs.map_estimate_reason) : inputs?.candidates ? '서버 후보 참고' : '미확인'}`));
-    const proposalReadyToRequest = Boolean(inputsCurrent && !busy && !navigationBusy && !model.active && !observationBusy
+    const draft = getOperatorDraft() || { status: 'none' };
+    if (priorAckRevision !== null && draft.revision !== priorAckRevision) { priorAckRevision = null; el('prior-stationary').checked = false; }
+    const priorInput = operatorPriorInput();
+    el('prior-status').textContent = draft.status === 'ready' && draft.pose && [draft.pose.x, draft.pose.y, draft.pose.yaw].every(finite) ? `미전송 사용자 초안 · X ${draft.pose.x.toFixed(3)} m · Y ${draft.pose.y.toFixed(3)} m · yaw ${draft.pose.yaw.toFixed(3)} rad · 불확실 범위와 현재 정지 가정을 직접 확인하세요.` : draft.status === 'none' ? '초안 없음 · 아래 지도에서 현재 위치와 방향을 지정하세요.' : draft.status === 'pending' ? '초안의 현재 문맥 확인 중입니다.' : '이전 초안은 미확인 또는 미완성입니다 · 아래 지도에서 다시 지정하세요.';
+    const proposalReadyToRequest = Boolean(['none', 'ready'].includes(priorInput.status) && inputsCurrent && !busy && !navigationBusy && !model.active && !observationBusy
       && observation?.active === true && observation.state === 'READY' && /^[a-f0-9]{32}$/.test(observation.session_id || '')
       && /^[a-f0-9]{32}$/.test(pair?.generation || '') && proposalSource(inputs?.evidence) && pair.calibration_sha256
       && Array.isArray(blockers) && !blockers.some(code => ['OWNER_BUSY:global_observation', 'OWNER_UNKNOWN:global_observation', 'START_BLOCKERS_UNAVAILABLE', 'OBSERVATION_STATUS_UNAVAILABLE'].includes(code))
@@ -551,9 +624,14 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
       : confirmed ? '② 적용값 만료·무효 또는 서버 상태 미확인 · 현재 상태를 다시 확인하세요.'
       : available && model.matched && geometry?.source === 'operator' && geometry?.frame === 'map' && validGeometry(geometry) ? `② 서버 저장 수동 입력값 (지도 기준 base_link): ${geometryText(geometry)}`
       : '② 서버 확인 적용값 없음';
+    const conditional = Boolean(proposalContext?.operatorPrior && validPoses);
+    const withinHandoff = !conditional || proposal.operator_prior_resolution.candidate_vs_prior.within_existing_handoff_reference === true;
+    el('conditional-label').hidden = !conditional;
+    if (!conditional) el('conditional-ack').checked = false;
     el('supervision').disabled = handoffBusy || handoffInfo.active;
-    el('confirm-handoff').disabled = handoffBusy || handoffAwaitingStatus || !el('supervision').checked || !validPoses || !proposalReadyToRequest || !cleanupSettled() || handoffInfo.active;
+    el('confirm-handoff').disabled = (conditional && (!el('conditional-ack').checked || !withinHandoff)) || handoffBusy || handoffAwaitingStatus || !el('supervision').checked || !validPoses || !proposalReadyToRequest || !cleanupSettled() || handoffInfo.active;
     const proposalNodes = [node('p', '정보성 제안은 저장 3D 지도 기준이며 운영 보정 위치·Nav2 준비·TF 적용 결과가 아닙니다. 자동 입력·전송하지 않습니다.')];
+    if (conditional) proposalNodes.push(node('p', withinHandoff ? '사용자 초안 범위에 조건부로 한 후보가 선택되었습니다. 원래 모호성은 유지되며 전역 유일성·실제 위치 정확도는 확인되지 않았습니다.' : '조건부 후보가 기존 초기 위치 허용 범위(0.25m / 0.20rad)를 벗어나 확인할 수 없습니다. 사용자 초안과 관측을 다시 확인하세요.'));
     if (proposalBusy && !proposal) proposalNodes.push(node('p', '제안 계산 요청 중 · 자동 재전송하지 않습니다.'));
     else if (proposalError) proposalNodes.push(node('p', `제안 사용 불가: ${proposalError}`));
     else if (!proposal) proposalNodes.push(node('p', '제안 없음 · 관측 준비 후 명시적으로 계산하세요.'));
@@ -580,27 +658,28 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
       const h = handoff;
       const expired = !handoffInfo.armed && !handoffInfo.unexpired && !['INVALID', 'OUTCOME_UNKNOWN'].includes(h.state);
       const currentMatchUnknown = h.state === 'MATCH_ARMED' && !handoffInfo.armed;
+      if (h.policy?.id === CONDITIONAL_POLICY) handoffNodes.push(node('p', '사용자 초안에 조건부인 확인값입니다. 원래 모호성은 유지되며 전역 유일성과 실제 위치 정확도는 확인되지 않았습니다.'));
       handoffNodes.push(node('p', `출처: 명시 확인된 proposal_confirmed · 상태: ${currentMatchUnknown ? '정합 수락 이력 · 현재 실행의 수락은 미확인' : expired ? '사용 시간 만료' : handoffStates[h.state] || '확인 불가'} · ${handoffInfo.armed ? '초기화 사용 시간은 정합 접수 전까지 적용' : `남은 초기화 시간 ${handoffInfo.remaining === null ? '미확인' : Math.ceil(handoffInfo.remaining) + '초'}`}`));
       handoffNodes.push(node('p', `관측 종료: ${receiptStates[h.stop_receipt?.state] || '상태 미확인'}${h.reason ? ` · ${inputReason(h.reason)}` : ''}`));
       if (h.match_history) handoffNodes.push(node('p', '이전 정합 요청 수락 이력이 있습니다. 현재 실행의 정합 상태는 별도로 확인합니다.'));
       if (h.geometry && h.initial_pose_reference && handoffInfo.active) handoffNodes.push(node('p', `서버 보관 가설 (지도 좌표): 높이 ${h.geometry.z} m · roll ${h.geometry.roll} · pitch ${h.geometry.pitch} rad · 초기 XY/yaw 기준 ${h.initial_pose_reference.x}, ${h.initial_pose_reference.y}, ${h.initial_pose_reference.yaw}`));
       handoffNodes.push(node('p', `로컬 후보 사용 범위: ${h.policy.ttl_s}초 · XY ${h.policy.max_xy_m} m · yaw ${h.policy.max_yaw_rad} rad. 주행 설정이나 실제 위치 정확도가 아닙니다.`));
-      handoffNodes.push(node('p', '다음 조작은 각각 별도입니다: 관측 종료 확인 → 아래 START NAV2 → INITIAL POSE 지정·전송 → ⑤ 정합 시작.'));
+      handoffNodes.push(node('p', '다음 조작은 각각 별도입니다: 관측 종료 확인 → 아래 START NAV2 → INITIAL POSE 지정·전송 → ④ 정합 시작.'));
     } else if (state?.selected?.seed_geometry?.source === 'proposal_confirmed') handoffNodes.push(node('p', '확인된 가설의 현재 서버 상태가 불확실합니다 → 상태를 다시 확인하세요.'));
     else if (!handoffBusy && !handoffAwaitingStatus) handoffNodes.push(node('p', '확인된 초기 geometry 가설이 없습니다.'));
     el('handoff-result').replaceChildren(...handoffNodes);
-    el('steps').replaceChildren(...model.steps.map(step => {
+    el('steps').replaceChildren(...viewSteps.map(step => {
       const item = node('li'); item.dataset.state = step.status;
       item.append(node('strong', `${step.number}. ${step.title}`), node('span', step.status, 'preparation-state'), node('p', `완료 조건: ${step.condition}`), node('p', `검사 결과: ${step.result}`));
       const missing = step.issues.map(value => value.current).join(' · ');
       if (missing) item.append(node('p', `부족/실패: ${missing}`, 'preparation-missing'));
-      item.append(node('small', step.next ? '다음 단계 확인 가능' : step.number > 1 && model.steps[step.number - 2].status !== '완료' ? `${step.number - 1}단계 확인 후 진행` : '조건을 해결한 뒤 이 단계에서 다시 확인'));
-      const guidance = { 3: '아래 주행 조작부에서 Nav2를 시작하세요.', 4: '아래 지도 조작부에서 INITIAL POSE를 지정·전송하세요.', 7: '아래 지도 조작부에서 GOAL POSE를 지정·전송하세요.' }[step.number];
+      item.append(node('small', step.next ? '다음 단계 확인 가능' : step.number > 1 && viewSteps[step.number - 2].status !== '완료' ? `${step.number - 1}단계 확인 후 진행` : '조건을 해결한 뒤 이 단계에서 다시 확인'));
+      const guidance = { 3: '아래 주행 조작부에서 Nav2를 시작하세요.', 4: '아래 지도 조작부에서 INITIAL POSE를 지정·전송하세요. 접수 후 정합을 시작하세요.', 6: '아래 지도 조작부에서 GOAL POSE를 지정·전송하세요.' }[step.number];
       if (guidance) item.append(node('p', guidance));
-      if (step.number === 5) { const button = node('button', '정합 시작'); button.type = 'button'; button.disabled = busy || navigationBusy || !model.canMatch; button.onclick = match; item.append(button); }
+      if (step.number === 4) { const button = node('button', '정합 시작'); button.type = 'button'; button.disabled = busy || navigationBusy || !model.canMatch; button.onclick = match; item.append(button); }
       return item;
     }));
-    const issueNodes = model.issues.map(value => { const item = node('p'); item.append(node('strong', `${value.step}단계 · ${value.current}`), document.createElement('br'), node('span', `필요: ${value.required} → 해결: ${value.remedy}`)); return item; });
+    const issueNodes = model.issues.map(value => { const item = node('p'); item.append(node('strong', `${value.step > 4 ? value.step - 1 : value.step}단계 · ${value.current}`), document.createElement('br'), node('span', `필요: ${value.required} → 해결: ${value.remedy}`)); return item; });
     if (diagnosticIssue) issueNodes.push(node('p', `② ${diagnosticIssue} · 최종 관측 결과는 위 관측 검사를 확인하세요. 검사 값은 실시간이 아닙니다.`));
     el('issues').replaceChildren(...(issueNodes.length ? issueNodes : [node('p', model.enabled ? '현재 확인된 필수 항목 충족. 다음 단계 버튼으로 진행하세요.' : '3D 지도를 선택하면 단계별 저장 지도 위치추정 준비가 시작됩니다. 기존 2D 모드의 상태는 아래에서 확인하세요.')]));
     const detailInputs = inputs ? { ...inputs, evidence: inputs.evidence ? { ...inputs.evidence } : inputs.evidence } : null;
@@ -626,7 +705,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
           || status.selected.generation !== value.pair.generation || status.pair.generation !== value.pair.generation
           || !samePin(status.selected.localization_3d, value.pair.localization_3d) || !samePin(status.selected.navigation_2d, value.pair.navigation_2d))) throw new Error('CONTEXT_CHANGED');
       inputs = value; inputsRequestedAt = requestedAt; inputsError = ''; state = status; available = true; fetchError = '';
-      draftContextConfirmed = draftEpoch === draftContextEpoch && !busy;
+      draftContextConfirmed = draftEpoch === draftContextEpoch && !busy; observationDraftPending = false; observationDraftAction = null;
       if (Object.hasOwn(status, 'initialization_handoff') && status.initialization_handoff !== null) setHandoff(status.initialization_handoff, requestedAt);
       else {
         clearHandoff();
@@ -646,7 +725,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
         setTimeout(updateAge, 1000);
       }
     } catch (failure) {
-      if (inputToken === inputsRevision && draftEpoch === draftContextEpoch && !busy) { draftContextConfirmed = false; inputs = readValue?.observation ? { observation: readValue.observation } : null; state = null; available = false; inputsError = failure.message; fetchError = `상태 확인 실패: ${INPUT_REASONS[failure.message] || '연결 또는 서버 응답을 확인하세요.'}`; clearHandoff(); if (handoffAwaitingStatus) handoffError = '가설 확인 결과를 읽지 못했습니다. 재전송하지 않고 서버 상태를 확인하세요.'; handoffAwaitingStatus = false; }
+      if (inputToken === inputsRevision && draftEpoch === draftContextEpoch && !busy) { draftContextConfirmed = false; observationDraftPending = false; observationDraftAction = null; inputs = readValue?.observation ? { observation: readValue.observation } : null; state = null; available = false; inputsError = failure.message; fetchError = `상태 확인 실패: ${INPUT_REASONS[failure.message] || '연결 또는 서버 응답을 확인하세요.'}`; clearHandoff(); if (handoffAwaitingStatus) handoffError = '가설 확인 결과를 읽지 못했습니다. 재전송하지 않고 서버 상태를 확인하세요.'; handoffAwaitingStatus = false; }
     } finally { checkedAt = Date.now(); refreshing = false; render(); onChange(); if (!busy && (draftRefreshPending || (handoffAwaitingStatus && !handoffBusy) || advisoryRefreshPending)) { advisoryRefreshPending = false; checkedAt = 0; queueMicrotask(() => { void refresh(true); }); } }
   }
   async function observe(action) {
@@ -655,7 +734,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     const pair = inputs?.pair;
     const blockers = inputs?.start_blockers?.items;
     if (observationBusy || (action === 'start' ? busy || navigationBusy || model.active || !available || !model.matched || !state?.selected || pair?.valid !== true || pair.generation !== state.selected.generation || !samePin(pair.localization_3d, state.selected.localization_3d) || !samePin(pair.navigation_2d, state.selected.navigation_2d) || session?.can_start !== true || !Array.isArray(blockers) || blockers.length > 0 : session?.can_stop !== true || !/^[a-f0-9]{32}$/.test(session?.session_id || ''))) return;
-    invalidateProposal(); observationBusy = true; observationError = ''; available = false; ++inputsRevision; render();
+    invalidateProposal(); observationDraftPending = true; observationDraftAction = action; observationBusy = true; observationError = ''; available = false; ++inputsRevision; render(); onChange();
     try {
       const result = await api(`/api/v1/observations/fastlio/${action}`, { method: 'POST', body: JSON.stringify({ confirmed: true, ...(action === 'stop' ? { session_id: session.session_id } : {}) }), signal: AbortSignal.timeout(12000) });
       inputs = { observation: result };
@@ -703,8 +782,9 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
   }
   async function calculateProposal() {
     if (el('proposal').disabled || proposalBusy) return;
-    const pair = inputs?.pair, session = inputs?.observation;
-    const ctx = { generation: pair.generation, localization_3d: pair.localization_3d, navigation_2d: pair.navigation_2d,
+    const pair = inputs?.pair, session = inputs?.observation, requestedPrior = operatorPriorInput();
+    if (!['none', 'ready'].includes(requestedPrior.status)) return;
+    const ctx = { ...(requestedPrior.status === 'ready' ? { operatorPrior: requestedPrior.prior, draftRevision: requestedPrior.revision } : {}), generation: pair.generation, localization_3d: pair.localization_3d, navigation_2d: pair.navigation_2d,
       calibration_sha256: pair.calibration_sha256, session_id: session.session_id, source: proposalSource(inputs.evidence) };
     if (!globalThis.crypto?.getRandomValues) { proposalError = '안전한 요청 식별자를 만들 수 없습니다.'; render(); return; }
     const requestId = [...globalThis.crypto.getRandomValues(new Uint8Array(16))].map(value => value.toString(16).padStart(2, '0')).join('');
@@ -712,7 +792,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     proposal = null; proposalError = ''; proposalFailureDetail = ''; proposalContext = ctx; proposalVerified = false; proposalBusy = true; render();
     try {
       const result = await api('/api/v1/navigation/operational-3d/initialization-proposals', { method: 'POST',
-        body: JSON.stringify({ request_id: requestId, bundle_generation: ctx.generation, observation_session_id: ctx.session_id }), signal: AbortSignal.timeout(15000) });
+        body: JSON.stringify({ request_id: requestId, bundle_generation: ctx.generation, observation_session_id: ctx.session_id, ...(ctx.operatorPrior ? { operator_prior: ctx.operatorPrior } : {}) }), signal: AbortSignal.timeout(15000) });
       if (proposalResponseMatches(result, ctx)) recordCleanup(result, result.proposal_id);
       if (token !== proposalEpoch) { if (cleanupId && !cleanupSettled()) scheduleCleanupPoll(); return; }
       if (!proposalContextMatches(ctx) || !proposalResponseMatches(result, ctx)) { invalidateProposal('제안의 지도·관측 문맥이 달라 사용할 수 없습니다.'); return; }
@@ -727,16 +807,16 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
   }
   async function confirmHandoff() {
     const { model, handoffInfo, busy: navigationBusy } = current(), pair = inputs?.pair, session = inputs?.observation, blockers = inputs?.start_blockers?.items;
-    if (el('confirm-handoff').disabled || handoffBusy || handoffAwaitingStatus || !el('supervision').checked || !proposalPoseValid()
+    if (el('confirm-handoff').disabled || (proposalContext?.operatorPrior && (!el('conditional-ack').checked || proposal?.operator_prior_resolution?.candidate_vs_prior?.within_existing_handoff_reference !== true)) || handoffBusy || handoffAwaitingStatus || !el('supervision').checked || !proposalPoseValid()
         || !proposalContextMatches() || !cleanupSettled() || !available || busy || navigationBusy || model.active || observationBusy || handoffInfo.active
         || !Array.isArray(blockers) || blockers.some(code => ['OWNER_BUSY:global_observation', 'OWNER_UNKNOWN:global_observation', 'START_BLOCKERS_UNAVAILABLE', 'OBSERVATION_STATUS_UNAVAILABLE'].includes(code))
         || inputsRequestedAt < advisoryAfter || !pair || !session || !globalThis.crypto?.getRandomValues) return;
     const ctx = proposalContext, proposalId = proposal.proposal_id, token = proposalEpoch;
     const requestId = [...globalThis.crypto.getRandomValues(new Uint8Array(16))].map(value => value.toString(16).padStart(2, '0')).join('');
-    handoffBusy = true; handoffAwaitingStatus = true; handoffError = ''; handoffFailureDetail = ''; el('supervision').checked = false; ++inputsRevision; render();
+    handoffBusy = true; handoffAwaitingStatus = true; handoffError = ''; handoffFailureDetail = ''; el('supervision').checked = false; el('conditional-ack').checked = false; ++inputsRevision; render();
     try {
       const result = await api(`/api/v1/navigation/operational-3d/initialization-proposals/${proposalId}/confirm-geometry`, { method: 'POST',
-        body: JSON.stringify({ request_id: requestId, bundle_generation: ctx.generation, observation_session_id: ctx.session_id, confirmed: true, stationary_supervision_acknowledged: true }), signal: AbortSignal.timeout(15000) });
+        body: JSON.stringify({ request_id: requestId, bundle_generation: ctx.generation, observation_session_id: ctx.session_id, confirmed: true, stationary_supervision_acknowledged: true, ...(ctx.operatorPrior ? { conditional_prior_acknowledged: true } : {}) }), signal: AbortSignal.timeout(15000) });
       if (!handoffShape(result) || result.proposal_id !== proposalId || result.bundle_generation !== ctx.generation || result.observation_session_id !== ctx.session_id) {
         handoffError = '확인 응답의 문맥을 검증하지 못했습니다. 서버 상태를 확인하세요.';
       } else if (token !== proposalEpoch || !proposalContextMatches(ctx)) {
@@ -762,11 +842,15 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
   el('refresh').onclick = () => { error = ''; void refresh(true); void actions.refresh(); };
   el('observe-start').onclick = () => { void observe('start'); };
   el('observe-stop').onclick = () => { void observe('stop'); };
+  for (const key of ['prior-xy', 'prior-yaw']) el(key).addEventListener('input', () => { priorAckRevision = null; el('prior-stationary').checked = false; invalidateProposal('초안 범위가 바뀌어 이전 제안을 사용할 수 없습니다.'); render(); });
+  el('prior-stationary').onchange = () => { const draft = getOperatorDraft(); priorAckRevision = el('prior-stationary').checked && draft?.status === 'ready' ? draft.revision : null; invalidateProposal('초안 확인이 바뀌어 이전 제안을 사용할 수 없습니다.'); render(); };
   el('proposal').onclick = () => { void calculateProposal(); };
   el('supervision').onchange = () => { render(); };
+  el('conditional-ack').onchange = () => { render(); };
   el('confirm-handoff').onclick = () => { void confirmHandoff(); };
   return { render() { const result = render(); const next = current().draft3d; if (selected3d && next?.id === selected3d && draft3dRevision && next.revision !== draft3dRevision) invalidated = '3D 지도 revision이 변경됐습니다. ①부터 다시 확인하세요.'; return result; }, refresh,
     canStart: () => { const value = current(); return !busy && !handoffBusy && !handoffAwaitingStatus && !observationBusy && value.model.canStart && (state?.selected?.seed_geometry?.source !== 'proposal_confirmed' || value.handoffInfo.unexpired && handoff?.state === 'OBSERVATION_STOPPED' && state?.pair?.can_start === true); }, permitsGoal: () => available && (!current().model.enabled || current().model.tracking),
     state: () => state,
-    draftContext: () => ({ state, available: available && draftContextConfirmed && !busy }) };
+    draftChanged: () => { priorAckRevision = null; el('prior-stationary').checked = false; invalidateProposal('사용자 초안이 바뀌어 이전 제안을 사용할 수 없습니다.'); render(); },
+    draftContext: () => ({ state, epoch: draftContextEpoch, observing: observationBusy || observationDraftPending, observationAction: observationDraftAction, available: available && draftContextConfirmed && !busy }) };
 }

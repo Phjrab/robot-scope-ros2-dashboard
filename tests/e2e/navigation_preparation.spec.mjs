@@ -13,6 +13,7 @@ async function mount(page) {
     window.scrollTo = () => { window.fixtureScrolls++; };
     Element.prototype.scrollIntoView = () => { window.fixtureScrolls++; };
     window.preparation = initializeNavigationPreparation({ host: document.querySelector('#host'), map3dSelect: document.querySelector('#cloud'), map2dSelect: document.querySelector('#grid'),
+      getOperatorDraft: () => window.fakeOperatorDraft || { status: 'none' },
       api: async (path, options) => { const response = await fetch(path, options); const value = await response.json(); if (!response.ok) throw new Error(value.detail); return value; },
       context: () => window.fixtureContext, onChange: () => {},
       actions: Object.fromEntries(['start', 'initial', 'goal', 'refresh'].map(key => [key, () => window.fixtureActions.push(key)])) });
@@ -29,9 +30,9 @@ async function fixture(page) {
   let reject = false, failingReads = 0, heldWrites = null, releaseWrite = null;
   let rejectObservation = false;
   let invalidOperationalState = false;
-  let proposalState = 'ready', proposalReason = null, proposalRejected = false, wrongProposalSource = false, ambiguousProposal = false, geometryPreview = 'valid', proposalReads = null, releaseProposalReads = null;
+  let proposalState = 'ready', proposalReason = null, proposalRejected = false, wrongProposalSource = false, ambiguousProposal = false, geometryPreview = 'valid', proofMode = 'valid', proposalReads = null, releaseProposalReads = null;
   let proposalCleanup = { state: 'SETTLED', cancellation_requested: false, worker_active: false, terminal_state: 'succeeded' };
-  let confirmedGeometry = { z: .84, roll: .11, pitch: .12 };
+  let confirmedGeometry = { z: .84, roll: .11, pitch: .12 }, currentPrior = null;
   let handoff = null, confirmMode = 'success', heldConfirm = null, releaseConfirm = null, heldHandoffRead = null, releaseHandoffRead = null;
   let heldInputsRead = null, releaseInputsRead = null;
   await page.route('**/api/v1/observations/fastlio/**', async route => {
@@ -59,13 +60,14 @@ async function fixture(page) {
     if (path.endsWith('/confirm-geometry')) {
       if (confirmMode === 'reject') return json({ detail: 'GLOBAL_AMBIGUOUS' }, 409);
       const id = 'e'.repeat(32), session = observation.session_id;
+      const resolution = currentPrior ? makeProof(currentPrior) : null;
       handoff = { schema: 'robot-scope.proposal-geometry-handoff.v1', handoff_id: id, proposal_id: 'f'.repeat(24),
         state: 'CONFIRMED_OBSERVATION_ACTIVE', reason: null, source: 'proposal_confirmed', frame: 'map',
         bundle_generation: state.selected.generation, observation_session_id: session, job_id: null, expires_in_s: 119,
-        policy: { id: 'robot-scope.proposal-handoff.local-v1', ttl_s: 120, max_xy_m: .25, max_yaw_rad: .20 },
+        policy: { id: currentPrior ? 'robot-scope.proposal-handoff.operator-prior-v1' : 'robot-scope.proposal-handoff.local-v1', ttl_s: 120, max_xy_m: .25, max_yaw_rad: .20 },
         continuity: 'SUPERVISED_GAP_UNMEASURED', stop_receipt: { state: 'NOT_REQUESTED' },
         geometry: { ...confirmedGeometry }, initial_pose_reference: { x: 1, y: 2, yaw: .3 }, operational_application: 'NOT_RUN' };
-      state.selected.seed_geometry = { ...handoff.geometry, source: 'proposal_confirmed', handoff: { handoff_id: id, proposal_id: 'f'.repeat(24), bundle_generation: state.selected.generation, calibration_sha256: inputs.pair.calibration_sha256, observation_session_id: session } };
+      state.selected.seed_geometry = { ...handoff.geometry, source: 'proposal_confirmed', handoff: { handoff_id: id, proposal_id: 'f'.repeat(24), bundle_generation: state.selected.generation, calibration_sha256: inputs.pair.calibration_sha256, observation_session_id: session, ...(resolution ? { policy_id: 'robot-scope.proposal-handoff.operator-prior-v1', source_contract_sha256: '8'.repeat(64), operator_prior_resolution: resolution } : {}) } };
       state.initialization_handoff = handoff; state.pair.can_start = false;
       if (heldConfirm) await heldConfirm;
       return confirmMode === 'lost' ? json({ detail: 'SYNTHETIC_RESPONSE_LOST' }, 503) : json(handoff);
@@ -75,17 +77,32 @@ async function fixture(page) {
       if (heldHandoffRead) await heldHandoffRead;
       return snapshot ? json(snapshot) : json({ detail: 'HANDOFF_NOT_FOUND' }, 404);
     }
+    function makeProof(prior) { return { schema:'robot-scope.operator-prior-resolution.v1', prior_id:'9'.repeat(32), operator_prior:structuredClone(prior),
+      accepted_monotonic_s:100, expires_monotonic_s:220, prior_anchor_stamp_ns:'123', bundle_generation:inputs.pair.generation,
+      observation_session_id:observation.session_id, calibration_sha256:inputs.pair.calibration_sha256, localization_3d:inputs.pair.localization_3d,
+      navigation_2d:inputs.pair.navigation_2d, source_contract_sha256:'8'.repeat(64), original_observation_sha256:'7'.repeat(64), candidate_index:0,
+      retained_candidate_count:2, eligible_candidate_count:2, matching_candidate_count:1, projection_basis:'NAV_LOCALIZATION_CAPTURE_TO_PRIOR_ODOM_IMU_BASE',
+      classification:'CONDITIONAL_ON_OPERATOR_PRIOR', original_ambiguity_preserved:true, original_ambiguity_unresolved:true, global_uniqueness_verified:false, absolute_accuracy_m:null,
+      candidate_vs_prior:{xy_distance_m:.1,absolute_wrapped_yaw_rad:.1,within_existing_handoff_reference:true} }; }
     if (path.includes('/initialization-proposals')) {
+      if (method === 'POST') currentPrior = body?.operator_prior || null;
       if (method === 'POST' && proposalRejected) return json({ detail: 'GLOBAL_BACKEND_UNAVAILABLE' }, 503);
       if (method === 'GET' && proposalReads) await proposalReads;
       const pose = { x: 1, y: 2, z: .4, roll: .1, pitch: .2, yaw: .3 };
+      const proof = currentPrior ? makeProof(currentPrior) : null;
+      if (proof && proofMode === 'multiple') proof.matching_candidate_count = 2;
+      if (proof && proofMode === 'original-unambiguous') proof.original_ambiguity_unresolved = false;
+      if (proof && proofMode === 'original-mismatch') proof.original_ambiguity_unresolved = false;
+      if (proof && proofMode === 'different-prior') proof.operator_prior.pose.x += 1;
+      if (proof && proofMode === 'beyond-handoff') Object.assign(proof.candidate_vs_prior, { xy_distance_m:.3, within_existing_handoff_reference:false });
       const result = { schema: 'robot-scope.navigation-initialization-proposal.v1', proposal_id: 'f'.repeat(24),
         state: method === 'POST' ? 'capturing' : proposalState, reason: proposalReason,
         pair: inputs.pair, observation_session_id: observation.session_id, operational_application: 'NOT_RUN', absolute_accuracy_m: null,
         imu_hypothesis: method === 'GET' && proposalState === 'ready' ? { frame: 'camera_init', pose_reference: 'FASTLIO_IMU', units: 'metres_degrees', pose, approximate_only: true, requires_reanchor: true } : null,
         body_candidate: method === 'GET' && proposalState === 'ready' ? { frame: 'camera_init', pose_reference: 'base_link', units: 'metres_radians', pose, qualification: 'INFORMATIONAL_LOCALIZATION_MAP_ONLY' } : null,
         navigation_geometry_candidate: method === 'GET' && proposalState === 'ready' && geometryPreview !== 'missing' ? { frame: geometryPreview === 'bad-frame' ? 'camera_init' : 'map', pose_reference: 'base_link', units: 'metres_radians', pose: { z: .84, roll: .11, pitch: .12 } } : null,
-        quality: method === 'GET' && proposalState === 'ready' ? { overlap: .7, rmse_m: .1, hypothesis_overlap_min: .6, operational_initial_overlap_min: .85, ambiguity_unresolved: ambiguousProposal, residual_selection_gate_enabled: false, qualification: 'GLOBAL_HYPOTHESIS_ONLY_NOT_OPERATIONAL_QUALITY' } : null,
+        ...(method === 'GET' && proposalState === 'ready' && currentPrior ? { classification:'CONDITIONAL_ON_OPERATOR_PRIOR', operator_prior_resolution: ambiguousProposal ? null : proof } : {}),
+        quality: method === 'GET' && proposalState === 'ready' ? { overlap: .7, rmse_m: .1, hypothesis_overlap_min: .6, operational_initial_overlap_min: .85, ambiguity_unresolved: currentPrior ? proofMode !== 'original-unambiguous' : ambiguousProposal, residual_selection_gate_enabled: false, qualification: 'GLOBAL_HYPOTHESIS_ONLY_NOT_OPERATIONAL_QUALITY' } : null,
         provenance: method === 'GET' && proposalState === 'ready' ? { pose_age_s: 0, capture_age_s: 15, source_contract: { observer_id: '1'.repeat(32), cloud_epoch: (wrongProposalSource ? '4' : '2').repeat(32), pose_epoch: '3'.repeat(32) } } : null,
         cleanup: method === 'POST' ? { state: 'MONITORING', cancellation_requested: false } : proposalCleanup };
       return json(result, method === 'POST' ? 202 : 200);
@@ -107,7 +124,7 @@ async function fixture(page) {
   await page.goto('/software-preparation.html');
   await mount(page);
   return { state, inputs, observation, writes, reads, reject(value) { reject = value; }, rejectObservation(value) { rejectObservation = value; }, failReads(count) { failingReads = count; }, invalidStatus(value) { invalidOperationalState = value; },
-    proposalStatus(value, reason = null) { proposalState = value; proposalReason = reason; }, rejectProposal(value) { proposalRejected = value; }, wrongProposalSource(value) { wrongProposalSource = value; }, ambiguousProposal(value) { ambiguousProposal = value; }, geometryPreview(value) { geometryPreview = value; },
+    proposalStatus(value, reason = null) { proposalState = value; proposalReason = reason; }, rejectProposal(value) { proposalRejected = value; }, wrongProposalSource(value) { wrongProposalSource = value; }, ambiguousProposal(value) { ambiguousProposal = value; }, geometryPreview(value) { geometryPreview = value; }, proofMode(value) { proofMode = value; },
     cleanup(value) { proposalCleanup = value; },
     handoff() { return handoff; }, confirmMode(value) { confirmMode = value; }, confirmedGeometry(value) { confirmedGeometry = value; },
     holdConfirm() { heldConfirm = new Promise(resolve => { releaseConfirm = resolve; }); },
@@ -227,7 +244,7 @@ test('server checks invalidate only their dependent stages and current execution
     nav.goal = { state: 'succeeded', goal_id: 'previous', precision_evidence: { goal_id: 'previous', context: { job_id: 'old-job', map_id: grid.id, map_revision: grid.revision } } };
     window.preparation.render();
   }, { grid });
-  await expect(page.locator('[data-prep="steps"] > li').nth(6)).toHaveAttribute('data-state', '미시작');
+  await expect(page.locator('[data-prep="steps"] > li').nth(5)).toHaveAttribute('data-state', '미시작');
   expect(f.writes).toHaveLength(1);
 });
 
@@ -488,7 +505,7 @@ test('observation rejection exposes bridge reason and does not retry or bypass t
   expect(f.writes.filter(write => /seed-geometry|\/match|\/goal/.test(write.path))).toHaveLength(0);
 });
 
-async function proposalFixture(page) {
+async function proposalFixture(page, { expectReady = true } = {}) {
   const f = await fixture(page);
   await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
   await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
@@ -502,7 +519,12 @@ async function proposalFixture(page) {
     cloud: { topic: '/cloud_registered', frame_id: 'camera_init', observer_id: '1'.repeat(32), publisher_epoch: '2'.repeat(32), source_stamp_ns: '123' },
     pose: { topic: '/Odometry', frame_id: 'camera_init', observer_id: '1'.repeat(32), publisher_epoch: '3'.repeat(32), source_stamp_ns: '123' } };
   await page.evaluate(() => window.preparation.refresh(true));
-  await expect(page.getByRole('button', { name: '초기 위치 제안 계산' })).toBeEnabled();
+  if (expectReady) {
+    await page.evaluate(({cloud,grid}) => { window.fakeOperatorDraft={status:'ready',revision:1,pose:{x:1.2,y:2.3,yaw:.4},bundle_generation:'b'.repeat(32),localization_map:{id:cloud.id,revision:cloud.revision},navigation_map:{id:grid.id,revision:grid.revision}};window.preparation.draftChanged(); }, {cloud,grid});
+    await page.getByLabel('위치 불확실 반경 (m)').fill('.75'); await page.getByLabel('방향 불확실 ± (도)').fill('25');
+    await page.getByLabel(/이 초안이 현재 지도에서 정지/).check();
+    await expect(page.getByRole('button', { name: '초기 위치 제안 계산' })).toBeEnabled();
+  } else await expect(page.getByRole('button', { name: '초기 위치 제안 계산' })).toBeDisabled();
   return f;
 }
 
@@ -512,7 +534,7 @@ test('explicit proposal is read-only, distinguishes IMU and body units, and inva
   await page.getByRole('button', { name: '초기 위치 제안 계산' }).click();
   const proposalWrite = f.writes.filter(value => value.path.endsWith('/initialization-proposals'));
   expect(proposalWrite).toHaveLength(1);
-  expect(proposalWrite[0].body).toEqual({ request_id: expect.stringMatching(/^[a-f0-9]{32}$/), bundle_generation: 'b'.repeat(32), observation_session_id: 'a'.repeat(32) });
+  expect(proposalWrite[0].body).toMatchObject({ request_id: expect.stringMatching(/^[a-f0-9]{32}$/), bundle_generation: 'b'.repeat(32), observation_session_id: 'a'.repeat(32), operator_prior: { source:'OPERATOR_CURRENT_MAP_DRAFT', stationary_current_pose_confirmed:true } });
   await expect(page.locator('[data-prep="proposal-result"]')).toContainText('FAST-LIO IMU 가설 (이력·근사값)');
   await expect(page.locator('[data-prep="proposal-result"]')).toContainText('위치 m, 각도 도');
   await expect(page.locator('[data-prep="proposal-result"]')).toContainText('원본 스캔 15.0초 전');
@@ -630,6 +652,8 @@ async function handoffFixture(page, { mode = 'success', hold = false } = {}) {
   f.confirmMode(mode);
   await page.getByLabel(/현장 정지 상태를 직접 감독/).check();
   await page.getByRole('button', { name: '초기 위치 제안 계산' }).click();
+  await expect(page.locator('[data-prep="conditional-label"]')).toBeVisible();
+  await page.getByLabel(/전역 유일성·실제 위치 정확도는 확인되지 않았음/).check();
   await expect(page.getByRole('button', { name: '제안값 확인·②에 적용' })).toBeEnabled();
   if (hold) f.holdConfirm();
   return f;
@@ -648,7 +672,7 @@ test('supervised confirmation is one explicit POST, stop remains separate, and t
   await page.evaluate(() => document.querySelector('[data-prep="confirm-handoff"]').click());
   expect(f.writes.filter(v => v.path.endsWith('/confirm-geometry'))).toHaveLength(1);
   const body = f.writes.find(v => v.path.endsWith('/confirm-geometry')).body;
-  expect(body).toEqual({ request_id: expect.stringMatching(/^[a-f0-9]{32}$/), bundle_generation: 'b'.repeat(32), observation_session_id: 'a'.repeat(32), confirmed: true, stationary_supervision_acknowledged: true });
+  expect(body).toEqual({ request_id: expect.stringMatching(/^[a-f0-9]{32}$/), bundle_generation: 'b'.repeat(32), observation_session_id: 'a'.repeat(32), confirmed: true, stationary_supervision_acknowledged: true, conditional_prior_acknowledged: true });
   await expect(page.getByRole('button', { name: '센서 관측 종료' })).toBeEnabled();
   expect(f.writes.filter(v => /\/observations\/fastlio\/stop|\/navigation\/start|seed-geometry|\/match|\/goal/.test(v.path))).toHaveLength(0);
   f.releaseConfirm();
@@ -970,6 +994,7 @@ test('proposal map-frame geometry remains read-only until supervised confirmatio
   await page.getByText('② 초기 높이·기울기 입력', { exact: true }).click();
   for (const label of ['높이 z (m)', 'roll (rad)', 'pitch (rad)']) await expect(page.getByLabel(label, { exact: true })).toHaveValue('');
   await page.getByLabel(/현장 정지 상태를 직접 감독/).check();
+  await page.getByLabel(/전역 유일성·실제 위치 정확도는 확인되지 않았음/).check();
   await expect(page.getByRole('button', { name: '제안값 확인·②에 적용' })).toBeEnabled();
   f.confirmedGeometry({ z: .97, roll: -.21, pitch: .32 });
   await page.getByRole('button', { name: '제안값 확인·②에 적용' }).click();
@@ -1020,3 +1045,89 @@ test('expired or late proposal cannot repopulate geometry or trigger confirmatio
   await expect(page.locator('[data-prep="geometry-preview"]')).not.toContainText('0.840');
   expect(f.writes.filter(v => /confirm-geometry|seed-geometry|\/navigation\/start|initial-pose|\/match|\/goal/.test(v.path))).toHaveLength(0);
 });
+
+
+test('operator draft requires explicit bounds and stationary confirmation before proposal request', async ({page}) => {
+ const f=await proposalFixture(page, { expectReady:false });f.proposalStatus('rejected','GLOBAL_AMBIGUOUS');
+ await expect(page.locator('[data-prep="steps"] > li').first()).toHaveAttribute('data-state','사용자 입력 필요');
+ await expect(page.locator('[data-prep="steps"] > li').first()).toContainText('지도 연결·사용자 위치 초안');
+ await page.evaluate(({cloud,grid})=>{window.fakeOperatorDraft={status:'ready',revision:1,pose:{x:1.2,y:2.3,yaw:.4},bundle_generation:'b'.repeat(32),localization_map:{id:cloud.id,revision:cloud.revision},navigation_map:{id:grid.id,revision:grid.revision}};window.preparation.draftChanged();},{cloud,grid});
+ await expect(page.locator('[data-prep="prior-status"]')).toContainText('미전송 사용자 초안');
+ await expect(page.getByRole('button',{name:'초기 위치 제안 계산'})).toBeDisabled();
+ await page.getByLabel('위치 불확실 반경 (m)').fill('.75'); await page.getByLabel('방향 불확실 ± (도)').fill('25');
+ await expect(page.getByRole('button',{name:'초기 위치 제안 계산'})).toBeDisabled();
+ await page.getByLabel(/이 초안이 현재 지도에서 정지/).check();
+ await expect(page.getByRole('button',{name:'초기 위치 제안 계산'})).toBeEnabled();
+ await expect(page.locator('[data-prep="steps"] > li').first()).toHaveAttribute('data-state','완료');
+ await page.getByRole('button',{name:'초기 위치 제안 계산'}).click();
+ const body=f.writes.find(v=>v.path.endsWith('/initialization-proposals')).body;
+ expect(body.operator_prior).toEqual({frame:'map',pose_reference:'base_link',units:'metres_radians',pose:{x:1.2,y:2.3,yaw:.4},bounds:{xy_m:.75,yaw_rad:25*Math.PI/180},source:'OPERATOR_CURRENT_MAP_DRAFT',stationary_current_pose_confirmed:true,navigation_map_id:grid.id,navigation_map_revision:grid.revision,calibration_sha256:'c'.repeat(64)});
+ await expect(page.locator('[data-prep="proposal-result"]')).toContainText('구분되지 않는 위치 후보');
+ expect(f.writes.filter(v=>/confirm-geometry|seed-geometry|\/navigation\/start|initial-pose|\/match|\/goal/.test(v.path))).toHaveLength(0);
+ expect(await page.locator('[data-prep="steps"] > li').count()).toBe(6);
+ await expect(page.locator('[data-prep="steps"] > li').nth(3)).toContainText('INITIAL POSE 접수·지도 정합');
+});
+
+test('changing operator draft while response is delayed invalidates it without retry or automatic confirmation', async ({page})=>{
+ const f=await proposalFixture(page, { expectReady:false });
+ await page.evaluate(({cloud,grid})=>{window.fakeOperatorDraft={status:'ready',revision:1,pose:{x:1.2,y:2.3,yaw:.4},bundle_generation:'b'.repeat(32),localization_map:{id:cloud.id,revision:cloud.revision},navigation_map:{id:grid.id,revision:grid.revision}};window.preparation.draftChanged();},{cloud,grid});
+ await page.getByLabel('위치 불확실 반경 (m)').fill('.75');await page.getByLabel('방향 불확실 ± (도)').fill('25');await page.getByLabel(/이 초안이 현재 지도에서 정지/).check();
+ f.holdProposalReads();await page.getByRole('button',{name:'초기 위치 제안 계산'}).click();
+ await expect.poll(()=>f.reads.filter(p=>p.includes('/initialization-proposals/')).length).toBeGreaterThan(0);
+ await page.evaluate(()=>{window.fakeOperatorDraft.revision++;window.fakeOperatorDraft.pose.x=2;window.preparation.draftChanged();});f.releaseProposalReads();
+ await expect(page.locator('[data-prep="proposal-result"]')).toContainText('초안이 바뀌어 이전 제안을 사용할 수 없습니다');
+ await expect(page.getByRole('button',{name:'제안값 확인·②에 적용'})).toBeDisabled();
+ expect(f.writes.filter(v=>/confirm-geometry|seed-geometry|\/navigation\/start|initial-pose|\/match|\/goal/.test(v.path))).toHaveLength(0);
+});
+
+
+test('conditional prior remains ambiguous and requires separate explicit acknowledgement', async ({page}) => {
+ const f=await proposalFixture(page);await page.getByRole('button',{name:'초기 위치 제안 계산'}).click();
+ await expect(page.locator('[data-prep="proposal-result"]')).toContainText('원래 모호성은 유지');
+ await expect(page.locator('[data-prep="geometry-preview"]')).toContainText('미적용');
+ await page.getByLabel(/현장 정지 상태를 직접 감독/).check();
+ const confirm=page.getByRole('button',{name:'제안값 확인·②에 적용'});await expect(confirm).toBeDisabled();
+ await page.getByLabel(/전역 유일성·실제 위치 정확도는 확인되지 않았음/).check();await expect(confirm).toBeEnabled();await confirm.click();
+ const write=f.writes.find(v=>v.path.endsWith('/confirm-geometry'));
+ expect(write.body.conditional_prior_acknowledged).toBe(true);expect(write.body.operator_prior).toBeUndefined();expect(write.body.operator_prior_resolution).toBeUndefined();
+ await expect(page.locator('[data-prep="handoff-result"]')).toContainText('원래 모호성은 유지');
+ expect(f.writes.filter(v=>/seed-geometry|\/navigation\/start|initial-pose|\/match|\/goal/.test(v.path))).toHaveLength(0);
+});
+for (const mode of ['multiple','different-prior','original-mismatch']) {
+ test(`conditional ${mode} proof is never promoted to a preview or handoff`, async ({page})=>{
+  const f=await proposalFixture(page);f.proofMode(mode);await page.getByLabel(/현장 정지 상태를 직접 감독/).check();
+  await page.getByRole('button',{name:'초기 위치 제안 계산'}).click();
+  await expect(page.locator('[data-prep="geometry-preview"]')).toContainText('미확인 또는 만료');
+  await expect(page.getByRole('button',{name:'제안값 확인·②에 적용'})).toBeDisabled();
+  expect(f.writes.filter(v=>v.path.endsWith('/confirm-geometry'))).toHaveLength(0);
+ });
+}
+test('conditional candidate outside handoff limit remains informational and cannot confirm', async ({page})=>{
+ const f=await proposalFixture(page);f.proofMode('beyond-handoff');
+ await page.getByRole('button',{name:'초기 위치 제안 계산'}).click();
+ await expect(page.locator('[data-prep="geometry-preview"]')).toContainText('미적용');
+ await expect(page.locator('[data-prep="proposal-result"]')).toContainText('기존 초기 위치 허용 범위');
+ await page.getByLabel(/현장 정지 상태를 직접 감독/).check();await page.getByLabel(/전역 유일성·실제 위치 정확도는 확인되지 않았음/).check();
+ await expect(page.getByRole('button',{name:'제안값 확인·②에 적용'})).toBeDisabled();
+ expect(f.writes.filter(v=>v.path.endsWith('/confirm-geometry'))).toHaveLength(0);
+});
+
+test('nonambiguous original result remains conditional with its original flag unchanged', async ({page})=>{
+ const f=await proposalFixture(page);f.proofMode('original-unambiguous');await page.getByRole('button',{name:'초기 위치 제안 계산'}).click();
+ await expect(page.locator('[data-prep="geometry-preview"]')).toContainText('미적용');
+ const detail=JSON.parse(await page.locator('[data-prep="details"]').textContent());
+ expect(detail.initialization_proposal.quality.ambiguity_unresolved).toBe(false);
+ expect(detail.initialization_proposal.operator_prior_resolution.original_ambiguity_unresolved).toBe(false);
+ await expect(page.locator('[data-prep="proposal-result"]')).toContainText('조건부로 한 후보');
+ expect(f.writes.filter(v=>v.path.endsWith('/confirm-geometry'))).toHaveLength(0);
+});
+
+for (const reason of ['PRIOR_NO_MATCH', 'PRIOR_MULTIPLE_MATCHES']) {
+ test(`conditional ${reason} rejects without preview or confirmation`, async ({page})=>{
+  const f=await proposalFixture(page);f.proposalStatus('rejected',reason);
+  await page.getByRole('button',{name:'초기 위치 제안 계산'}).click();
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText(reason==='PRIOR_NO_MATCH'?'초안 범위 안에 조건을 충족하는 후보가 없습니다':'초안 범위 안에 여러 후보가 있습니다');
+  await expect(page.getByRole('button',{name:'제안값 확인·②에 적용'})).toBeDisabled();
+  expect(f.writes.filter(v=>v.path.endsWith('/confirm-geometry'))).toHaveLength(0);
+ });
+}

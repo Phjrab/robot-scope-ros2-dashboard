@@ -35,7 +35,7 @@ test('idle draft is local, non-sendable, invalidated by pair change and runtime 
  b.state.navigation.pipeline={state:'running',job_id:'2'.repeat(32)};
  b.state.navigation.safety.can_set_initial_pose=true;
  b.state.navigation.map={id:b.mapId,revision:b.mapRevision};
- await expect(page.locator('#navigationPoseMode')).not.toContainText('초안');
+ await expect(page.locator('#navigationPoseMode')).toContainText('이전 미전송 초안 · 미확인');
  await expect(page.locator('#navigationPoseSend')).toBeDisabled();
  expect(b.state.requests).toEqual([]);
 });
@@ -121,3 +121,91 @@ test(`old preparation ${oldResult} cannot roll back state or revalidate a draft 
  expect(b.state.requests.filter(r=>/\/navigation\/(initial-pose|goal)$/.test(r.path))).toEqual([]);
 });
 }
+
+
+test('draft survives transient preparation read failure as unconfirmed without sending', async ({page}) => {
+ const {b,selected,pair,status}=await fixture(page); await stage(page);
+ const coords=await page.locator('#navigationPoseCoordinates').textContent(); let failing=true;
+ b.on('/api/v1/navigation/operational-3d/preparation-inputs',({json})=> failing ? json({detail:'temporary offline'},503) : json({schema:'robot-scope.navigation-preparation-inputs.v1',pair,observation:{state:'STOPPED',active:false,can_start:false,can_stop:false},evidence:{valid:false,reason:'OBSERVATION_INACTIVE'},start_blockers:{items:['CONTROL_BRIDGE_NOT_INACTIVE']},candidates:{},operational_state:status,operational_state_error:null}));
+ await page.locator('[data-prep="refresh"]').click(); await expect(page.locator('[data-prep="issues"]')).toContainText('현재 준비 상태 수신 실패');
+ await expect(page.locator('#navigationPoseCoordinates')).toContainText(coords.match(/X [^·]+ · Y [^·]+ · YAW [^·]+/)[0]);
+ await expect(page.locator('#navigationPoseMode')).toContainText('미확인');
+ await expect(page.locator('#navigationInitialPoseTool')).toBeDisabled(); await expect(page.locator('#navigationPoseSend')).toBeDisabled();
+ await page.locator('#navigationPoseSend').dispatchEvent('click');
+ failing=false; await page.locator('[data-prep="refresh"]').click();
+ await expect(page.locator('#navigationInitialPoseTool')).toBeEnabled();
+ await expect(page.locator('#navigationPoseCoordinates')).toContainText(coords.match(/X [^·]+ · Y [^·]+ · YAW [^·]+/)[0]);
+ await expect(page.locator('#navigationPoseMode')).toContainText('미확인');
+ selected.generation=pair.generation='b'.repeat(32);
+ await expect(page.locator('#navigationPoseMode')).toHaveText('NO TOOL');
+ expect(b.state.requests.filter(r=>/\/navigation\/(initial-pose|goal|start)$/.test(r.path))).toEqual([]);
+});
+
+
+test('draft survives transient navigation read failure and remains unconfirmed on recovery', async ({page}) => {
+ const {b}=await fixture(page);await stage(page);const before=(await page.locator('#navigationPoseCoordinates').textContent()).split(' · ').slice(0,3).join(' · ');
+ let failing=true;b.on('/api/v1/navigation',({json})=>failing?json({detail:'offline'},503):json(b.state.navigation));
+ await expect(page.locator('#navigationPoseMode')).toContainText('미확인');await expect(page.locator('#navigationPoseCoordinates')).toContainText(before);
+ await expect(page.locator('#navigationPoseSend')).toBeDisabled();
+ failing=false;await expect(page.locator('#navigationInitialPoseTool')).toBeEnabled();
+ await expect(page.locator('#navigationPoseCoordinates')).toContainText(before);await expect(page.locator('#navigationPoseMode')).toContainText('미확인');
+ await page.locator('#navigationPoseSend').dispatchEvent('click');
+ expect(b.state.requests.filter(r=>/\/navigation\/(initial-pose|goal|start)$/.test(r.path))).toEqual([]);
+});
+
+test('changing selected map while preparation is unavailable discards the preserved draft', async ({page}) => {
+ const {b}=await fixture(page);await stage(page);
+ b.on('/api/v1/navigation/operational-3d/preparation-inputs',({json})=>json({detail:'temporary offline'},503));
+ await page.locator('[data-prep="refresh"]').click();await expect(page.locator('#navigationPoseMode')).toContainText('미확인');
+ await page.locator('#navigationLocalizationMapSelect').selectOption('');
+ await expect(page.locator('#navigationPoseMode')).toHaveText('NO TOOL');
+ await expect(page.locator('#navigationPoseCoordinates')).toHaveText('X — · Y — · YAW —');
+ expect(b.state.requests.filter(r=>/\/navigation\/(initial-pose|goal|start)$/.test(r.path))).toEqual([]);
+});
+
+test('historical draft requires same running context and explicit reconfirm before SEND', async ({page})=>{
+ const {b}=await fixture(page);await stage(page);const before=(await page.locator('#navigationPoseCoordinates').textContent()).split(' · ').slice(0,3).join(' · ');
+ b.state.navigation.pipeline={state:'running',job_id:'2'.repeat(32)};b.state.navigation.map={id:b.mapId,revision:b.mapRevision};b.state.navigation.safety.can_set_initial_pose=true;
+ b.state.navigation.operational_localization={fresh:true,bundle_generation:'a'.repeat(32),localization_map_id:'f'.repeat(24),localization_map_revision:'e'.repeat(64),localization_generation:1,runtime_instance_generation:'runtime-one'};
+ await expect(page.locator('#navigationPoseMode')).toContainText('이전 미전송 초안 · 미확인');await expect(page.locator('#navigationPoseCoordinates')).toContainText(before);
+ await expect(page.locator('#navigationPoseSend')).toBeDisabled();
+ page.once('dialog', dialog=>dialog.accept());await page.locator('#navigationInitialPoseTool').click();
+ await expect(page.locator('#navigationPoseMode')).toContainText('이전 초안 재확인 · 미전송');await expect(page.locator('#navigationPoseSend')).toBeEnabled();
+ b.state.navigation.operational_localization.runtime_instance_generation='runtime-two';
+ await expect(page.locator('#navigationPoseSend')).toBeDisabled();await expect(page.locator('#navigationPoseMode')).toContainText('이전 미전송 초안 · 미확인');
+ await expect(page.locator('#navigationPoseCoordinates')).toContainText(before);await page.locator('#navigationPoseSend').dispatchEvent('click');
+ expect(b.state.requests.filter(r=>/\/navigation\/(initial-pose|goal|start)$/.test(r.path))).toEqual([]);
+});
+
+test('stage one displays the draft and expected observation startup does not discard it', async ({page}) => {
+ const {b,pair,status}=await fixture(page);pair.calibration_sha256='c'.repeat(64);
+ const session={state:'STOPPED',active:false,can_start:true,can_stop:false,session_id:null};
+ const evidence={valid:false,reason:'OBSERVATION_INACTIVE'};
+ b.on('/api/v1/navigation/operational-3d/preparation-inputs',({json})=>json({schema:'robot-scope.navigation-preparation-inputs.v1',pair,observation:session,evidence,start_blockers:{items:[]},candidates:{},operational_state:status,operational_state_error:null}));
+ let release,entered=false;const gate=new Promise(resolve=>release=resolve);
+ b.on('/api/v1/observations/fastlio/start',async ({json})=>{entered=true;await gate;Object.assign(session,{state:'READY',active:true,can_start:false,can_stop:true,session_id:'a'.repeat(32)});
+  Object.assign(evidence,{valid:true,reason:null,cloud:{observer_id:'1'.repeat(32),publisher_epoch:'2'.repeat(32),source_stamp_ns:'123'},pose:{observer_id:'1'.repeat(32),publisher_epoch:'3'.repeat(32),source_stamp_ns:'123'}});return json(session);});
+ await page.locator('[data-prep="refresh"]').click();await expect(page.getByRole('button',{name:'센서 관측 시작'})).toBeEnabled();
+ await stage(page);await expect(page.locator('[data-prep="prior-status"]')).toContainText('미전송 사용자 초안');
+ await page.getByLabel('위치 불확실 반경 (m)').fill('.75');await page.getByLabel('방향 불확실 ± (도)').fill('25');await page.getByLabel(/이 초안이 현재 지도에서 정지/).check();
+ await page.getByRole('button',{name:'센서 관측 시작'}).click();await expect.poll(()=>entered).toBe(true);
+ await page.evaluate(()=>new Promise(resolve=>setTimeout(resolve,1500)));
+ await expect(page.locator('#navigationPoseMode')).toContainText('미전송 로컬 초안');release();
+ await expect(page.getByRole('button',{name:'초기 위치 제안 계산'})).toBeEnabled();
+ await expect(page.locator('[data-prep="steps"] > li').first()).toHaveAttribute('data-state','완료');
+ b.on('/api/v1/observations/fastlio/stop',({json})=>{Object.assign(session,{state:'STOPPED',active:false,can_start:true,can_stop:false,session_id:null});Object.assign(evidence,{valid:false,reason:'OBSERVATION_INACTIVE'});return json(session);});
+ await page.getByRole('button',{name:'센서 관측 종료'}).click();await expect(page.locator('#navigationPoseMode')).toContainText('미확인');
+ await expect(page.getByRole('button',{name:'센서 관측 시작'})).toBeEnabled();await page.getByRole('button',{name:'센서 관측 시작'}).click();
+ await expect(page.getByRole('button',{name:'센서 관측 종료'})).toBeEnabled();await expect(page.getByRole('button',{name:'초기 위치 제안 계산'})).toBeDisabled();
+ await expect(page.locator('#navigationPoseMode')).toContainText('미확인');
+ expect(b.state.requests.filter(r=>/\/navigation\/(initial-pose|goal|start)$/.test(r.path))).toEqual([]);
+});
+
+test('blur keeps the old point visibly unconfirmed without send or implicit reactivation', async ({page})=>{
+ const {b}=await fixture(page);await stage(page);const before=(await page.locator('#navigationPoseCoordinates').textContent()).split(' · ').slice(0,3).join(' · ');
+ await page.evaluate(()=>window.dispatchEvent(new Event('blur')));
+ await expect(page.locator('#navigationPoseMode')).toContainText('미확인');await expect(page.locator('#navigationPoseCoordinates')).toContainText(before);
+ await expect(page.locator('#navigationPoseSend')).toBeDisabled();await page.locator('#navigationPoseSend').dispatchEvent('click');
+ await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await expect(page.locator('#navigationPoseMode')).toContainText('미확인');
+ expect(b.state.requests.filter(r=>/\/navigation\/(initial-pose|goal|start)$/.test(r.path))).toEqual([]);
+});
