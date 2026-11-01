@@ -88,7 +88,13 @@ class SceneRound2Tests(unittest.TestCase):
             s.snapshot()["sources"]["obstacle_frame"]["calibration_status"], "UNKNOWN"
         )
         o.update(sequence=1, host_clock_id="browser")
-        s.ingest("obstacle_frame", o)
+        # A clock/producer change in a populated epoch cannot replace its
+        # observation or renew its TTL. Unknown-clock coverage uses an explicit
+        # source reset, just as a genuine restarted producer must.
+        self.assertFalse(s.ingest("obstacle_frame", o))
+        s.reset_source("obstacle_frame", "unknown-clock-restart")
+        o["source_epoch"] = o["frame_key"]["source_epoch"] = "unknown-clock-restart"
+        self.assertTrue(s.ingest("obstacle_frame", o))
         self.assertIsNone(s.snapshot()["obstacle_frame"])
         self.assertIsNone(s.snapshot()["sources"]["obstacle_frame"]["received_age_ms"])
 

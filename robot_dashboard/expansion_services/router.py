@@ -123,7 +123,10 @@ def create_router(manager, catalogue, scene, store, *, authorize, require_origin
 
     @router.get("/scene/snapshot")
     async def snapshot():
-        return await call(scene.snapshot)
+        value = await call(scene.snapshot)
+        response = value if isinstance(value, Response) else JSONResponse(value)
+        response.headers["Cache-Control"] = "no-store"
+        return response
 
     @router.get("/scene/assets/{asset_id}/{revision}")
     async def asset(asset_id: str, revision: str):

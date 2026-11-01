@@ -157,6 +157,16 @@ class SceneSnapshotService:
                     and (
                         m["source_epoch"] != previous["source_epoch"]
                         or m["sequence"] <= previous["sequence"]
+                        or (
+                            slot == "obstacle_frame"
+                            and not previous.get("_pending")
+                            and (
+                                m["producer"] != previous["producer"]
+                                or m["clock_domain"] != previous["clock_domain"]
+                                or m["host_clock_id"] != previous["host_clock_id"]
+                                or int(m["stamp_ns"]) <= int(previous["stamp_ns"])
+                            )
+                        )
                     )
                 )
             ):
@@ -218,7 +228,8 @@ class SceneSnapshotService:
                     status = (
                         "unavailable"
                         if age is None
-                        else ("expired" if now - receipt > self.max_age_ns else "ready")
+                        else ("expired" if now - receipt > self.max_age_ns
+                              or m.get("health", {}).get("stale") is True else "ready")
                     )
                     sources[slot] = {
                         "status": status,
@@ -231,6 +242,7 @@ class SceneSnapshotService:
                         "clock_domain": m["clock_domain"],
                         "host_clock_id": m["host_clock_id"],
                         "received_age_ms": age,
+                        "max_age_ms": self.max_age_ns / 1e6,
                         "sensor_age_ms": None,
                         "evidence_kind": m["evidence_kind"],
                         "health": m.get("health", m.get("freshness")),
