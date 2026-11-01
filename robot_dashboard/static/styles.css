@@ -1566,6 +1566,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .navigation-preparation-actions, .navigation-seed-geometry > div { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; margin: 12px 0; }
 .navigation-seed-geometry label { display: grid; gap: 6px; font-size: 12px; }
 .navigation-seed-geometry input { max-width: 160px; }
+.navigation-preparation-observation { border-top: 1px solid #344a42; margin-top: 12px; padding-top: 8px; }
+.navigation-preparation-observation h3 { font-size: 14px; }
+.navigation-preparation-observation p { font-size: 12px; line-height: 1.6; margin: 5px 0; overflow-wrap: anywhere; }
 .navigation-preparation-steps { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; margin: 16px 0; }
 .navigation-preparation-steps > li { border: 1px solid #344a42; border-radius: 8px; padding: 12px; min-width: 0; }
 .navigation-preparation-steps > li[data-state="완료"] { border-color: #378762; }

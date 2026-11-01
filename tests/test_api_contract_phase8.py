@@ -61,18 +61,19 @@ class Phase8ApiContractTests(unittest.TestCase):
         http = [(method, path) for method, path, _, _ in inventory if method != "WEBSOCKET"]
         websocket = [(method, path) for method, path, _, _ in inventory if method == "WEBSOCKET"]
 
-        self.assertEqual(len(http), 205)
-        self.assertEqual(sum(path.startswith("/api/v1/") for _, path in http), 204)
+        self.assertEqual(len(http), 206)
+        self.assertEqual(sum(path.startswith("/api/v1/") for _, path in http), 205)
         self.assertEqual(
             {
                 method: sum(candidate == method for candidate, _ in http)
                 for method in {"GET", "POST", "PUT", "PATCH", "DELETE"}
             },
-            {"GET": 90, "POST": 102, "PUT": 1, "PATCH": 6, "DELETE": 6},
+            {"GET": 91, "POST": 102, "PUT": 1, "PATCH": 6, "DELETE": 6},
         )
         self.assertTrue(
             {
                 ("GET", "/api/v1/perception/health"),
+                ("GET", "/api/v1/navigation/operational-3d/preparation-inputs"),
                 ("POST", "/api/v1/navigation/operational-3d/pair"),
                 ("POST", "/api/v1/navigation/operational-3d/seed-geometry"),
                 ("POST", "/api/v1/navigation/operational-3d/match"),

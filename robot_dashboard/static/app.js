@@ -6724,7 +6724,7 @@ navigationPreparation = initializeNavigationPreparation({
   host: $('#navigationPreparation'), map3dSelect: $('#navigationLocalizationMapSelect'), map2dSelect: ui.navigationMapSelect,
   api, context: () => ({ maps: savedMapCatalog, map: navigationSelectedMapMeta, navigation: navigationSnapshot, busy: navigationOperationBusy }),
   onChange: renderNavigationStatus,
-  actions: { start: startNavigation, initial: () => selectNavigationTool('initial'), goal: () => selectNavigationTool('goal'), refresh: refreshNavigation },
+  actions: { refresh: refreshNavigation },
 });
 void navigationPreparation.refresh(true);
 ui.navigationMapSelect.addEventListener('change', () => {

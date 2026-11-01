@@ -6,12 +6,26 @@ const grid = { id: 'c'.repeat(24), revision: 'd'.repeat(64), kind: 'occupancy2d'
 
 async function fixture(page) {
   const state = { selected: null, pair: null, runtime: null }, writes = [];
+  const observation = { state: 'STOPPED', active: false, can_start: true, can_stop: false, reason: '정지' };
+  const inputs = { schema: 'robot-scope.navigation-preparation-inputs.v1', pair: null, observation, start_blockers: { items: [], advisory: true },
+    evidence: { valid: false, reason: 'OBSERVATION_INACTIVE', cloud: null, pose: null, calibration_sha256: null }, reference_pose: null,
+    candidates: Object.fromEntries(['z', 'roll', 'pitch'].map(key => [key, { value: null, frame: 'map', available: false, reason: 'OBSERVATION_INACTIVE', provenance: null }])) };
   let reject = false, failingReads = 0, heldWrites = null, releaseWrite = null;
+  let rejectObservation = false;
+  await page.route('**/api/v1/observations/fastlio/**', async route => {
+    const path = new URL(route.request().url()).pathname, body = route.request().postDataJSON();
+    writes.push({ path, method: route.request().method(), body });
+    if (rejectObservation) return route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ detail: '다른 작업을 먼저 종료하세요: control_bridge_not_inactive' }) });
+    if (path.endsWith('/start')) Object.assign(observation, { state: 'READY', active: true, can_start: false, can_stop: true, session_id: 'a'.repeat(32), reason: '입력 준비 완료' });
+    else Object.assign(observation, { state: 'STOPPED', active: false, can_start: true, can_stop: false, session_id: null });
+    return route.fulfill({ contentType: 'application/json', body: JSON.stringify(observation) });
+  });
   await page.route('**/software-preparation.html', route => route.fulfill({ contentType: 'text/html', body: `<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="/styles.css"><main style="padding:24px"><label>3D 위치추정 지도<select id="cloud"></select></label><label>2D 경로 계산 지도<select id="grid"><option>${grid.name}</option></select></label><article class="panel navigation-preparation-panel" id="host"></article></main>` }));
   await page.route('**/api/v1/navigation/operational-3d**', async route => {
     const path = new URL(route.request().url()).pathname, method = route.request().method();
     const body = route.request().postDataJSON();
     const json = (value, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(value) });
+    if (path.endsWith('/preparation-inputs')) return json(inputs);
     if (method !== 'GET') writes.push({ path, method, body });
     if (method === 'GET' && failingReads > 0) { failingReads--; return json({ detail: 'SYNTHETIC_READ_TIMEOUT' }, 503); }
     if (method !== 'GET' && heldWrites) await heldWrites;
@@ -21,6 +35,7 @@ async function fixture(page) {
         localization_3d: { map_id: cloud.id, revision: cloud.revision }, navigation_2d: { map_id: grid.id, revision: grid.revision },
         calibration: { verified: true }, seed_geometry: null };
       state.pair = { can_start: false };
+      inputs.pair = { generation: 'pairgen', valid: true, localization_3d: state.selected.localization_3d, navigation_2d: state.selected.navigation_2d };
     }
     if (path.endsWith('/seed-geometry')) { state.selected.seed_geometry = { ...body, source: 'USER_CONFIRMED_NAV_BASE', confirmed_at: 1793444400 }; state.pair.can_start = true; }
     if (method === 'DELETE') { state.selected = null; state.pair = null; }
@@ -31,13 +46,16 @@ async function fixture(page) {
     const { initializeNavigationPreparation } = await import('/features/navigation/preparation.js');
     window.fixtureContext = { maps: [cloud, grid], map: grid, navigation: { pipeline: { state: 'idle' }, goal: { state: 'idle' } } };
     window.fixtureActions = [];
+    window.fixtureScrolls = 0;
+    window.scrollTo = () => { window.fixtureScrolls++; };
+    Element.prototype.scrollIntoView = () => { window.fixtureScrolls++; };
     window.preparation = initializeNavigationPreparation({ host: document.querySelector('#host'), map3dSelect: document.querySelector('#cloud'), map2dSelect: document.querySelector('#grid'),
       api: async (path, options) => { const response = await fetch(path, options); const value = await response.json(); if (!response.ok) throw new Error(value.detail); return value; },
       context: () => window.fixtureContext, onChange: () => {},
       actions: Object.fromEntries(['start', 'initial', 'goal', 'refresh'].map(key => [key, () => window.fixtureActions.push(key)])) });
     window.preparation.render(); await window.preparation.refresh(true);
   }, { cloud, grid });
-  return { state, writes, reject(value) { reject = value; }, failReads(count) { failingReads = count; },
+  return { state, inputs, writes, reject(value) { reject = value; }, rejectObservation(value) { rejectObservation = value; }, failReads(count) { failingReads = count; },
     holdWrites() { heldWrites = new Promise(resolve => { releaseWrite = resolve; }); },
     releaseWrites() { releaseWrite?.(); heldWrites = null; releaseWrite = null; } };
 }
@@ -49,7 +67,7 @@ test('map selection is passive, missing geometry is explicit, retry resumes with
   expect(await page.evaluate(() => window.fixtureActions)).toEqual([]);
   await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
   await expect(page.getByRole('region', { name: '준비 상태·해결할 항목' })).toContainText('초기 높이·기울기 미확인');
-  await expect(page.getByRole('button', { name: 'Nav2 시작', exact: true })).toBeDisabled();
+  expect(await page.evaluate(() => window.preparation.canStart())).toBe(false);
   await page.getByText('② 초기 높이·기울기 입력', { exact: true }).click();
   await page.getByRole('button', { name: '초기 높이·기울기 저장' }).click();
   await expect(page.getByRole('region', { name: '준비 상태·해결할 항목' })).toContainText('빈 값은 0으로 처리하지 않습니다');
@@ -58,12 +76,15 @@ test('map selection is passive, missing geometry is explicit, retry resumes with
   await page.getByLabel('roll (rad)', { exact: true }).fill('0.01');
   await page.getByLabel('pitch (rad)', { exact: true }).fill('-0.02');
   await page.getByRole('button', { name: '초기 높이·기울기 저장' }).click();
-  await expect(page.getByRole('button', { name: 'Nav2 시작', exact: true })).toBeEnabled();
+  await expect.poll(() => page.evaluate(() => window.preparation.canStart())).toBe(true);
   expect(f.writes.map(value => value.path)).toEqual(['/api/v1/navigation/operational-3d/pair', '/api/v1/navigation/operational-3d/seed-geometry']);
   expect(f.writes[1].body).toEqual({ generation: 'pairgen', z: .34, roll: .01, pitch: -.02 });
   expect(await page.evaluate(() => window.fixtureActions)).toEqual([]);
-  await page.getByRole('button', { name: 'Nav2 시작', exact: true }).click();
-  expect(await page.evaluate(() => window.fixtureActions)).toEqual(['start']);
+  await expect(page.locator('[data-prep="steps"]')).toContainText('아래 주행 조작부에서 Nav2를 시작하세요.');
+  for (const name of ['Nav2 시작', 'INITIAL POSE 지정', 'GOAL POSE 지정']) await expect(page.locator('#host').getByRole('button', { name, exact: true })).toHaveCount(0);
+  await page.evaluate(() => { window.preparation.render(); window.preparation.render(); });
+  expect(await page.evaluate(() => window.fixtureScrolls)).toBe(0);
+  expect(await page.evaluate(() => window.fixtureActions)).toEqual([]);
 });
 
 test('server rejection stays visible and exact pair can be rechecked; active runtime locks maps', async ({ page }) => {
@@ -111,10 +132,11 @@ test('initial receipt requires explicit match and ready receipt never sends a go
     source.state = 'MAP_TRACKING'; source.ready = true; source.correction_sequence = 4;
     nav.safety.can_send_goal = true; window.preparation.render();
   });
-  await expect(page.getByRole('button', { name: 'GOAL POSE 지정' })).toBeEnabled();
+  expect(await page.evaluate(() => window.preparation.permitsGoal())).toBe(true);
+  await expect(page.locator('[data-prep="steps"]')).toContainText('아래 지도 조작부에서 GOAL POSE를 지정·전송하세요.');
   expect(await page.evaluate(() => window.fixtureActions)).toEqual([]);
   await page.evaluate(() => { const source = window.fixtureContext.navigation.operational_localization; source.ready = false; source.estimated_pose.stale = true; source.state = 'MAP_CORRECTION_STALE'; window.preparation.render(); });
-  await expect(page.getByRole('button', { name: 'GOAL POSE 지정' })).toBeDisabled();
+  expect(await page.evaluate(() => window.preparation.permitsGoal())).toBe(false);
   await expect(page.locator('[data-prep="steps"]')).toContainText('마지막 추정 위치');
   await page.locator('#host').screenshot({ path: 'test-results/navigation-preparation-stale.png' });
   expect(f.writes.filter(write => write.path.endsWith('/goal'))).toHaveLength(0);
@@ -161,7 +183,7 @@ test('automatic fresh status clears a recovered read failure without losing the 
   await expect(page.locator('[data-prep="issues"]')).not.toContainText('현재 준비 상태 수신 실패');
   await expect(page.locator('[data-prep="current"]')).toContainText('현재 단계: 2.');
   await expect(page.locator('[data-prep="current"]')).toContainText('사용자 입력 필요');
-  await expect(page.getByRole('button', { name: 'Nav2 시작', exact: true })).toBeDisabled();
+  expect(await page.evaluate(() => window.preparation.canStart())).toBe(false);
   expect(f.writes).toHaveLength(1);
   expect(await page.evaluate(() => window.fixtureActions)).toEqual([]);
   await page.evaluate(() => clearInterval(window.fixturePolling));
@@ -174,7 +196,7 @@ test('pending apply visibly checks its step and later fresh reads retain action 
   await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
   await expect(page.locator('[data-prep="current"]')).toHaveText('현재 단계: 1. 지도 선택·연결 확인 · 확인 중');
   await expect(page.getByRole('button', { name: '① 지도 연결 확인·적용' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Nav2 시작', exact: true })).toBeDisabled();
+  expect(await page.evaluate(() => window.preparation.canStart())).toBe(false);
   expect(await page.evaluate(() => window.preparation.canStart())).toBe(false);
   f.reject(true); f.releaseWrites();
   await expect(page.locator('[data-prep="issues"]')).toContainText('PAIR_COORDINATE_RELATION_UNVERIFIED');
@@ -182,4 +204,81 @@ test('pending apply visibly checks its step and later fresh reads retain action 
   await expect(page.locator('[data-prep="issues"]')).toContainText('PAIR_COORDINATE_RELATION_UNVERIFIED');
   expect(f.writes).toHaveLength(1);
   expect(await page.evaluate(() => window.fixtureActions)).toEqual([]);
+});
+
+test('sensor evidence and individual candidates are descriptive and never applied automatically', async ({ page }) => {
+  const f = await fixture(page);
+  await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
+  await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
+  await expect(page.locator('[data-prep="observation-status"]')).toContainText('관측 상태: 정지');
+  await expect(page.getByRole('button', { name: '센서 관측 시작' })).toBeEnabled();
+  await expect(page.locator('[data-prep="candidates"]')).toContainText('센서 관측이 실행 중이 아닙니다');
+  f.inputs.candidates.z.reason = 'MAP_ABSOLUTE_Z_UNVERIFIED';
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="candidates"]')).toContainText('지도 기준 본체 높이가 확인되지 않았습니다');
+  await page.getByRole('button', { name: '센서 관측 시작' }).click();
+  await expect(page.getByRole('button', { name: '센서 관측 종료' })).toBeEnabled();
+  expect(f.writes.at(-1)).toEqual({ path: '/api/v1/observations/fastlio/start', method: 'POST', body: { confirmed: true } });
+  f.inputs.evidence = { valid: true, reason: null, calibration_sha256: 'calibration',
+    cloud: { topic: '/cloud_registered', frame_id: 'camera_init', source_stamp_ns: '1234567890123456789', received_monotonic_s: 10, publisher_epoch: 'epoch' },
+    pose: { topic: '/Odometry', frame_id: 'camera_init', source_stamp_ns: '1234567890123456789', received_monotonic_s: 10, publisher_epoch: 'epoch' } };
+  f.inputs.reference_pose = { frame: 'camera_init', child_frame: 'base_link', source_stamp_ns: '1234567890123456789', position: { z: 1 }, orientation: { roll: 0.1 }, qualification: 'REFERENCE_ONLY' };
+  f.inputs.candidates = { z: { value: .34, frame: 'map', available: true, reason: null, provenance: { source: 'validated', source_stamp_ns: '1234567890123456789', age_s: 0,
+    map_id: grid.id, map_revision: grid.revision, localization_map_id: cloud.id, localization_map_revision: cloud.revision,
+    bundle_generation: 'pairgen', runtime_instance_generation: 'process', localization_generation: 2, correction_sequence: 4 } },
+    roll: { value: null, frame: 'map', available: false, reason: 'MAP_GRAVITY_ALIGNMENT_UNVERIFIED' }, pitch: { value: null, frame: 'map', available: false, reason: 'NEW_SERVER_REASON' } };
+  await page.evaluate(({ cloud, grid }) => {
+    const pin = { map_id: grid.id, map_revision: grid.revision, localization_map_id: cloud.id, localization_map_revision: cloud.revision,
+      bundle_generation: 'pairgen', localization_generation: 2, runtime_instance_generation: 'process', correction_sequence: 4,
+      pose: { x: 1, y: 2, z: .34, roll: 0, pitch: 0, yaw: 1 }, stale: false };
+    Object.assign(window.fixtureContext.navigation, { map: grid, pipeline: { state: 'running', job_id: 'job' }, safety: { can_send_goal: true },
+      operational_localization: { ...pin, source: 'STORED_PCD_FASTLIO', fresh: true, ready: true, estimated_pose: pin } });
+  }, { cloud, grid });
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="evidence"]')).toContainText('/Odometry');
+  await expect(page.locator('[data-prep="evidence"]')).toContainText('센서 시각 기록됨');
+  await expect(page.locator('[data-prep="evidence"]')).not.toContainText('1234567890123456789');
+  await expect(page.locator('[data-prep="evidence"]')).toContainText('지도 초기값 아님');
+  await expect(page.locator('[data-prep="candidates"]')).toContainText('z: 자동 후보 0.34');
+  await expect(page.locator('[data-prep="candidates"]')).toContainText('roll: 부족 · 지도 기준 기울기가 확인되지 않았습니다');
+  await expect(page.locator('[data-prep="candidates"]')).toContainText('pitch: 부족 · 상세 원인을 확인하지 못했습니다');
+  await expect(page.locator('[data-prep="candidates"]')).not.toContainText('NEW_SERVER_REASON');
+  await expect(page.locator('[data-prep="details"]')).toContainText('1234567890123456789');
+  await expect(page.locator('[data-prep="details"]')).toContainText('NEW_SERVER_REASON');
+  await expect(page.locator('[data-prep="details"]')).toContainText('calibration');
+  await page.evaluate(() => { window.fixtureContext.navigation.operational_localization.runtime_instance_generation = 'restarted'; window.preparation.render(); });
+  await expect(page.locator('[data-prep="candidates"]')).not.toContainText('자동 후보');
+  await expect(page.locator('[data-prep="candidates"]')).toContainText('후보 신선도 만료 또는 미확인');
+  await expect(page.locator('[data-prep="evidence"]')).toContainText(/조회 요청 후 [1-9]\d*\.\d초 경과/);
+  await page.getByText('② 초기 높이·기울기 입력', { exact: true }).click();
+  await expect(page.getByLabel('높이 z (m)')).toHaveValue('');
+  expect(f.writes.map(write => write.path)).toEqual(['/api/v1/navigation/operational-3d/pair', '/api/v1/observations/fastlio/start']);
+  f.inputs.pair.generation = 'other';
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="candidates"]')).not.toContainText('자동 후보');
+  await page.getByRole('button', { name: '센서 관측 종료' }).click();
+  await expect(page.locator('[data-prep="observation-status"]')).toContainText('관측 상태: 정지');
+  await expect(page.getByRole('button', { name: '센서 관측 시작' })).toBeDisabled();
+  expect(f.writes.at(-1).body).toEqual({ confirmed: true, session_id: 'a'.repeat(32) });
+});
+
+test('observation rejection exposes bridge reason and does not retry or bypass the server', async ({ page }) => {
+  const f = await fixture(page);
+  await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
+  await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
+  f.inputs.start_blockers.items = ['CONTROL_BRIDGE_NOT_INACTIVE', 'OWNER_BUSY:navigation'];
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="observation-status"]')).toContainText('제어 bridge가 비활성 상태가 아닙니다');
+  await expect(page.locator('[data-prep="observation-status"]')).toContainText('주행이 센서를 사용 중입니다');
+  await expect(page.locator('[data-prep="details"]')).toContainText('CONTROL_BRIDGE_NOT_INACTIVE');
+  await expect(page.getByRole('button', { name: '센서 관측 시작' })).toBeDisabled();
+  expect(f.writes.filter(write => write.path.includes('/observations/'))).toHaveLength(0);
+  f.inputs.start_blockers.items = [];
+  await page.evaluate(() => window.preparation.refresh(true));
+  f.rejectObservation(true);
+  await page.getByRole('button', { name: '센서 관측 시작' }).click();
+  await expect(page.locator('[data-prep="observation-error"]')).toContainText('제어 bridge가 비활성 상태가 아닙니다');
+  await expect(page.locator('[data-prep="details"]')).toContainText('control_bridge_not_inactive');
+  expect(f.writes.filter(write => write.path.includes('/observations/'))).toHaveLength(1);
+  expect(f.writes.filter(write => /seed-geometry|\/match|\/goal/.test(write.path))).toHaveLength(0);
 });

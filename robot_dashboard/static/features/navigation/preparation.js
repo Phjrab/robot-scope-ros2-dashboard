@@ -1,7 +1,7 @@
 /** Presentation only. Runtime admission remains authoritative for every command. */
 export const PREPARATION_STEPS = [
   ['지도 선택·연결 확인', '3D·2D 지도 ID/revision, 변환 계보와 좌표 관계를 서버에서 확인'],
-  ['센서·교정·초기값 준비', '검증된 센서·본체 교정과 명시한 초기 높이·기울기 준비'],
+  ['센서·교정·초기값 준비', '센서 관측과 출처·좌표 기준을 확인하고 지도 기준 초기 높이·기울기 준비'],
   ['Nav2 시작·노드와 TF 확인', '실행 source, 현재 점군·자세, Nav2 노드와 TF 입력 확인'],
   ['INITIAL POSE 지정·전송', '지도에서 지정한 현재 위치·방향의 실제 런타임 접수 확인'],
   ['현재 LiDAR와 저장 지도 정합', '명시적으로 정합을 시작하고 실제 보정 갱신·품질 확인'],
@@ -22,6 +22,34 @@ const REASONS = {
   INSUFFICIENT_STRUCTURE: ['관측 가능한 구조 부족', '서로 다른 방향의 안정적인 구조가 관측되는지 확인하세요.'],
   HIGH_RESIDUAL: ['현재 정합 품질 기준 미달', '현재 잔차·겹침·구조 검사 결과를 확인하세요.'],
 };
+const INPUT_REASONS = {
+  MAP_PAIR_REQUIRED: '지도 조합이 없습니다 → ①에서 3D·2D 지도를 연결하세요.',
+  MAP_PAIR_INVALID: '지도 또는 교정 검증이 맞지 않습니다 → ①의 연결 상태를 다시 확인하세요.',
+  OBSERVATION_INACTIVE: '센서 관측이 실행 중이 아닙니다 → 시작 조건을 확인하고 관측을 시작하세요.',
+  OBSERVATION_INPUTS_UNAVAILABLE: '센서 입력을 확인하지 못했습니다 → 점군·자세 수신 상태를 확인하세요.',
+  OBSERVATION_STALE_OR_SOURCE_INVALID: '센서 입력이 오래됐거나 출처가 일치하지 않습니다 → 현재 입력과 실행 상태를 확인하세요.',
+  POSE_PAIR_UNAVAILABLE: '같은 시각의 점군·자세가 없습니다 → 새 센서 입력을 확인하세요.',
+  CALIBRATION_UNAVAILABLE: '본체·센서 교정 근거가 없습니다 → 검증된 교정 상태를 확인하세요.',
+  MAP_ABSOLUTE_Z_UNVERIFIED: '지도 기준 본체 높이가 확인되지 않았습니다 → 현재 높이의 지도 기준 근거가 필요합니다.',
+  MAP_GRAVITY_ALIGNMENT_UNVERIFIED: '지도 기준 기울기가 확인되지 않았습니다 → 지도와 중력 방향의 관계를 확인해야 합니다.',
+  MAP_ESTIMATE_UNAVAILABLE_OR_STALE: '현재 지도 추정이 없거나 오래됐습니다 → 현재 실행의 신선한 추정과 품질을 확인하세요.',
+  MAP_ESTIMATE_INVALID: '지도 추정값을 사용할 수 없습니다 → 현재 추정과 품질 검사를 확인하세요.',
+  NAVIGATION_JOB_NOT_RUNNING: '현재 주행 실행이 없습니다 → 지도 추정이 필요한 조건을 확인하세요.',
+  CONTEXT_CHANGED: '조회 중 지도 또는 관측 실행이 바뀌었습니다 → 현재 상태를 다시 확인하세요.',
+  SOURCE_CHANGED: '조회 중 센서 출처가 바뀌었습니다 → 현재 입력을 다시 확인하세요.',
+  OBSERVATION_SESSION_NOT_STARTABLE: '관측 세션을 시작할 수 없는 상태입니다 → 현재 관측 상태를 확인하세요.',
+  CONTROL_BRIDGE_NOT_INACTIVE: '제어 bridge가 비활성 상태가 아닙니다 → 기존 안전 절차로 상태를 확인하세요.',
+  CONTROL_BRIDGE_STATE_UNKNOWN: '제어 bridge 상태를 확인하지 못했습니다 → 연결과 상태를 확인하세요.',
+  START_BLOCKERS_UNAVAILABLE: '시작 조건을 확인하지 못했습니다 → 연결과 상태를 다시 확인하세요.',
+  OBSERVATION_STATUS_UNAVAILABLE: '관측 상태를 확인하지 못했습니다 → 연결과 상태를 다시 확인하세요.',
+};
+function inputReason(code) {
+  if (INPUT_REASONS[code]) return INPUT_REASONS[code];
+  const owners = { mapping: '지도 작성', navigation: '주행', slam: 'SLAM', control: '수동 제어', raw_capture: '센서 원본 기록', dataset: '데이터 기록', mission: '미션', mission_routes: '미션 경로', route_planner: '경로 계획', lifecycle: '실행 전환', global_observation: '전역 관측', relocalization: '위치 재추정', sensor_tracking: '센서 추적' };
+  if (typeof code === 'string' && code.startsWith('OWNER_BUSY:')) return `${owners[code.slice(11)] || '다른 작업'}이 센서를 사용 중입니다 → 해당 작업의 종료 상태를 확인하세요.`;
+  if (typeof code === 'string' && code.startsWith('OWNER_UNKNOWN:')) return `${owners[code.slice(14)] || '다른 작업'}의 점유 상태를 확인하지 못했습니다 → 현재 작업 상태를 확인하세요.`;
+  return '상세 원인을 확인하지 못했습니다 → 기술 상세에서 서버의 검사 결과를 확인하세요.';
+}
 const finite = value => typeof value === 'number' && Number.isFinite(value);
 const pin = map => map && `${map.map_id || map.id}:${map.revision}`;
 const issue = (code, current, required, remedy, step) => ({ code, current, required, remedy, step });
@@ -117,11 +145,15 @@ export function preparationModel({ state, navigation = {}, draft3d, draft2d, err
 export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect, api, context, onChange, actions }) {
   let state = null, busy = false, available = true, error = '', fetchError = '', checkedAt = 0, refreshing = false, draftTouched = false, actionStep = null;
   let lastContext = '', invalidated = '', selected3d = '', draft3dRevision = '', geometryGeneration = '';
+  let inputs = null, inputsError = '', observationError = '', observationBusy = false, inputsRevision = 0, inputsRequestedAt = 0;
   const node = (tag, text, className) => { const el = document.createElement(tag); if (text !== undefined) el.textContent = text; if (className) el.className = className; return el; };
   host.innerHTML = `<div class="panel-header compact"><div><div class="eyebrow">STORED MAP NAVIGATION</div><h2>단계별 주행 준비</h2></div><button type="button" data-prep="refresh">현재 단계 다시 확인</button></div>
     <p data-prep="current"></p><p data-prep="selected"></p><p data-prep="applied"></p><p data-prep="invalidation" role="status"></p>
     <div class="navigation-preparation-actions"><button type="button" data-prep="pair">① 지도 연결 확인·적용</button><button type="button" data-prep="clear">기존 2D 모드로 복구</button></div>
-    <details class="navigation-seed-geometry"><summary>② 초기 높이·기울기 입력</summary><p>현재 로봇 본체 원점(base_link)의 지도 좌표 높이(m), roll·pitch(rad)를 확인해 입력하세요. 바닥 높이와 본체 원점의 높이는 다릅니다. 값이 없으면 이 단계에서 표시하며, 임의의 0이나 이전 실행값을 사용하지 않습니다. 센서의 현재 입력은 Nav2 시작 후 ③에서 확인합니다.</p>
+    <section class="navigation-preparation-observation" aria-label="② 센서 관측과 초기값"><h3>② 센서 관측과 초기값</h3><p>관측은 정지 상태의 센서 입력 확인 전용입니다. 시작 조건은 서버가 다시 검사하며, 지도 선택이나 후보 확인만으로 정합·주행을 시작하지 않습니다.</p>
+    <div class="navigation-preparation-actions"><button type="button" data-prep="observe-start">센서 관측 시작</button><button type="button" data-prep="observe-stop">센서 관측 종료</button></div>
+    <p data-prep="observation-status" role="status"></p><p data-prep="observation-error" role="alert"></p><div data-prep="evidence"></div><div data-prep="candidates"></div></section>
+    <details class="navigation-seed-geometry"><summary>② 초기 높이·기울기 입력</summary><p>현재 로봇 본체 원점(base_link)의 지도 좌표 높이(m), roll·pitch(rad)를 확인해 입력하세요. 바닥 높이와 본체 원점의 높이는 다릅니다. 임의의 0이나 이전 실행값을 사용하지 않습니다. 참고값이나 자동 후보는 자동 입력·전송되지 않습니다.</p>
     <div><label>높이 z (m)<input data-geometry="z" type="number" step="0.001" placeholder="미지정"></label><label>roll (rad)<input data-geometry="roll" type="number" step="0.001" placeholder="미지정"></label><label>pitch (rad)<input data-geometry="pitch" type="number" step="0.001" placeholder="미지정"></label><button type="button" data-prep="geometry">초기 높이·기울기 저장</button></div><p data-prep="geometry-source"></p></details>
     <ol class="navigation-preparation-steps" data-prep="steps"></ol>
     <section class="navigation-preparation-issues" aria-label="준비 상태·해결할 항목"><h3>준비 상태·해결할 항목</h3><div data-prep="issues" role="status"></div></section>
@@ -176,26 +208,86 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     host.querySelectorAll('[data-geometry]').forEach(input => { input.disabled = busy || navigationBusy || model.active || !selected; });
     const geometry = selected?.seed_geometry;
     el('geometry-source').textContent = geometry ? `출처: ${geometry.source || '사용자 명시 입력'} · 확인 시각: ${finite(geometry.confirmed_at) ? new Date(geometry.confirmed_at * 1000).toLocaleString() : '서버 확인 정보 참고'} · 현재 구성에만 적용` : '이번 구성에 확인된 높이·기울기 없음';
+    const observation = inputs?.observation;
+    const pair = inputs?.pair;
+    const inputsCurrent = Boolean(available && model.matched && selected && pair?.valid === true && pair.generation === selected.generation && samePin(pair.localization_3d, selected.localization_3d) && samePin(pair.navigation_2d, selected.navigation_2d));
+    const blockers = inputs?.start_blockers?.items;
+    el('observe-start').disabled = observationBusy || busy || navigationBusy || model.active || !inputsCurrent || observation?.can_start !== true || !Array.isArray(blockers) || blockers.length > 0;
+    el('observe-stop').disabled = observationBusy || observation?.can_stop !== true || !/^[a-f0-9]{32}$/.test(observation?.session_id || '');
+    const sessionLabels = { UNAVAILABLE: '사용 불가', CHECKING: '확인 중', STOPPED: '정지', FAILED: '시작 실패 또는 종료', STARTING: '시작 중', WAITING_INPUTS: '입력 대기', READY: '입력 준비', STOPPING: '종료 중', UNKNOWN: '상태 미확인' };
+    el('observation-status').textContent = inputsError ? '관측 입력 확인 실패 → 연결과 상태를 다시 확인하세요.' : `관측 상태: ${sessionLabels[observation?.state] || '확인 중'} · ${observation?.reason || '서버 상태 확인 필요'} · 시작 사전 검사: ${Array.isArray(blockers) ? blockers.length ? blockers.map(inputReason).join(' · ') : '현재 차단 항목 없음' : inputReason('START_BLOCKERS_UNAVAILABLE')} · 사전 검사는 권고이며 서버의 최종 승인 보장이 아닙니다.`;
+    const bridgeError = /control_bridge_not_inactive/i.test(observationError);
+    el('observation-error').textContent = observationError ? bridgeError ? `관측 시작이 거절됐습니다. ${inputReason('CONTROL_BRIDGE_NOT_INACTIVE')} 자동 재시도하지 않습니다.` : '관측 요청이 거절됐거나 응답을 확인하지 못했습니다 → 기술 상세의 서버 사유를 확인하세요. 자동 재시도하지 않습니다.' : '';
+    const evidence = inputs?.evidence;
+    const provenance = value => value ? `출처 ${value.topic || '미확인'} · 좌표 ${value.frame_id || '미확인'} · 센서 시각 ${value.source_stamp_ns ? '기록됨' : '미확인'}` : '입력 없음';
+    const reference = inputsCurrent && evidence?.valid === true && observation?.active === true && observation?.state === 'READY' ? inputs?.reference_pose : null;
+    const requestAge = Math.max(0, (performance.now() - inputsRequestedAt) / 1000);
+    const vector = (value, keys) => keys.map(key => `${key} ${finite(value?.[key]) ? value[key].toFixed(3) : '미확인'}`).join(' · ');
+    el('evidence').replaceChildren(
+      node('p', `준비 구성: ${inputsCurrent ? '현재 선택과 일치' : '현재 선택과 일치 미확인'} · 관측 검사(조회 시점): ${evidence?.valid === true && inputsCurrent ? '통과' : evidence?.reason ? inputReason(evidence.reason) : '미확인'} · 조회 요청 후 ${inputs ? requestAge.toFixed(1) + '초 경과' : '시간 미확인'}`),
+      node('p', `점군: ${provenance(evidence?.cloud)}`), node('p', `자세: ${provenance(evidence?.pose)}`),
+      node('p', reference ? `본체 참고 자세 (과거 조회 결과, 지도 초기값 아님): ${reference.frame || '좌표 미확인'} → ${reference.child_frame || '미확인'} · 조회 요청 후 ${requestAge.toFixed(1)}초 경과 · 위치(m) ${vector(reference.position, ['x', 'y', 'z'])} · 자세(rad) ${vector(reference.orientation, ['roll', 'pitch', 'yaw'])}` : '본체 참고 자세 없음')
+    );
+    el('candidates').replaceChildren(...['z', 'roll', 'pitch'].map(key => {
+      const candidate = inputs?.candidates?.[key];
+      const age = candidate?.provenance?.age_s;
+      const fresh = finite(age) && age >= 0 && age + (performance.now() - inputsRequestedAt) / 1000 <= 0.5;
+      const candidateContext = model.tracking && source?.source === 'STORED_PCD_FASTLIO'
+        && ['bundle_generation', 'runtime_instance_generation', 'localization_generation', 'correction_sequence'].every(name => candidate?.provenance?.[name] === source?.[name])
+        && candidate?.provenance?.map_id === navigation.map?.id && candidate?.provenance?.map_revision === navigation.map?.revision
+        && candidate?.provenance?.localization_map_id === source?.localization_map_id && candidate?.provenance?.localization_map_revision === source?.localization_map_revision;
+      const usable = inputsCurrent && candidateContext && candidate?.available === true && candidate.frame === 'map' && finite(candidate.value) && fresh;
+      const stale = candidate?.available === true && !fresh ? '후보 신선도 만료 또는 미확인 → 새 상태를 확인하세요.' : '';
+      return node('p', usable ? `${key}: 자동 후보 ${candidate.value} ${key === 'z' ? 'm' : 'rad'} · 지도 좌표 · 현재 추정 기준 · 읽기 전용, 자동 입력·적용 없음` : `${key}: 부족 · ${inputsCurrent ? stale || (candidate?.available === true && !candidateContext ? '현재 실행·추정 상태가 다릅니다 → 현재 실행을 다시 확인하세요.' : candidate?.reason ? inputReason(candidate.reason) : '서버 후보가 없습니다 → 필요한 근거를 확인하세요.') : '현재 지도·실행 일치 미확인 → 지도 연결과 현재 상태를 확인하세요.'}`);
+    }), node('p', `지도 추정: ${inputs?.map_estimate_reason ? inputReason(inputs.map_estimate_reason) : inputs?.candidates ? '서버 후보 참고' : '미확인'}`));
     el('steps').replaceChildren(...model.steps.map(step => {
       const item = node('li'); item.dataset.state = step.status;
       item.append(node('strong', `${step.number}. ${step.title}`), node('span', step.status, 'preparation-state'), node('p', `완료 조건: ${step.condition}`), node('p', `검사 결과: ${step.result}`));
       const missing = step.issues.map(value => value.current).join(' · ');
       if (missing) item.append(node('p', `부족/실패: ${missing}`, 'preparation-missing'));
       item.append(node('small', step.next ? '다음 단계 확인 가능' : step.number > 1 && model.steps[step.number - 2].status !== '완료' ? `${step.number - 1}단계 확인 후 진행` : '조건을 해결한 뒤 이 단계에서 다시 확인'));
-      const action = { 3: ['Nav2 시작', actions.start, !model.canStart || model.active], 4: ['INITIAL POSE 지정', actions.initial, navigation.safety?.can_set_initial_pose !== true], 5: ['정합 시작', match, !model.canMatch], 7: ['GOAL POSE 지정', actions.goal, navigation.safety?.can_send_goal !== true || !model.tracking] }[step.number];
-      if (action) { const button = node('button', action[0]); button.type = 'button'; button.disabled = busy || navigationBusy || action[2]; button.onclick = action[1]; item.append(button); }
+      const guidance = { 3: '아래 주행 조작부에서 Nav2를 시작하세요.', 4: '아래 지도 조작부에서 INITIAL POSE를 지정·전송하세요.', 7: '아래 지도 조작부에서 GOAL POSE를 지정·전송하세요.' }[step.number];
+      if (guidance) item.append(node('p', guidance));
+      if (step.number === 5) { const button = node('button', '정합 시작'); button.type = 'button'; button.disabled = busy || navigationBusy || !model.canMatch; button.onclick = match; item.append(button); }
       return item;
     }));
     el('issues').replaceChildren(...(model.issues.length ? model.issues.map(value => { const item = node('p'); item.append(node('strong', `${value.step}단계 · ${value.current}`), document.createElement('br'), node('span', `필요: ${value.required} → 해결: ${value.remedy}`)); return item; }) : [node('p', model.enabled ? '현재 확인된 필수 항목 충족. 다음 단계 버튼으로 진행하세요.' : '3D 지도를 선택하면 단계별 저장 지도 위치추정 준비가 시작됩니다. 기존 2D 모드의 상태는 아래에서 확인하세요.')]));
-    el('details').textContent = JSON.stringify({ selected: selected ? { generation: selected.generation, localization_3d: selected.localization_3d, navigation_2d: selected.navigation_2d, seed_geometry: geometry } : null, pair: state?.pair, runtime: source, readiness: navigation.readiness, metrics: navigation.localization_health?.metrics, errors: model.issues.map(value => value.code) }, null, 2);
+    el('details').textContent = JSON.stringify({ selected: selected ? { generation: selected.generation, localization_3d: selected.localization_3d, navigation_2d: selected.navigation_2d, seed_geometry: geometry } : null, pair: state?.pair, runtime: source, readiness: navigation.readiness, metrics: navigation.localization_health?.metrics, errors: model.issues.map(value => value.code), preparation_inputs: inputs, preparation_inputs_error: inputsError, observation_error: observationError }, null, 2);
     return model;
   }
   async function refresh(force = false) {
     if (refreshing || busy || (!force && Date.now() - checkedAt < 2500)) return;
     refreshing = true;
+    const inputToken = ++inputsRevision, requestedAt = performance.now();
+    const inputRead = api('/api/v1/navigation/operational-3d/preparation-inputs', { signal: AbortSignal.timeout(10000) }).then(value => {
+      if (inputToken === inputsRevision) {
+        inputs = value; inputsRequestedAt = requestedAt; inputsError = '';
+        // Expire the preview even if the next dashboard status poll is delayed.
+        const ages = Object.values(value?.candidates || {}).map(item => item?.provenance?.age_s).filter(age => finite(age) && age >= 0);
+        const oldestMs = ages.length ? Math.max(...ages) * 1000 : 500;
+        setTimeout(() => { if (inputToken === inputsRevision) render(); }, Math.max(0, 501 - oldestMs - (performance.now() - requestedAt)));
+        if (value?.reference_pose) {
+          const updateAge = () => { if (inputToken === inputsRevision) { render(); setTimeout(updateAge, 1000); } };
+          setTimeout(updateAge, 1000);
+        }
+      }
+    }, failure => { if (inputToken === inputsRevision) { inputs = null; inputsError = failure.message; } });
     try { state = await api('/api/v1/navigation/operational-3d', { signal: AbortSignal.timeout(10000) }); available = true; fetchError = ''; if (!draftTouched && !map3dSelect.value && state.selected?.localization_3d?.map_id) map3dSelect.value = state.selected.localization_3d.map_id; }
     catch (failure) { available = false; fetchError = `상태 확인 실패: ${failure.message}`; }
-    finally { checkedAt = Date.now(); refreshing = false; render(); onChange(); }
+    finally { await inputRead; checkedAt = Date.now(); refreshing = false; render(); onChange(); }
+  }
+  async function observe(action) {
+    const session = inputs?.observation;
+    const { model, busy: navigationBusy } = current();
+    const pair = inputs?.pair;
+    const blockers = inputs?.start_blockers?.items;
+    if (observationBusy || (action === 'start' ? busy || navigationBusy || model.active || !available || !model.matched || !state?.selected || pair?.valid !== true || pair.generation !== state.selected.generation || !samePin(pair.localization_3d, state.selected.localization_3d) || !samePin(pair.navigation_2d, state.selected.navigation_2d) || session?.can_start !== true || !Array.isArray(blockers) || blockers.length > 0 : session?.can_stop !== true || !/^[a-f0-9]{32}$/.test(session?.session_id || ''))) return;
+    observationBusy = true; observationError = ''; ++inputsRevision; render();
+    try {
+      const result = await api(`/api/v1/observations/fastlio/${action}`, { method: 'POST', body: JSON.stringify({ confirmed: true, ...(action === 'stop' ? { session_id: session.session_id } : {}) }), signal: AbortSignal.timeout(12000) });
+      inputs = { observation: result };
+    } catch (failure) { observationError = `관측 ${action === 'start' ? '시작' : '종료'} 거절 또는 응답 실패: ${failure.message} · 자동 재시도하지 않습니다.`; inputs = null; }
+    finally { observationBusy = false; checkedAt = 0; if (refreshing) { render(); } else { await refresh(true); } }
   }
   async function run(path, body, method = 'POST') {
     if (busy) return;
@@ -222,6 +314,8 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     void run('/api/v1/navigation/operational-3d/seed-geometry', { generation: state?.selected?.generation, ...values });
   };
   el('refresh').onclick = () => { error = ''; void refresh(true); void actions.refresh(); };
+  el('observe-start').onclick = () => { void observe('start'); };
+  el('observe-stop').onclick = () => { void observe('stop'); };
   return { render() { const result = render(); const next = current().draft3d; if (selected3d && next?.id === selected3d && draft3dRevision && next.revision !== draft3dRevision) invalidated = '3D 지도 revision이 변경됐습니다. ①부터 다시 확인하세요.'; return result; }, refresh,
     canStart: () => current().model.canStart, permitsGoal: () => !current().model.enabled || current().model.tracking,
     state: () => state };

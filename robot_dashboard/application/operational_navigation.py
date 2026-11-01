@@ -25,6 +25,7 @@ class OperationalNavigation:
         self._selected_records = None
         self.used_geometry = None
         self.snapshot_binding = None
+        self._snapshot_binding_monotonic_ns = None
 
     def status(self):
         with self.lock:
@@ -229,6 +230,34 @@ class OperationalNavigation:
                 self._selected_records = references
                 return self._status_locked(pair_validated=paired)
 
+    def preparation_snapshot(self):
+        """Copy tentative context for capture; it is not map or calibration proof.
+
+        The caller must revalidate through status() before returning any result.
+        """
+        with self.lock:
+            bundle = copy.deepcopy(self.selected)
+            if not bundle or bundle.get('workflow') != 'staged_navigation_pair':
+                return {'selected': bundle, 'pair': None}
+            return {'selected': bundle, 'pair': {
+                'generation': bundle['generation'],
+                'localization_3d': bundle['localization_3d'],
+                'navigation_2d': bundle['navigation_2d'],
+                'calibration_sha256': bundle['map_binding']['calibration_sha256'],
+                'valid': None,
+            }}
+
+    def preparation_execution(self):
+        """Copy the current job binding and its pre-launch monotonic boundary."""
+        with self.lock:
+            pipeline = self.jobs.snapshot().get('pipeline') or {}
+            binding = self.snapshot_binding
+            if (pipeline.get('state') != 'running' or not binding
+                    or pipeline.get('job_id') != binding.get('job_id')
+                    or not self._snapshot_binding_monotonic_ns):
+                return None
+            return {**copy.deepcopy(binding), 'snapshot_monotonic_ns': self._snapshot_binding_monotonic_ns}
+
     def expected_source(self, job_id, map_id, revision):
         with self.lock:
             value = self.snapshot_binding
@@ -302,6 +331,7 @@ class OperationalNavigation:
                     raise ValueError('LOCALIZATION_REFERENCE_HASH_CHANGED')
                 with (destination / 'operational-3d.json').open('x') as stream:
                     json.dump(bundle, stream, allow_nan=False, sort_keys=True)
+                self._snapshot_binding_monotonic_ns = time.monotonic_ns()
                 self.snapshot_binding = {'job_id': destination.name, 'source': 'STORED_PCD_FASTLIO',
                     'bundle_generation': bundle['generation'], 'map_id': map_id, 'map_revision': revision,
                     'localization_map_id': bundle['localization_3d']['map_id'],

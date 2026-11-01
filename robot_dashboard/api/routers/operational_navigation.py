@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 import time
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 
 from ...saved_maps import SavedMapError
@@ -57,6 +57,22 @@ async def status(request: Request):
     state = await asyncio.to_thread(manager.status)
     current = health(runtime)
     return {**state, 'runtime': current.get('operational_3d'), 'runtime_fresh': current.get('fresh', False)}
+
+
+@router.get('/api/v1/navigation/operational-3d/preparation-inputs')
+async def preparation_inputs(request: Request, response: Response):
+    from ...application.navigation_preparation_inputs import (
+        observation_start_blockers, preparation_inputs as collect,
+    )
+
+    response.headers['Cache-Control'] = 'no-store'
+    runtime = runtime_from_request(request)
+    manager = require_component(runtime.operational_navigation, 'operational localization is not configured')
+    async with runtime.pipeline_coordination_lock:
+        blockers = await asyncio.to_thread(observation_start_blockers, runtime)
+    result = await asyncio.to_thread(collect, manager, runtime.fastlio_observation, runtime.agent)
+    result['start_blockers'] = blockers
+    return result
 
 
 async def select_idle(request, body, operation="select"):

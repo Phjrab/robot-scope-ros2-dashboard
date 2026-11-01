@@ -65,6 +65,10 @@ async function lastDraw(page, color) {
 test('Navigation initial is a dot, robot and goal use URDF; explicit send and stale map defense remain intact', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1100 });
   const backend = await prepare(page);
+  const preparation = page.locator('#navigationPreparation');
+  for (const name of ['Nav2 시작', 'INITIAL POSE 지정', 'GOAL POSE 지정']) await expect(preparation.getByRole('button', { name, exact: true })).toHaveCount(0);
+  await expect(preparation).toContainText('아래 지도 조작부에서 INITIAL POSE를 지정·전송하세요.');
+  await expect(preparation).toContainText('아래 지도 조작부에서 GOAL POSE를 지정·전송하세요.');
   const robot = await lastDraw(page, '#7df0b6');
   expect(robot.pose).toEqual({ x: 2.8, y: .3, yaw: .1, mode: 'robot' });
   const canvas = await drag(page, 'initial');
