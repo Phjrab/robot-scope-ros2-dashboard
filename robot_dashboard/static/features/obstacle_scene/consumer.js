@@ -11,7 +11,7 @@ const stamp = x => typeof x === 'string' && /^(0|[1-9]\d{0,24})$/.test(x);
 const sequence = x => Number.isSafeInteger(x) && x >= 0;
 const quaternion = q => vector(q, 4) && Math.abs(Math.hypot(...q) - 1) < 0.001;
 const key = c => c ? [c.map_id, c.revision, c.frame_id, c.source_epoch,
-  c.stream_epoch, c.clock_domain, c.calibration_id, c.units, c.generation].join('|') : '';
+  c.stream_epoch, c.clock_domain, c.calibration_id, c.units, c.generation, c.source_identity, c.space_kind].join('|') : '';
 const mapMatches = (a, b) => a && b && ['map_id', 'revision', 'frame_id'].every(k => a[k] === b[k]);
 const withinSkew = values => values.every(a => values.every(b => {
   const delta = BigInt(a.stamp_ns) - BigInt(b.stamp_ns);
@@ -70,6 +70,10 @@ export function createSceneConsumer({ getMap, clock = () => performance.now() })
     return '';
   }
   function layer(value, packet, ttl, calibration, copy, slot) {
+    if (value?.canonical && value.ttl_ms !== undefined) {
+      if (!finite(value.ttl_ms) || value.ttl_ms <= 0 || value.ttl_ms > 10000) return {value:null,reason:'SERVER_TTL_UNKNOWN',ttl};
+      ttl = Math.min(ttl, value.ttl_ms);
+    }
     const retired = retiredSources.get(slot.startsWith('sensor:')?'obstacles':slot);
     if (packet.canonical && retired && (!value || value.sequence <= retired.sequence)) return {value:null,reason:value?'SERVER_INVALIDATED':`SERVER_${retired.status.toUpperCase()}`,ttl};
     const reason = guard(value, packet, ttl, calibration);
@@ -166,6 +170,13 @@ export function createSceneConsumer({ getMap, clock = () => performance.now() })
       if (!Array.isArray(v.obstacles) || v.obstacles.length > LIMITS.objects) return null;
       const objects = [];
       for (const o of v.obstacles) {
+        // XY-only cone input is display geometry in an explicitly isolated
+        // synthetic space. A matching frame string cannot promote it to a map.
+        if (o.provenance?.display_profile === 'cone-flat-demo.v1'
+          && (packet.evidence_kind !== 'SYNTHETIC' || v.evidence_kind !== 'SYNTHETIC'
+            || context.space_kind !== 'ISOLATED_SIMULATION' || context.map_id !== 'c0dec0dec0dec0dec0dec0de'
+            || context.source_identity !== 'SYNTHETIC_SCENARIO'
+            || o.provenance.position_basis !== 'FLAT_DEMO_ONLY')) continue;
         const geometry = copyGeometry(o.geometry);
         const support = strings(o.sensor_support);
         if (!geometry || !text(o.track_id) || !support.length || (!v.canonical && !support.every(sourceHealthy))

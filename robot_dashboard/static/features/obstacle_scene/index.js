@@ -1,11 +1,12 @@
 import { createSceneConsumer, LIMITS } from './consumer.js';
 import { createOverlayPainter } from './draw.js';
+import { coneStatus } from './cone_display.js';
 
 const DEFAULT_LAYERS = { reference: true, LIDAR: true, DEPTH: true, obstacles: true,
-  costmap: true, path: true, local: true, robot: true, envelope: true };
+  costmap: true, path: true, local: true, robot: true, envelope: true, cones: false };
 const LABELS = { reference: '저장 지도', LIDAR: 'LiDAR', DEPTH: 'Depth', obstacles: '물체',
   costmap: 'Costmap · 평면', path: '제공된 global path', local: '제공된 local trajectory',
-  robot: '공식 URDF · 시각화', envelope: '별도 collision envelope' };
+  robot: '공식 URDF · 시각화', envelope: '별도 collision envelope', cones: 'CONES · 합성 평면 표시' };
 
 export function mountObstacleScene(host, { scene, subscribe, getMap, theme = 'dark', clock = () => performance.now() }) {
   if (!host?.ownerDocument || !scene?.canvas || typeof scene.project !== 'function'
@@ -31,7 +32,7 @@ export function mountObstacleScene(host, { scene, subscribe, getMap, theme = 'da
   const mode = make('strong', 'os-mode', 'WAITING'); mode.dataset.testid = 'mode'; toolbar.append(mode);
   const fieldset = make('fieldset', 'os-layers'); fieldset.append(make('legend', '', '표시 레이어'));
   for (const [name, label] of Object.entries(LABELS)) {
-    const row = make('label'); const input = make('input'); input.type = 'checkbox'; input.checked = true; input.dataset.layer = name;
+    const row = make('label'); const input = make('input'); input.type = 'checkbox'; input.checked = layers[name]; input.dataset.layer = name;
     row.append(input, doc.createTextNode(label)); fieldset.append(row);
     listen(input, 'change', () => { layers[name] = input.checked; dirty = true; });
   }
@@ -43,6 +44,7 @@ export function mountObstacleScene(host, { scene, subscribe, getMap, theme = 'da
   sceneSlot.classList.add('os-viewport'); sceneSlot.append(canvas);
   const summary = make('div', 'os-summary'); summary.dataset.testid = 'summary'; summary.setAttribute('role','status');
   const sourceRows = make('div', 'os-sources'); sourceRows.dataset.testid = 'sources';
+  const coneRow = make('p', 'os-note'); coneRow.dataset.testid = 'cone-status';coneRow.setAttribute('role','status');
   const risk = make('div', 'os-risk'); risk.dataset.testid = 'risk';
   risk.setAttribute('role','button'); risk.tabIndex = 0; risk.setAttribute('aria-label','위험 평가 원본 확인');
   const paths = make('p', 'os-paths'); paths.dataset.testid = 'paths';
@@ -51,7 +53,7 @@ export function mountObstacleScene(host, { scene, subscribe, getMap, theme = 'da
   inspector.dataset.testid = 'inspector'; inspector.tabIndex = 0;
   const metrics = make('p', 'os-metrics'); metrics.dataset.testid = 'metrics';
   const note = make('p', 'os-note', '표시 일시정지는 이 브라우저에만 적용됩니다. 장비 제어 정지를 의미하지 않습니다.');
-  stage.append(summary, sourceRows, risk, paths, objects, inspector, metrics, note);
+  stage.append(summary, coneRow, sourceRows, risk, paths, objects, inspector, metrics, note);
   root.append(header, toolbar, fieldset, stage); host.append(root);
   const painter = createOverlayPainter(canvas, scene);
   function listen(el, event, fn) { el.addEventListener(event, fn); events.push(() => el.removeEventListener(event, fn)); }
@@ -69,6 +71,7 @@ export function mountObstacleScene(host, { scene, subscribe, getMap, theme = 'da
   listen(risk, 'click', () => { selected = '@risk'; dirty = true; });
   listen(risk, 'keydown', event => { if (['Enter',' '].includes(event.key)) { event.preventDefault(); selected = '@risk'; dirty = true; } });
   function renderPanel(view) {
+    coneRow.textContent=coneStatus(view,layers.cones);
     const kind = view.evidence_kind || 'WAITING';
     const observationValid = view.ready && view.pose.value && view.joints.value;
     mode.textContent = `SOURCE MODE: ${view.source_mode || 'FIXTURE'} · ${kind} · ${paused ? '표시 PAUSED · 과거 프레임 / 유효시간 계속 경과' : '표시 진행'} · ${kind === 'LIVE' ? (paused || !observationValid ? 'LIVE 출처 · 현재 관측 보장 안 됨' : 'LIVE 입력') : '실장비 관측 아님'}`;

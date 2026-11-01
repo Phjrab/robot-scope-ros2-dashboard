@@ -11,3 +11,6 @@
 .expansion-viewport > canvas:first-child { width: 100%; height: 100%; display: block; }
 .expansion-page [hidden] { display: none !important; }
 @media(max-width: 600px) { .expansion-page { padding: 10px; } .expansion-viewport { height: 300px; } }
+.expansion-space-note { position: absolute; top: 6px; left: 8px; right: 8px; margin: 0; padding: 7px 10px; background: #101820; color: #fff1d5; border: 1px solid #b67935; font-size: 13px; pointer-events: none; }
+.expansion-page .os-layers label { white-space: nowrap; flex: 0 0 auto; }
+.expansion-page .os-layers input[type="checkbox"] { width: 16px; min-width: 16px; height: 16px; min-height: 16px; flex: 0 0 auto; }

@@ -1,4 +1,5 @@
 import { gridToWorld } from '../route_planner/spatial_editor.js';
+import { coneDimensions, CONE_PROFILE } from './cone_display.js';
 
 // Projection and robot rendering belong to the injected existing scene. These
 // primitives only visualize supplied geometry; they never assess intersections.
@@ -31,6 +32,19 @@ export function createOverlayPainter(canvas, scene) {
       corners[i*3+2] = geometry.center_m[2] + z + qw*tz + qx*ty - qy*tx;
     }
     for (const [a,b] of edges) line([corners.subarray(a*3,a*3+3), corners.subarray(b*3,b*3+3)], color, 2, dashed);
+  }
+  // Adapted from teammate ff5d228f: 16-point base and widest-point silhouette.
+  // Uses C3's existing canvas/project port, never a second scene layer/renderer.
+  function cone(object, dimensions, color) {
+    const [x,y,z]=object.geometry.center_m,{radius,height}=dimensions;
+    const base=Array.from({length:16},(_,i)=>scene.project([
+      x+Math.cos(i*Math.PI/8)*radius,y+Math.sin(i*Math.PI/8)*radius,z-height/2]));
+    const apex=scene.project([x,y,z+height/2]);
+    if(!apex||base.some(p=>!p))return;
+    ctx.strokeStyle=color;ctx.fillStyle='#ff8c3a47';ctx.lineWidth=2;ctx.setLineDash([]);
+    ctx.beginPath();base.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();ctx.fill();ctx.stroke();
+    const left=base.reduce((a,b)=>a.x<b.x?a:b),right=base.reduce((a,b)=>a.x>b.x?a:b);
+    ctx.beginPath();ctx.moveTo(left.x,left.y);ctx.lineTo(apex.x,apex.y);ctx.lineTo(right.x,right.y);ctx.stroke();
   }
   function draw(view, layers, selected, theme) {
     const rect = scene.canvas.getBoundingClientRect();
@@ -74,11 +88,16 @@ export function createOverlayPainter(canvas, scene) {
       for (const xyz of source.value.points_m) { const p = scene.project(xyz); if (p) ctx.fillRect(p.x-1.5,p.y-1.5,3,3); }
     }
     if (layers.obstacles) for (const object of view.obstacles.value?.obstacles || []) {
-      box(object.geometry, object.track_id === selected ? '#ffdc74' : '#f1a55a', object.state !== 'OBSERVED');
+      const dimensions=coneDimensions(object), isCone=object.provenance?.display_profile===CONE_PROFILE;
+      if(isCone && (!layers.cones || !dimensions))continue;
+      if(isCone)cone(object,dimensions,object.track_id===selected?'#ffdc74':'#ff8c3a');
+      else box(object.geometry, object.track_id === selected ? '#ffdc74' : '#f1a55a', object.state !== 'OBSERVED');
       const p = scene.project(object.geometry.center_m);
       if (p) {
-        ctx.font = '12px system-ui'; ctx.fillStyle = dark ? '#fff1d5' : '#39220a';
-        ctx.fillText(`${object.track_id} · ${object.class_name}`, p.x+8,p.y-10);
+        ctx.font = '12px system-ui'; ctx.fillStyle = dimensions || dark ? '#fff1d5' : '#39220a';
+        const label=dimensions && w<600 ? object.track_id
+          : `${object.track_id} · ${object.class_name}${dimensions?` · r ${dimensions.radius}m / h ${dimensions.height}m`:''}`;
+        ctx.fillText(label, p.x+8,p.y-10);
       }
       renderedObjects++;
     }

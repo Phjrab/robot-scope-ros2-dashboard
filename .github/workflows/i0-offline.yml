@@ -35,6 +35,10 @@ jobs:
         run: node --test tests/expansion_c2/*.test.mjs tests/expansion_c3/test_*.mjs tests/expansion_c6/test_replay.mjs
       - name: Actual product host, generated inputs, responsive UI and replay
         run: npx playwright test --config playwright.i0.config.mjs --reporter=line --output=i0-test-results
+      - name: Cone display, isolated C1 source, expiry and lifecycle
+        run: |
+          node --test tests/test_i0_scene_transport.mjs
+          npx playwright test --config playwright.i0-cones.config.mjs --reporter=line --output=i0-cone-results
       - name: Verify shared fixture timer cleanup
         run: |
           node experiments/expansion_20261030/c7_capacity/ci/socket_cleanup_probe.mjs . > i0-timer.json
@@ -55,5 +59,7 @@ jobs:
           path: |
             i0-test-results/**/*.png
             i0-test-results/**/trace.zip
+            i0-cone-results/**/*.png
+            i0-cone-results/**/trace.zip
             i0-timer.json
           if-no-files-found: ignore

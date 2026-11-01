@@ -51,6 +51,7 @@ export function adaptC1ScenePacket(wire, context, { transportAgeMs = 0, displayA
     return {...value.data,...value, canonical:true,
       frame_key:{map_id:context.map_id,revision:context.revision,frame_id:context.frame_id},
       age_ms:source.received_age_ms + transportAgeMs, sensor_age_ms:source.sensor_age_ms,
+      ttl_ms:source.max_age_ms,
       receipt_source_ns:String(value.received_monotonic_ns),
       calibration_id:value.calibration_id ?? value.data?.calibration_id,
       ref:`${value.source_epoch}:${value.sequence}`, provenance:value.data?.provenance || value.health || {}};
@@ -126,6 +127,7 @@ export function adaptC1ScenePacket(wire, context, { transportAgeMs = 0, displayA
     robot_pose:pose,joint_state:joints,obstacle_frame:obstacles,global_path:path,local_trajectory:local,
     costmaps:costmap?[costmap]:[],collision_assessment:assessment,sources:sensors,
     availability:{reference_cloud:displayAssets.some(a=>a.status==='READY' && a.ref.role==='saved_reference_cloud' && sameBinding(a.value?.map_binding,wire.map_binding))?'SUPPLIED_DISPLAY_ASSET':'UNAVAILABLE',sensor_clouds:sensors.length?'SUPPLIED_SYNTHETIC_OR_REPLAY':'UNAVAILABLE',sensor_origins:sensors.some(s=>s.origin_m)?'SUPPLIED':'UNAVAILABLE',
+      obstacle_display:wire.sources?.obstacle_frame?.health || null,
       bulk_references:wire.schema_version==='0.2'?'C1_AUTHENTICATED_ASSETS':'NO_C1_RESOLVER_CONTRACT',asset_count:wire.sources?.assets?.length || 0,
       source_status:wire.schema_version==='0.2'?Object.fromEntries(Object.entries(wire.sources || {}).filter(([k])=>k!=='assets').map(([k,v])=>[k,v.status])):null,
       collision:wire.sources?.collision_assessment?.health ?? null,errors}}};

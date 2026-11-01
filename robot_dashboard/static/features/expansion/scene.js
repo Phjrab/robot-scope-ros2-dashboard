@@ -1,7 +1,8 @@
 import {createSavedMapScene} from '../maps/saved_scene.js';
 import {mountObstacleScene} from '../obstacle_scene/index.js';
-import {adaptC1ScenePacket,parseC1SceneJSON} from '../obstacle_scene/c1_adapter.js';
+import {adaptC1ScenePacket} from '../obstacle_scene/c1_adapter.js';
 import {mountRunReview} from '../run_review/index.js';
+import {startScenePolling} from './scene_poll.js';
 import {mountOperatorUsability} from '../operator_usability/index.js';
 
 function stylesheet(name){const href=`/static/features/${name}`;if(document.querySelector(`link[href="${href}"]`))return;
@@ -14,11 +15,12 @@ export function mountObservationReview(host,{name,request,signal,usability,onErr
   const viewport=document.createElement('div');viewport.className='expansion-viewport';
   const canvas=document.createElement('canvas');canvas.setAttribute('aria-label',name==='replay'?'기록 장면 REPLAY':'관측 진단 ADVISORY_ONLY');
   viewport.append(canvas);host.append(viewport);
+  const spaceNote=document.createElement('p');spaceNote.className='expansion-space-note';spaceNote.hidden=true;viewport.append(spaceNote);
   const panel=document.createElement('section');host.append(panel);
   const renderer=createSavedMapScene({savedSceneCanvas:canvas},window,{showRobot:false,showTrail:false});
   renderer.configureOfficialRobot({enabled:true,poseOrigin:'base',scale:1});
   renderer.setStatus({snapshot:true,provenance:name==='replay'?'REPLAY':'ADVISORY_ONLY',message:'pose / joints / coverage UNAVAILABLE'});
-  let closed=false, timer=null, context=null, receiver=null, feature=null, helper=null;
+  let closed=false, polling=null, context=null, receiver=null, feature=null, helper=null, framedContext=null;
   const scene={canvas,project:point=>renderer.projectWorld(point),viewKey:()=>JSON.stringify([renderer.camera,canvas.width,canvas.height]),
     setRobot(value){
       renderer.setRobotVisible(false);
@@ -53,22 +55,24 @@ export function mountObservationReview(host,{name,request,signal,usability,onErr
     feature=mountObstacleScene(panel,{scene,getMap:()=>context,theme:()=>document.documentElement.dataset.theme||'dark',
       subscribe:fn=>{receiver=fn;return()=>{receiver=null;};}});
     if(usability)helper=mountOperatorUsability(panel.querySelector('.obstacle-scene'),'obstacles');
-    async function poll(){
-      try {
-        const next=await request('/api/v1/extensions/scene/context');
-        if(closed)return;
-        if(JSON.stringify(next)!==JSON.stringify(context)){clearScene();context=next;}
-        const started=performance.now();
-        const raw=await request('/api/v1/extensions/scene/snapshot',{raw:true});
-        if(closed)return;
-        const adapted=adaptC1ScenePacket(parseC1SceneJSON(raw),context,{transportAgeMs:performance.now()-started});
-        if(adapted.packet)receiver?.(adapted.packet);else onError(new Error(adapted.reason));
-      } catch(error){if(!closed&&error.name!=='AbortError')onError(error);}
-      finally{if(!closed)timer=setTimeout(poll,100);}
-    }
-    poll();
+    polling=startScenePolling({request,signal,
+      onContext(next){if(JSON.stringify(next)!==JSON.stringify(context)){clearScene();context=next;}
+        spaceNote.hidden=next?.space_kind!=='ISOLATED_SIMULATION';
+        spaceNote.textContent='SIMULATED · 독립 평면 데모 · 실제 지도/3D 위치 미검증';},
+      onPacket(packet){
+        if(context?.space_kind==='ISOLATED_SIMULATION' && framedContext!==JSON.stringify(context)){
+          const points=packet.obstacle_frame?.obstacles?.map(o=>o.geometry?.center_m);
+          if(points?.length && points.every(p=>Array.isArray(p)&&p.length===3&&p.every(Number.isFinite))){
+            const lo=[0,1,2].map(i=>Math.min(...points.map(p=>p[i]))),hi=[0,1,2].map(i=>Math.max(...points.map(p=>p[i])));
+            renderer.setViewPreset('isometric');renderer.camera.target=lo.map((v,i)=>(v+hi[i])/2);
+            renderer.camera.distance=Math.max(3,Math.hypot(...lo.map((v,i)=>hi[i]-v))*1.8);renderer.resize();
+            framedContext=JSON.stringify(context);
+          }
+        }
+        receiver?.(packet);
+      },onError});
   }
-  function destroy(){if(closed)return;closed=true;clearTimeout(timer);helper?.destroy();feature?.destroy();renderer.destroy();viewport.remove();panel.remove();signal.removeEventListener('abort',destroy);}
+  function destroy(){if(closed)return;closed=true;polling?.destroy();helper?.destroy();feature?.destroy();renderer.destroy();viewport.remove();panel.remove();signal.removeEventListener('abort',destroy);}
   signal.addEventListener('abort',destroy,{once:true});if(signal.aborted)destroy();
   return {destroy};
 }
