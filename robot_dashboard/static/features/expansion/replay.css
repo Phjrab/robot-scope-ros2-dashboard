@@ -1,0 +1,24 @@
+/* Product-only C6 presentation. Inherit the existing dark/light theme; no globals. */
+.rr-root { color:var(--text); font:16px/1.55 var(--font-ui); min-width:0; }
+.rr-root h1 { font-size:28px; margin:12px 0; }
+.rr-root h2 { font-size:18px; }
+.rr-root :is(button,input,select) { font:inherit; }
+.rr-root :is(button,select,input[type=file]) { background:var(--panel-strong); color:var(--text); border:1px solid var(--line-strong); border-radius:6px; padding:9px; min-height:44px; max-width:100%; }
+.rr-root button { cursor:pointer; }
+.rr-root :focus-visible { outline:2px solid var(--cyan); outline-offset:2px; }
+.rr-root .rr-banner { color:var(--cyan); font-weight:700; }
+.rr-root .rr-note { color:var(--muted); }
+.rr-root :is(.rr-inputs,.rr-toolbar) { display:flex; flex-wrap:wrap; gap:12px; margin:20px 0; align-items:center; }
+.rr-root .rr-inputs label { display:grid; gap:5px; max-width:100%; }
+.rr-root .rr-toolbar { position:sticky; top:0; background:var(--panel); color:var(--text); z-index:3; padding:12px; border:1px solid var(--line); }
+.rr-root .rr-toolbar input { flex:1; min-width:160px; max-width:100%; }
+.rr-root .rr-toolbar output { overflow-wrap:anywhere; }
+.rr-root .rr-columns { display:grid; grid-template-columns:minmax(260px,1fr) minmax(0,1.8fr); gap:20px; }
+.rr-root pre { white-space:pre-wrap; overflow-wrap:anywhere; background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:16px; font:13px/1.55 var(--font-mono); max-height:480px; overflow:auto; }
+.rr-root .rr-events { display:flex; flex-direction:column; gap:5px; max-height:700px; overflow:auto; }
+.rr-root .rr-events button { text-align:left; font-size:14px; }
+.rr-root .rr-events button[aria-current=true] { border:2px solid var(--cyan); background:var(--panel-strong); }
+.rr-root .rr-comparison { overflow:auto; margin:24px 0; }
+.rr-root table { border-collapse:collapse; width:100%; font-size:13px; }
+.rr-root td { padding:10px; border:1px solid var(--line); vertical-align:top; overflow-wrap:anywhere; max-width:500px; }
+@media(max-width:760px) { .rr-root .rr-columns { grid-template-columns:1fr; } .rr-root .rr-inputs input { width:100%; } }

@@ -9,7 +9,7 @@ function stylesheet(name){const href=`/static/features/${name}`;if(document.quer
 
 export function mountObservationReview(host,{name,request,signal,usability,onError}) {
   stylesheet('obstacle_scene/obstacle_scene.css');
-  stylesheet('run_review/review.css');
+  stylesheet('expansion/replay.css');
   if(usability)stylesheet('operator_usability/operator_usability.css');
   const viewport=document.createElement('div');viewport.className='expansion-viewport';
   const canvas=document.createElement('canvas');canvas.setAttribute('aria-label',name==='replay'?'기록 장면 REPLAY':'관측 진단 ADVISORY_ONLY');
@@ -43,7 +43,12 @@ export function mountObservationReview(host,{name,request,signal,usability,onErr
   // One existing renderer owns the current-model slot. Goal/Initial slots are absent.
   renderer.loadOfficialRobotModel().catch(error=>{if(!closed)onError(error);});
   if(name==='replay') {
-    feature=mountRunReview(panel,{scene,mountScene:mountObstacleScene,adaptScene:adaptC1ScenePacket,clearScene});
+    const mountScene=(target,options)=>{
+      const mounted=mountObstacleScene(target,{...options,theme:()=>document.documentElement.dataset.theme||'dark'});
+      const presentation=usability?mountOperatorUsability(target.querySelector('.obstacle-scene'),'obstacles'):null;
+      return {...mounted,destroy(){presentation?.destroy();mounted.destroy();}};
+    };
+    feature=mountRunReview(panel,{scene,mountScene,adaptScene:adaptC1ScenePacket,clearScene});
   } else {
     feature=mountObstacleScene(panel,{scene,getMap:()=>context,theme:()=>document.documentElement.dataset.theme||'dark',
       subscribe:fn=>{receiver=fn;return()=>{receiver=null;};}});

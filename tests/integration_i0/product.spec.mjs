@@ -37,6 +37,12 @@ for(const width of [390,768,1440])for(const theme of ['dark','light'])test(`prod
   await expect(page.locator('[data-action=pause]')).toHaveAttribute('aria-pressed','true');
   await page.locator('[data-feature=replay]').click();await expect(page.locator('.rr-banner')).toContainText('REPLAY');
   expect(await page.locator('.os-overlay').count()).toBe(0);
+  const contrast=await page.locator('.rr-note').evaluate(el=>{
+    const luminance=color=>{const v=color.match(/[\d.]+/g).slice(0,3).map(n=>Number(n)/255).map(n=>n<=.04045?n/12.92:((n+.055)/1.055)**2.4);return v[0]*.2126+v[1]*.7152+v[2]*.0722;};
+    const style=getComputedStyle(el),fg=luminance(style.color),bg=luminance(getComputedStyle(document.documentElement).backgroundColor);
+    return (Math.max(fg,bg)+.05)/(Math.min(fg,bg)+.05);
+  });expect(contrast).toBeGreaterThanOrEqual(4.5);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
   await page.screenshot({path:info.outputPath(`product-${width}-${theme}.png`),fullPage:true});
 });
 test('actual C4/D2/D3 → C1 HTTP → mounted C3 expires while paused, no control writes',async({page,request})=>{
