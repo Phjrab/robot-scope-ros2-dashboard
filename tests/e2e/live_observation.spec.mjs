@@ -82,7 +82,9 @@ async function fixture(page, {identityUnavailable=false,subscriptionEvidence=fal
     let seq=0;
     const send=()=>{if(state.jointsStreaming) socket.send(JSON.stringify({state:'ok',topic:'/lowstate',source_order:'unitree_lowstate',
       seq:++seq,age_s:0,order:GO2_JOINT_NAMES,position_rad:Array.from({length:4},()=>state.sitting?[0,1.4,-2.7]:[0,.7,-1.5]).flat()}));};
-    send(); const timer=setInterval(send,100); socket.onClose(()=>clearInterval(timer));
+    send(); const timer=setInterval(send,100);
+    const cleanup=()=>clearInterval(timer);
+    socket.onClose(cleanup); page.once('close',cleanup); page.context().once('close',cleanup);
   });
   await page.routeWebSocket('**/api/v1/ws/pose',socket=>{
     const send=(sourceStamp=state.lastCloud?.source_stamp_ns)=>{ if(state.streaming) {
@@ -92,9 +94,9 @@ async function fixture(page, {identityUnavailable=false,subscriptionEvidence=fal
         observation:{...obs(seq,'f',state.identityUnavailable,evidence('pose')),...(imu&&sourceStamp?{source_stamp_ns:state.independentPose?String(BigInt(sourceStamp)+1000000n):sourceStamp}:{})}}));
     } };
     state.emitPose=send;
-    send(); const timer=setInterval(()=>send(),150); socket.onClose(()=>{
-      clearInterval(timer); if(state.emitPose===send) state.emitPose=null;
-    });
+    send(); const timer=setInterval(()=>send(),150);
+    const cleanup=()=>{clearInterval(timer); if(state.emitPose===send) state.emitPose=null;};
+    socket.onClose(cleanup); page.once('close',cleanup); page.context().once('close',cleanup);
   });
   await page.goto('/#maps');
   await page.locator('.saved-map-item').filter({hasText:meta.name}).click();

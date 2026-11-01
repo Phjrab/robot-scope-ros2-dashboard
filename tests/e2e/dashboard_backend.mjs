@@ -200,9 +200,13 @@ export async function installDashboardBackend(page, options = {}) {
     realsenseProfile: '640x480',
   };
   const handlers = new Map();
+  const socketCleanups = new Set();
+  const dispose = () => { for (const cleanup of [...socketCleanups]) cleanup(); };
+  page.once('close', dispose);
+  page.context().once('close', dispose);
 
   const backend = {
-    state,
+    state, dispose,
     mapId: MAP_ID,
     mapRevision: MAP_REVISION,
     parameterRevision: PARAMETER_REVISION,
@@ -230,15 +234,23 @@ export async function installDashboardBackend(page, options = {}) {
     state.wsConnections[kind] += 1;
     const cameraSourceId = kind === 'camera' ? String(socketUrl.searchParams.get('source_id') || '') : '';
     if (cameraSourceId) state.cameraConnectionsBySource[cameraSourceId] = (state.cameraConnectionsBySource[cameraSourceId] || 0) + 1;
-    let cameraTimer = null;
+    let cameraTimer = null, reconnectTimer = null, cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      clearInterval(cameraTimer);
+      clearTimeout(reconnectTimer);
+      socketCleanups.delete(cleanup);
+    };
+    socketCleanups.add(cleanup);
     socket.onClose(() => {
       if (kind === 'camera' || kind === 'pointcloud') state.wsCloses[kind] += 1;
       if (cameraSourceId) state.cameraClosesBySource[cameraSourceId] = (state.cameraClosesBySource[cameraSourceId] || 0) + 1;
-      if (cameraTimer) clearInterval(cameraTimer);
+      cleanup();
     });
     const closeFirstSockets = Array.isArray(options.closeFirstSockets) ? options.closeFirstSockets : [];
     if ((options.closeFirstSocket === kind || closeFirstSockets.includes(kind)) && state.wsConnections[kind] === 1) {
-      setTimeout(() => socket.close({ code: 1012, reason: 'fake reconnect' }), 30);
+      reconnectTimer = setTimeout(() => socket.close({ code: 1012, reason: 'fake reconnect' }), 30);
     } else if (kind === 'pointcloud' && options.pointcloudFrame) {
       let sequence = 0;
       const send = () => { const frame = options.pointcloudFrame(++sequence); if (frame) socket.send(frame); };

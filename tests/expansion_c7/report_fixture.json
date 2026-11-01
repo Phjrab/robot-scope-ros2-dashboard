@@ -1,0 +1,166 @@
+{
+  "profile": "baseline",
+  "generated_utc": "2026-10-29T18:18:29.288596+00:00",
+  "checks": {
+    "baseline": "PASS",
+    "protected_sources": "PASS"
+  },
+  "pins": {
+    "main": "5154761bba6fa4f171881e61f986901e2b415ed9",
+    "C1": "50600c7bce6f5fae743cd836ca1d8ee68d91b05a",
+    "C2": "7625c87ede2489143c44862d883e10fc1791df28",
+    "C3": "5bf58097f4a67806f5515b931a3b8013d65bf01e",
+    "C4": "7ac0d55b07abd20902d6d756c6b225733613fea7",
+    "D1": "203c144f6b4a90966839c34b603ae12ee676cb12",
+    "D2": "7313f0a31c00ae87ae216b84ca41a23804e91917",
+    "D3": "356d0a036eb62d546e159e12a0691d7f5ea278f6"
+  },
+  "baseline": {
+    "family": "cone",
+    "requested_objects": 1,
+    "objects": 1,
+    "input_points": 1176,
+    "metadata_bytes": 0,
+    "metadata_location": null,
+    "input_sha256": "9fda0f566eb6bcb7ee289fa31198b226a40452cf8867498372cdc54b02bb63ea",
+    "identity": {
+      "source_id": "lidar",
+      "source_epoch": "synthetic-1",
+      "sequence": 1,
+      "stamp_ns": "1000000000",
+      "clock_domain": "fixture-clock",
+      "frame_id": "odom",
+      "received_ns": 1000000000,
+      "receipt_clock_id": "fixture-host",
+      "tf_epoch": "tf-synthetic",
+      "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+      "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "evidence_kind": "SYNTHETIC",
+      "producer": "c4-fixture",
+      "map_generation": 0,
+      "frame_key": {
+        "source_epoch": "synthetic-1",
+        "frame_id": "odom"
+      },
+      "map_binding": {
+        "map_id": "aaaaaaaaaaaaaaaaaaaaaaaa",
+        "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "generation": 0
+      }
+    },
+    "schema": "C1 0.1 source / 0.2 service",
+    "raw_pointcloud_bytes": 14112,
+    "full": {
+      "total": 3544,
+      "geometry_values": 285,
+      "provenance_values": 1104,
+      "input_sources_value": 892,
+      "health_value": 239,
+      "other_fields_keys_and_json_punctuation": 1024
+    },
+    "compact": {
+      "total": 2706,
+      "geometry_values": 285,
+      "provenance_values": 219,
+      "input_sources_value": 892,
+      "health_value": 286,
+      "other_fields_keys_and_json_punctuation": 1024
+    },
+    "reserve_bytes": 2048,
+    "projected_bytes": 2823,
+    "projection_added_bytes": 117,
+    "snapshot_bytes": 4342,
+    "snapshot_sha256": "bba052b46e9f2a1569460e1e2ec737c23e6eb576ff1c4edcfb4b9c746fb8663f",
+    "core_port": {
+      "status": "ACCEPTED",
+      "reason": null
+    },
+    "full_wire": {
+      "status": "ACCEPTED",
+      "reason": null
+    },
+    "full_service_probe": {
+      "status": "ACCEPTED",
+      "reason": null
+    },
+    "compact_service_probe": {
+      "status": "REJECTED",
+      "reason": null
+    },
+    "compactor": {
+      "status": "ACCEPTED",
+      "reason": null
+    },
+    "actual_delivery": {
+      "status": "ACCEPTED",
+      "reason": null
+    },
+    "geometry_preserved": true,
+    "retained_core_objects": 1,
+    "d3": {
+      "severity": "UNKNOWN",
+      "reason": "UNKNOWN",
+      "bytes": 2871,
+      "evidence": "ACTUAL_CORE_INDEPENDENT_OF_DISPLAY_DELIVERY",
+      "full_geometry_input": true
+    },
+    "c1_metrics": {
+      "history_size": 1,
+      "history_limit": 16,
+      "latest_size": 1,
+      "dropped": 0,
+      "persistent_ledger_writes": 0
+    }
+  },
+  "cases": [],
+  "timings": {
+    "baseline/cone/1/metadata0/D2_C4CorePort_process_including_compaction": {
+      "n": 1,
+      "p50_ms": 1.555708,
+      "p95_ms": 1.555708,
+      "max_ms": 1.555708
+    },
+    "baseline/cone/1/metadata0/D2_provenance_compaction": {
+      "n": 1,
+      "p50_ms": 0.127959,
+      "p95_ms": 0.127959,
+      "max_ms": 0.127959
+    },
+    "baseline/cone/1/metadata0/C1_full_frame_wire_validation": {
+      "n": 1,
+      "p50_ms": 0.201125,
+      "p95_ms": 0.201125,
+      "max_ms": 0.201125
+    },
+    "baseline/cone/1/metadata0/C4_projection": {
+      "n": 1,
+      "p50_ms": 0.121375,
+      "p95_ms": 0.121375,
+      "max_ms": 0.121375
+    },
+    "baseline/cone/1/metadata0/C1_service_ingest": {
+      "n": 1,
+      "p50_ms": 0.410875,
+      "p95_ms": 0.410875,
+      "max_ms": 0.410875
+    },
+    "baseline/cone/1/metadata0/C1_snapshot_and_contract_serialization": {
+      "n": 1,
+      "p50_ms": 0.488667,
+      "p95_ms": 0.488667,
+      "max_ms": 0.488667
+    },
+    "baseline/cone/1/metadata0/C1_canonical_response_encoding": {
+      "n": 1,
+      "p50_ms": 0.045333,
+      "p95_ms": 0.045333,
+      "max_ms": 0.045333
+    },
+    "baseline/cone/1/metadata0/D3_assess_full_retained_geometry": {
+      "n": 1,
+      "p50_ms": 9264.769,
+      "p95_ms": 9264.769,
+      "max_ms": 9264.769
+    }
+  }
+}
