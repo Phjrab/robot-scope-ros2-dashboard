@@ -91,6 +91,9 @@ function inputReason(code) {
   return '상세 원인을 확인하지 못했습니다 → 기술 상세에서 서버의 검사 결과를 확인하세요.';
 }
 const finite = value => typeof value === 'number' && Number.isFinite(value);
+const validGeometry = value => Boolean(value && finite(value.z) && Math.abs(value.z) <= 1000
+  && finite(value.roll) && Math.abs(value.roll) <= Math.PI && finite(value.pitch) && Math.abs(value.pitch) <= Math.PI / 2);
+const geometryText = value => `높이 ${value.z.toFixed(3)} m · roll ${value.roll.toFixed(3)} rad · pitch ${value.pitch.toFixed(3)} rad`;
 const DIAGNOSTIC_STAGES = {
   session: '관측 세션 확인', initial_latest: '최초 최신 점군·자세 검사', initial_pairing: '최초 동일 시각 자세 확보',
   initial_paired: '최초 동일 시각 입력 검사', pair_validation: '지도 구성 검증', context_fence: '지도·관측 문맥 확인',
@@ -191,11 +194,11 @@ export function preparationModel({ state, navigation = {}, draft3d, draft2d, err
     && goalContext?.map_id === navigation.map?.id && goalContext?.map_revision === navigation.map?.revision ? navigation.goal : null;
   const matchWaiting = ['WAITING_EXPLICIT_MAP_MATCH', 'WAITING_EXPLICIT_MATCH'].includes(source?.state);
   const issues = [];
-  for (const check of pairChecks) issues.push(issue(check.code || 'PAIR_CHECK_FAILED', check.current || '서버 검사 미충족', check.required || '서버 검증 통과', check.remedy || '해당 단계를 다시 확인하세요.', geometryCodes.has(check.code) ? 2 : state.pair.restart_from_step || 1));
+  for (const check of pairChecks) issues.push(issue(check.code || 'PAIR_CHECK_FAILED', check.current || '서버 검사 미충족', check.required || '서버 검증 통과', check.code === 'INITIAL_HEIGHT_TILT_REQUIRED' ? '②에서 초기 위치 제안을 계산해 감독 확인 후 적용하거나, 확인한 지도 기준 값을 직접 입력·저장하세요.' : check.remedy || '해당 단계를 다시 확인하세요.', geometryCodes.has(check.code) ? 2 : state.pair.restart_from_step || 1));
   if (!draft3d) issues.push(issue('MAP_3D_REQUIRED', '3D 지도 미선택', '위치추정용 저장 3D 지도', '3D 위치추정 지도에서 지도를 선택하세요.', 1));
   if (!draft2d) issues.push(issue('MAP_2D_REQUIRED', '2D 지도 미선택', '경로 계산용 2D 지도', '2D 경로 계산 지도를 선택하세요.', 1));
   if (draft3d && draft2d && !matched) issues.push(issue('PAIR_NOT_APPLIED', '선택한 지도 조합이 서버 준비 구성과 다름', '정확한 ID·revision과 검증된 변환 계보', '① 지도 연결 확인·적용을 누르세요. 실행 중이면 먼저 STOP하세요.', 1));
-  if (selected && !geometryReady && !geometryBlocked) issues.push(issue('INITIAL_GEOMETRY_REQUIRED', '초기 높이·기울기 미확인', '지도 좌표의 본체 높이(m)·roll/pitch(rad)', '②에서 확인한 값을 직접 입력하고 초기 높이·기울기 저장을 누르세요.', 2));
+  if (selected && !geometryReady && !geometryBlocked) issues.push(issue('INITIAL_GEOMETRY_REQUIRED', '초기 높이·기울기 미확인', '지도 좌표의 본체 높이(m)·roll/pitch(rad)', '②에서 초기 위치 제안을 계산해 감독 확인 후 적용하거나, 확인한 지도 기준 값을 직접 입력·저장하세요.', 2));
   if (selected && selected.calibration?.verified !== true) issues.push(issue('CALIBRATION_REQUIRED', '검증된 교정 정보 없음', '본체·센서·TF와 지도 연결의 서버 검증', '교정·좌표 관계의 서버 검사 결과를 확인하세요.', 2));
   if (running && !applied) issues.push(issue('RUNTIME_SOURCE_MISMATCH', '실행 source 또는 지도·실행 세대 불일치', '선택한 구성과 동일한 실제 source', 'STOP 후 ①에서 지도 구성을 다시 확인하세요.', 3));
   if (applied && !nodesReady) {
@@ -253,10 +256,10 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     <section class="navigation-preparation-observation" aria-label="② 센서 관측과 초기값"><h3>② 센서 관측과 초기값</h3><p>관측은 정지 상태의 센서 입력 확인 전용입니다. 시작 조건은 서버가 다시 검사하며, 지도 선택이나 후보 확인만으로 정합·주행을 시작하지 않습니다.</p>
     <div class="navigation-preparation-actions"><button type="button" data-prep="observe-start">센서 관측 시작</button><button type="button" data-prep="observe-stop">센서 관측 종료</button></div>
     <p data-prep="observation-status" role="status"></p><p data-prep="observation-error" role="alert"></p><div data-prep="evidence"></div><div data-prep="candidates"></div>
-    <button type="button" data-prep="proposal">초기 위치 제안 계산</button><div data-prep="proposal-result" role="status"></div>
+    <button type="button" data-prep="proposal">초기 위치 제안 계산</button><div data-prep="proposal-result" role="status"></div><p data-prep="geometry-preview" role="status"></p><p data-prep="geometry-applied" role="status"></p>
     <label class="navigation-handoff-supervision"><input type="checkbox" data-prep="supervision"> 현장 정지 상태를 직접 감독하며 관측 종료와 다음 절차를 진행하겠습니다. 이 확인은 정지 측정이 아닙니다.</label>
-    <button type="button" data-prep="confirm-handoff">이 가설을 초기 geometry로 확인</button><div data-prep="handoff-result" role="status"></div></section>
-    <details class="navigation-seed-geometry"><summary>② 초기 높이·기울기 입력</summary><p>현재 로봇 본체 원점(base_link)의 지도 좌표 높이(m), roll·pitch(rad)를 확인해 입력하세요. 바닥 높이와 본체 원점의 높이는 다릅니다. 임의의 0이나 이전 실행값을 사용하지 않습니다. 참고값이나 자동 후보는 자동 입력·전송되지 않습니다.</p>
+    <button type="button" data-prep="confirm-handoff">제안값 확인·②에 적용</button><div data-prep="handoff-result" role="status"></div></section>
+    <details class="navigation-seed-geometry"><summary>② 초기 높이·기울기 입력</summary><p>현재 로봇 본체 원점(base_link)의 지도 좌표 높이(m), roll·pitch(rad)를 확인해 입력하세요. 바닥 높이와 본체 원점의 높이는 다릅니다. 임의의 0이나 이전 실행값을 사용하지 않습니다. 제안값은 위에 별도 표시되며 아래 수동 입력칸에 복사되지 않습니다. 빈 칸은 수동 입력이 없다는 뜻이며 위의 서버 확인값과 별개입니다.</p>
     <div><label>높이 z (m)<input data-geometry="z" type="number" step="0.001" placeholder="미지정"></label><label>roll (rad)<input data-geometry="roll" type="number" step="0.001" placeholder="미지정"></label><label>pitch (rad)<input data-geometry="pitch" type="number" step="0.001" placeholder="미지정"></label><button type="button" data-prep="geometry">초기 높이·기울기 저장</button></div><p data-prep="geometry-source"></p></details>
     <ol class="navigation-preparation-steps" data-prep="steps"></ol>
     <section class="navigation-preparation-issues" aria-label="준비 상태·해결할 항목"><h3>준비 상태·해결할 항목</h3><div data-prep="issues" role="status"></div></section>
@@ -450,6 +453,8 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
       && proposal.body_candidate?.qualification === 'INFORMATIONAL_LOCALIZATION_MAP_ONLY'
       && proposal.imu_hypothesis?.frame && proposal.imu_hypothesis.frame === proposalContext?.localization_3d?.frame
       && proposal.body_candidate.frame === proposal.imu_hypothesis.frame && proposal.quality?.ambiguity_unresolved === false
+      && proposal.navigation_geometry_candidate?.frame === 'map' && proposal.navigation_geometry_candidate?.pose_reference === 'base_link'
+      && proposal.navigation_geometry_candidate?.units === 'metres_radians' && validGeometry(proposal.navigation_geometry_candidate.pose)
       && proposal.quality?.qualification === 'GLOBAL_HYPOTHESIS_ONLY_NOT_OPERATIONAL_QUALITY' && proposal.quality?.residual_selection_gate_enabled === false
       && ['observer_id', 'cloud_epoch', 'pose_epoch'].every(key => proposal.provenance?.source_contract?.[key] === proposalContext?.source?.[key])
       && finite(proposal.quality?.overlap) && finite(proposal.quality?.rmse_m) && finite(proposal.provenance?.capture_age_s) && proposal.provenance.capture_age_s >= 0 && proposal.absolute_accuracy_m === null
@@ -531,6 +536,21 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     const proposalAge = proposal?.provenance?.pose_age_s;
     const proposalFresh = finite(proposalAge) && proposalAge >= 0 && proposalAge + (performance.now() - proposalCheckedAt) / 1000 <= 1;
     const validPoses = proposalPoseValid();
+    const preview = validPoses ? proposal.navigation_geometry_candidate.pose : null;
+    el('geometry-preview').textContent = preview ? `② 미리 본 제안값 (조회 당시 · 미적용 · 지도 기준 base_link): ${geometryText(preview)} · 확인 전 읽기 전용, 서버 확정값과 다를 수 있습니다`
+      : proposalBusy || ['capturing', 'running'].includes(proposal?.state) ? '② 제안값 계산 중 · 아직 적용되지 않았습니다.'
+      : proposal?.state === 'ready' ? '② 제안값 미확인 또는 만료 · 새로 계산하고 확인하세요.'
+      : proposalError || proposal?.state === 'rejected' || proposal?.state === 'stale' ? '② 제안값 사용 불가 · 새 상태를 확인하세요.'
+      : '② 제안값 없음 · 계산과 명시적 확인이 필요합니다.';
+    const confirmed = geometry?.source === 'proposal_confirmed';
+    const handoffGeometry = handoff?.geometry;
+    const confirmedValues = confirmed && handoffInfo.identified && handoffInfo.active && validGeometry(geometry) && validGeometry(handoffGeometry)
+      && ['z', 'roll', 'pitch'].every(key => geometry[key] === handoffGeometry[key]);
+    el('geometry-applied').textContent = handoffBusy || handoffAwaitingStatus ? '② 적용 결과 확인 중 · 서버 재조회 전에는 적용을 확인할 수 없습니다.'
+      : confirmedValues ? `② 서버 확인 적용값 (지도 기준 base_link · 제안 출처): ${geometryText(handoffGeometry)} · ${handoffInfo.geometryReady ? '관측 종료 확인됨' : '관측 종료 확인 필요'}`
+      : confirmed ? '② 적용값 만료·무효 또는 서버 상태 미확인 · 현재 상태를 다시 확인하세요.'
+      : available && model.matched && geometry?.source === 'operator' && geometry?.frame === 'map' && validGeometry(geometry) ? `② 서버 저장 수동 입력값 (지도 기준 base_link): ${geometryText(geometry)}`
+      : '② 서버 확인 적용값 없음';
     el('supervision').disabled = handoffBusy || handoffInfo.active;
     el('confirm-handoff').disabled = handoffBusy || handoffAwaitingStatus || !el('supervision').checked || !validPoses || !proposalReadyToRequest || !cleanupSettled() || handoffInfo.active;
     const proposalNodes = [node('p', '정보성 제안은 저장 3D 지도 기준이며 운영 보정 위치·Nav2 준비·TF 적용 결과가 아닙니다. 자동 입력·전송하지 않습니다.')];

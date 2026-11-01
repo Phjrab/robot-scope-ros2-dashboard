@@ -2,6 +2,7 @@
 import asyncio
 import copy
 import hashlib
+import math
 import time
 import threading
 import unittest
@@ -61,6 +62,8 @@ class Runner:
 class ProposalTests(unittest.TestCase):
     def setUp(self):
         manager, session, agent, self.state, self.session_state = fixture()
+        self.state['selected']['calibration']['T_nav_map_from_localization_map'] = from_translation_rpy(
+            [2., -.5, .7], [.12, -.08, .3]).tolist()
         self.session_state.update(observation_only=True, map_registration_applied=False)
         manager.lock = threading.RLock()
         manager.preparation_snapshot = lambda: copy.deepcopy(self.state)
@@ -97,6 +100,7 @@ class ProposalTests(unittest.TestCase):
         started = self.coordinator.start('bootstrap-1', self.generation, self.session_id)
         self.assertEqual(started['operational_application'], 'NOT_RUN')
         self.assertIsNone(started['imu_hypothesis'])
+        self.assertIsNone(started['navigation_geometry_candidate'])
         job = self.complete(started)
         self.assertEqual(job['state'], 'succeeded', job)
         result = self.coordinator.get(started['proposal_id'])
@@ -107,6 +111,15 @@ class ProposalTests(unittest.TestCase):
         self.assertEqual(result['body_candidate']['frame'], self.state['pair']['localization_3d']['frame'])
         expected = self.runner.pose @ np.array(self.state['selected']['calibration']['T_imu_base'])
         self.assertAlmostEqual(result['body_candidate']['pose']['z'], expected[2, 3])
+        navigation = np.array(self.state['selected']['calibration']['T_nav_map_from_localization_map']) @ expected
+        preview = result['navigation_geometry_candidate']
+        self.assertEqual({k: preview[k] for k in ('frame', 'pose_reference', 'units')},
+                         {'frame': 'map', 'pose_reference': 'base_link', 'units': 'metres_radians'})
+        self.assertEqual(set(preview['pose']), {'z', 'roll', 'pitch'})
+        self.assertAlmostEqual(preview['pose']['z'], navigation[2, 3])
+        self.assertAlmostEqual(preview['pose']['roll'], math.atan2(navigation[2, 1], navigation[2, 2]))
+        self.assertAlmostEqual(preview['pose']['pitch'], math.asin(-navigation[2, 0]))
+        self.assertNotAlmostEqual(preview['pose']['z'], result['body_candidate']['pose']['z'])
         self.assertEqual(result['quality']['hypothesis_overlap_min'], .6)
         self.assertEqual(result['quality']['operational_initial_overlap_min'], .85)
         self.assertFalse(result['quality']['residual_selection_gate_enabled'])
@@ -153,6 +166,7 @@ class ProposalTests(unittest.TestCase):
         result = self.coordinator.get(started['proposal_id'])
         self.assertEqual((result['state'], result['reason']), ('rejected', 'GLOBAL_AMBIGUOUS'))
         self.assertIsNone(result['body_candidate'])
+        self.assertIsNone(result['navigation_geometry_candidate'])
 
     def test_changed_session_pair_source_and_ownership_never_return_previous_candidate(self):
         for field in ('session', 'pair', 'source', 'busy', 'bridge'):
@@ -171,6 +185,7 @@ class ProposalTests(unittest.TestCase):
                     result = self.coordinator.get(started['proposal_id'])
                     self.assertEqual(result['state'], 'stale')
                     self.assertIsNone(result['body_candidate'])
+                    self.assertIsNone(result['navigation_geometry_candidate'])
                 finally:
                     self.state.clear(); self.state.update(original_state)
                     self.session_state.clear(); self.session_state.update(original_session)
@@ -217,6 +232,7 @@ class ProposalTests(unittest.TestCase):
         result = self.coordinator.get(started['proposal_id'])
         self.assertEqual((result['state'], result['reason']), ('stale', 'OWNERSHIP_BUSY_OR_UNKNOWN'))
         self.assertIsNone(result['body_candidate'])
+        self.assertIsNone(result['navigation_geometry_candidate'])
         self.runner.release.set()
         self.complete(started)
 
@@ -283,6 +299,50 @@ class ProposalTests(unittest.TestCase):
         with patch.object(owner, 'anchor_proposal', side_effect=change_after_anchor):
             result = coordinator.get(started['proposal_id'])
         self.assertEqual((result['state'], result['reason']), ('stale', 'CALIBRATION_CHANGED'))
+        self.assertIsNone(result['body_candidate'])
+        self.assertIsNone(result['navigation_geometry_candidate'])
+
+    def test_navigation_map_transform_changed_after_anchor_discards_preview(self):
+        started = self.coordinator.start('navigation-transform-race', self.generation, self.session_id)
+        self.complete(started)
+        original = self.global_owner.anchor_proposal
+        def change_after_anchor(identifier):
+            result = original(identifier)
+            self.state['selected']['calibration']['T_nav_map_from_localization_map'][2][3] += .5
+            return result
+        with patch.object(self.global_owner, 'anchor_proposal', side_effect=change_after_anchor):
+            result = self.coordinator.get(started['proposal_id'])
+        self.assertEqual(result['state'], 'stale')
+        self.assertIsNone(result['body_candidate'])
+        self.assertIsNone(result['navigation_geometry_candidate'])
+
+    def test_preview_conversion_delay_cannot_omit_original_pose_age(self):
+        from robot_dashboard.application import navigation_initialization_proposal as proposals
+        started = self.coordinator.start('preview-delay', self.generation, self.session_id)
+        self.complete(started)
+        original = proposals._navigation_map_body_pose
+        def delayed(calibration, body):
+            time.sleep(1.2)
+            return original(calibration, body)
+        with patch.object(proposals, '_navigation_map_body_pose', side_effect=delayed):
+            result = self.coordinator.get(started['proposal_id'])
+        self.assertEqual(result['state'], 'stale')
+        self.assertIsNone(result['navigation_geometry_candidate'])
+        self.assertIsNone(result['body_candidate'])
+
+    def test_map_transform_changed_during_preview_conversion_discards_candidate(self):
+        from robot_dashboard.application import navigation_initialization_proposal as proposals
+        started = self.coordinator.start('preview-transform-change', self.generation, self.session_id)
+        self.complete(started)
+        original = proposals._navigation_map_body_pose
+        def changed(calibration, body):
+            pose = original(calibration, body)
+            self.state['selected']['calibration']['T_nav_map_from_localization_map'][2][3] += .5
+            return pose
+        with patch.object(proposals, '_navigation_map_body_pose', side_effect=changed):
+            result = self.coordinator.get(started['proposal_id'])
+        self.assertEqual(result['state'], 'stale')
+        self.assertIsNone(result['navigation_geometry_candidate'])
         self.assertIsNone(result['body_candidate'])
 
     def test_session_stop_cancels_owned_job_without_any_http_poll_and_tracks_cleanup(self):
@@ -385,6 +445,7 @@ class ProposalTests(unittest.TestCase):
             response = client.get(url + '/' + response.json()['proposal_id'])
             self.assertEqual(response.status_code, 200, response.text)
             self.assertEqual(response.json()['state'], 'ready', response.text)
+            self.assertEqual(response.json()['navigation_geometry_candidate']['frame'], 'map')
             path = url + '/' + response.json()['proposal_id']
             async def inspect_headers():
                 messages = []

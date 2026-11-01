@@ -263,11 +263,15 @@ class ProposalHandoffTests(unittest.TestCase):
         deadline = time.monotonic()+3
         while owner.job(started['proposal_id'])['worker_active'] and time.monotonic() < deadline:
             time.sleep(.005)
+        preview = coordinator.get(started['proposal_id'])['navigation_geometry_candidate']
+        self.assertIsNotNone(preview)
+        self.assertIsNone(self.manager.selected['seed_geometry'])
         result = self.manager.confirm_proposal(coordinator, self.session, started['proposal_id'],
             'real-confirm', self.generation, self.session_id)
         self.assertEqual(result['state'], 'CONFIRMED_OBSERVATION_ACTIVE')
         self.assertEqual(result['source'], 'proposal_confirmed')
         self.assertEqual(result['operational_application'], 'NOT_RUN')
+        self.assertEqual(preview['pose'], result['geometry'])
         old_topic = case.runtime.agent.pose['topic']
         case.runtime.agent.pose['topic'] = '/synthetic-other-source'
         self.wait_watch(result['handoff_id'], 'INVALID')

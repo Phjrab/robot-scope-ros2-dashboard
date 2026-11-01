@@ -14,6 +14,7 @@ import time
 from .anchor_proposal import source_contract
 from .ownership_readback import ownership_readback
 from .navigation_preparation_inputs import _source_identity
+from .operational_navigation import _navigation_map_body_pose
 from ..observation_service import inputs_ready
 from ..relocalization.experimental_se3 import _rpy, from_translation_rpy, validate_transform
 from ..relocalization.global_observation_jobs import (
@@ -133,7 +134,8 @@ class NavigationInitializationProposals:
             cleanup = copy.deepcopy(record['cleanup'])
         return {'schema': SCHEMA, 'proposal_id': record['job_id'], 'state': state, 'reason': reason,
                 'pair': copy.deepcopy(record['pair']), 'observation_session_id': record['session']['session_id'],
-                'imu_hypothesis': None, 'body_candidate': None, 'quality': None, 'provenance': None,
+                'imu_hypothesis': None, 'body_candidate': None, 'navigation_geometry_candidate': None,
+                'quality': None, 'provenance': None,
                 'absolute_accuracy_m': None, 'operational_application': 'NOT_RUN', 'cleanup': cleanup}
 
     def _watch(self, record):
@@ -177,7 +179,8 @@ class NavigationInitializationProposals:
                         finally:
                             manager.lock.release()
                         if (not current.get('pair') or self._pair(current) != record['pair']
-                                or current['selected']['calibration']['T_imu_base'] != record['T_imu_base']):
+                                or current['selected']['calibration']['T_imu_base'] != record['T_imu_base']
+                                or current['selected']['calibration']['T_nav_map_from_localization_map'] != record['T_nav_map_from_localization_map']):
                             raise ProposalConflict('MAP_PAIR_CHANGED')
                     cloud, pose = self.runtime.agent.pointcloud_binary_snapshot(), self.runtime.agent.pose_snapshot()
                     identity = (_source_identity(cloud), _source_identity(pose))
@@ -235,9 +238,11 @@ class NavigationInitializationProposals:
             contract, identity, stamps = self._source(session)
             pair = self._pair(state)
             transform = validate_transform(state['selected']['calibration']['T_imu_base']).tolist()
+            nav_transform = validate_transform(state['selected']['calibration']['T_nav_map_from_localization_map']).tolist()
             # Slow asset and source reads are not atomic; fence the session and selection again.
             after = self._selected(generation)
             if (self._pair(after) != pair or after['selected']['calibration']['T_imu_base'] != transform
+                    or after['selected']['calibration']['T_nav_map_from_localization_map'] != nav_transform
                     or self._session_binding(self._session(session_id)) != self._session_binding(session)
                     or self._source(session, identity)[0] != contract):
                 raise ProposalConflict('MAP_OR_SESSION_CHANGED')
@@ -263,7 +268,7 @@ class NavigationInitializationProposals:
             record = {'job_id': job['job_id'], 'request_id': request_id, 'owner': owner,
                       'pair': pair, 'session': self._session_binding(session),
                       'source_contract': contract, 'source_identity': identity, 'initial_stamps': stamps,
-                      'T_imu_base': transform,
+                      'T_imu_base': transform, 'T_nav_map_from_localization_map': nav_transform,
                       'cleanup': {'state': 'MONITORING', 'cancellation_requested': False},
                       'gate_lock': threading.Lock()}
             self._records[job['job_id']] = record
@@ -339,6 +344,7 @@ class NavigationInitializationProposals:
                 self._ownership(own_job=proposal_id)
                 if (self._pair(state) != record['pair']
                         or state['selected']['calibration']['T_imu_base'] != record['T_imu_base']
+                        or state['selected']['calibration']['T_nav_map_from_localization_map'] != record['T_nav_map_from_localization_map']
                         or self._session_binding(session) != record['session']
                         or self._source(session, record['source_identity'])[0] != record['source_contract']):
                     raise ProposalConflict('SOURCE_OR_CONTEXT_CHANGED')
@@ -380,6 +386,9 @@ class NavigationInitializationProposals:
                 roll, pitch, yaw = _rpy(matrix[:3, :3])
                 body = dict(zip(('x', 'y', 'z', 'roll', 'pitch', 'yaw'),
                                 [*map(float, matrix[:3, 3]), *map(float, (roll, pitch, yaw))]))
+                # Finish both frame conversions before checking the original pose's
+                # age and current source/map fences; conversion time is not fresh evidence.
+                navigation_pose = _navigation_map_body_pose(state['selected']['calibration'], body)
                 # A cheap in-memory fence follows this request's full asset validation.
                 # Rehashing a second time after pose capture can consume its entire
                 # freshness window; no validation result is cached across requests.
@@ -387,6 +396,7 @@ class NavigationInitializationProposals:
                                  self.runtime.operational_navigation.status)()
                 if (not latest.get('pair') or self._pair(latest) != record['pair']
                         or latest['selected']['calibration']['T_imu_base'] != record['T_imu_base']
+                        or latest['selected']['calibration']['T_nav_map_from_localization_map'] != record['T_nav_map_from_localization_map']
                         or self._session_binding(self._session(record['session']['session_id'])) != record['session']
                         or self._source(session, record['source_identity'])[0] != record['source_contract']
                         or self._session_binding(self._session(record['session']['session_id'])) != record['session']):
@@ -405,6 +415,8 @@ class NavigationInitializationProposals:
                     'units': 'metres_degrees', 'pose': imu, 'approximate_only': True, 'requires_reanchor': True},
                     body_candidate={'frame': proposal['map']['frame'], 'pose_reference': 'base_link',
                     'units': 'metres_radians', 'pose': body, 'qualification': 'INFORMATIONAL_LOCALIZATION_MAP_ONLY'},
+                    navigation_geometry_candidate={'frame': 'map', 'pose_reference': 'base_link',
+                    'units': 'metres_radians', 'pose': {k: navigation_pose[k] for k in ('z', 'roll', 'pitch')}},
                     quality={'overlap': proposal['overlap'], 'rmse_m': proposal['rmse_m'],
                     'hypothesis_overlap_min': .6, 'operational_initial_overlap_min': .85,
                     'residual_selection_gate_enabled': False,

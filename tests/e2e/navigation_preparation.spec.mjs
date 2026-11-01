@@ -29,8 +29,9 @@ async function fixture(page) {
   let reject = false, failingReads = 0, heldWrites = null, releaseWrite = null;
   let rejectObservation = false;
   let invalidOperationalState = false;
-  let proposalState = 'ready', proposalReason = null, proposalRejected = false, wrongProposalSource = false, ambiguousProposal = false, proposalReads = null, releaseProposalReads = null;
+  let proposalState = 'ready', proposalReason = null, proposalRejected = false, wrongProposalSource = false, ambiguousProposal = false, geometryPreview = 'valid', proposalReads = null, releaseProposalReads = null;
   let proposalCleanup = { state: 'SETTLED', cancellation_requested: false, worker_active: false, terminal_state: 'succeeded' };
+  let confirmedGeometry = { z: .84, roll: .11, pitch: .12 };
   let handoff = null, confirmMode = 'success', heldConfirm = null, releaseConfirm = null, heldHandoffRead = null, releaseHandoffRead = null;
   let heldInputsRead = null, releaseInputsRead = null;
   await page.route('**/api/v1/observations/fastlio/**', async route => {
@@ -63,7 +64,7 @@ async function fixture(page) {
         bundle_generation: state.selected.generation, observation_session_id: session, job_id: null, expires_in_s: 119,
         policy: { id: 'robot-scope.proposal-handoff.local-v1', ttl_s: 120, max_xy_m: .25, max_yaw_rad: .20 },
         continuity: 'SUPERVISED_GAP_UNMEASURED', stop_receipt: { state: 'NOT_REQUESTED' },
-        geometry: { z: .4, roll: .1, pitch: .2 }, initial_pose_reference: { x: 1, y: 2, yaw: .3 }, operational_application: 'NOT_RUN' };
+        geometry: { ...confirmedGeometry }, initial_pose_reference: { x: 1, y: 2, yaw: .3 }, operational_application: 'NOT_RUN' };
       state.selected.seed_geometry = { ...handoff.geometry, source: 'proposal_confirmed', handoff: { handoff_id: id, proposal_id: 'f'.repeat(24), bundle_generation: state.selected.generation, calibration_sha256: inputs.pair.calibration_sha256, observation_session_id: session } };
       state.initialization_handoff = handoff; state.pair.can_start = false;
       if (heldConfirm) await heldConfirm;
@@ -83,6 +84,7 @@ async function fixture(page) {
         pair: inputs.pair, observation_session_id: observation.session_id, operational_application: 'NOT_RUN', absolute_accuracy_m: null,
         imu_hypothesis: method === 'GET' && proposalState === 'ready' ? { frame: 'camera_init', pose_reference: 'FASTLIO_IMU', units: 'metres_degrees', pose, approximate_only: true, requires_reanchor: true } : null,
         body_candidate: method === 'GET' && proposalState === 'ready' ? { frame: 'camera_init', pose_reference: 'base_link', units: 'metres_radians', pose, qualification: 'INFORMATIONAL_LOCALIZATION_MAP_ONLY' } : null,
+        navigation_geometry_candidate: method === 'GET' && proposalState === 'ready' && geometryPreview !== 'missing' ? { frame: geometryPreview === 'bad-frame' ? 'camera_init' : 'map', pose_reference: 'base_link', units: 'metres_radians', pose: { z: .84, roll: .11, pitch: .12 } } : null,
         quality: method === 'GET' && proposalState === 'ready' ? { overlap: .7, rmse_m: .1, hypothesis_overlap_min: .6, operational_initial_overlap_min: .85, ambiguity_unresolved: ambiguousProposal, residual_selection_gate_enabled: false, qualification: 'GLOBAL_HYPOTHESIS_ONLY_NOT_OPERATIONAL_QUALITY' } : null,
         provenance: method === 'GET' && proposalState === 'ready' ? { pose_age_s: 0, capture_age_s: 15, source_contract: { observer_id: '1'.repeat(32), cloud_epoch: (wrongProposalSource ? '4' : '2').repeat(32), pose_epoch: '3'.repeat(32) } } : null,
         cleanup: method === 'POST' ? { state: 'MONITORING', cancellation_requested: false } : proposalCleanup };
@@ -105,9 +107,9 @@ async function fixture(page) {
   await page.goto('/software-preparation.html');
   await mount(page);
   return { state, inputs, observation, writes, reads, reject(value) { reject = value; }, rejectObservation(value) { rejectObservation = value; }, failReads(count) { failingReads = count; }, invalidStatus(value) { invalidOperationalState = value; },
-    proposalStatus(value, reason = null) { proposalState = value; proposalReason = reason; }, rejectProposal(value) { proposalRejected = value; }, wrongProposalSource(value) { wrongProposalSource = value; }, ambiguousProposal(value) { ambiguousProposal = value; },
+    proposalStatus(value, reason = null) { proposalState = value; proposalReason = reason; }, rejectProposal(value) { proposalRejected = value; }, wrongProposalSource(value) { wrongProposalSource = value; }, ambiguousProposal(value) { ambiguousProposal = value; }, geometryPreview(value) { geometryPreview = value; },
     cleanup(value) { proposalCleanup = value; },
-    handoff() { return handoff; }, confirmMode(value) { confirmMode = value; },
+    handoff() { return handoff; }, confirmMode(value) { confirmMode = value; }, confirmedGeometry(value) { confirmedGeometry = value; },
     holdConfirm() { heldConfirm = new Promise(resolve => { releaseConfirm = resolve; }); },
     releaseConfirm() { releaseConfirm?.(); heldConfirm = null; releaseConfirm = null; },
     holdHandoffRead() { heldHandoffRead = new Promise(resolve => { releaseHandoffRead = resolve; }); },
@@ -628,14 +630,14 @@ async function handoffFixture(page, { mode = 'success', hold = false } = {}) {
   f.confirmMode(mode);
   await page.getByLabel(/현장 정지 상태를 직접 감독/).check();
   await page.getByRole('button', { name: '초기 위치 제안 계산' }).click();
-  await expect(page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: '제안값 확인·②에 적용' })).toBeEnabled();
   if (hold) f.holdConfirm();
   return f;
 }
 
 test('supervised confirmation is one explicit POST, stop remains separate, and the server receipt governs start', async ({ page }) => {
   const f = await handoffFixture(page, { hold: true });
-  const button = page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' });
+  const button = page.getByRole('button', { name: '제안값 확인·②에 적용' });
   await page.getByLabel(/현장 정지 상태를 직접 감독/).uncheck();
   await expect(button).toBeDisabled();
   expect(f.writes.filter(v => v.path.endsWith('/confirm-geometry'))).toHaveLength(0);
@@ -672,7 +674,7 @@ test('supervised confirmation is one explicit POST, stop remains separate, and t
 
 test('lost confirmation response restores only server-owned handoff after refresh and reload without another POST', async ({ page }) => {
   const f = await handoffFixture(page, { mode: 'lost' });
-  await page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' }).click();
+  await page.getByRole('button', { name: '제안값 확인·②에 적용' }).click();
   await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 확인됨 · 관측 종료를 별도로 요청하세요');
   expect(f.writes.filter(v => v.path.endsWith('/confirm-geometry'))).toHaveLength(1);
   await f.reload();
@@ -688,7 +690,7 @@ test('lost confirmation response restores only server-owned handoff after refres
 
 test('rejected confirmation never retries and leaves observation stop available', async ({ page }) => {
   const f = await handoffFixture(page, { mode: 'reject' });
-  await page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' }).click();
+  await page.getByRole('button', { name: '제안값 확인·②에 적용' }).click();
   await expect(page.locator('[data-prep="handoff-result"]')).toContainText('서로 구분되지 않는 위치 후보가 있습니다');
   await expect(page.getByRole('button', { name: '센서 관측 종료' })).toBeEnabled();
   await expect(page.getByLabel(/현장 정지 상태를 직접 감독/)).not.toBeChecked();
@@ -698,7 +700,7 @@ test('rejected confirmation never retries and leaves observation stop available'
 
 test('handoff expiry blocks bootstrap while MATCH_ARMED expiry does not hide current corrected tracking', async ({ page }) => {
   const f = await handoffFixture(page);
-  await page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' }).click();
+  await page.getByRole('button', { name: '제안값 확인·②에 적용' }).click();
   await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 확인됨');
   f.handoff().state = 'OBSERVATION_STOPPED'; f.handoff().stop_receipt.state = 'INACTIVE_CONFIRMED'; f.handoff().expires_in_s = .35;
   Object.assign(f.observation, { state: 'STOPPED', active: false, session_id: null, can_stop: false });
@@ -764,7 +766,7 @@ test('handoff expiry blocks bootstrap while MATCH_ARMED expiry does not hide cur
 
 test('restored unknown, stopping and failed job states remain blocked and distinct from tracking', async ({ page }) => {
   const f = await handoffFixture(page);
-  await page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' }).click();
+  await page.getByRole('button', { name: '제안값 확인·②에 적용' }).click();
   await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 확인됨');
   Object.assign(f.handoff(), { job_id: '9'.repeat(32), state: 'OUTCOME_UNKNOWN', reason: 'HANDOFF_JOB_CONTEXT_UNCONFIRMED', geometry: null, initial_pose_reference: null });
   await page.evaluate(() => { window.fixtureContext.navigation.pipeline = { state: 'starting', job_id: null }; });
@@ -798,7 +800,7 @@ test('restored unknown, stopping and failed job states remain blocked and distin
 
 test('job phase INVALID recovers only from a fresh matching server snapshot', async ({ page }) => {
   const f = await handoffFixture(page);
-  await page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' }).click();
+  await page.getByRole('button', { name: '제안값 확인·②에 적용' }).click();
   await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 확인됨');
   const geometry = structuredClone(f.handoff().geometry), reference = structuredClone(f.handoff().initial_pose_reference);
   Object.assign(f.observation, { state: 'STOPPED', active: false, session_id: null, can_stop: false });
@@ -828,7 +830,7 @@ test('job phase INVALID recovers only from a fresh matching server snapshot', as
 for (const terminal of [{ state: 'INVALID', reason: 'HANDOFF_STOP_OUTCOME_UNKNOWN' }, { state: 'EXPIRED', reason: 'HANDOFF_EXPIRED' }]) {
   test(`permanent ${terminal.reason} survives a phase-only invalid and later snapshot`, async ({ page }) => {
     const f = await handoffFixture(page);
-    await page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' }).click();
+    await page.getByRole('button', { name: '제안값 확인·②에 적용' }).click();
     await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 확인됨');
     const geometry = structuredClone(f.handoff().geometry), reference = structuredClone(f.handoff().initial_pose_reference);
     Object.assign(f.handoff(), terminal, { job_id: '9'.repeat(32), geometry: null, initial_pose_reference: null });
@@ -848,7 +850,7 @@ for (const terminal of [{ state: 'INVALID', reason: 'HANDOFF_STOP_OUTCOME_UNKNOW
 
 test('late confirmation and handoff reads cannot revive a changed generation or cleared server record', async ({ page }) => {
   const f = await handoffFixture(page, { hold: true });
-  await page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' }).click();
+  await page.getByRole('button', { name: '제안값 확인·②에 적용' }).click();
   f.state.selected.generation = 'd'.repeat(32); f.inputs.pair.generation = 'd'.repeat(32);
   await page.evaluate(() => window.preparation.refresh(true));
   f.releaseConfirm();
@@ -861,7 +863,7 @@ test('late confirmation and handoff reads cannot revive a changed generation or 
 test('a delayed handoff GET cannot restore a record cleared by a newer server snapshot', async ({ page }) => {
   const f = await handoffFixture(page);
   f.holdHandoffRead();
-  await page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' }).click();
+  await page.getByRole('button', { name: '제안값 확인·②에 적용' }).click();
   await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 확인됨');
   await expect.poll(() => f.reads.filter(path => path.includes('/initialization-handoffs/')).length).toBeGreaterThan(0);
   f.state.initialization_handoff = null;
@@ -880,11 +882,11 @@ test('unsettled worker or ambiguous candidate never enables supervised confirmat
   f.cleanup({ state: 'CANCEL_PENDING', cancellation_requested: true, worker_active: true });
   await page.getByRole('button', { name: '초기 위치 제안 계산' }).click();
   await expect(page.locator('[data-prep="proposal-result"]')).toContainText('취소 후 종료 확인 지연');
-  await expect(page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '제안값 확인·②에 적용' })).toBeDisabled();
   f.ambiguousProposal(true);
   f.cleanup({ state: 'SETTLED', cancellation_requested: false, worker_active: false, terminal_state: 'succeeded' });
   await expect(page.locator('[data-prep="proposal-result"]')).toContainText('제안 형식 또는 현재 문맥을 확인하지 못했습니다');
-  await expect(page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '제안값 확인·②에 적용' })).toBeDisabled();
   const dimensions = await page.getByLabel(/현장 정지 상태를 직접 감독/).evaluate(input => ({ width: input.getBoundingClientRect().width, document: document.documentElement.scrollWidth, viewport: innerWidth }));
   expect(dimensions.width).toBeLessThan(35);
   expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport + 1);
@@ -893,7 +895,7 @@ test('unsettled worker or ambiguous candidate never enables supervised confirmat
 
 test('uncertain stop and explicit mismatched runtime never restore ready handoff', async ({ page }) => {
   const f = await handoffFixture(page);
-  await page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' }).click();
+  await page.getByRole('button', { name: '제안값 확인·②에 적용' }).click();
   await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 확인됨');
   Object.assign(f.handoff(), { state: 'OUTCOME_UNKNOWN', reason: 'HANDOFF_STOP_OUTCOME_UNKNOWN', stop_receipt: { state: 'OUTCOME_UNKNOWN' }, geometry: null, initial_pose_reference: null });
   await page.evaluate(() => window.preparation.refresh(true));
@@ -933,7 +935,7 @@ test('uncertain stop and explicit mismatched runtime never restore ready handoff
 
 test('snapshot plus accepted runtime initial pose permits only an explicit match while TTL remains', async ({ page }) => {
   const f = await handoffFixture(page);
-  await page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' }).click();
+  await page.getByRole('button', { name: '제안값 확인·②에 적용' }).click();
   await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 확인됨');
   Object.assign(f.handoff(), { job_id: '9'.repeat(32), state: 'SNAPSHOTTED', reason: null, expires_in_s: 60, stop_receipt: { state: 'INACTIVE_CONFIRMED' } });
   Object.assign(f.observation, { state: 'STOPPED', active: false, session_id: null, can_stop: false });
@@ -952,4 +954,69 @@ test('snapshot plus accepted runtime initial pose permits only an explicit match
   await page.getByRole('button', { name: '정합 시작', exact: true }).click();
   expect(f.writes.filter(v => v.path.endsWith('/match'))).toHaveLength(1);
   expect(f.writes.filter(v => /\/goal|seed-geometry|\/navigation\/start/.test(v.path))).toHaveLength(0);
+});
+
+test('proposal map-frame geometry remains read-only until supervised confirmation and server readback', async ({ page }) => {
+  const f = await proposalFixture(page);
+  f.state.pair.checks = [{ code: 'INITIAL_HEIGHT_TILT_REQUIRED', current: '초기 높이·기울기 미지정', remedy: '기존 직접 입력 안내' }];
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="issues"]')).toContainText('초기 위치 제안을 계산해 감독 확인 후 적용');
+  await expect(page.locator('[data-prep="geometry-applied"]')).toContainText('서버 확인 적용값 없음');
+  await page.getByRole('button', { name: '초기 위치 제안 계산' }).click();
+  const preview = page.locator('[data-prep="geometry-preview"]');
+  await expect(preview).toContainText('미적용 · 지도 기준 base_link');
+  await expect(preview).toContainText('높이 0.840 m · roll 0.110 rad · pitch 0.120 rad');
+  await expect(page.getByRole('button', { name: '제안값 확인·②에 적용' })).toBeDisabled();
+  await page.getByText('② 초기 높이·기울기 입력', { exact: true }).click();
+  for (const label of ['높이 z (m)', 'roll (rad)', 'pitch (rad)']) await expect(page.getByLabel(label, { exact: true })).toHaveValue('');
+  await page.getByLabel(/현장 정지 상태를 직접 감독/).check();
+  await expect(page.getByRole('button', { name: '제안값 확인·②에 적용' })).toBeEnabled();
+  f.confirmedGeometry({ z: .97, roll: -.21, pitch: .32 });
+  await page.getByRole('button', { name: '제안값 확인·②에 적용' }).click();
+  const applied = page.locator('[data-prep="geometry-applied"]');
+  await expect(applied).toContainText('서버 확인 적용값');
+  await expect(applied).toContainText('높이 0.970 m · roll -0.210 rad · pitch 0.320 rad');
+  await expect(applied).not.toContainText('0.840');
+  await expect(applied).toContainText('관측 종료 확인 필요');
+  for (const label of ['높이 z (m)', 'roll (rad)', 'pitch (rad)']) await expect(page.getByLabel(label, { exact: true })).toHaveValue('');
+  expect(f.writes.filter(v => v.path.endsWith('/confirm-geometry'))).toHaveLength(1);
+  expect(f.writes.filter(v => /seed-geometry|\/navigation\/start|initial-pose|\/match|\/goal/.test(v.path))).toHaveLength(0);
+  f.handoff().expires_in_s = 0;
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(applied).toContainText('만료·무효 또는 서버 상태 미확인');
+  await expect(applied).not.toContainText('0.970');
+});
+
+for (const invalid of ['missing', 'bad-frame', 'ambiguous']) {
+  test(`proposal ${invalid} geometry cannot be displayed as ready or confirmed`, async ({ page }) => {
+    const f = await proposalFixture(page);
+    if (invalid === 'ambiguous') f.ambiguousProposal(true); else f.geometryPreview(invalid);
+    await page.getByLabel(/현장 정지 상태를 직접 감독/).check();
+    await page.getByRole('button', { name: '초기 위치 제안 계산' }).click();
+    await expect(page.locator('[data-prep="geometry-preview"]')).toContainText('미확인 또는 만료');
+    await expect(page.locator('[data-prep="geometry-preview"]')).not.toContainText('0.840');
+    await expect(page.getByRole('button', { name: '제안값 확인·②에 적용' })).toBeDisabled();
+    await page.locator('[data-prep="confirm-handoff"]').evaluate(button => button.click());
+    expect(f.writes.filter(v => /confirm-geometry|seed-geometry|\/navigation\/start|initial-pose|\/match|\/goal/.test(v.path))).toHaveLength(0);
+  });
+}
+
+test('expired or late proposal cannot repopulate geometry or trigger confirmation', async ({ page }) => {
+  const f = await proposalFixture(page);
+  await page.getByLabel(/현장 정지 상태를 직접 감독/).check();
+  await page.getByRole('button', { name: '초기 위치 제안 계산' }).click();
+  await expect(page.locator('[data-prep="geometry-preview"]')).toContainText('0.840');
+  await expect(page.locator('[data-prep="geometry-preview"]')).toContainText('미확인 또는 만료');
+  await expect(page.getByRole('button', { name: '제안값 확인·②에 적용' })).toBeDisabled();
+  f.holdProposalReads();
+  await page.getByRole('button', { name: '초기 위치 제안 계산' }).click();
+  await expect.poll(() => f.reads.filter(p => p.includes('/initialization-proposals/')).length).toBeGreaterThan(1);
+  Object.assign(f.observation, { state: 'STOPPED', active: false, session_id: null });
+  await page.evaluate(() => window.preparation.refresh(true));
+  f.releaseProposalReads();
+  await expect(page.locator('[data-prep="geometry-preview"]')).not.toContainText('0.840');
+  await expect(page.getByRole('button', { name: '제안값 확인·②에 적용' })).toBeDisabled();
+  await f.reload();
+  await expect(page.locator('[data-prep="geometry-preview"]')).not.toContainText('0.840');
+  expect(f.writes.filter(v => /confirm-geometry|seed-geometry|\/navigation\/start|initial-pose|\/match|\/goal/.test(v.path))).toHaveLength(0);
 });

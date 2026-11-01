@@ -19,6 +19,14 @@ from ..saved_maps import SavedMapError
 from .runtime_health_sample import RuntimeHealthSample
 
 
+def _navigation_map_body_pose(calibration, body):
+    """Transform the localization-map body hypothesis into the navigation map."""
+    transformed = (validate_transform(calibration['T_nav_map_from_localization_map'])
+        @ from_translation_rpy([body[k] for k in ('x', 'y', 'z')],
+                               [body[k] for k in ('roll', 'pitch', 'yaw')]))
+    return display_pose(transformed)
+
+
 class OperationalNavigation:
     def __init__(self, catalog, root, jobs):
         self.catalog, self.root, self.jobs = catalog, Path(root), jobs
@@ -203,10 +211,7 @@ class OperationalNavigation:
                 if session.get('session_id') != session_id or session.get('state') != 'READY':
                     raise ValueError('OBSERVATION_SESSION_CHANGED')
                 body = proposal['body_candidate']['pose']
-                transformed = (validate_transform(bundle['calibration']['T_nav_map_from_localization_map'])
-                    @ from_translation_rpy([body[k] for k in ('x','y','z')],
-                                           [body[k] for k in ('roll','pitch','yaw')]))
-                pose = display_pose(transformed)
+                pose = _navigation_map_body_pose(bundle['calibration'], body)
                 identifier = uuid.uuid4().hex
                 try:
                     watch_context = proposal_owner.handoff_watch_context(proposal_id, session_id)
