@@ -12,7 +12,8 @@
 | 자기 global job의 종료·소유권 관리 | 완료·배포 | source 복원 후 재사용, 교정 경합, 외부 job ID 충돌, 관측 종료 cleanup, session 전 pose 경계 회귀 PASS | 실기 resource scope·cleanup NOT_RUN |
 | 전체 통합 회귀 | 검토 완료 | Python 3,237건 OK(2 skip), Node 78 PASS, 문법 113개, 기존 pinned 통합 270 PASS, 로컬 실제 API 합성 E2E 10 PASS. 주 browser 최초 237 PASS/3 환경 FAIL → 해당 3건만 지정 환경에서 3 PASS. 전후 14파일 hash 일치 | 로봇 접근 없는 로컬 검사 |
 | 초기 가설의 새 Nav2 실행 전달 | 로컬 구현·수리 후 동결 | 코드 99d5681 통합. 독립 21 PASS, 주 브라우저 253/Node715/pinned270/API브라우저10 PASS. Python 최초 3286건 중 오류1·skip2 → 테스트 대역 보완 후 API모듈18 PASS; 단일 전체 PASS로 합산하지 않음 | 미배포, 실제 가설·정상 전환·TF/Nav2 검증 BLOCKED/NOT_RUN |
-| 후속 연결 코드 CI·배포 후보 | 코드 99d5681, 문서 head f336830 CI 완료 | Ubuntu22/Python3.10·Ubuntu24/Python3.12·통합 job PASS, 오프라인 후보 strict 검사 PASS | 실제 새 코드 배포 NOT_RUN, W05 사용자 정지 확인 대기 |
+| 실행 폴더 캐시 재생성 방지 | 로컬 최소 수리 | 관련 28건 PASS, 별도 전체 Python 3,287건 OK·2 skip; [별도 결과](RUNTIME_CACHE_FIX_RESULTS.md) | 미배포, 기존 strict gate 유지 |
+| 후속 연결 코드 CI·배포 후보 | 코드 99d5681, 문서 head f336830 CI 완료 | Ubuntu22/Python3.10·Ubuntu24/Python3.12·통합 job PASS, 오프라인 후보 strict 검사 PASS | 실제 새 코드 배포 NOT_RUN, W05 관측 evidence 거절 후 정상 복구; [전체 결과](W05_SENSOR_EVIDENCE.md) |
 | 저장 지도 지속 보정→TF→Nav2 / P1→버튼→P2 / 경사로 운영 추정 | 기존 코드 보존 | 기존 결과 유지 | 이번 실제 실행 BLOCKED/NOT_RUN, 목표·이동 명령 없음 |
 
 ## 구현의 의미와 한계
@@ -67,4 +68,4 @@ W04는 SSH control socket 만료로 인증 단계에서 중단됐다. 이전에 
 
 13:51:03 KST 최종: Nav2/goal idle, lease inactive, deadman false, 명령0, 관측 STOPPED, ownership busy/unknown 없음, bridge active. source는 `/cloud_registered` 및 `/utlidar/robot_odom`, 주행 설정 revision `9a47e9d4a6c0d2b5beb0664cc1370a7bf6b70d647418815c5381f196d335645a` 그대로다. 속도0.5m/s·XY0.05m·yaw0.1rad·progress0.05m·controller10Hz와 ALL_DIRECTION_BASELINE을 보존했다. 관측·Nav2·seed·match·goal·실제 이동은 수행하지 않았다.
 
-C0가 private 원본 `/tmp/c1_3_w04c_` 접두의 preflight/cache_move/strict/stage/before_activate/activate/final_verify/final_state 증거를 읽었다. W05는 별도 현재 정지 확인을 C1.4 질문 UI에서 받은 뒤 최대5분 관측1회·정보성 proposal1회 및 정상 정리·복구만 허용한다. 새 확인 전 장비 변경은 없다. 동시에 C1.1은 후속 handoff를 로컬에서 구현하며 W05의 배포본은 c414a519로 고정한다.
+C0가 private 원본 `/tmp/c1_3_w04c_` 접두의 preflight/cache_move/strict/stage/before_activate/activate/final_verify/final_state 증거를 읽었다. W05는 15:11 KST C1.4 직접 답변으로 현재 정지 확인을 받았다. 최대5분 관측1회·정보성 proposal1회 및 정상 정리·복구만 허용하며 strict 추가 캐시 차단은 정확한 파일의 보존 후 해소했고, 관측 1회에서 evidence가 거절돼 proposal 0회로 종료하고 정상 복구했다. 별도 W05 결과표와 캐시 수리 문서에 기록한다. 동시에 C1.1은 후속 handoff를 로컬에서 구현하며 W05의 배포본은 c414a519로 고정한다.
