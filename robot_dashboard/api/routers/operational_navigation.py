@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from ...saved_maps import SavedMapError
 from ...control import ControlError
 from ...navigation_jobs import NavigationJobError
+from ...application.runtime_health_sample import capture_runtime_health
 from ..dependencies import require_component, require_competition_unlocked, require_manual_operation_mode, require_same_origin, runtime_from_request
 
 router = APIRouter()
@@ -53,6 +54,11 @@ class InitializationProposalRequest(BaseModel):
     observation_session_id: str = Field(pattern=r'^[a-f0-9]{32}$')
 
 
+class HandoffConfirmation(InitializationProposalRequest):
+    confirmed: bool
+    stationary_supervision_acknowledged: bool
+
+
 def _proposal_owner(runtime):
     from ...application.navigation_initialization_proposal import NavigationInitializationProposals
     owner = getattr(runtime, '_navigation_initialization_proposals', None)
@@ -63,6 +69,7 @@ def _proposal_owner(runtime):
 
 def health(runtime):
     return runtime.agent._navigation_runtime_health_snapshot(time.monotonic()) if runtime.agent else {}
+
 
 
 @router.get('/api/v1/navigation/operational-3d')
@@ -119,6 +126,42 @@ async def get_initialization_proposal(proposal_id: str, request: Request, respon
             return await asyncio.to_thread(_proposal_owner(runtime).get, proposal_id)
         except ProposalNotFound as exc:
             raise HTTPException(404, str(exc)) from exc
+
+
+@router.post('/api/v1/navigation/operational-3d/initialization-proposals/{proposal_id}/confirm-geometry')
+async def confirm_proposal_geometry(proposal_id: str, body: HandoffConfirmation, request: Request):
+    from ...application.navigation_initialization_proposal import ProposalNotFound, ProposalConflict, ProposalUnavailable
+    require_same_origin(request)
+    runtime = runtime_from_request(request)
+    require_competition_unlocked(runtime, 'initial geometry confirmation')
+    require_manual_operation_mode(runtime)
+    if body.confirmed is not True or body.stationary_supervision_acknowledged is not True:
+        raise HTTPException(409, 'CONFIRMATION_REQUIRED')
+    manager = require_component(runtime.operational_navigation, 'operational localization is not configured')
+    observation = require_component(runtime.fastlio_observation, 'observation is not configured')
+    async with runtime.pipeline_coordination_lock:
+        try:
+            return await asyncio.to_thread(manager.confirm_proposal, _proposal_owner(runtime), observation,
+                proposal_id, body.request_id, body.bundle_generation, body.observation_session_id)
+        except ProposalNotFound as exc:
+            raise HTTPException(404, str(exc)) from exc
+        except ProposalUnavailable as exc:
+            raise HTTPException(503, str(exc)) from exc
+        except (ProposalConflict, ValueError, KeyError, OSError, SavedMapError) as exc:
+            raise HTTPException(409, str(exc)) from exc
+
+
+@router.get('/api/v1/navigation/operational-3d/initialization-handoffs/{handoff_id}')
+async def get_initialization_handoff(handoff_id: str, request: Request, response: Response):
+    response.headers['Cache-Control'] = 'no-store'
+    runtime = runtime_from_request(request)
+    manager = require_component(runtime.operational_navigation, 'operational localization is not configured')
+    try:
+        # Include any ensuing asset-validation and lock wait in health age.
+        current_health = await asyncio.to_thread(capture_runtime_health, runtime.agent)
+        return await asyncio.to_thread(manager.handoff_status, handoff_id, health=current_health)
+    except KeyError as exc:
+        raise HTTPException(404, 'HANDOFF_NOT_FOUND') from exc
 
 
 async def select_idle(request, body, operation="select"):
@@ -201,7 +244,17 @@ async def match(body: MatchRequest, request: Request):
                 or snapshot.get('goal', {}).get('state') in {'pending', 'active', 'canceling'}):
             raise HTTPException(409, 'ACTIVE_NAVIGATION_CONTEXT_OR_STOP_REQUIRED')
         try:
+            manager = getattr(runtime, 'operational_navigation', None)
+            if manager is not None:
+                await asyncio.to_thread(manager.check_match, body.bundle_generation, body.map_id, body.map_revision)
             receipt = await asyncio.to_thread(agent.navigation_start_operational_match, **body.model_dump())
+            if manager is not None:
+                try:
+                    current_health = await asyncio.to_thread(capture_runtime_health, runtime.agent)
+                    await asyncio.to_thread(manager.record_match_armed, body.bundle_generation, body.map_id, body.map_revision,
+                                            receipt, current_health, expected_stamp=body.initial_pose_stamp_ns, allow_replace=True)
+                except (ValueError, KeyError, TypeError):
+                    pass  # Receipt was accepted; current status will be recovered from fresh health.
         except (ValueError, ControlError, NavigationJobError) as exc:
             raise HTTPException(409, str(exc)) from exc
     return {'accepted': True, 'receipt': receipt}

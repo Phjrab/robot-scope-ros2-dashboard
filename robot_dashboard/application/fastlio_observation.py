@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import uuid
 import threading
 import time
 from typing import Any
@@ -30,6 +31,7 @@ class FastlioObservationSession:
         self._task = None
         self._pending: str | None = None
         self._select_inputs = False
+        self._handoff_receipts = {}
         self._closed = False
         self._updated_at = time.monotonic()
         self._status = dict(
@@ -80,11 +82,65 @@ class FastlioObservationSession:
             )
             return result
 
+    def reserve_handoff_receipt(self, handoff_id, session_id, started):
+        with self._lock:
+            current = self.snapshot()
+            if (current.get("state") != "READY" or current.get("active") is not True
+                    or current.get("session_id") != session_id
+                    or current.get("started_monotonic_s") != started):
+                raise ValueError("OBSERVATION_SESSION_CHANGED")
+            if len(self._handoff_receipts) >= 32:
+                self._handoff_receipts.pop(next(iter(self._handoff_receipts)))
+            self._handoff_receipts[handoff_id] = {
+                "session_id": session_id, "started": started, "state": "NOT_REQUESTED", "nonce": None}
+
+    def handoff_receipt(self, handoff_id):
+        with self._lock:
+            item = self._handoff_receipts.get(handoff_id)
+            return dict(item) if item else {"state": "OUTCOME_UNKNOWN"}
+
+    def _handoff_record(self, event, *, status=None, session_id=None):
+        # Pure bounded memory update: never call services, user callbacks, or await.
+        with self._lock:
+            for item in self._handoff_receipts.values():
+                state = item["state"]
+                if event == "dispatch" and state == "NOT_REQUESTED" and item["session_id"] == session_id:
+                    item.update(state="DISPATCH_PENDING", nonce=uuid.uuid4().hex, dispatch_monotonic_ns=time.monotonic_ns())
+                elif event == "accepted" and state == "DISPATCH_PENDING" and item["session_id"] == session_id:
+                    item["state"] = "DISPATCH_ACCEPTED"
+                elif event == "error" and state in {"DISPATCH_PENDING", "DISPATCH_ACCEPTED"}:
+                    item["state"] = "OUTCOME_UNKNOWN"
+                elif event == "status" and state not in {"INACTIVE_CONFIRMED", "OUTCOME_UNKNOWN"}:
+                    same = status.get("session_id") in (None, item["session_id"])
+                    start = status.get("started_monotonic_s")
+                    if (not same or (start not in (None, 0) and start != item["started"])
+                            or (status.get("active") is True and start != item["started"])):
+                        item["state"] = "OUTCOME_UNKNOWN"
+                    elif status.get("state") in {"UNKNOWN", "FAILED", "UNAVAILABLE"}:
+                        item["state"] = "OUTCOME_UNKNOWN"
+                    elif (state == "DISPATCH_ACCEPTED" and status.get("state") == "STOPPED"
+                          and status.get("active") is False and not status.get("job_pending")):
+                        item["state"] = "INACTIVE_CONFIRMED"
+                    elif state == "NOT_REQUESTED" and status.get("active") is False:
+                        item["state"] = "OUTCOME_UNKNOWN"
+
+    def _try_handoff_record(self, *args, **kwargs):
+        try:
+            self._handoff_record(*args, **kwargs)
+        except Exception:
+            # A broken optional journal must never block normal observation stop.
+            try:
+                with self._lock:
+                    self._handoff_receipts.clear()
+            except Exception:
+                pass
+
     async def _refresh(self) -> dict[str, Any]:
         if not self.enabled:
             return self.snapshot()
         try:
             status = await asyncio.to_thread(self.service.status)
+            self._try_handoff_record("status", status=status)
             if self._pending:
                 done = (self._pending == "start" and status["active"]) or (
                     self._pending == "stop" and not status["active"]
@@ -130,6 +186,7 @@ class FastlioObservationSession:
                 self._status = status
                 self._updated_at = time.monotonic()
         except Exception:
+            self._try_handoff_record("error")
             with self._lock:
                 # Retain an observed session identity so cleanup can be retried.
                 self._status.update(
@@ -184,7 +241,8 @@ class FastlioObservationSession:
         async with self.runtime.pipeline_coordination_lock, self._io_lock:
             state = await self._refresh()
             if (
-                state["state"] == "UNKNOWN"
+                state["state"] in {"UNKNOWN", "STOPPING"}
+                or self._pending == "stop"
                 or state["session_id"] != session_id
                 or not state["active"]
             ):
@@ -194,11 +252,17 @@ class FastlioObservationSession:
             with self._lock:
                 self._pending = "stop"
                 self._select_inputs = False
+                self._try_handoff_record("dispatch", session_id=session_id)
             try:
                 await asyncio.to_thread(self.service.dispatch, "stop")
             except ObservationServiceError:
+                self._try_handoff_record("error")
                 await self._refresh()
                 raise
+            except BaseException:
+                self._try_handoff_record("error")
+                raise
+            self._try_handoff_record("accepted", session_id=session_id)
             return await self._refresh()
 
     async def start_monitor(self) -> None:

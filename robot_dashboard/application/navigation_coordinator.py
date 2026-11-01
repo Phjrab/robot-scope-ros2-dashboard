@@ -1138,6 +1138,12 @@ class NavigationCoordinator:
                 y=y,
                 yaw=yaw,
             )
+            handoff_check = getattr(self._jobs, "operational_initial_pose_check", None)
+            if handoff_check is not None:
+                try:
+                    await asyncio.to_thread(handoff_check, map_id, map_revision, pose)
+                except ValueError as exc:
+                    raise NavigationConflict(str(exc)) from exc
             await asyncio.to_thread(
                 self._agent.navigation_set_initial_pose,
                 map_id=map_id,

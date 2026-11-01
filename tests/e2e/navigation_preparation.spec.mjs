@@ -4,8 +4,23 @@ import { expect, test } from '@playwright/test';
 const cloud = { id: 'a'.repeat(24), revision: 'b'.repeat(64), kind: 'pointcloud3d', name: 'map1' };
 const grid = { id: 'c'.repeat(24), revision: 'd'.repeat(64), kind: 'occupancy2d', name: 'map1_2D', frame_id: 'map' };
 
+async function mount(page) {
+  await page.evaluate(async ({ cloud, grid }) => {
+    const { initializeNavigationPreparation } = await import('/features/navigation/preparation.js');
+    window.fixtureContext = { maps: [cloud, grid], map: grid, navigation: { pipeline: { state: 'idle' }, goal: { state: 'idle' } } };
+    window.fixtureActions = []; window.fixtureScrolls = 0;
+    window.scrollTo = () => { window.fixtureScrolls++; };
+    Element.prototype.scrollIntoView = () => { window.fixtureScrolls++; };
+    window.preparation = initializeNavigationPreparation({ host: document.querySelector('#host'), map3dSelect: document.querySelector('#cloud'), map2dSelect: document.querySelector('#grid'),
+      api: async (path, options) => { const response = await fetch(path, options); const value = await response.json(); if (!response.ok) throw new Error(value.detail); return value; },
+      context: () => window.fixtureContext, onChange: () => {},
+      actions: Object.fromEntries(['start', 'initial', 'goal', 'refresh'].map(key => [key, () => window.fixtureActions.push(key)])) });
+    window.preparation.render(); await window.preparation.refresh(true);
+  }, { cloud, grid });
+}
+
 async function fixture(page) {
-  const state = { selected: null, pair: null, runtime: null }, writes = [], reads = [];
+  const state = { selected: null, pair: null, runtime: null, initialization_handoff: null }, writes = [], reads = [];
   const observation = { state: 'STOPPED', active: false, can_start: true, can_stop: false, reason: '정지' };
   const inputs = { schema: 'robot-scope.navigation-preparation-inputs.v1', pair: null, observation, start_blockers: { items: [], advisory: true },
     evidence: { valid: false, reason: 'OBSERVATION_INACTIVE', cloud: null, pose: null, calibration_sha256: null }, reference_pose: null,
@@ -13,8 +28,9 @@ async function fixture(page) {
   let reject = false, failingReads = 0, heldWrites = null, releaseWrite = null;
   let rejectObservation = false;
   let invalidOperationalState = false;
-  let proposalState = 'ready', proposalReason = null, proposalRejected = false, wrongProposalSource = false, proposalReads = null, releaseProposalReads = null;
+  let proposalState = 'ready', proposalReason = null, proposalRejected = false, wrongProposalSource = false, ambiguousProposal = false, proposalReads = null, releaseProposalReads = null;
   let proposalCleanup = { state: 'SETTLED', cancellation_requested: false, worker_active: false, terminal_state: 'succeeded' };
+  let handoff = null, confirmMode = 'success', heldConfirm = null, releaseConfirm = null, heldHandoffRead = null, releaseHandoffRead = null;
   await page.route('**/api/v1/observations/fastlio/**', async route => {
     const path = new URL(route.request().url()).pathname, body = route.request().postDataJSON();
     writes.push({ path, method: route.request().method(), body });
@@ -32,9 +48,28 @@ async function fixture(page) {
     if (path.endsWith('/preparation-inputs')) {
       if (failingReads > 0) { failingReads--; return json({ detail: 'SYNTHETIC_READ_TIMEOUT' }, 503); }
       if (invalidOperationalState) return json({ ...inputs, operational_state: null, operational_state_error: 'CONTEXT_CHANGED' });
-      return json({ ...inputs, operational_state: { ...state, pair: state.pair && { ...state.pair, generation: state.selected?.generation }, activation: state.selected ? 'NEXT_NAVIGATION_START' : 'LEGACY_2D' }, operational_state_error: null });
+      return json({ ...inputs, operational_state: { ...state, pair: state.pair && { ...state.pair, generation: state.selected?.generation, calibration_sha256: inputs.pair?.calibration_sha256 }, activation: state.selected ? 'NEXT_NAVIGATION_START' : 'LEGACY_2D' }, operational_state_error: null });
     }
     if (method !== 'GET') writes.push({ path, method, body });
+    if (path.endsWith('/confirm-geometry')) {
+      if (confirmMode === 'reject') return json({ detail: 'GLOBAL_AMBIGUOUS' }, 409);
+      const id = 'e'.repeat(32), session = observation.session_id;
+      handoff = { schema: 'robot-scope.proposal-geometry-handoff.v1', handoff_id: id, proposal_id: 'f'.repeat(24),
+        state: 'CONFIRMED_OBSERVATION_ACTIVE', reason: null, source: 'proposal_confirmed', frame: 'map',
+        bundle_generation: state.selected.generation, observation_session_id: session, job_id: null, expires_in_s: 119,
+        policy: { id: 'robot-scope.proposal-handoff.local-v1', ttl_s: 120, max_xy_m: .25, max_yaw_rad: .20 },
+        continuity: 'SUPERVISED_GAP_UNMEASURED', stop_receipt: { state: 'NOT_REQUESTED' },
+        geometry: { z: .4, roll: .1, pitch: .2 }, initial_pose_reference: { x: 1, y: 2, yaw: .3 }, operational_application: 'NOT_RUN' };
+      state.selected.seed_geometry = { ...handoff.geometry, source: 'proposal_confirmed', handoff: { handoff_id: id, proposal_id: 'f'.repeat(24), bundle_generation: state.selected.generation, calibration_sha256: inputs.pair.calibration_sha256, observation_session_id: session } };
+      state.initialization_handoff = handoff; state.pair.can_start = false;
+      if (heldConfirm) await heldConfirm;
+      return confirmMode === 'lost' ? json({ detail: 'SYNTHETIC_RESPONSE_LOST' }, 503) : json(handoff);
+    }
+    if (path.includes('/initialization-handoffs/')) {
+      const snapshot = handoff ? structuredClone(handoff) : null;
+      if (heldHandoffRead) await heldHandoffRead;
+      return snapshot ? json(snapshot) : json({ detail: 'HANDOFF_NOT_FOUND' }, 404);
+    }
     if (path.includes('/initialization-proposals')) {
       if (method === 'POST' && proposalRejected) return json({ detail: 'GLOBAL_BACKEND_UNAVAILABLE' }, 503);
       if (method === 'GET' && proposalReads) await proposalReads;
@@ -44,7 +79,7 @@ async function fixture(page) {
         pair: inputs.pair, observation_session_id: observation.session_id, operational_application: 'NOT_RUN', absolute_accuracy_m: null,
         imu_hypothesis: method === 'GET' && proposalState === 'ready' ? { frame: 'camera_init', pose_reference: 'FASTLIO_IMU', units: 'metres_degrees', pose, approximate_only: true, requires_reanchor: true } : null,
         body_candidate: method === 'GET' && proposalState === 'ready' ? { frame: 'camera_init', pose_reference: 'base_link', units: 'metres_radians', pose, qualification: 'INFORMATIONAL_LOCALIZATION_MAP_ONLY' } : null,
-        quality: method === 'GET' && proposalState === 'ready' ? { overlap: .7, rmse_m: .1, hypothesis_overlap_min: .6, operational_initial_overlap_min: .85, ambiguity_unresolved: false, residual_selection_gate_enabled: false, qualification: 'GLOBAL_HYPOTHESIS_ONLY_NOT_OPERATIONAL_QUALITY' } : null,
+        quality: method === 'GET' && proposalState === 'ready' ? { overlap: .7, rmse_m: .1, hypothesis_overlap_min: .6, operational_initial_overlap_min: .85, ambiguity_unresolved: ambiguousProposal, residual_selection_gate_enabled: false, qualification: 'GLOBAL_HYPOTHESIS_ONLY_NOT_OPERATIONAL_QUALITY' } : null,
         provenance: method === 'GET' && proposalState === 'ready' ? { pose_age_s: 0, capture_age_s: 15, source_contract: { observer_id: '1'.repeat(32), cloud_epoch: (wrongProposalSource ? '4' : '2').repeat(32), pose_epoch: '3'.repeat(32) } } : null,
         cleanup: method === 'POST' ? { state: 'MONITORING', cancellation_requested: false } : proposalCleanup };
       return json(result, method === 'POST' ? 202 : 200);
@@ -64,22 +99,16 @@ async function fixture(page) {
     return json(state);
   });
   await page.goto('/software-preparation.html');
-  await page.evaluate(async ({ cloud, grid }) => {
-    const { initializeNavigationPreparation } = await import('/features/navigation/preparation.js');
-    window.fixtureContext = { maps: [cloud, grid], map: grid, navigation: { pipeline: { state: 'idle' }, goal: { state: 'idle' } } };
-    window.fixtureActions = [];
-    window.fixtureScrolls = 0;
-    window.scrollTo = () => { window.fixtureScrolls++; };
-    Element.prototype.scrollIntoView = () => { window.fixtureScrolls++; };
-    window.preparation = initializeNavigationPreparation({ host: document.querySelector('#host'), map3dSelect: document.querySelector('#cloud'), map2dSelect: document.querySelector('#grid'),
-      api: async (path, options) => { const response = await fetch(path, options); const value = await response.json(); if (!response.ok) throw new Error(value.detail); return value; },
-      context: () => window.fixtureContext, onChange: () => {},
-      actions: Object.fromEntries(['start', 'initial', 'goal', 'refresh'].map(key => [key, () => window.fixtureActions.push(key)])) });
-    window.preparation.render(); await window.preparation.refresh(true);
-  }, { cloud, grid });
+  await mount(page);
   return { state, inputs, observation, writes, reads, reject(value) { reject = value; }, rejectObservation(value) { rejectObservation = value; }, failReads(count) { failingReads = count; }, invalidStatus(value) { invalidOperationalState = value; },
-    proposalStatus(value, reason = null) { proposalState = value; proposalReason = reason; }, rejectProposal(value) { proposalRejected = value; }, wrongProposalSource(value) { wrongProposalSource = value; },
+    proposalStatus(value, reason = null) { proposalState = value; proposalReason = reason; }, rejectProposal(value) { proposalRejected = value; }, wrongProposalSource(value) { wrongProposalSource = value; }, ambiguousProposal(value) { ambiguousProposal = value; },
     cleanup(value) { proposalCleanup = value; },
+    handoff() { return handoff; }, confirmMode(value) { confirmMode = value; },
+    holdConfirm() { heldConfirm = new Promise(resolve => { releaseConfirm = resolve; }); },
+    releaseConfirm() { releaseConfirm?.(); heldConfirm = null; releaseConfirm = null; },
+    holdHandoffRead() { heldHandoffRead = new Promise(resolve => { releaseHandoffRead = resolve; }); },
+    releaseHandoffRead() { releaseHandoffRead?.(); heldHandoffRead = null; releaseHandoffRead = null; },
+    async reload() { await page.reload(); await mount(page); },
     holdProposalReads() { proposalReads = new Promise(resolve => { releaseProposalReads = resolve; }); },
     releaseProposalReads() { releaseProposalReads?.(); proposalReads = null; releaseProposalReads = null; },
     holdWrites() { heldWrites = new Promise(resolve => { releaseWrite = resolve; }); },
@@ -446,4 +475,335 @@ test('cleanup delay and failure remain blocked across context changes until sett
   await expect(page.locator('[data-prep="proposal-result"]')).not.toContainText('본체 위치 후보 (정보성)');
   expect(f.writes.filter(value => value.path.endsWith('/initialization-proposals'))).toHaveLength(1);
   expect(f.writes.filter(value => /seed-geometry|\/match|\/goal/.test(value.path))).toHaveLength(0);
+});
+
+async function handoffFixture(page, { mode = 'success', hold = false } = {}) {
+  const f = await proposalFixture(page);
+  f.confirmMode(mode);
+  await page.getByLabel(/현장 정지 상태를 직접 감독/).check();
+  await page.getByRole('button', { name: '초기 위치 제안 계산' }).click();
+  await expect(page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' })).toBeEnabled();
+  if (hold) f.holdConfirm();
+  return f;
+}
+
+test('supervised confirmation is one explicit POST, stop remains separate, and the server receipt governs start', async ({ page }) => {
+  const f = await handoffFixture(page, { hold: true });
+  const button = page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' });
+  await page.getByLabel(/현장 정지 상태를 직접 감독/).uncheck();
+  await expect(button).toBeDisabled();
+  expect(f.writes.filter(v => v.path.endsWith('/confirm-geometry'))).toHaveLength(0);
+  await page.getByLabel(/현장 정지 상태를 직접 감독/).check();
+  await expect(button).toBeEnabled();
+  await button.click();
+  await expect(button).toBeDisabled();
+  await page.evaluate(() => document.querySelector('[data-prep="confirm-handoff"]').click());
+  expect(f.writes.filter(v => v.path.endsWith('/confirm-geometry'))).toHaveLength(1);
+  const body = f.writes.find(v => v.path.endsWith('/confirm-geometry')).body;
+  expect(body).toEqual({ request_id: expect.stringMatching(/^[a-f0-9]{32}$/), bundle_generation: 'b'.repeat(32), observation_session_id: 'a'.repeat(32), confirmed: true, stationary_supervision_acknowledged: true });
+  await expect(page.getByRole('button', { name: '센서 관측 종료' })).toBeEnabled();
+  expect(f.writes.filter(v => /\/observations\/fastlio\/stop|\/navigation\/start|seed-geometry|\/match|\/goal/.test(v.path))).toHaveLength(0);
+  f.releaseConfirm();
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 확인됨 · 관측 종료를 별도로 요청하세요');
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('센서 공백은 측정되지 않습니다');
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('주행 설정이나 실제 위치 정확도가 아닙니다');
+  expect(await page.evaluate(() => window.preparation.canStart())).toBe(false);
+  await page.getByText('② 초기 높이·기울기 입력', { exact: true }).click();
+  await expect(page.getByLabel('높이 z (m)')).toHaveValue('');
+  f.handoff().state = 'STOP_PENDING'; f.handoff().stop_receipt.state = 'DISPATCH_ACCEPTED';
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('종료 요청 접수 · 종료 미확인');
+  expect(await page.evaluate(() => window.preparation.canStart())).toBe(false);
+  f.handoff().state = 'OBSERVATION_STOPPED'; f.handoff().stop_receipt.state = 'INACTIVE_CONFIRMED';
+  Object.assign(f.observation, { state: 'STOPPED', active: false, session_id: null, can_stop: false });
+  f.inputs.evidence.valid = false; f.state.pair.can_start = true;
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('정확한 관측 세대의 종료 확인');
+  expect(await page.evaluate(() => window.preparation.canStart())).toBe(true);
+  for (const name of ['Nav2 시작', 'INITIAL POSE 지정', 'GOAL POSE 지정']) await expect(page.locator('#host').getByRole('button', { name, exact: true })).toHaveCount(0);
+  expect(f.writes.filter(v => /\/observations\/fastlio\/stop|\/navigation\/start|seed-geometry|\/match|\/goal/.test(v.path))).toHaveLength(0);
+});
+
+test('lost confirmation response restores only server-owned handoff after refresh and reload without another POST', async ({ page }) => {
+  const f = await handoffFixture(page, { mode: 'lost' });
+  await page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' }).click();
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 확인됨 · 관측 종료를 별도로 요청하세요');
+  expect(f.writes.filter(v => v.path.endsWith('/confirm-geometry'))).toHaveLength(1);
+  await f.reload();
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 확인됨 · 관측 종료를 별도로 요청하세요');
+  await expect(page.getByLabel(/현장 정지 상태를 직접 감독/)).not.toBeChecked();
+  expect(f.writes.filter(v => v.path.endsWith('/confirm-geometry'))).toHaveLength(1);
+  f.state.initialization_handoff = null;
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('현재 서버 상태가 불확실합니다');
+  expect(await page.evaluate(() => window.preparation.canStart())).toBe(false);
+  expect(f.writes.filter(v => v.path.endsWith('/confirm-geometry'))).toHaveLength(1);
+});
+
+test('rejected confirmation never retries and leaves observation stop available', async ({ page }) => {
+  const f = await handoffFixture(page, { mode: 'reject' });
+  await page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' }).click();
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('서로 구분되지 않는 위치 후보가 있습니다');
+  await expect(page.getByRole('button', { name: '센서 관측 종료' })).toBeEnabled();
+  await expect(page.getByLabel(/현장 정지 상태를 직접 감독/)).not.toBeChecked();
+  expect(f.writes.filter(v => v.path.endsWith('/confirm-geometry'))).toHaveLength(1);
+  expect(f.writes.filter(v => /\/observations\/fastlio\/stop|\/navigation\/start|seed-geometry|\/match|\/goal/.test(v.path))).toHaveLength(0);
+});
+
+test('handoff expiry blocks bootstrap while MATCH_ARMED expiry does not hide current corrected tracking', async ({ page }) => {
+  const f = await handoffFixture(page);
+  await page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' }).click();
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 확인됨');
+  f.handoff().state = 'OBSERVATION_STOPPED'; f.handoff().stop_receipt.state = 'INACTIVE_CONFIRMED'; f.handoff().expires_in_s = .35;
+  Object.assign(f.observation, { state: 'STOPPED', active: false, session_id: null, can_stop: false });
+  f.inputs.evidence.valid = false; f.state.pair.can_start = true;
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect.poll(() => page.evaluate(() => window.preparation.canStart())).toBe(false);
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('사용 시간 만료');
+  f.handoff().state = 'MATCH_ARMED'; f.handoff().job_id = '9'.repeat(32); f.handoff().expires_in_s = 0; f.state.pair.can_start = false;
+  f.handoff().match_history = { runtime_instance_generation: 'process', localization_generation: 2, initial_pose_stamp_ns: '123', match_request_id: 'match-1' };
+  f.state.runtime_fresh = true;
+  f.state.runtime = { runtime_instance_generation: 'process', localization_generation: 2, match_armed: true,
+    accepted_initial_pose: { accepted: true, stamp_ns: '123' }, match_receipt: { accepted: true, request_id: 'match-1', localization_generation: 2 } };
+  await page.evaluate(({ cloud, grid }) => {
+    const pin = { map_id: grid.id, map_revision: grid.revision, localization_map_id: cloud.id, localization_map_revision: cloud.revision,
+      bundle_generation: 'b'.repeat(32), localization_generation: 2, runtime_instance_generation: 'process',
+      pose: { x: 1, y: 2, z: .4, roll: .1, pitch: .2, yaw: .3 }, stale: false };
+    Object.assign(window.fixtureContext.navigation, { map: grid, pipeline: { state: 'running', job_id: '9'.repeat(32) }, safety: { can_set_initial_pose: true, can_send_goal: true },
+      operational_localization: { ...pin, source: 'STORED_PCD_FASTLIO', fresh: true, ready: true, state: 'MAP_TRACKING', match_armed: true,
+        match_receipt: { accepted: true, request_id: 'match-1', localization_generation: 2 }, accepted_initial_pose: { ...pin, accepted: true, stamp_ns: '123' }, estimated_pose: pin } });
+  }, { cloud, grid });
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('정합 요청 접수 · 실제 보정과 운영 준비는 별도 확인');
+  await expect(page.locator('[data-prep="steps"]')).toContainText('실제 정합 추정 위치 수신');
+  expect(await page.evaluate(() => window.preparation.permitsGoal())).toBe(true);
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('이전 정합 요청 수락 이력');
+  const geometry = structuredClone(f.handoff().geometry), reference = structuredClone(f.handoff().initial_pose_reference);
+  await page.evaluate(() => { window.fixtureContext.navigation.pipeline.state = 'stopped'; });
+  Object.assign(f.handoff(), { state: 'INVALID', reason: 'HANDOFF_JOB_NOT_RUNNING', geometry: null, initial_pose_reference: null });
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 사용 불가');
+  expect(await page.evaluate(() => window.preparation.permitsGoal())).toBe(false);
+  await page.evaluate(() => { window.fixtureContext.navigation.pipeline.state = 'running'; });
+  Object.assign(f.handoff(), { state: 'MATCH_ARMED', reason: null, geometry, initial_pose_reference: reference });
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('정합 요청 접수 · 실제 보정과 운영 준비는 별도 확인');
+  expect(await page.evaluate(() => window.preparation.permitsGoal())).toBe(true);
+  await page.evaluate(() => { window.fixtureContext.navigation.operational_localization.match_armed = false; window.preparation.render(); });
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('현재 실행의 수락은 미확인');
+  expect(await page.evaluate(() => window.preparation.permitsGoal())).toBe(false);
+  await page.evaluate(() => { window.fixtureContext.navigation.operational_localization.match_armed = true; window.preparation.render(); });
+  expect(await page.evaluate(() => window.preparation.permitsGoal())).toBe(true);
+  await page.evaluate(() => { window.fixtureContext.navigation.operational_localization.localization_generation = 3; window.preparation.render(); });
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('현재 실행의 수락은 미확인');
+  expect(await page.evaluate(() => window.preparation.permitsGoal())).toBe(false);
+  await page.evaluate(() => { window.fixtureContext.navigation.operational_localization.localization_generation = 2; window.preparation.render(); });
+  Object.assign(f.handoff(), { state: 'OUTCOME_UNKNOWN', reason: 'HANDOFF_MATCH_CURRENT_UNCONFIRMED', geometry: null, initial_pose_reference: null });
+  f.state.runtime_fresh = false;
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('현재 실행의 수락 상태를 확인하지 못했습니다');
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('이전 정합 요청 수락 이력');
+  expect(await page.evaluate(() => window.preparation.permitsGoal())).toBe(false);
+  Object.assign(f.handoff(), { state: 'INVALID', reason: 'HANDOFF_RUNTIME_CHANGED' });
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 사용 불가');
+  Object.assign(f.handoff(), { state: 'MATCH_ARMED', reason: null });
+  f.state.runtime_fresh = true;
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 사용 불가');
+  expect(await page.evaluate(() => window.preparation.permitsGoal())).toBe(false);
+  await expect(page.getByRole('button', { name: '정합 시작', exact: true })).toBeDisabled();
+  expect(f.writes.filter(v => /\/navigation\/start|seed-geometry|\/match|\/goal/.test(v.path))).toHaveLength(0);
+});
+
+test('restored unknown, stopping and failed job states remain blocked and distinct from tracking', async ({ page }) => {
+  const f = await handoffFixture(page);
+  await page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' }).click();
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 확인됨');
+  Object.assign(f.handoff(), { job_id: '9'.repeat(32), state: 'OUTCOME_UNKNOWN', reason: 'HANDOFF_JOB_CONTEXT_UNCONFIRMED', geometry: null, initial_pose_reference: null });
+  await page.evaluate(() => { window.fixtureContext.navigation.pipeline = { state: 'starting', job_id: null }; });
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 상태 불확실');
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('현재 실행 또는 지도 증거가 부족합니다');
+  await expect(page.locator('[data-prep="handoff-result"]')).not.toContainText('서버 보관 가설 (지도 좌표)');
+  expect(await page.evaluate(() => window.preparation.canStart())).toBe(false);
+  expect(await page.evaluate(() => window.preparation.permitsGoal())).toBe(false);
+  await page.evaluate(({ grid }) => { window.fixtureContext.navigation.pipeline = { state: 'starting', job_id: '9'.repeat(32) }; window.fixtureContext.navigation.map = grid; }, { grid });
+  f.handoff().reason = 'HANDOFF_JOB_STARTING';
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('새 실행이 시작 중입니다');
+  await page.evaluate(() => { window.fixtureContext.navigation.pipeline.state = 'stopping'; });
+  f.handoff().reason = 'HANDOFF_JOB_STOPPING';
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('실행이 종료 중입니다');
+  await page.evaluate(() => { window.fixtureContext.navigation.pipeline.state = 'failed'; });
+  Object.assign(f.handoff(), { state: 'INVALID', reason: 'HANDOFF_JOB_NOT_RUNNING' });
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 사용 불가');
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('이 가설에 연결된 실행이 종료됐습니다');
+  expect(await page.evaluate(() => window.preparation.canStart())).toBe(false);
+  await page.evaluate(() => { window.fixtureContext.navigation.pipeline.job_id = '8'.repeat(32); });
+  f.state.initialization_handoff = null;
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('현재 서버 상태가 불확실합니다');
+  await expect(page.locator('[data-prep="handoff-result"]')).not.toContainText('정합 요청 접수');
+  expect(f.writes.filter(v => v.path.endsWith('/confirm-geometry'))).toHaveLength(1);
+});
+
+test('job phase INVALID recovers only from a fresh matching server snapshot', async ({ page }) => {
+  const f = await handoffFixture(page);
+  await page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' }).click();
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 확인됨');
+  const geometry = structuredClone(f.handoff().geometry), reference = structuredClone(f.handoff().initial_pose_reference);
+  Object.assign(f.observation, { state: 'STOPPED', active: false, session_id: null, can_stop: false });
+  f.inputs.evidence.valid = false;
+  await page.evaluate(({ grid }) => { window.fixtureContext.navigation.map = grid; window.fixtureContext.navigation.pipeline = { state: 'running', job_id: '9'.repeat(32) }; }, { grid });
+  for (const phase of ['idle', 'stopped', 'failed']) {
+    await page.evaluate(phase => { window.fixtureContext.navigation.pipeline.state = phase; }, phase);
+    Object.assign(f.handoff(), { job_id: '9'.repeat(32), state: 'INVALID', reason: 'HANDOFF_JOB_NOT_RUNNING', geometry: null, initial_pose_reference: null, expires_in_s: 60, stop_receipt: { state: 'INACTIVE_CONFIRMED' } });
+    await page.evaluate(() => window.preparation.refresh(true));
+    await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 사용 불가');
+    expect(await page.evaluate(() => window.preparation.permitsGoal())).toBe(false);
+    await page.evaluate(() => { window.fixtureContext.navigation.pipeline.state = 'running'; });
+    Object.assign(f.handoff(), { state: 'SNAPSHOTTED', reason: null, geometry, initial_pose_reference: reference });
+    await page.evaluate(() => window.preparation.refresh(true));
+    await expect(page.locator('[data-prep="handoff-result"]')).toContainText('새 실행에 가설 예약됨');
+  }
+  Object.assign(f.handoff(), { state: 'OUTCOME_UNKNOWN', reason: 'HANDOFF_JOB_STARTING', geometry: null, initial_pose_reference: null });
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 상태 불확실');
+  Object.assign(f.handoff(), { state: 'SNAPSHOTTED', reason: null, geometry, initial_pose_reference: reference });
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('새 실행에 가설 예약됨');
+  expect(f.writes.filter(v => v.path.endsWith('/confirm-geometry'))).toHaveLength(1);
+  expect(f.writes.filter(v => /\/navigation\/start|seed-geometry|\/match|\/goal/.test(v.path))).toHaveLength(0);
+});
+
+for (const terminal of [{ state: 'INVALID', reason: 'HANDOFF_STOP_OUTCOME_UNKNOWN' }, { state: 'EXPIRED', reason: 'HANDOFF_EXPIRED' }]) {
+  test(`permanent ${terminal.reason} survives a phase-only invalid and later snapshot`, async ({ page }) => {
+    const f = await handoffFixture(page);
+    await page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' }).click();
+    await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 확인됨');
+    const geometry = structuredClone(f.handoff().geometry), reference = structuredClone(f.handoff().initial_pose_reference);
+    Object.assign(f.handoff(), terminal, { job_id: '9'.repeat(32), geometry: null, initial_pose_reference: null });
+    await page.evaluate(({ grid }) => { window.fixtureContext.navigation.map = grid; window.fixtureContext.navigation.pipeline = { state: 'stopped', job_id: '9'.repeat(32) }; }, { grid });
+    await page.evaluate(() => window.preparation.refresh(true));
+    Object.assign(f.handoff(), { state: 'INVALID', reason: 'HANDOFF_JOB_NOT_RUNNING' });
+    await page.evaluate(() => window.preparation.refresh(true));
+    await page.evaluate(() => { window.fixtureContext.navigation.pipeline.state = 'running'; });
+    Object.assign(f.handoff(), { state: 'SNAPSHOTTED', reason: null, geometry, initial_pose_reference: reference });
+    await page.evaluate(() => window.preparation.refresh(true));
+    await expect(page.locator('[data-prep="handoff-result"]')).not.toContainText('새 실행에 가설 예약됨');
+    await expect(page.locator('[data-prep="handoff-result"]')).toContainText(terminal.state === 'EXPIRED' ? '가설 사용 시간 만료' : '가설 사용 불가');
+    expect(await page.evaluate(() => window.preparation.permitsGoal())).toBe(false);
+    expect(f.writes.filter(v => v.path.endsWith('/confirm-geometry'))).toHaveLength(1);
+  });
+}
+
+test('late confirmation and handoff reads cannot revive a changed generation or cleared server record', async ({ page }) => {
+  const f = await handoffFixture(page, { hold: true });
+  await page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' }).click();
+  f.state.selected.generation = 'd'.repeat(32); f.inputs.pair.generation = 'd'.repeat(32);
+  await page.evaluate(() => window.preparation.refresh(true));
+  f.releaseConfirm();
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('현재 지도·가설 문맥이 일치하지 않습니다');
+  expect(await page.evaluate(() => window.preparation.canStart())).toBe(false);
+  expect(f.writes.filter(v => v.path.endsWith('/confirm-geometry'))).toHaveLength(1);
+  expect(f.writes.filter(v => /\/navigation\/start|seed-geometry|\/match|\/goal/.test(v.path))).toHaveLength(0);
+});
+
+test('a delayed handoff GET cannot restore a record cleared by a newer server snapshot', async ({ page }) => {
+  const f = await handoffFixture(page);
+  f.holdHandoffRead();
+  await page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' }).click();
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 확인됨');
+  await expect.poll(() => f.reads.filter(path => path.includes('/initialization-handoffs/')).length).toBeGreaterThan(0);
+  f.state.initialization_handoff = null;
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('현재 서버 상태가 불확실합니다');
+  f.releaseHandoffRead();
+  await expect(page.locator('[data-prep="handoff-result"]')).not.toContainText('가설 확인됨');
+  expect(await page.evaluate(() => window.preparation.canStart())).toBe(false);
+  expect(f.writes.filter(v => v.path.endsWith('/confirm-geometry'))).toHaveLength(1);
+});
+
+test('unsettled worker or ambiguous candidate never enables supervised confirmation', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  const f = await proposalFixture(page);
+  await page.getByLabel(/현장 정지 상태를 직접 감독/).check();
+  f.cleanup({ state: 'CANCEL_PENDING', cancellation_requested: true, worker_active: true });
+  await page.getByRole('button', { name: '초기 위치 제안 계산' }).click();
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('취소 후 종료 확인 지연');
+  await expect(page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' })).toBeDisabled();
+  f.ambiguousProposal(true);
+  f.cleanup({ state: 'SETTLED', cancellation_requested: false, worker_active: false, terminal_state: 'succeeded' });
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('제안 형식 또는 현재 문맥을 확인하지 못했습니다');
+  await expect(page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' })).toBeDisabled();
+  const dimensions = await page.getByLabel(/현장 정지 상태를 직접 감독/).evaluate(input => ({ width: input.getBoundingClientRect().width, document: document.documentElement.scrollWidth, viewport: innerWidth }));
+  expect(dimensions.width).toBeLessThan(35);
+  expect(dimensions.document).toBeLessThanOrEqual(dimensions.viewport + 1);
+  expect(f.writes.filter(v => v.path.endsWith('/confirm-geometry'))).toHaveLength(0);
+});
+
+test('uncertain stop and explicit mismatched runtime never restore ready handoff', async ({ page }) => {
+  const f = await handoffFixture(page);
+  await page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' }).click();
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 확인됨');
+  Object.assign(f.handoff(), { state: 'OUTCOME_UNKNOWN', reason: 'HANDOFF_STOP_OUTCOME_UNKNOWN', stop_receipt: { state: 'OUTCOME_UNKNOWN' }, geometry: null, initial_pose_reference: null });
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('종료 결과 불확실');
+  expect(await page.evaluate(() => window.preparation.canStart())).toBe(false);
+  await expect(page.getByRole('button', { name: '센서 관측 종료' })).toBeEnabled();
+  Object.assign(f.handoff(), { state: 'OUTCOME_UNKNOWN', reason: 'HANDOFF_MONITOR_PENDING', stop_receipt: { state: 'INACTIVE_CONFIRMED' } });
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('관측 종료 경계를 가설 감시기가 확인 중입니다');
+  expect(await page.evaluate(() => window.preparation.canStart())).toBe(false);
+  await expect(page.getByRole('button', { name: '센서 관측 종료' })).toBeEnabled();
+  Object.assign(f.handoff(), { state: 'INVALID', reason: 'HANDOFF_MONITOR_UNAVAILABLE' });
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 감시 상태가 유실됐거나 확인되지 않습니다');
+  expect(await page.evaluate(() => window.preparation.canStart())).toBe(false);
+  Object.assign(f.handoff(), { state: 'INVALID', reason: 'SOURCE_OR_CONTEXT_CHANGED' });
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('센서 출처 또는 실행 문맥이 바뀌었습니다');
+  Object.assign(f.handoff(), { state: 'INVALID', reason: 'HANDOFF_JOB_NOT_RUNNING' });
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('센서 출처 또는 실행 문맥이 바뀌었습니다');
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 사용 불가');
+  expect(await page.evaluate(() => window.preparation.canStart())).toBe(false);
+  Object.assign(f.handoff(), { state: 'CONFIRMED_OBSERVATION_ACTIVE', reason: null, stop_receipt: { state: 'NOT_REQUESTED' }, geometry: { z: .4, roll: .1, pitch: .2 }, initial_pose_reference: { x: 1, y: 2, yaw: .3 } });
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 사용 불가');
+  await expect(page.locator('[data-prep="handoff-result"]')).not.toContainText('서버 보관 가설 (지도 좌표)');
+  Object.assign(f.handoff(), { job_id: '9'.repeat(32), state: 'MATCH_ARMED', reason: null, expires_in_s: 0, stop_receipt: { state: 'INACTIVE_CONFIRMED' } });
+  await page.evaluate(({ grid }) => { window.fixtureContext.navigation.pipeline = { state: 'running', job_id: '9'.repeat(32) }; window.fixtureContext.navigation.map = { ...grid, id: '8'.repeat(24) }; }, { grid });
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('서버의 현재 지도·가설 문맥이 일치하지 않습니다');
+  await expect(page.locator('[data-prep="handoff-result"]')).not.toContainText('정합 요청 접수');
+  expect(await page.evaluate(() => window.preparation.permitsGoal())).toBe(false);
+  expect(f.writes.filter(v => /\/navigation\/start|seed-geometry|\/match|\/goal/.test(v.path))).toHaveLength(0);
+});
+
+test('snapshot plus accepted runtime initial pose permits only an explicit match while TTL remains', async ({ page }) => {
+  const f = await handoffFixture(page);
+  await page.getByRole('button', { name: '이 가설을 초기 geometry로 확인' }).click();
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('가설 확인됨');
+  Object.assign(f.handoff(), { job_id: '9'.repeat(32), state: 'SNAPSHOTTED', reason: null, expires_in_s: 60, stop_receipt: { state: 'INACTIVE_CONFIRMED' } });
+  Object.assign(f.observation, { state: 'STOPPED', active: false, session_id: null, can_stop: false });
+  f.inputs.evidence.valid = false;
+  await page.evaluate(({ cloud, grid }) => {
+    const pin = { map_id: grid.id, map_revision: grid.revision, localization_map_id: cloud.id, localization_map_revision: cloud.revision,
+      bundle_generation: 'b'.repeat(32), localization_generation: 2, runtime_instance_generation: 'process',
+      pose: { x: 1, y: 2, z: .4, roll: .1, pitch: .2, yaw: .3 }, stamp_ns: '123' };
+    Object.assign(window.fixtureContext.navigation, { map: grid, pipeline: { state: 'running', job_id: '9'.repeat(32) }, safety: { can_set_initial_pose: true, can_send_goal: false },
+      operational_localization: { ...pin, source: 'STORED_PCD_FASTLIO', fresh: true, ready: false, state: 'WAITING_EXPLICIT_MAP_MATCH', accepted_initial_pose: { ...pin, accepted: true } } });
+  }, { cloud, grid });
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('새 실행에 가설 예약됨');
+  await expect(page.getByRole('button', { name: '정합 시작', exact: true })).toBeEnabled();
+  expect(f.writes.filter(v => v.path.endsWith('/match'))).toHaveLength(0);
+  await page.getByRole('button', { name: '정합 시작', exact: true }).click();
+  expect(f.writes.filter(v => v.path.endsWith('/match'))).toHaveLength(1);
+  expect(f.writes.filter(v => /\/goal|seed-geometry|\/navigation\/start/.test(v.path))).toHaveLength(0);
 });

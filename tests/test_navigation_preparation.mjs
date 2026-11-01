@@ -136,6 +136,28 @@ test('legacy mode remains available, while configured server blocker is respecte
   assert.equal(preparationModel({ ...value, available: false }).canStart, false);
 });
 
+test('confirmed proposal requires verified handoff and never turns receipt into match permission', () => {
+  const value = fixture(); value.state.selected.seed_geometry.source = 'proposal_confirmed';
+  assert.equal(preparationModel(value).geometryReady, false);
+  assert.equal(preparationModel(value).canStart, false);
+  value.state.pair = { valid: false, can_start: false, checks: [{ code: 'HANDOFF_STOP_OUTCOME_UNKNOWN' }] };
+  const blocked = preparationModel({ ...value, handoffReady: true, handoffMatchAllowed: true });
+  assert.equal(blocked.matched, true); assert.equal(blocked.geometryReady, false); assert.equal(blocked.canStart, false);
+  assert.ok(blocked.issues.some(item => item.code === 'HANDOFF_STOP_OUTCOME_UNKNOWN' && item.step === 2));
+  value.state.pair = { valid: true, can_start: true };
+  value.navigation.operational_localization.accepted_initial_pose = { ...value.observation, accepted: true };
+  value.navigation.operational_localization.state = 'WAITING_EXPLICIT_MAP_MATCH';
+  assert.equal(preparationModel({ ...value, handoffReady: true, handoffMatchAllowed: false }).canMatch, false);
+  assert.equal(preparationModel({ ...value, handoffReady: true, handoffMatchAllowed: true }).canMatch, true);
+  value.navigation.operational_localization.ready = true;
+  value.navigation.operational_localization.estimated_pose = { ...value.observation, stale: false };
+  value.navigation.safety.can_send_goal = true;
+  assert.equal(preparationModel({ ...value, handoffReady: true }).tracking, false);
+  assert.equal(preparationModel({ ...value, handoffReady: true, handoffArmed: true }).tracking, true);
+  value.state.pair = { valid: false, can_start: false, checks: [{ code: 'SOURCE_OR_CONTEXT_CHANGED' }] };
+  assert.equal(preparationModel({ ...value, handoffReady: true, handoffArmed: true }).tracking, false);
+});
+
 test('server pair revalidation failures and geometry reuse identify the correct restart step', () => {
   const value = fixture();
   value.state.pair = { valid: false, can_start: false, restart_from_step: 1,

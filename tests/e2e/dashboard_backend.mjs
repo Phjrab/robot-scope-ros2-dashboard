@@ -620,7 +620,7 @@ export async function installDashboardBackend(page, options = {}) {
       reference_pose: null, map_estimate_reason: 'MAP_PAIR_REQUIRED',
       candidates: Object.fromEntries(['z', 'roll', 'pitch'].map(axis => [axis, { value: null, frame: 'map', available: false, reason: 'MAP_PAIR_REQUIRED', provenance: null }])),
       start_blockers: { items: ['OBSERVATION_STATUS_UNAVAILABLE'], advisory: true },
-      operational_state: { selected: null, pair: null, initial_pose_confirmation: null, calibration_available: false, activation: 'LEGACY_2D', runtime: null, runtime_fresh: false },
+      operational_state: { selected: null, pair: null, initialization_handoff: null, initial_pose_confirmation: null, calibration_available: false, activation: 'LEGACY_2D', runtime: null, runtime_fresh: false },
       operational_state_error: null,
     });
     if (path === '/api/v1/navigation') return json(route, state.navigation);

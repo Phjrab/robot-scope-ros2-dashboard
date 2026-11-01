@@ -4,6 +4,8 @@ from __future__ import annotations
 import math
 import time
 
+from .runtime_health_sample import capture_runtime_health
+
 from .anchor_proposal import imu_matrix, source_contract
 from ..observation_service import inputs_ready
 from ..relocalization.experimental_se3 import _rpy, validate_transform
@@ -202,8 +204,10 @@ def preparation_inputs(manager, observation_session, agent):
                             else 'OBSERVATION_INPUTS_UNAVAILABLE', cloud=None, pose=None)
     read_execution = getattr(manager, 'preparation_execution', lambda: None)
     execution = read_execution()
-    health_started = time.monotonic()
-    health = agent._navigation_runtime_health_snapshot(health_started) if agent else {}
+    health_sample = capture_runtime_health(agent)
+    health_started = health_sample.sampled_at
+    health_raw = health_sample.snapshot()
+    health = health_raw
     job_changed = read_execution() != execution
     if job_changed:
         execution = None
@@ -242,16 +246,68 @@ def preparation_inputs(manager, observation_session, agent):
     elif evidence['valid'] and not inputs_ready(pose, cloud, session['started_monotonic_s'], now=time.monotonic()):
         reference = None
         evidence.update(valid=False, reason='OBSERVATION_STALE_OR_SOURCE_INVALID', cloud=None, pose=None)
+    runtime_fresh = bool(health.get('fresh') is True and type(health.get('age_s')) in (int, float)
+                         and 0 <= health['age_s'] <= .75)
+    operational_state = None if changed else {**current, 'runtime': health.get('operational_3d'),
+                                                'runtime_fresh': runtime_fresh}
+    # A match HTTP response may be lost after the runtime actually accepted it.
+    # Recover only from the fresh, exact bound job/runtime/receipt, never by POST.
+    if (operational_state and operational_state.get('initialization_handoff') is not None
+            and runtime_fresh and execution and pair and pair.get('valid')):
+        source = health.get('operational_3d') or {}
+        receipt = source.get('match_receipt') or {}
+        geometry = ((current.get('selected') or {}).get('seed_geometry') or {})
+        proof = geometry.get('handoff') or {}
+        try:
+            instance = source.get('runtime_instance_generation')
+            pid, started = (int(part) for part in instance.split(':'))
+            bound = (health.get('runtime_instance_generation') == instance
+                     and health.get('process_generation') == pid and pid > 0
+                     and execution['snapshot_monotonic_ns'] <= started <= time.monotonic_ns())
+            exact = (geometry.get('source') == 'proposal_confirmed' and bound
+                     and source.get('source') == 'STORED_PCD_FASTLIO'
+                     and source.get('match_armed') is True and receipt.get('accepted') is True
+                     and type(source.get('localization_generation')) is int
+                     and source['localization_generation'] == receipt.get('localization_generation')
+                     and source.get('bundle_generation') == pair['generation'] == execution['bundle_generation']
+                     and (source.get('map_id'), source.get('map_revision')) ==
+                         (pair['navigation_2d']['map_id'], pair['navigation_2d']['revision'])
+                     and (source.get('localization_map_id'), source.get('localization_map_revision')) ==
+                         (pair['localization_3d']['map_id'], pair['localization_3d']['revision'])
+                     and source.get('reference_sha256') == pair['localization_3d']['sha256']
+                     and proof.get('job_id') == execution['job_id']
+                     and read_execution() == execution
+                     and type(health_raw.get('age_s')) in (int, float)
+                     and health_raw['age_s'] + (time.monotonic() - health_started) + .001 <= .75)
+            if exact:
+                manager.record_match_armed(pair['generation'], source['map_id'], source['map_revision'], receipt, health_sample)
+                operational_state['initialization_handoff'] = manager.handoff_status(proof['handoff_id'], validate_assets=False, health=health_sample)
+        except (AttributeError, KeyError, TypeError, ValueError, OSError):
+            pass  # Uncertain recovery never becomes a successful match.
+        if geometry.get('source') == 'proposal_confirmed' and proof.get('handoff_id'):
+            try:
+                operational_state['initialization_handoff'] = manager.handoff_status(
+                    proof['handoff_id'], validate_assets=False, health=health_sample)
+            except (AttributeError, KeyError, TypeError, ValueError, OSError):
+                pass
+    # Recompute at the final response boundary: the manager or executor may
+    # have waited after health was fetched. Never reset an already stale sample.
+    if type(health_raw.get('age_s')) in (int, float):
+        health = {**health_raw, 'age_s': health_raw['age_s'] + (time.monotonic() - health_started) + .001}
+    runtime_fresh = bool(health.get('fresh') is True and type(health.get('age_s')) in (int, float)
+                         and math.isfinite(health['age_s']) and 0 <= health['age_s'] <= .75)
+    if operational_state:
+        operational_state['runtime_fresh'] = runtime_fresh
+        handoff = operational_state.get('initialization_handoff')
+        if not runtime_fresh and handoff and handoff.get('state') == 'MATCH_ARMED':
+            operational_state['initialization_handoff'] = {**handoff, 'state': 'OUTCOME_UNKNOWN',
+                'reason': 'HANDOFF_MATCH_CURRENT_UNCONFIRMED', 'geometry': None, 'initial_pose_reference': None}
     candidates, reason = _map_candidates(pair, health, execution)
     if candidates is None:
         candidates = {axis: {'value': None, 'frame': 'map', 'available': False,
                              'reason': (reason if reason in ('MAP_PAIR_REQUIRED', 'MAP_PAIR_INVALID') else
                                         'MAP_ABSOLUTE_Z_UNVERIFIED' if axis == 'z' else 'MAP_GRAVITY_ALIGNMENT_UNVERIFIED'),
                              'provenance': None} for axis in ('z', 'roll', 'pitch')}
-    runtime_fresh = bool(health.get('fresh') is True and type(health.get('age_s')) in (int, float)
-                         and 0 <= health['age_s'] <= .75)
-    operational_state = None if changed else {**current, 'runtime': health.get('operational_3d'),
-                                                'runtime_fresh': runtime_fresh}
     return {'schema': SCHEMA, 'pair': pair, 'observation': session, 'evidence': evidence,
             'reference_pose': reference, 'map_estimate_reason': reason, 'candidates': candidates,
             'operational_state': operational_state, 'operational_state_error': 'CONTEXT_CHANGED' if changed else None}

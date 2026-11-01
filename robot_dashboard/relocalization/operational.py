@@ -98,8 +98,12 @@ def display_pose(transform):
 
 
 def validate_seed_geometry(value):
-    if (not isinstance(value, dict) or value.get('frame') != 'map'
-            or value.get('source') != 'operator'):
+    if not isinstance(value, dict) or value.get('frame') != 'map':
+        raise ValueError('INITIAL_HEIGHT_TILT_REQUIRED')
+    source = value.get('source')
+    if source == 'operator':
+        pass  # Existing operator validation stays unchanged.
+    elif source != 'proposal_confirmed':
         raise ValueError('INITIAL_HEIGHT_TILT_REQUIRED')
     for key, bound in (('z', 10_000.), ('roll', math.pi), ('pitch', math.pi)):
         number = value.get(key)
@@ -108,6 +112,9 @@ def validate_seed_geometry(value):
     confirmed = value.get('confirmed_at')
     if type(confirmed) not in (int, float) or not math.isfinite(confirmed) or confirmed <= 0:
         raise ValueError('INITIAL_GEOMETRY_PROVENANCE_REQUIRED')
+    if value.get('source') == 'proposal_confirmed':
+        from .handoff_policy import validate_handoff
+        validate_handoff(value)
     return value
 
 
@@ -164,6 +171,10 @@ def load_bundle(params_path):
     if path.is_symlink() or path.stat().st_size > 128 * 1024:
         raise ValueError('INVALID_MAP_BUNDLE_FILE')
     bundle = validate_bundle(json.loads(path.read_text()))
+    geometry = bundle.get('seed_geometry') or {}
+    if (geometry.get('source') == 'proposal_confirmed'
+            and geometry.get('handoff', {}).get('job_id') != path.parent.name):
+        raise ValueError('HANDOFF_RUNTIME_CHANGED')
     result = OperationalLocalizer(bundle, path.parent / 'localization-reference.pcd')
     # A staged click is not authority to initialize a later process. The normal
     # /initialpose path confirms it only after fresh observed stop evidence.
@@ -247,6 +258,8 @@ class OperationalLocalizer:
         requested_yaw = math.atan2(requested[1, 0], requested[0, 0])
         if self.bundle.get('workflow') == STAGED_WORKFLOW:
             geometry = validate_seed_geometry(self.bundle.get('seed_geometry'))
+            from .handoff_policy import validate_candidate
+            validate_candidate(geometry, float(requested[0, 3]), float(requested[1, 3]), requested_yaw, self.bundle)
             staged_body = from_translation_rpy(
                 [requested[0, 3], requested[1, 3], geometry['z']],
                 [geometry['roll'], geometry['pitch'], requested_yaw])
@@ -272,7 +285,7 @@ class OperationalLocalizer:
             self.accepted_initial_pose = {
                 **self.pose_context(), 'accepted': True, 'source': 'USER_INITIAL_POSE',
                 'stamp_ns': str(stamp_ns), 'pose': display_pose(staged_body),
-                'geometry_source': ('operator' if self.bundle.get('workflow') == STAGED_WORKFLOW
+                'geometry_source': (geometry['source'] if self.bundle.get('workflow') == STAGED_WORKFLOW
                                     else 'staged_3d_seed'),
             }
 
@@ -287,6 +300,8 @@ class OperationalLocalizer:
     def start_matching(self, initial_pose_stamp_ns):
         if self.bundle.get('workflow') != STAGED_WORKFLOW:
             raise ValueError('EXPLICIT_MATCH_WORKFLOW_REQUIRED')
+        from .handoff_policy import validate_handoff
+        validate_handoff(self.bundle.get('seed_geometry') or {}, self.bundle)
         if (self.seed is None or self.accepted_initial_pose is None
                 or self.accepted_initial_pose['stamp_ns'] != str(initial_pose_stamp_ns)):
             raise ValueError('CURRENT_INITIAL_POSE_REQUIRED')

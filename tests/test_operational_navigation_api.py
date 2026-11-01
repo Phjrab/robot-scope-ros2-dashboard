@@ -15,6 +15,7 @@ from robot_dashboard.api.routers.operational_navigation import router as operati
 from robot_dashboard.application.mission_coordinator import MissionConflict
 from robot_dashboard.application.navigation_coordinator import NavigationCoordinator
 from robot_dashboard.application.runtime import ApplicationRuntime
+from robot_dashboard.application.runtime_health_sample import RuntimeHealthSample
 from robot_dashboard.competition import CompetitionConflict
 from robot_dashboard.navigation_dispatch import OperatorDispatchRejected
 from robot_dashboard.ros.navigation_gateway import NavigationRosGateway
@@ -41,6 +42,11 @@ class SelectionManager:
     def __init__(self):
         self.calls = []
         self.failure = None
+        self.match_checks = []
+        self.match_receipts = []
+        self.match_events = []
+        self.expected_match = None
+        self.match_failure = None
 
     def status(self):
         return {'selected': None, 'calibration_available': True, 'activation': 'LEGACY_2D'}
@@ -58,6 +64,22 @@ class SelectionManager:
     def seed_geometry(self, body):
         self.calls.append(('geometry', copy.deepcopy(body)))
         return self.status()
+
+
+    def check_match(self, generation, map_id, map_revision):
+        context = (generation, map_id, map_revision)
+        self.match_checks.append(context)
+        self.match_events.append('check')
+        if self.match_failure:
+            raise self.match_failure
+        if context != self.expected_match:
+            raise ValueError('MATCH_CONTEXT_MISMATCH')
+
+    def record_match_armed(self, generation, map_id, map_revision, receipt, health, *, expected_stamp, allow_replace):
+        self.match_events.append('receipt')
+        self.match_receipts.append({'context': (generation, map_id, map_revision),
+            'receipt': copy.deepcopy(receipt), 'health': health,
+            'expected_stamp': expected_stamp, 'allow_replace': allow_replace})
 
 
 class Missions:
@@ -109,7 +131,7 @@ class OperationalNavigationApiTests(unittest.IsolatedAsyncioTestCase):
         self.runtime.competition = self.competition
         self.runtime.mapping = SimpleNamespace(activity=lambda: (self.mapping_busy, 'test transition'))
         self.runtime.agent = SimpleNamespace(_navigation_runtime_health_snapshot=lambda _: {
-            'operational_3d': {'source': 'STORED_PCD_FASTLIO', 'ready': True}, 'fresh': True})
+            'operational_3d': {'source': 'STORED_PCD_FASTLIO', 'ready': True}, 'fresh': True, 'age_s': .01})
         self.app = FastAPI()
         self.app.state.runtime = self.runtime
         self.app.include_router(operational_router)
@@ -170,11 +192,16 @@ class OperationalNavigationApiTests(unittest.IsolatedAsyncioTestCase):
         body = {'map_id': 'a' * 24, 'map_revision': 'b' * 64,
                 'bundle_generation': 'c' * 32, 'localization_generation': 2,
                 'initial_pose_stamp_ns': '12345678'}
-        calls = []
+        calls, goals = [], []
+        context = (body['bundle_generation'], body['map_id'], body['map_revision'])
+        self.manager.expected_match = context
         def start_match(**request):
+            self.manager.match_events.append('dispatch')
             calls.append(request)
             return {'accepted': True}
         self.runtime.agent.navigation_start_operational_match = start_match
+        self.runtime.agent.navigation_send_goal = lambda **request: goals.append(request)
+        self.runtime.agent.navigation_send_guarded_goal = lambda **request: goals.append(request)
         code, _ = await self.request('POST', URL + '/match', body=body)
         self.assertEqual(code, 409)
         self.nav_state.update(pipeline={'state': 'running'},
@@ -188,10 +215,35 @@ class OperationalNavigationApiTests(unittest.IsolatedAsyncioTestCase):
         self.mission.active = False
         code, _ = await self.request('POST', URL + '/match', body=body, origin=None)
         self.assertEqual(code, 403)
+        self.assertFalse(self.manager.match_checks)
+        self.assertFalse(self.manager.match_receipts)
+        self.manager.match_failure = ValueError('MATCH_CONTEXT_REJECTED')
+        code, response = await self.request('POST', URL + '/match', body=body)
+        self.assertEqual(code, 409)
+        self.assertEqual(response['detail'], 'MATCH_CONTEXT_REJECTED')
+        self.assertEqual(self.manager.match_checks, [context])
+        self.assertEqual(self.manager.match_events, ['check'])
+        self.assertFalse(calls)
+        self.assertFalse(self.manager.match_receipts)
+        self.manager.match_failure = None
         code, response = await self.request('POST', URL + '/match', body=body)
         self.assertEqual(code, 200)
         self.assertTrue(response['accepted'])
+        self.assertEqual(response['receipt'], {'accepted': True})
         self.assertEqual(calls, [body])
+        self.assertEqual(self.manager.match_checks, [context, context])
+        self.assertEqual(self.manager.match_events, ['check', 'check', 'dispatch', 'receipt'])
+        self.assertEqual(len(self.manager.match_receipts), 1)
+        recorded = self.manager.match_receipts[0]
+        self.assertEqual(recorded['context'], context)
+        self.assertEqual(recorded['receipt'], {'accepted': True})
+        self.assertEqual(recorded['expected_stamp'], body['initial_pose_stamp_ns'])
+        self.assertIs(recorded['allow_replace'], True)
+        self.assertIsInstance(recorded['health'], RuntimeHealthSample)
+        self.assertEqual(recorded['health'].snapshot(), {
+            'operational_3d': {'source': 'STORED_PCD_FASTLIO', 'ready': True}, 'fresh': True, 'age_s': .01})
+        self.assertGreaterEqual(recorded['health'].age_s(), .01)
+        self.assertFalse(goals)
         self.assertFalse(self.manager.calls)
         self.assertFalse(self.mission.calls)
 

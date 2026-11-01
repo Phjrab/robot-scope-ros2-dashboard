@@ -284,6 +284,36 @@ class NavigationInitializationProposals:
                 raise ProposalUnavailable('PROPOSAL_MONITOR_UNAVAILABLE') from exc
             return self._empty(record, job['state'], job.get('reason'))
 
+    def handoff_watch_context(self, proposal_id, session_id):
+        """Revalidate and capture the real source identity for the handoff watcher."""
+        with self._lock:
+            record = self._records.get(proposal_id)
+            if record is None:
+                raise ProposalNotFound('PROPOSAL_NOT_FOUND')
+            if self.runtime.global_observation is not record['owner']:
+                raise ProposalConflict('SOURCE_OR_CONTEXT_CHANGED')
+            session = self._session(session_id)
+            if self._session_binding(session) != record['session']:
+                raise ProposalConflict('OBSERVATION_SESSION_CHANGED')
+            contract, identity, stamps = self._source(session, record['source_identity'])
+            if contract != record['source_contract']:
+                raise ProposalConflict('SOURCE_OR_CONTEXT_CHANGED')
+            return {'identity': identity, 'stamps': stamps, 'session': self._session_binding(session)}
+
+    def handoff_watch_sample(self):
+        """In-memory observation snapshots only; never issue a control command."""
+        agent = self.runtime.agent
+        observation = self.runtime.fastlio_observation
+        if agent is None or observation is None:
+            raise ProposalUnavailable('HANDOFF_MONITOR_UNAVAILABLE')
+        session = observation.snapshot()
+        cloud, pose = agent.pointcloud_binary_snapshot(), agent.pose_snapshot()
+        identity = (_source_identity(cloud), _source_identity(pose))
+        stamps = (int(cloud['observation']['source_stamp_ns']), int(pose['observation']['source_stamp_ns']))
+        return {'identity': identity, 'stamps': stamps, 'session': self._session_binding(session),
+                'state': session.get('state'), 'active': session.get('active'),
+                'sample_end_ns': time.monotonic_ns()}
+
     def get(self, proposal_id):
         """Read result; detected invalidation can trigger asynchronous owned-job cleanup."""
         with self._lock:
