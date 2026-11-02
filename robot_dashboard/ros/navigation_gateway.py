@@ -3094,6 +3094,10 @@ class NavigationRosGateway:
         return public
 
     def _localization_metrics(self, runtime_health: Mapping[str, Any], now: float) -> Dict[str, Any]:
+        def reported_count(key: str) -> Optional[int]:
+            value = runtime_health.get(key)
+            return value if type(value) is int and value >= 0 else None
+
         with self._navigation_lock:
             progress = dict(self._navigation_goal_progress)
             goal_state = str((self._navigation.get("goal") or {}).get("state", "idle"))
@@ -3277,12 +3281,12 @@ class NavigationRosGateway:
             "tf_age_s": round(max(finite_tf_ages), 4) if finite_tf_ages else None,
             "map_to_odom_age_s": map_tf_age,
             "odom_to_base_age_s": odom_tf_age,
-            "translation_jump_count": int(runtime_health.get("translation_jump_count", 0) or 0),
-            "heading_jump_count": int(runtime_health.get("heading_jump_count", 0) or 0),
+            "translation_jump_count": reported_count("translation_jump_count"),
+            "heading_jump_count": reported_count("heading_jump_count"),
             "last_jump_reason": runtime_health.get("last_jump_reason") or "",
             "last_jump_age_s": runtime_health.get("last_jump_age_s"),
-            "input_points": int(runtime_health.get("input_points", 0) or 0),
-            "accepted_points": int(runtime_health.get("accepted_points", 0) or 0),
+            "input_points": reported_count("input_points"),
+            "accepted_points": reported_count("accepted_points"),
             "goal_remaining_distance_m": progress.get("last_distance"),
             "goal_feedback_distance_raw_m": progress.get("raw_distance"),
             "goal_progress_rate_mps": progress.get("progress_rate_mps"),
@@ -3296,7 +3300,7 @@ class NavigationRosGateway:
             "goal_active": goal_state == "active",
             "controller_stall_duration_s": stall_duration,
             "costmap_clear_count": clear_count,
-            "fresh_sequence_count": int(runtime_health.get("fresh_sequence_count", 0) or 0),
+            "fresh_sequence_count": reported_count("fresh_sequence_count"),
             "frame_error": runtime_health.get("frame_error") or "",
             "source_error": runtime_health.get("source_error") or "",
             "host_clock_offsets_s": {
