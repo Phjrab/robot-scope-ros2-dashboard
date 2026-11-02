@@ -10,7 +10,7 @@ function context() {
   return { globalAlpha: 0.8, save() { stack.push(this.globalAlpha); }, restore() { this.globalAlpha = stack.pop(); } };
 }
 
-test('initial, staged goal and sent goal reuse the same metric map projection without mutating poses', () => {
+test('initial stays a dot while staged and sent goals reuse the metric URDF projection', () => {
   for (const ratio of [1, 2]) {
     const layout = nav.mapLayout({ width: 80, height: 45, resolution: .05, origin: [2, -1, .7] }, 900 * ratio, 500 * ratio);
     const point = nav.canvasToWorld(layout, { x: 400 * ratio, y: 250 * ratio });
@@ -25,12 +25,12 @@ test('initial, staged goal and sent goal reuse the same metric map projection wi
       assert.ok(c.globalAlpha < .8);
       return true;
     } };
-    assert.deepEqual(nav.navigationPosePreview(scene, ctx, layout, poses[0]), { drawn: true, color: '#5dded8', label: 'INITIAL · URDF' });
+    assert.deepEqual(nav.navigationPosePreview(scene, ctx, layout, poses[0]), { drawn: false, color: '#5dded8', label: 'INITIAL · 입력 중' });
     assert.deepEqual(nav.navigationPosePreview(scene, ctx, layout, poses[1]), { drawn: true, color: '#ffc66d', label: 'GOAL · STAGED' });
     assert.deepEqual(nav.navigationPosePreview(scene, ctx, layout, poses[1], 'active'), { drawn: true, color: '#a28bff', label: 'GOAL · ACTIVE' });
     assert.equal(ctx.globalAlpha, .8);
-    assert.equal(calls[1].pose, poses[1]);
-    assert.equal(calls.length, 3);
+    assert.equal(calls[0].pose, poses[1]);
+    assert.equal(calls.length, 2);
   }
 });
 
@@ -46,7 +46,7 @@ test('unloaded, missing and failed model preserve fallback and canvas state', ()
   const warn = console.warn;
   try {
     console.warn = () => {};
-    assert.equal(nav.navigationPosePreview({ drawRobotMapPreview() { throw Error('asset'); } }, ctx, {}, { mode: 'initial' }).label, 'INITIAL · STAGED');
+    assert.equal(nav.navigationPosePreview({ drawRobotMapPreview() { assert.fail('initial must never draw robot'); } }, ctx, {}, { mode: 'initial' }).label, 'INITIAL · 입력 중');
     assert.equal(ctx.globalAlpha, .8);
   } finally { console.warn = warn; }
 });
@@ -136,6 +136,16 @@ test('real official mesh uses default joints and metre scale independently of li
   scene.setRobotJointPositions({ FR_hip_joint: 1, FR_thigh_joint: 2, FR_calf_joint: 3 });
   assert.deepEqual(draw(), points);
   assert.deepEqual(scene.robotPose, { x: 200, y: 400, yaw: 2 });
+  const tiltedPoints = [];
+  assert.equal(scene.drawRobotMapPreview(ctx, { ...pose, mode: 'robot', z: .34, roll: .15, pitch: .3 }, p => {
+    tiltedPoints.push([p.x, p.y]); return { x: p.x * 200, y: p.y * 200 };
+  }), true);
+  assert.notDeepEqual(tiltedPoints, points, 'measured body roll/pitch must affect top-down URDF footprint');
+  const goalPoints = [];
+  scene.drawRobotMapPreview(ctx, { ...pose, mode: 'goal', z: .34, roll: .15, pitch: .3 }, p => {
+    goalPoints.push([p.x, p.y]); return { x: p.x * 200, y: p.y * 200 };
+  });
+  assert.deepEqual(goalPoints, points, 'planar target preview stays independent from measured body tilt');
   scene._robotModelType = 'other';
   assert.equal(scene.drawRobotMapPreview(ctx, pose, () => {}), false);
   scene._robotModelType = 'go2';

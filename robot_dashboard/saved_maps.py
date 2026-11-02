@@ -22,9 +22,11 @@ import tempfile
 import threading
 import uuid
 import zipfile
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, Callable, ContextManager, Dict, Iterable, Mapping, Optional
 
 import numpy as np
@@ -392,6 +394,44 @@ class SavedMapCatalog:
             min(int(max_edited_cells), self.max_grid_cells, 8_000_000),
         )
         self._lock = threading.RLock()
+        self._pinned_records: Optional[Dict[str, SavedMapRecord]] = None
+
+    @contextmanager
+    def pinned_lookup(self, *, references: Optional[Iterable[SavedMapRecord]] = None):
+        """Locate IDs once for an operation, then revalidate each requested asset.
+
+        A status reader may reuse private path references captured during an
+        earlier full admission. Only their ID/root/path are used, never cached
+        metadata or validation. Execution admission omits references and retains
+        the full scan and max_files limit. Each _find rereads the target, including
+        edited-map manifest/content hashes, under this context's lock.
+        """
+        with self._lock:
+            if self._pinned_records is not None:
+                yield MappingProxyType(self._pinned_records)
+                return
+            admitted = {}
+            for record in self._scan() if references is None else references:
+                if (not isinstance(record, SavedMapRecord) or record.root not in self.roots
+                        or not isinstance(record.path, Path)
+                        or not isinstance(record.map_id, str) or len(record.map_id) != 24):
+                    raise SavedMapNotFound("saved map reference is outside configured roots")
+                try:
+                    relative = record.path.relative_to(record.root)
+                except (AttributeError, TypeError, ValueError) as exc:
+                    raise SavedMapNotFound("saved map reference path is invalid") from exc
+                if (not relative.parts or len(relative.parts) - 1 > self.max_depth
+                        or any(part.startswith('.') for part in relative.parts)
+                        or record.path.suffix.lower() not in {'.pcd', '.json', '.yaml', '.yml'}
+                        or record.path.name.endswith(('.annotations.json', '.map-family.json'))):
+                    raise SavedMapNotFound("saved map reference path is outside catalog scope")
+                # Preserve _find's first-record precedence for overlapping roots.
+                admitted.setdefault(record.map_id, record)
+            self._pinned_records = admitted
+            try:
+                yield MappingProxyType(admitted)
+            finally:
+                self._pinned_records = None
 
     @classmethod
     def from_profile(
@@ -1808,7 +1848,7 @@ class SavedMapCatalog:
         min_neighbors: object = 10,
         background: object = "unknown",
     ) -> Dict[str, Any]:
-        """Validate a managed PCD conversion without exposing its path."""
+        """Validate copy-only conversion without granting source mutation rights."""
 
         safe_name = self.validate_map_name(name)
         parameters = self._conversion_parameters(
@@ -1821,7 +1861,7 @@ class SavedMapCatalog:
         )
         with self._lock:
             record = self._find(map_id)
-            self._require_manageable(record)
+            self._require_pcd_conversion_source(record)
             if record.format != "pcd-binary":
                 raise SavedMapFormatError("only a managed binary PCD can be converted")
             if int(record.details.get("point_count", 0)) > self.max_full_view_points:
@@ -1877,7 +1917,7 @@ class SavedMapCatalog:
             )
         with self._lock:
             record = self._find(map_id)
-            self._require_manageable(record)
+            self._require_pcd_conversion_source(record)
             if record.format != "pcd-binary":
                 raise SavedMapFormatError("only a managed binary PCD can be converted")
             if int(record.details.get("point_count", 0)) > self.max_full_view_points:
@@ -1942,6 +1982,9 @@ class SavedMapCatalog:
             with self._lock:
                 if self._regular_signature(record.path) != source_signature:
                     raise SavedMapMutationError("PCD changed during conversion")
+                # A published edit also has a semantic manifest revision. A
+                # metadata-only replacement must not pass the PCD inode check.
+                self._require_pcd_conversion_source(record)
                 self._ensure_targets_absent(targets)
                 if publication_guard is None:
                     if self._operation_cancelled(cancelled):
@@ -2888,6 +2931,34 @@ class SavedMapCatalog:
             pixels[image_grid == value] = pixel
         return pixels
 
+    def _require_pcd_conversion_source(self, record: SavedMapRecord) -> None:
+        """Read a verified immutable edit; publish only into its managed root.
+
+        ``manageable`` still controls legacy rename/delete. Conversion reads
+        the complete pinned source and creates a separate occupancy pair.
+        """
+        if record.manageable:
+            self._require_manageable(record)
+            return
+        if (record.root not in self.managed_roots or record.format != 'pcd-binary'
+                or record.details.get('schema') != 'robot-scope.pcd-edited-map.v1'
+                or record.details.get('asset_role') != 'full_source'
+                or record.details.get('units') != 'm'
+                or record.path.parent.parent != record.root / 'pcd-edits'
+                or record.path.name != 'map.pcd'):
+            raise SavedMapReadOnly('saved map is read-only')
+        self._validate_record(record)
+        self._regular_identity(record.path)
+        try:
+            manifest = read_manifest(record.path.parent, verify_pcd=True)
+        except PcdEditError as exc:
+            raise SavedMapConflict('edited PCD manifest changed during conversion') from exc
+        expected = {'id': record.map_id, 'revision': record.revision,
+                    **{key: record.details[key] for key in
+                       ('sha256', 'frame_id', 'units', 'point_count', 'asset_role')}}
+        if any(manifest.get(key) != value for key, value in expected.items()):
+            raise SavedMapConflict('edited PCD revision changed during conversion')
+
     def _require_manageable(self, record: SavedMapRecord) -> None:
         if not record.manageable or record.root not in self.managed_roots:
             raise SavedMapReadOnly("saved map is read-only")
@@ -3111,6 +3182,17 @@ class SavedMapCatalog:
     def _find(self, map_id: str) -> SavedMapRecord:
         if not isinstance(map_id, str) or len(map_id) != 24:
             raise SavedMapNotFound("saved map not found")
+        if self._pinned_records is not None:
+            admitted = self._pinned_records.get(map_id)
+            if admitted is None:
+                raise SavedMapNotFound("saved map not admitted for this operation")
+            try:
+                record = self._record_for(admitted.root, admitted.path)
+            except (OSError, ValueError, RuntimeError, UnicodeError, SavedMapFormatError) as exc:
+                raise SavedMapNotFound("saved map changed during this operation") from exc
+            if record is None or record.map_id != map_id:
+                raise SavedMapNotFound("saved map changed during this operation")
+            return record
         record = next((item for item in self._scan() if item.map_id == map_id), None)
         if record is None:
             raise SavedMapNotFound("saved map not found")

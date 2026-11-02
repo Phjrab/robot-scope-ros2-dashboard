@@ -32,7 +32,8 @@ from ..localization_diagnostics import sanitize_localization_diagnostics
 from ..navigation_policy import POLICY_SCHEMA
 from ..goal_precision import GoalPrecision, parameter_observation
 from ..goal_evidence_sink import GoalEvidenceSink
-from .initial_pose_receipt import operational_initial_pose_context, wait_initial_pose_receipt
+from .initial_pose_receipt import operational_initial_pose_context, wait_initial_pose_receipt, wait_match_receipt
+from ..relocalization.operational import MATCH_TOPIC, STAGED_WORKFLOW
 
 
 LOGGER = logging.getLogger(__name__)
@@ -218,6 +219,8 @@ class NavigationRosGateway:
         self._navigation_cmd_subscription: Any = None
         self._navigation_health_subscriptions: Dict[str, Any] = {}
         self._navigation_initial_pose_publisher: Any = None
+        self._navigation_match_publisher: Any = None
+        self._navigation_string_type: Any = None
         self._navigation_pose_type: Any = None
         self._navigation_action_type: Any = None
         self._navigation_action_client: Any = None
@@ -489,6 +492,8 @@ class NavigationRosGateway:
                 reliable,
                 callback_group=callback_group,
             )
+            match_publisher = node.create_publisher(
+                String, MATCH_TOPIC, reliable, callback_group=callback_group)
             action_client = ActionClient(
                 node,
                 action_type,
@@ -508,6 +513,8 @@ class NavigationRosGateway:
                 self._navigation_cmd_subscription = command_subscription
                 self._navigation_health_subscriptions = health_subscriptions
                 self._navigation_initial_pose_publisher = pose_publisher
+                self._navigation_match_publisher = match_publisher
+                self._navigation_string_type = String
                 self._navigation_pose_type = pose_type
                 self._navigation_action_type = action_type
                 self._navigation_action_client = action_client
@@ -1448,13 +1455,14 @@ class NavigationRosGateway:
                 count != 1 for count in sanitized_counts.values()
             ):
                 raise ValueError("ready health has non-unique sensor sources")
-            input_points = int(payload.get("input_points", 0))
-            accepted_points = int(payload.get("accepted_points", 0))
-            if (
-                input_points < 0
-                or accepted_points < 0
-                or accepted_points > input_points
-            ):
+            input_points = payload.get("input_points")
+            accepted_points = payload.get("accepted_points")
+            for key, value in (("input_points", input_points), ("accepted_points", accepted_points)):
+                if key in payload and (type(value) is not int or value < 0):
+                    raise ValueError(f"health {key} is invalid")
+            if (accepted_points is not None and
+                    ((input_points is None and accepted_points > 0)
+                     or (input_points is not None and accepted_points > input_points))):
                 raise ValueError("health point counts are invalid")
             bounded_metrics: Dict[str, Any] = {}
             for key, maximum in (
@@ -1725,7 +1733,7 @@ class NavigationRosGateway:
                     )
                     if (samples == 0) != all(value is None for value in durations):
                         raise ValueError(f"health {prefix} window is inconsistent")
-            bounded_integers: Dict[str, int] = {}
+            bounded_integers: Dict[str, Any] = {}
             for key in (
                 "cloud_sequence",
                 "odometry_sequence",
@@ -1734,6 +1742,9 @@ class NavigationRosGateway:
                 "odometry_sample_count",
                 "odometry_interval_count",
             ):
+                if key in {"translation_jump_count", "heading_jump_count"} and key not in payload:
+                    bounded_integers[key] = None
+                    continue
                 value = payload.get(key, 0)
                 if isinstance(value, bool) or not isinstance(value, int) or value < 0 or value > 2**53 - 1:
                     raise ValueError(f"health {key} is invalid")
@@ -1790,6 +1801,9 @@ class NavigationRosGateway:
             return
         from ..relocalization.operational import sanitize_status
         operational = sanitize_status(payload.get('operational_3d'))
+        if (operational is not None and operational.get('runtime_instance_generation') is not None
+                and operational['runtime_instance_generation'] != instance):
+            operational = None
         if payload.get('operational_3d') is not None and (operational is None or not operational['ready']):
             payload['ready'] = payload['localized'] = False
         sanitized = {
@@ -2372,6 +2386,48 @@ class NavigationRosGateway:
             wait_initial_pose_receipt(self._navigation_runtime_health_snapshot, context,
                 int(stamp.sec) * 1_000_000_000 + int(stamp.nanosec))
         return self.runtime_snapshot()
+
+    def start_operational_match(self, *, map_id: str, map_revision: str,
+                                bundle_generation: str, localization_generation: int,
+                                initial_pose_stamp_ns: str) -> Dict[str, Any]:
+        """Arm the staged map fit only; this never publishes a navigation goal."""
+        with self._control_port.operation_lock:
+            interlock = self._navigation_sensor_interlock_reason(time.monotonic(), require_localized=False)
+            if interlock:
+                raise ControlDisabled(interlock)
+            with self._navigation_lock:
+                self._navigation_require_pinned_map_locked(map_id, map_revision)
+                if (self._navigation.get('goal') or {}).get('state') in {'pending', 'active', 'canceling'}:
+                    raise LeaseBusy('cancel the active goal before matching localization')
+                publisher = self._navigation_match_publisher
+                message_type = self._navigation_string_type
+            health = self._navigation_runtime_health_snapshot(time.monotonic())
+            context = operational_initial_pose_context(health)
+            source = health.get('operational_3d') or {}
+            initial = source.get('accepted_initial_pose') or {}
+            if (context is None or source.get('workflow') != STAGED_WORKFLOW
+                    or source.get('bundle_generation') != bundle_generation
+                    or source.get('localization_generation') != localization_generation
+                    or source.get('map_id') != map_id or source.get('map_revision') != map_revision
+                    or initial.get('stamp_ns') != initial_pose_stamp_ns
+                    or initial.get('accepted') is not True):
+                raise ControlDisabled('MAP_MATCH_SOURCE_CHANGED_OR_INITIAL_POSE_REQUIRED')
+            node = self._node_getter()
+            if publisher is None or message_type is None or node is None:
+                raise ControlDisabled('MAP_MATCH_TRANSPORT_UNAVAILABLE')
+            request_id = secrets.token_hex(16)
+            request = {key: source[key] for key in (
+                'bundle_generation', 'localization_generation', 'reference_sha256',
+                'map_id', 'map_revision', 'localization_map_id', 'localization_map_revision')}
+            stamp = node.get_clock().now().to_msg()
+            request.update(request_id=request_id,
+                stamp_ns=str(int(stamp.sec) * 1_000_000_000 + int(stamp.nanosec)),
+                runtime_instance_generation=context[0], initial_pose_stamp_ns=initial_pose_stamp_ns)
+            message = message_type()
+            message.data = json.dumps(request, allow_nan=False)
+            publisher.publish(message)
+        return wait_match_receipt(self._navigation_runtime_health_snapshot, context,
+                                  request_id, localization_generation)
 
     @staticmethod
     def _new_navigation_goal_progress(started_at: float = 0.0) -> Dict[str, Any]:
@@ -3042,6 +3098,10 @@ class NavigationRosGateway:
         return public
 
     def _localization_metrics(self, runtime_health: Mapping[str, Any], now: float) -> Dict[str, Any]:
+        def reported_count(key: str) -> Optional[int]:
+            value = runtime_health.get(key)
+            return value if type(value) is int and value >= 0 else None
+
         with self._navigation_lock:
             progress = dict(self._navigation_goal_progress)
             goal_state = str((self._navigation.get("goal") or {}).get("state", "idle"))
@@ -3225,12 +3285,12 @@ class NavigationRosGateway:
             "tf_age_s": round(max(finite_tf_ages), 4) if finite_tf_ages else None,
             "map_to_odom_age_s": map_tf_age,
             "odom_to_base_age_s": odom_tf_age,
-            "translation_jump_count": int(runtime_health.get("translation_jump_count", 0) or 0),
-            "heading_jump_count": int(runtime_health.get("heading_jump_count", 0) or 0),
+            "translation_jump_count": reported_count("translation_jump_count"),
+            "heading_jump_count": reported_count("heading_jump_count"),
             "last_jump_reason": runtime_health.get("last_jump_reason") or "",
             "last_jump_age_s": runtime_health.get("last_jump_age_s"),
-            "input_points": int(runtime_health.get("input_points", 0) or 0),
-            "accepted_points": int(runtime_health.get("accepted_points", 0) or 0),
+            "input_points": reported_count("input_points"),
+            "accepted_points": reported_count("accepted_points"),
             "goal_remaining_distance_m": progress.get("last_distance"),
             "goal_feedback_distance_raw_m": progress.get("raw_distance"),
             "goal_progress_rate_mps": progress.get("progress_rate_mps"),
@@ -3244,7 +3304,7 @@ class NavigationRosGateway:
             "goal_active": goal_state == "active",
             "controller_stall_duration_s": stall_duration,
             "costmap_clear_count": clear_count,
-            "fresh_sequence_count": int(runtime_health.get("fresh_sequence_count", 0) or 0),
+            "fresh_sequence_count": reported_count("fresh_sequence_count"),
             "frame_error": runtime_health.get("frame_error") or "",
             "source_error": runtime_health.get("source_error") or "",
             "host_clock_offsets_s": {

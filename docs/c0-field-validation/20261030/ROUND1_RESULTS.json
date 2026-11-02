@@ -1,0 +1,406 @@
+{
+  "schema": "c0-field-sweep-results.v1",
+  "campaign_id": "C0-20261030-round1",
+  "purpose": "reporting-only; no robot execution authorization",
+  "closed_at": "2026-10-30T17:46:26.511120+09:00",
+  "source_snapshot": "846121b4988ed2932d329020857925558f8f2c79",
+  "source_branch": "review/20261030-c0-3d-field-sweep",
+  "reported_last_field_sha": "5154761bba6fa4f171881e61f986901e2b415ed9",
+  "deployment_sha": null,
+  "fresh_operator_session_confirmed": false,
+  "motion_authorization": null,
+  "goals_dispatched": 0,
+  "device_mutations": 0,
+  "all_rows_adjudicated": true,
+  "all_field_requirements_passed": false,
+  "rows": [
+    {
+      "id": "V00",
+      "title": "인수·실행 기준",
+      "result": "BLOCKED_DEPENDENCY",
+      "evidence_level": "SOURCE_REVIEW",
+      "implementation_status": "독립 clone/전용 브랜치·main 고정 완료",
+      "deployment_status": "LAST_REPORTED_ONLY; CURRENT_UNVERIFIED",
+      "source_sha": "846121b4988ed2932d329020857925558f8f2c79",
+      "deployment_sha": null,
+      "dependencies": [],
+      "blocker": "현재 장비 연결 불가: 실행 PID/cwd/SHA·소유권·STOP·lease 미확인",
+      "actual_device_measurements": {}
+    },
+    {
+      "id": "V01",
+      "title": "소프트웨어·UI 대표 회귀",
+      "result": "PASS",
+      "evidence_level": "SOFTWARE",
+      "implementation_status": "핵심 Python 157, JS 700, 합성 Chromium 18 통과",
+      "deployment_status": "LAST_REPORTED_ONLY; CURRENT_UNVERIFIED",
+      "source_sha": "846121b4988ed2932d329020857925558f8f2c79",
+      "deployment_sha": null,
+      "dependencies": [],
+      "blocker": "실장비 표시·제어 성공과 구분; main 원격 CI 실패는 별도 보존",
+      "actual_device_measurements": {}
+    },
+    {
+      "id": "V02",
+      "title": "E1~E3 전체 PCD 편집·저장·reference",
+      "result": "BLOCKED_DEPENDENCY",
+      "evidence_level": "SYNTHETIC",
+      "implementation_status": "12,000 source/150 preview 실 저장 흐름·hash·사본 재조회 회귀 PASS",
+      "deployment_status": "LAST_REPORTED_ONLY; CURRENT_UNVERIFIED",
+      "source_sha": "846121b4988ed2932d329020857925558f8f2c79",
+      "deployment_sha": null,
+      "dependencies": [],
+      "blocker": "장비 실제 원본/사본·worker pin readback 필요",
+      "actual_device_measurements": {}
+    },
+    {
+      "id": "V03",
+      "title": "N1~N4 정지 초기화·운영 위치 소비",
+      "result": "BLOCKED_DEPENDENCY",
+      "evidence_level": "SOFTWARE",
+      "implementation_status": "exact stamp/단일 authority/body odom/rollback 회귀 PASS",
+      "deployment_status": "LAST_REPORTED_ONLY; CURRENT_UNVERIFIED",
+      "source_sha": "846121b4988ed2932d329020857925558f8f2c79",
+      "deployment_sha": null,
+      "dependencies": [
+        "V00"
+      ],
+      "blocker": "V00 현재 정지·source·bundle·consumer 및 브라우저 독립 갱신 미확인",
+      "actual_device_measurements": {}
+    },
+    {
+      "id": "V04",
+      "title": "N5/G2 stop 접근·실제 정지",
+      "result": "BLOCKED_OPERATOR",
+      "evidence_level": "SOURCE_REVIEW",
+      "implementation_status": "기존 구현 보존, 신규 goal 0건",
+      "deployment_status": "LAST_REPORTED_ONLY; CURRENT_UNVERIFIED",
+      "source_sha": "846121b4988ed2932d329020857925558f8f2c79",
+      "deployment_sha": null,
+      "dependencies": [
+        "V00",
+        "V03"
+      ],
+      "blocker": "V00/V03·현장 준비·새 시험창 필요; 이전 두 목표 승인 사용 완료",
+      "actual_device_measurements": {}
+    },
+    {
+      "id": "V05",
+      "title": "G1~G4 버튼·1회 다음 goal·출발",
+      "result": "BLOCKED_DEPENDENCY",
+      "evidence_level": "SOFTWARE",
+      "implementation_status": "부정 사례·2초 dwell·one-shot·최종 dispatch guard 회귀 PASS",
+      "deployment_status": "LAST_REPORTED_ONLY; CURRENT_UNVERIFIED",
+      "source_sha": "846121b4988ed2932d329020857925558f8f2c79",
+      "deployment_sha": null,
+      "dependencies": [
+        "V03",
+        "V04"
+      ],
+      "blocker": "V03 실제 source와 V04 실제 success/정지/dwell 부재; 강제 통과 안 함",
+      "actual_device_measurements": {}
+    },
+    {
+      "id": "V06",
+      "title": "R1/R4 경사로 전체 방향 baseline",
+      "result": "BLOCKED_OPERATOR",
+      "evidence_level": "SOURCE_REVIEW",
+      "implementation_status": "ALL_DIRECTION_BASELINE 및 단계별 계측 구현 인수",
+      "deployment_status": "LAST_REPORTED_ONLY; CURRENT_UNVERIFIED",
+      "source_sha": "846121b4988ed2932d329020857925558f8f2c79",
+      "deployment_sha": null,
+      "dependencies": [],
+      "blocker": "장비·현장·관측 전용 소유권/안전한 수동 경로·새 시험창 필요. V04 정밀 도착 성공과 독립",
+      "actual_device_measurements": {}
+    },
+    {
+      "id": "V07",
+      "title": "R2/R3 경사로 경계·전방 관측·동일 입력 비교",
+      "result": "BLOCKED_DEPENDENCY",
+      "evidence_level": "SOFTWARE",
+      "implementation_status": "localization exclusion이 전체 obstacle scan을 지우지 않는 회귀 PASS",
+      "deployment_status": "LAST_REPORTED_ONLY; CURRENT_UNVERIFIED",
+      "source_sha": "846121b4988ed2932d329020857925558f8f2c79",
+      "deployment_sha": null,
+      "dependencies": [
+        "V06"
+      ],
+      "blocker": "V06 실제 cloud+pose+reference 입력 없음. rear/side 비교 INPUT_REQUIRED, BASELINE_RETAINED 판정 불가",
+      "actual_device_measurements": {}
+    },
+    {
+      "id": "V08",
+      "title": "정지·복구·증거 보존",
+      "result": "BLOCKED_DEPENDENCY",
+      "evidence_level": "SOFTWARE",
+      "implementation_status": "기존 bounded sink·비차단 STOP 관련 회귀 PASS; 장비 변경 0",
+      "deployment_status": "LAST_REPORTED_ONLY; CURRENT_UNVERIFIED",
+      "source_sha": "846121b4988ed2932d329020857925558f8f2c79",
+      "deployment_sha": null,
+      "dependencies": [
+        "V00"
+      ],
+      "blocker": "현재 실제 ZERO/ACK/측정 정지/STOP latch/lease readback 불가",
+      "actual_device_measurements": {}
+    },
+    {
+      "id": "V09",
+      "title": "전체 판정·진단 분리",
+      "result": "PASS",
+      "evidence_level": "SOURCE_REVIEW",
+      "implementation_status": "V00~V08 및 E/N/G/R 모두 판정; 이 파일을 진단보다 먼저 생성",
+      "deployment_status": "LAST_REPORTED_ONLY; CURRENT_UNVERIFIED",
+      "source_sha": "846121b4988ed2932d329020857925558f8f2c79",
+      "deployment_sha": null,
+      "dependencies": [],
+      "blocker": "전항목 판정 완료이며 전항목 합격을 뜻하지 않음",
+      "actual_device_measurements": {}
+    }
+  ],
+  "requirements": [
+    {
+      "id": "E1",
+      "title": "영역/Z 선택·제외·undo/redo",
+      "implementation": "기존 구현",
+      "deployment_current": "UNVERIFIED",
+      "historical_evidence": "과거 FIELD_PASS",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V02"
+    },
+    {
+      "id": "E2",
+      "title": "전체 PCD 사본 저장·재조회·속성 보존",
+      "implementation": "기존 구현",
+      "deployment_current": "UNVERIFIED",
+      "historical_evidence": "과거 FIELD_PASS",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V02"
+    },
+    {
+      "id": "E3",
+      "title": "사본 reference hash/revision 실제 worker 일치",
+      "implementation": "기존 구현",
+      "deployment_current": "UNVERIFIED",
+      "historical_evidence": "과거 FIELD_PASS",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V02/V03"
+    },
+    {
+      "id": "N1",
+      "title": "3D/2D map bundle·frame·origin",
+      "implementation": "기존 구현",
+      "deployment_current": "UNVERIFIED",
+      "historical_evidence": "과거 FIELD_PASS",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V03"
+    },
+    {
+      "id": "N2",
+      "title": "브라우저 독립 지속 저장 지도 정합",
+      "implementation": "기존 구현",
+      "deployment_current": "UNVERIFIED",
+      "historical_evidence": "과거 FIELD_PASS",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V03"
+    },
+    {
+      "id": "N3",
+      "title": "TF/body/controller odom 실제 소비",
+      "implementation": "기존 구현",
+      "deployment_current": "UNVERIFIED",
+      "historical_evidence": "과거 FIELD_PASS",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V03"
+    },
+    {
+      "id": "N4",
+      "title": "idle 전환·재시작 비복원·rollback",
+      "implementation": "기존 구현",
+      "deployment_current": "UNVERIFIED",
+      "historical_evidence": "과거 보고/회귀",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V03"
+    },
+    {
+      "id": "N5",
+      "title": "새 3D source의 실제 짧은 Nav2 목표",
+      "implementation": "기존 구현",
+      "deployment_current": "UNVERIFIED",
+      "historical_evidence": "기존 허용오차 FIELD_PASS; 정밀 기준 실패",
+      "round1_software": "NOT_RUN",
+      "round1_field": "BLOCKED_OPERATOR",
+      "row": "V04"
+    },
+    {
+      "id": "G1",
+      "title": "시험 모드·현재 stop 이벤트",
+      "implementation": "기존 구현",
+      "deployment_current": "UNVERIFIED",
+      "historical_evidence": "전체 실기 NOT_RUN",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V05"
+    },
+    {
+      "id": "G2",
+      "title": "실제 success·측정 정지 2초 dwell",
+      "implementation": "기존 구현",
+      "deployment_current": "UNVERIFIED",
+      "historical_evidence": "전체 실기 NOT_RUN",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V04/V05"
+    },
+    {
+      "id": "G3",
+      "title": "중복/만료/이전 stop/source 변경 차단",
+      "implementation": "기존 구현",
+      "deployment_current": "UNVERIFIED",
+      "historical_evidence": "software 증거",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V05"
+    },
+    {
+      "id": "G4",
+      "title": "버튼→다음 goal 1개→실제 출발·종료",
+      "implementation": "기존 구현",
+      "deployment_current": "UNVERIFIED",
+      "historical_evidence": "NOT_RUN",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V05"
+    },
+    {
+      "id": "R1",
+      "title": "평지·진입·상승·정상·하강·복귀 baseline",
+      "implementation": "계측 구현",
+      "deployment_current": "UNVERIFIED",
+      "historical_evidence": "NOT_RUN",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_OPERATOR",
+      "row": "V06"
+    },
+    {
+      "id": "R2",
+      "title": "동일 입력 후방/측면 후보 비교",
+      "implementation": "운영 미구현/미채택; 조건부",
+      "deployment_current": "UNVERIFIED",
+      "historical_evidence": "NOT_RUN",
+      "round1_software": "NOT_RUN",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V07"
+    },
+    {
+      "id": "R3",
+      "title": "품질·전방 관측·CPU/지연 손익",
+      "implementation": "지표 기반 구현; 실비교 없음",
+      "deployment_current": "UNVERIFIED",
+      "historical_evidence": "NOT_RUN",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V07"
+    },
+    {
+      "id": "R4",
+      "title": "실제 경사로 위치추정 결과",
+      "implementation": "관측 경로 실기 미검증",
+      "deployment_current": "UNVERIFIED",
+      "historical_evidence": "NOT_RUN",
+      "round1_software": "NOT_RUN",
+      "round1_field": "BLOCKED_OPERATOR",
+      "row": "V06"
+    }
+  ],
+  "runtime_current": {
+    "service": null,
+    "pid": null,
+    "cwd": null,
+    "source_manifest": null,
+    "overlay_sha256": null,
+    "saved_profile": null,
+    "generated_profile": null,
+    "live_profile": null,
+    "map_bundle": null,
+    "stop_latched": null,
+    "lease_active": null,
+    "active_goal": null,
+    "active_mission": null,
+    "command_zero": null,
+    "mapping_owner": null,
+    "camera_owner": null
+  },
+  "software_checks": {
+    "python_targeted": {
+      "count": 157,
+      "result": "PASS"
+    },
+    "javascript_unit": {
+      "count": 700,
+      "result": "PASS",
+      "node": "20.20.2",
+      "execution": "host"
+    },
+    "browser_representative": {
+      "count": 18,
+      "result": "PASS",
+      "input": "SYNTHETIC"
+    },
+    "ruff": "PASS",
+    "mypy": "PASS (4 configured files)",
+    "javascript_syntax": "PASS (112 modules; Node20)",
+    "secret_scan": "PASS",
+    "python_full": "RUNNING at round1 close; update in VALIDATION.json"
+  },
+  "ci_baseline": {
+    "sha": "846121b4988ed2932d329020857925558f8f2c79",
+    "run_id": 41001998475,
+    "result": "FAIL",
+    "failed_job": 123888307012,
+    "failed_test": "tests/e2e/navigation_goal_urdf.spec.mjs:65",
+    "failure_boundary": "timeout at line114 stale-map goal display poll",
+    "local_representative_reproduced": false
+  },
+  "config_changes": [],
+  "extension_branches_integrated": [],
+  "field_goal_receipts": [],
+  "ramp_stages": [
+    {
+      "stage": "평지",
+      "result": "NOT_RUN",
+      "measurements": null
+    },
+    {
+      "stage": "진입",
+      "result": "NOT_RUN",
+      "measurements": null
+    },
+    {
+      "stage": "상승",
+      "result": "NOT_RUN",
+      "measurements": null
+    },
+    {
+      "stage": "정상",
+      "result": "NOT_RUN",
+      "measurements": null
+    },
+    {
+      "stage": "하강",
+      "result": "NOT_RUN",
+      "measurements": null
+    },
+    {
+      "stage": "복귀",
+      "result": "NOT_RUN",
+      "measurements": null
+    }
+  ]
+}

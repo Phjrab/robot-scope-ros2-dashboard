@@ -219,6 +219,7 @@ def register_se3(
     reference_limit: int = MAX_POINTS,
     nearest: Callable[[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]] | None = None,
     reference_weights=None,
+    query_weighting=None,
     enforce_residual_limit: bool = True,
 ) -> dict[str, Any]:
     """One bounded local hypothesis, not global relocalization or pose application."""
@@ -246,10 +247,14 @@ def register_se3(
         if int(mask.sum()) < MIN_POINTS:
             reason = "INSUFFICIENT_OVERLAP"
             break
-        if reference_weights is None:
+        weights = None if reference_weights is None else reference_weights[indices[mask]]
+        if query_weighting is not None:
+            query_weights = _query_weights(query_weighting, moved, indices, squared, mask)
+            weights = query_weights[mask] if weights is None else weights * query_weights[mask]
+        if weights is None:
             delta = _rigid_fit(moved[mask], target.points[indices[mask]])
         else:
-            delta = _rigid_fit(moved[mask], target.points[indices[mask]], reference_weights[indices[mask]])
+            delta = _rigid_fit(moved[mask], target.points[indices[mask]], weights)
         pose = compose(delta, pose)
         step_translation = float(np.linalg.norm(delta[:3, 3]))
         step_rotation = rotation_error_rad(delta, np.eye(4))
@@ -258,8 +263,10 @@ def register_se3(
             reason = "CANDIDATE"
             break
     moved = transform_points(pose, source.points)
-    _, squared = nearest_points(moved, target.points)
+    final_indices, squared = nearest_points(moved, target.points)
     mask = squared <= MAX_CORRESPONDENCE_M ** 2
+    if query_weighting is not None:
+        _query_weights(query_weighting, moved, final_indices, squared, mask)
     overlap = float(mask.mean())
     rmse = float(math.sqrt(float(squared[mask].mean()))) if mask.any() else None
     if geometry_ratio < MIN_GEOMETRY_RATIO:
@@ -285,6 +292,15 @@ def register_se3(
                     "weak_geometry_direction_target": weak_direction,
                     "runtime_ms": (time.monotonic() - started) * 1000.0},
     }
+
+
+def _query_weights(callback, moved, indices, squared, mask):
+    weights = np.asarray(callback(moved, indices, squared, mask), dtype=np.float64)
+    if (weights.shape != (len(moved),) or not np.isfinite(weights).all()
+            or np.any(weights < 0.) or np.any(weights > 2.)
+            or (mask.any() and float(weights[mask].sum()) <= 0.)):
+        raise ExperimentalSE3Error('invalid current-query weights')
+    return weights
 
 
 def validate_experimental_result(payload: Any) -> dict[str, Any]:

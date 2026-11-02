@@ -1,0 +1,796 @@
+{
+  "schema": "c0-terrain-map-comparison.v1",
+  "created_at": "2026-10-30T21:39:24.245883+09:00",
+  "classification": "OFFLINE_DIAGNOSTIC_HYPOTHESES; NOT_OPERATIONAL_ACCEPTANCE",
+  "branch": "review/20261030-c0-3d-field-sweep",
+  "source_code_sha": "15706c48c5e6df28be105b6f5bde825dce7c4b1f",
+  "parent_report_sha": "65ea83989778a52402cf6c9cf2383c0ea7b9e854",
+  "operator_common_start_report": "same position and heading; approximate prior only",
+  "operator_turns_imposed_on_data": false,
+  "per_case_numeric_origin_reset_assumed_valid": false,
+  "frame_policy": "A independent epoch; B/C one shared epoch. A/B approximate common-start prior; preserve B transform for C.",
+  "frame_policy_chosen_by_quality_score": false,
+  "map_start_at_camera_init_origin_verified": false,
+  "old_map": {
+    "id": "e1dd40cc6911404dbdfc073b",
+    "revision": "c7d7ce7e04b2fb80519854cc71465f61af9fff210ac72e299105502497401ad5",
+    "pcd_sha256": "6ec38aa876ffcfe505ee81204d94fa84e1c3cb438ae706a6a6b7fc0048970b5a",
+    "points": 13546,
+    "coverage": "FLAT_ONLY_OPERATOR_CONFIRMED"
+  },
+  "new_map": {
+    "id": "4b672f17ec79b96d2d075189",
+    "name": "map_20261030_205128",
+    "revision": "32123a1b2eb19798d81aa930a6e7f0b02451fb219f9fa164abe99612d191d268",
+    "pcd_sha256": "879cd0335fad8e15272ffcabcafdbf839f82afd19166a8d6ef2c343a96715203",
+    "points": 49080,
+    "frame_id": "camera_init",
+    "coverage": "RAMP_AND_STAIRS_OPERATOR_CONFIRMED; geometry reconstruction accuracy not surveyed",
+    "post_analysis_revision_unchanged": true
+  },
+  "scope": {
+    "all_cloud_odom_exact_pairs": 8554,
+    "all_imu_samples": 427684,
+    "planned_representative_queries": 45,
+    "available_exact_queries": 43,
+    "missing_exact_queries": 2,
+    "epoch_preserving_old_new_solver_results": 86,
+    "C_reanchor_sensitivity_results": 40,
+    "full_trace_fixed_prior_distances": 8554,
+    "full_trace_fixed_prior_distances_are_refined_registration": false,
+    "all_raw_lidar_frames_reprocessed": false,
+    "continuous_saved_map_localization_replay": false
+  },
+  "method": {
+    "input_population": "FULL_RECORDED_REGISTERED_XYZ per selected frame; exact odometry inverse once; no added query sampling",
+    "reference_population": "full immutable PCD arrays; existing solver may select its existing reachable-reference radius",
+    "solver": "existing run_seeded_arrays / isolated SE3",
+    "per_frame_deadline_s": 3,
+    "quality_gates": {
+      "max_rmse_m": 0.05,
+      "min_overlap": 0.6,
+      "max_correspondence_m": 0.75,
+      "min_geometry_ratio": 0.002
+    },
+    "seed_bounds": {
+      "xy_m": 0.75,
+      "yaw_deg": 25,
+      "z_m": 0.3,
+      "tilt_deg": 10
+    },
+    "quality_gate_changes": false,
+    "rear_weight_changes": false,
+    "velocity_yaw_progress_changes": false
+  },
+  "cases": [
+    {
+      "case": "A",
+      "operator_route": "RAMP_ASCENT_LEFT_90_STAIRS_DESCENT",
+      "cloud_odom_exact_pairs": 3006,
+      "imu_samples": 150288,
+      "registered_query_point_count_range": [
+        129,
+        446
+      ],
+      "cloud_max_gap_s": 0.10275054,
+      "imu_max_gap_s": 0.013283947,
+      "source_stamp_nonpositive_gaps": 0,
+      "old_reference": {
+        "frames": 11,
+        "numerical_candidates": 0,
+        "rmse_median_m": 0.2306570300182041,
+        "overlap_median": 0.7819548872180451,
+        "elapsed_s_median": 0.20357742672786117,
+        "reasons": {
+          "HIGH_RESIDUAL": 11
+        }
+      },
+      "new_reference": {
+        "frames": 11,
+        "numerical_candidates": 0,
+        "rmse_median_m": 0.06311223435989587,
+        "overlap_median": 1.0,
+        "elapsed_s_median": 0.2229551337659359,
+        "reasons": {
+          "HIGH_RESIDUAL": 11
+        }
+      },
+      "diagnostic_result": "FAIL",
+      "operational_result": "BLOCKED_QUALIFICATION",
+      "measured_path_or_height_absolute_accuracy": null
+    },
+    {
+      "case": "B",
+      "operator_route": "STAIRS_ASCENT_RIGHT_90_RAMP_DESCENT",
+      "cloud_odom_exact_pairs": 2941,
+      "imu_samples": 147042,
+      "registered_query_point_count_range": [
+        150,
+        437
+      ],
+      "cloud_max_gap_s": 0.101318836,
+      "imu_max_gap_s": 0.012171266,
+      "source_stamp_nonpositive_gaps": 0,
+      "old_reference": {
+        "frames": 12,
+        "numerical_candidates": 0,
+        "rmse_median_m": 0.20554261695930226,
+        "overlap_median": 0.6891091364775576,
+        "elapsed_s_median": 0.2059502019546926,
+        "reasons": {
+          "HIGH_RESIDUAL": 12
+        }
+      },
+      "new_reference": {
+        "frames": 12,
+        "numerical_candidates": 2,
+        "rmse_median_m": 0.06023117320422377,
+        "overlap_median": 1.0,
+        "elapsed_s_median": 0.2547654875088483,
+        "reasons": {
+          "CANDIDATE": 2,
+          "HIGH_RESIDUAL": 8,
+          "OUTSIDE_SEED_BOUNDS": 2
+        }
+      },
+      "diagnostic_result": "FAIL",
+      "operational_result": "BLOCKED_QUALIFICATION",
+      "measured_path_or_height_absolute_accuracy": null
+    },
+    {
+      "case": "C",
+      "operator_route": "RAMP_ASCENT_LEFT_90_STAIRS_DESCENT_REPEAT",
+      "cloud_odom_exact_pairs": 2607,
+      "imu_samples": 130354,
+      "registered_query_point_count_range": [
+        155,
+        432
+      ],
+      "cloud_max_gap_s": 0.101036072,
+      "imu_max_gap_s": 0.013362302,
+      "source_stamp_nonpositive_gaps": 0,
+      "old_reference": {
+        "frames": 20,
+        "numerical_candidates": 0,
+        "rmse_median_m": 0.20326726154117125,
+        "overlap_median": 0.7445296959363455,
+        "elapsed_s_median": 0.20318189379759133,
+        "reasons": {
+          "HIGH_RESIDUAL": 20
+        }
+      },
+      "new_reference": {
+        "frames": 20,
+        "numerical_candidates": 3,
+        "rmse_median_m": 0.05558134947039192,
+        "overlap_median": 1.0,
+        "elapsed_s_median": 0.2589258733205497,
+        "reasons": {
+          "CANDIDATE": 3,
+          "HIGH_RESIDUAL": 17
+        }
+      },
+      "diagnostic_result": "FAIL",
+      "operational_result": "BLOCKED_QUALIFICATION",
+      "measured_path_or_height_absolute_accuracy": null
+    }
+  ],
+  "phase_summary": [
+    {
+      "case": "A",
+      "phase": "PRE_ENTRY_UNCLASSIFIED",
+      "map": "old",
+      "attempts": 2,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.199011566753815,
+      "overlap_median": 0.7820163117968761,
+      "reasons": {
+        "HIGH_RESIDUAL": 2
+      }
+    },
+    {
+      "case": "A",
+      "phase": "PRE_ENTRY_UNCLASSIFIED",
+      "map": "new",
+      "attempts": 2,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.05833635894120374,
+      "overlap_median": 1.0,
+      "reasons": {
+        "HIGH_RESIDUAL": 2
+      }
+    },
+    {
+      "case": "A",
+      "phase": "ASCENT",
+      "map": "old",
+      "attempts": 3,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.2306570300182041,
+      "overlap_median": 0.7676240208877284,
+      "reasons": {
+        "HIGH_RESIDUAL": 3
+      }
+    },
+    {
+      "case": "A",
+      "phase": "ASCENT",
+      "map": "new",
+      "attempts": 3,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.06311223435989587,
+      "overlap_median": 1.0,
+      "reasons": {
+        "HIGH_RESIDUAL": 3
+      }
+    },
+    {
+      "case": "A",
+      "phase": "TOP",
+      "map": "old",
+      "attempts": 3,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.23680039935334007,
+      "overlap_median": 0.7819548872180451,
+      "reasons": {
+        "HIGH_RESIDUAL": 3
+      }
+    },
+    {
+      "case": "A",
+      "phase": "TOP",
+      "map": "new",
+      "attempts": 3,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.11503627715082898,
+      "overlap_median": 1.0,
+      "reasons": {
+        "HIGH_RESIDUAL": 3
+      }
+    },
+    {
+      "case": "A",
+      "phase": "DESCENT",
+      "map": "old",
+      "attempts": 3,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.1813775407078774,
+      "overlap_median": 0.7965116279069767,
+      "reasons": {
+        "HIGH_RESIDUAL": 3
+      }
+    },
+    {
+      "case": "A",
+      "phase": "DESCENT",
+      "map": "new",
+      "attempts": 3,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.05057697519393964,
+      "overlap_median": 1.0,
+      "reasons": {
+        "HIGH_RESIDUAL": 3
+      }
+    },
+    {
+      "case": "B",
+      "phase": "PRE_ENTRY_UNCLASSIFIED",
+      "map": "old",
+      "attempts": 2,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.22422350561024695,
+      "overlap_median": 0.7321688405322148,
+      "reasons": {
+        "HIGH_RESIDUAL": 2
+      }
+    },
+    {
+      "case": "B",
+      "phase": "PRE_ENTRY_UNCLASSIFIED",
+      "map": "new",
+      "attempts": 2,
+      "numerical_candidates": 2,
+      "rmse_median_m": 0.04651492089455465,
+      "overlap_median": 1.0,
+      "reasons": {
+        "CANDIDATE": 2
+      }
+    },
+    {
+      "case": "B",
+      "phase": "ASCENT",
+      "map": "old",
+      "attempts": 3,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.1992030993434945,
+      "overlap_median": 0.7406417112299465,
+      "reasons": {
+        "HIGH_RESIDUAL": 3
+      }
+    },
+    {
+      "case": "B",
+      "phase": "ASCENT",
+      "map": "new",
+      "attempts": 3,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.05246125856797679,
+      "overlap_median": 1.0,
+      "reasons": {
+        "HIGH_RESIDUAL": 1,
+        "OUTSIDE_SEED_BOUNDS": 2
+      }
+    },
+    {
+      "case": "B",
+      "phase": "TOP",
+      "map": "old",
+      "attempts": 3,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.16418975808139147,
+      "overlap_median": 0.6736596736596736,
+      "reasons": {
+        "HIGH_RESIDUAL": 3
+      }
+    },
+    {
+      "case": "B",
+      "phase": "TOP",
+      "map": "new",
+      "attempts": 3,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.06633689998566521,
+      "overlap_median": 1.0,
+      "reasons": {
+        "HIGH_RESIDUAL": 3
+      }
+    },
+    {
+      "case": "B",
+      "phase": "DESCENT",
+      "map": "old",
+      "attempts": 3,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.23253747857153068,
+      "overlap_median": 0.6616541353383458,
+      "reasons": {
+        "HIGH_RESIDUAL": 3
+      }
+    },
+    {
+      "case": "B",
+      "phase": "DESCENT",
+      "map": "new",
+      "attempts": 3,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.058708011427017176,
+      "overlap_median": 1.0,
+      "reasons": {
+        "HIGH_RESIDUAL": 3
+      }
+    },
+    {
+      "case": "B",
+      "phase": "STOPPED",
+      "map": "old",
+      "attempts": 1,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.22087589285407938,
+      "overlap_median": 0.6441947565543071,
+      "reasons": {
+        "HIGH_RESIDUAL": 1
+      }
+    },
+    {
+      "case": "B",
+      "phase": "STOPPED",
+      "map": "new",
+      "attempts": 1,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.06568210965225368,
+      "overlap_median": 1.0,
+      "reasons": {
+        "HIGH_RESIDUAL": 1
+      }
+    },
+    {
+      "case": "C",
+      "phase": "PRE_ENTRY_UNCLASSIFIED",
+      "map": "old",
+      "attempts": 3,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.22818861100439564,
+      "overlap_median": 0.6555555555555556,
+      "reasons": {
+        "HIGH_RESIDUAL": 3
+      }
+    },
+    {
+      "case": "C",
+      "phase": "PRE_ENTRY_UNCLASSIFIED",
+      "map": "new",
+      "attempts": 3,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.05740965437304718,
+      "overlap_median": 1.0,
+      "reasons": {
+        "HIGH_RESIDUAL": 3
+      }
+    },
+    {
+      "case": "C",
+      "phase": "ENTRY",
+      "map": "old",
+      "attempts": 3,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.22560182543025806,
+      "overlap_median": 0.7457627118644068,
+      "reasons": {
+        "HIGH_RESIDUAL": 3
+      }
+    },
+    {
+      "case": "C",
+      "phase": "ENTRY",
+      "map": "new",
+      "attempts": 3,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.058338875735885885,
+      "overlap_median": 1.0,
+      "reasons": {
+        "HIGH_RESIDUAL": 3
+      }
+    },
+    {
+      "case": "C",
+      "phase": "ASCENT",
+      "map": "old",
+      "attempts": 3,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.22732387841081877,
+      "overlap_median": 0.6963855421686747,
+      "reasons": {
+        "HIGH_RESIDUAL": 3
+      }
+    },
+    {
+      "case": "C",
+      "phase": "ASCENT",
+      "map": "new",
+      "attempts": 3,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.0742574012840267,
+      "overlap_median": 1.0,
+      "reasons": {
+        "HIGH_RESIDUAL": 3
+      }
+    },
+    {
+      "case": "C",
+      "phase": "TOP",
+      "map": "old",
+      "attempts": 3,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.2104608832801863,
+      "overlap_median": 0.7045454545454546,
+      "reasons": {
+        "HIGH_RESIDUAL": 3
+      }
+    },
+    {
+      "case": "C",
+      "phase": "TOP",
+      "map": "new",
+      "attempts": 3,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.06207953367250039,
+      "overlap_median": 1.0,
+      "reasons": {
+        "HIGH_RESIDUAL": 3
+      }
+    },
+    {
+      "case": "C",
+      "phase": "DESCENT",
+      "map": "old",
+      "attempts": 3,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.20284219024951838,
+      "overlap_median": 0.75,
+      "reasons": {
+        "HIGH_RESIDUAL": 3
+      }
+    },
+    {
+      "case": "C",
+      "phase": "DESCENT",
+      "map": "new",
+      "attempts": 3,
+      "numerical_candidates": 2,
+      "rmse_median_m": 0.048802983895669,
+      "overlap_median": 1.0,
+      "reasons": {
+        "CANDIDATE": 2,
+        "HIGH_RESIDUAL": 1
+      }
+    },
+    {
+      "case": "C",
+      "phase": "DESCENT_COMPLETE",
+      "map": "old",
+      "attempts": 3,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.20211852553160428,
+      "overlap_median": 0.7464114832535885,
+      "reasons": {
+        "HIGH_RESIDUAL": 3
+      }
+    },
+    {
+      "case": "C",
+      "phase": "DESCENT_COMPLETE",
+      "map": "new",
+      "attempts": 3,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.05346038599781251,
+      "overlap_median": 1.0,
+      "reasons": {
+        "HIGH_RESIDUAL": 3
+      }
+    },
+    {
+      "case": "C",
+      "phase": "STOPPED",
+      "map": "old",
+      "attempts": 2,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.20025554403413134,
+      "overlap_median": 0.7457197513151602,
+      "reasons": {
+        "HIGH_RESIDUAL": 2
+      }
+    },
+    {
+      "case": "C",
+      "phase": "STOPPED",
+      "map": "new",
+      "attempts": 2,
+      "numerical_candidates": 1,
+      "rmse_median_m": 0.051141136113182925,
+      "overlap_median": 1.0,
+      "reasons": {
+        "CANDIDATE": 1,
+        "HIGH_RESIDUAL": 1
+      }
+    }
+  ],
+  "C_per_run_reanchor_sensitivity": {
+    "old_reference": {
+      "frames": 20,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.2849925441713258,
+      "overlap_median": 0.6203190351133159,
+      "elapsed_s_median": 0.19858954357914627,
+      "reasons": {
+        "HIGH_RESIDUAL": 2,
+        "LOW_OVERLAP": 9,
+        "OUTSIDE_SEED_BOUNDS": 9
+      }
+    },
+    "new_reference": {
+      "frames": 20,
+      "numerical_candidates": 0,
+      "rmse_median_m": 0.3213002222779209,
+      "overlap_median": 0.6976610848198034,
+      "elapsed_s_median": 0.2548220513854176,
+      "reasons": {
+        "HIGH_RESIDUAL": 10,
+        "OUTSIDE_SEED_BOUNDS": 10
+      }
+    },
+    "BC_first_pose_translation_difference_m": 2.616907250220852,
+    "BC_first_pose_rotation_difference_deg": 39.318018832783785,
+    "difference_is_ground_truth_drift": false
+  },
+  "numerical_candidates_epoch_preserving": {
+    "old": 0,
+    "new": 5,
+    "of_queries": 43,
+    "new_phase_labels": {
+      "B_PRE_ENTRY_UNCLASSIFIED": 2,
+      "C_DESCENT": 2,
+      "C_STOPPED": 1
+    },
+    "moving_stairs_localization_pass_claimed": false
+  },
+  "phase_boundary_quality": {
+    "basis": "chat/operator receipt markers; latency unmeasured; not surveyed physical boundaries",
+    "zero_duration_entry_intervals": [
+      "A",
+      "B"
+    ],
+    "A_stop_marker_outside_capture": true,
+    "C_descent_label_duration_s": 15.904963,
+    "C_descent_LIO_net_displacement_m": 0.014742140797247312,
+    "C_descent_IMU_angular_speed_p95_rad_s": 0.02645096353090316,
+    "marker_timing_warning": "Many physical motion bursts precede phase labels. Candidate labels cannot prove terrain-specific motion success."
+  },
+  "qualification": {
+    "calibration_verified": false,
+    "source_clock_verified": false,
+    "map_axes_and_TF_verified": false,
+    "independent_map_lineage_fully_verified": false,
+    "map_capture_session_later_than_recordings": true,
+    "strict_recorded_real_evaluator": "BLOCKED_QUALIFICATION",
+    "ATE_RPE_absolute_accuracy": null
+  },
+  "execution_incident": {
+    "original_attempt": "NUMERICAL_WORKER_UNAVAILABLE; infrastructure only",
+    "causes": [
+      "child module cwd/PYTHONPATH",
+      "sandbox denied inherited Unix socket"
+    ],
+    "corrected_in": "private local runner environment; no app code change",
+    "final_sweeps_worker_errors": 0,
+    "deadlines_or_gates_changed_to_recover": false
+  },
+  "checks": [
+    {
+      "item": "immutable map intake / revision / hashes",
+      "result": "PASS"
+    },
+    {
+      "item": "exact cloud-odom pairs and all-trace intake",
+      "result": "PASS"
+    },
+    {
+      "item": "same-query old/new representative numerical execution",
+      "result": "PASS"
+    },
+    {
+      "item": "representative terrain numerical quality",
+      "result": "FAIL",
+      "note": "Most representative results fail unchanged gates; continuous replay NOT_RUN"
+    },
+    {
+      "item": "strict recorded-real / absolute accuracy",
+      "result": "BLOCKED_QUALIFICATION"
+    },
+    {
+      "item": "actual Nav2 / button next-goal field test",
+      "result": "BLOCKED_DEPENDENCY",
+      "note": "unchanged frozen first field sweep; not run in this analysis"
+    }
+  ],
+  "device_state": {
+    "dashboard_service": "active",
+    "PID": 43956,
+    "deployed_release": "robot-scope-15706c48c5e6",
+    "deployment_readback_utc": "2026-10-30T12:32:28.485820+00:00",
+    "source_full_hash_verification": "previous C0 deployment receipt; this analysis rechecked PID/cwd/service",
+    "mapping_pipeline": "stopped",
+    "mapping_pipeline_exit": 0,
+    "mapping_stopped_by_this_analysis": false,
+    "preview": "running",
+    "busy_components": [],
+    "unknown_components": [],
+    "control_lease_retained": false,
+    "control_pending_outputs": 0,
+    "navigation_goal": "idle",
+    "operational_3d_selected": null,
+    "activation": "LEGACY_2D",
+    "fastlio_observation": "STOPPED",
+    "physical_stop_verified_by_this_analysis": false,
+    "new_map_operationally_activated": false,
+    "deployment_or_configuration_write": false,
+    "robot_motion_or_posture_commands": 0
+  },
+  "settings_preserved": {
+    "saved_revision": "71933badef736b1361f1162355527488a9350b86a8b4b8865b81c38031100387",
+    "goal_xy_m": 0.1,
+    "goal_yaw_rad": 0.1,
+    "speed_m_s": 0.25,
+    "control_hz": 10,
+    "qualification": "existing C0 receipt; no writes this analysis; Nav2 idle so no active controller parameter readback"
+  },
+  "code_validation": {
+    "application_test_ci_source_changed_since_15706c4": false,
+    "existing_code_ci_41042751838": "success",
+    "prior_report_47f4082_ci_41050588194": "success",
+    "parent_prep_65ea839_ci_41051773748": "success",
+    "this_report_exact_sha_ci": "pending publication; no success claimed"
+  },
+  "remaining_work": [
+    "Verify map origin/axes and each odometry epoch TF independently of registration score",
+    "Reconcile physical phase times with operator receipt labels before terrain-specific grading",
+    "Confirm calibration, source clock and independent map lineage for recorded-real evaluator",
+    "Only after qualification, compare one fixed baseline on the same data; leave yaw/velocity/progress/rear weights unchanged"
+  ],
+  "private_evidence": {
+    "extracted-manifest.json": {
+      "sha256": "a4cfd65dadba2c2c4e73ee2ee04c2a2754ccc77fe003fd4c29bda1f3e953ffe9",
+      "bytes": 578444
+    },
+    "extracted-arrays.npz": {
+      "sha256": "a6c7654eaf13766ac1e71208022f706ce37d9c31f934771ca305327cc84e9077",
+      "bytes": 51039661
+    },
+    "new-terrain-map-manifest-private.json": {
+      "sha256": "0be63fed48cd3821ea4902b9b53b1ad7039741c92e9c3c6e46f3125af71f7af9",
+      "bytes": 796
+    },
+    "operator-common-start-hypothesis-private.json": {
+      "sha256": "c1691cba46e4a747fc3b56aec2ce486345f23a02037cff61a98747595f825c77",
+      "bytes": 5416
+    },
+    "operator-continuous-BC-hypothesis-private.json": {
+      "sha256": "8316dd02c85fe14741c7633575f36d933403e83735317f754ba53d07019b4360",
+      "bytes": 5391
+    },
+    "old-to-new-map-seed.json": {
+      "sha256": "e388ee480856a83d92719446008f32e9b2a10422d47284548e24c81e01408ed3",
+      "bytes": 68752
+    },
+    "BC-preentry-to-old-map-seed.json": {
+      "sha256": "dbfa3bcb9719d7505da6e35ebaa81c408ffa21021d51f84a33a814521eadbc49",
+      "bytes": 68645
+    },
+    "reference-comparison-operator-prior-private.json": {
+      "sha256": "9f0d8922ce0f4ab9556ade475be474e922de74793752b0f2aa75ba8b373ca133",
+      "bytes": 443895
+    },
+    "reference-comparison-continuous-BC-private.json": {
+      "sha256": "3cc2adea4744e9250e9dbaa78188daad8f60e050a8ade2b7626bb968cbc193c4",
+      "bytes": 209890
+    },
+    "reference-comparison-infrastructure-failure-private.json": {
+      "sha256": "270a31d1080b24e12e7ab2090d23a696f1293fdb43c758c9b045714ab0ce989d",
+      "bytes": 81304
+    },
+    "worker-infrastructure-correction.json": {
+      "sha256": "548464a1deb55fe2d2e9cd40ccb19c35827c5e31607c8c4870b1b2d6b8d9ec4f",
+      "bytes": 762
+    },
+    "full-recording-diagnostics-private.json": {
+      "sha256": "12cc1c2ff76489ccaa2ef457988ee80d98d964e4909b3d4c501f0bb879141446",
+      "bytes": 41651
+    },
+    "all-frame-fixed-prior-distances-private.csv": {
+      "sha256": "eb9c5dddd04c9f7c13ff80dd5055d8a8f82423cace4321b745dc5e2c4e8f6c8f",
+      "bytes": 1502598
+    },
+    "old-new-comparison.png": {
+      "sha256": "609859f170b4cd265d737ee6f4697321a23810c810bacee4101ab262dc28a974",
+      "bytes": 268243
+    },
+    "recorded-traces.png": {
+      "sha256": "77c8a807bbdc24ceb8872890b7806b3c87b5e6656d5ecab9992417149d31b455",
+      "bytes": 475780
+    },
+    "post-analysis-readback-private.json": {
+      "sha256": "bcb8804f0cc0615ef64f53c82f64d803e8961fc6927ad857814c54d3ab1b8d30",
+      "bytes": 55105
+    },
+    "post-analysis-deployment-private.json": {
+      "sha256": "eefee939497f2ee1327ce7bb6ed4fb9e11c9e031fc151f5a3ddb85d166cec7c2",
+      "bytes": 254
+    },
+    "evaluate_recorded_frames.py": {
+      "sha256": "688fa7f047923721546a42416092664958ca88ad94340f1e62ae50928c362496",
+      "bytes": 7605
+    },
+    "summarize_full_recordings.py": {
+      "sha256": "f23cc167c4d5949770aeb1f448c5a85ed4c649727e8cd91e6078a2c5a84008d7",
+      "bytes": 9507
+    },
+    "plot_comparison.py": {
+      "sha256": "9587804a4e818b8dd1634a8abf1fb569b0a2d83bc8aa57c385bb7c87f7b7536b",
+      "bytes": 5790
+    }
+  },
+  "environment": {
+    "numpy": "1.26.4",
+    "scipy": "1.11.4",
+    "plotting_runtime_only": true
+  }
+}

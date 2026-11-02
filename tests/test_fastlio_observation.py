@@ -130,11 +130,14 @@ class FakeService:
         self.invocation = "a" * 32
         self.calls = []
         self.failure = False
+        self.started = time.monotonic() - 5
 
     def status(self):
         if self.failure:
             raise OSError("unavailable")
-        return parse_status(text_status(self.state, self.invocation))
+        result = parse_status(text_status(self.state, self.invocation))
+        result["started_monotonic_s"] = self.started if result["active"] else 0.
+        return result
 
     def dispatch(self, action):
         self.calls.append(action)
@@ -144,7 +147,7 @@ class FakeService:
 def session_runtime():
     runtime = idle_runtime()
     runtime.lifecycle.control_bridge_snapshot = lambda: {
-        "systemd": {"active_state": "inactive"}
+        "systemd": {"available": True, "active_state": "inactive"}
     }
     runtime.lifecycle.require_idle = lambda: None
     runtime.agent.set_sources = Mock()
@@ -189,7 +192,7 @@ class SessionTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(ObservationSessionConflict, "control_bridge"):
             await owner.start()
         runtime.lifecycle.control_bridge_snapshot = lambda: {
-            "systemd": {"active_state": "inactive"}
+            "systemd": {"available": True, "active_state": "inactive"}
         }
         await owner.start()
         runtime.mapping._manager._pipeline["state"] = "running"

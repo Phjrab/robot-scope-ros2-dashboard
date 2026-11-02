@@ -1,0 +1,74 @@
+{
+  "captured_at": "2026-10-30T17:42:39.395339+09:00",
+  "requested_start_filename_found": false,
+  "read_sources": [
+    {
+      "name": "00_READ_FIRST.md",
+      "sha256": "88d3c3356fd8b1d392016154828deee8a7e0713387757ee2960bb52bc6704a73"
+    },
+    {
+      "name": "01_C0_MASTER_PROMPT.md",
+      "sha256": "23e474040f245e90fb4369493fd569899ac66c844dca7e352276c4381a37b194"
+    },
+    {
+      "name": "02_VERIFIED_STATUS_AND_GAPS.md",
+      "sha256": "00883fdc7a06e80973df75b8dbc6c897a183d9229031e734358dd0f3438d8580"
+    },
+    {
+      "name": "03_ROUND1_RUNBOOK.md",
+      "sha256": "32a5439bc89d6981f4cf0e8e5e82d3149a075f0c0e29f2c6b5b0300e74b8db68"
+    },
+    {
+      "name": "04_FIELD_PREPARATION_AND_ROLLBACK.md",
+      "sha256": "7c4a58f9198edf41e9408271d9aa67483904f184f90754dc256d8466dae74ac7"
+    },
+    {
+      "name": "05_MINIMUM_COMPLETION_AND_POST_ANALYSIS.md",
+      "sha256": "f83092f06440b6e28d50cf78a0e0811e6180553e8d5610316ae8cb11fec10d0d"
+    },
+    {
+      "name": "06_RESULT_TEMPLATE.md",
+      "sha256": "e070e7ca7142496df4af1f440985560e3847e68d62d9319f84a3507386158051"
+    },
+    {
+      "name": "07_BOUNDARIES_AND_SOURCES.md",
+      "sha256": "d71b4a27f72b9eee2942135e64d3dc6d088417a1cef94b579a7141fb78bf4123"
+    },
+    {
+      "name": "08_COPY_START_MESSAGE.md",
+      "sha256": "48ab1008767ee002c54666ffaa49cebeb9fb634c501ab5853bc581f685301b95"
+    }
+  ],
+  "scope": "20261028 E1-E3 N1-N5 G1-G4 R1-R4; user message supersedes attached instructions",
+  "branch": "review/20261030-c0-3d-field-sweep",
+  "main": "846121b4988ed2932d329020857925558f8f2c79",
+  "reported_device_source": "5154761bba6fa4f171881e61f986901e2b415ed9",
+  "current_device_source": null,
+  "device_mutations": 0,
+  "new_goals_dispatched": 0,
+  "movement_approval": "NOT_REQUESTED_NOT_READY",
+  "config_changes": [],
+  "extension_branches_integrated": [],
+  "original_requirement_files": [
+    {
+      "name": "10_3D_POINT_MAP_EDITING.md",
+      "sha256": "e47f18ebe61323cbcf8f1077f2e9a916723503821060dcdeb80ff26205f5fb42"
+    },
+    {
+      "name": "20_3D_LOCALIZATION_TO_NAV2.md",
+      "sha256": "0bcc1bc68f5b9f0fcddef2c941ad6de6d36f6219402a491210c27d033ea5d914"
+    },
+    {
+      "name": "30_RAMP_LOCALIZATION.md",
+      "sha256": "5f35a499f1d2fc7902cc897b19ff86458f2572690816fd0a3d9a5fddba9174e9"
+    },
+    {
+      "name": "40_MANUAL_GREEN_TEST.md",
+      "sha256": "9f677228ac568efa357f42ebcef4d1b99f858662919722e7fe9a34cb0ec6fa3b"
+    },
+    {
+      "name": "60_ACCEPTANCE_AND_HANDOFF.md",
+      "sha256": "217056191c5a874d07e845ca3524bb37e21d3ee5b6ccaae870deef9eef4bf29b"
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "schema": "c0-post-final-diagnosis-created.v1",
+  "created_at": "2026-10-30T11:44:41.572977+00:00",
+  "results_closed_before": "2026-10-30T20:41:04.578062+09:00",
+  "results_hashes": {
+    "FINAL_ROUND1_RESULTS.md": "00afff02484d967dd7a7a2c0bbbcf9c6ca9658255394d0b66185410e18135d5e",
+    "FINAL_ROUND1_RESULTS.json": "ef82684c76e48ea482b6ce74ee4d8caab7284044e139c6bf80eeb2f232e263ae"
+  },
+  "diagnosis_sha256": "345e1c8b6f8e076df9f9518069e8610c4e06fcddd6f93530d056505fe7a3a179",
+  "source_code_sha": "15706c48c5e6df28be105b6f5bde825dce7c4b1f",
+  "no_additional_runtime_policy_changes": true,
+  "focused_history_browser_reproduction": {
+    "exit": 0,
+    "elapsed_s": 3.0690846140496433,
+    "scope": "one correctly selected existing mock browser reproduction; no robot connection",
+    "source_code_sha": "15706c48c5e6df28be105b6f5bde825dce7c4b1f"
+  },
+  "preservation": {
+    "utc": "2026-10-30T11:44:05.710108+00:00",
+    "comparison_command": "git status --short --branch (same as original manifest)",
+    "user_checkout_status_unchanged": true,
+    "user_checkout_status_sha256": "147a88dfc150b19c7d41597ce9cb6735b6e0f9c3cfb1e341be54639e571ab9cb",
+    "files": [
+      {
+        "name": "robot-scope.env",
+        "original_sha256": "344628b52a68fa7229e1a87e6a3b78788a5f13948ee0b608beccfd3f69e995d5",
+        "current_sha256": "12d37b1b2e34fc00096d68a831f21129252eb773afd095d72deec99f316abd9a",
+        "unchanged": false
+      },
+      {
+        "name": "control.env",
+        "original_sha256": "907820b6a1f9ac51631f9beb22fa0324e66d5d0168664b222e64b3d661f3f524",
+        "current_sha256": "907820b6a1f9ac51631f9beb22fa0324e66d5d0168664b222e64b3d661f3f524",
+        "unchanged": true
+      },
+      {
+        "name": "go2-onboard-operational3d.json",
+        "original_sha256": "987a632cce75423facb52f4cd228cc3e60978c82cb2f0f04f4a64ae0dffecf58",
+        "current_sha256": "987a632cce75423facb52f4cd228cc3e60978c82cb2f0f04f4a64ae0dffecf58",
+        "unchanged": true
+      },
+      {
+        "name": "source-selection.json",
+        "original_sha256": "833ff1ecaaf2b546b89c268ac8758ddd4ce31078de178113efcf464fe5af21ee",
+        "current_sha256": "833ff1ecaaf2b546b89c268ac8758ddd4ce31078de178113efcf464fe5af21ee",
+        "unchanged": true
+      },
+      {
+        "name": "operational-calibration.json",
+        "original_sha256": "5025e83be9014bef40ab6b57970a8f981fd196689e9b7404cd3503668ad28226",
+        "current_sha256": "5025e83be9014bef40ab6b57970a8f981fd196689e9b7404cd3503668ad28226",
+        "unchanged": true
+      },
+      {
+        "name": "presets.json",
+        "original_sha256": "2fd3156a05b35df4cba95d05b12de836ed2b3f35385623446a916433bb3383ab",
+        "current_sha256": "2fd3156a05b35df4cba95d05b12de836ed2b3f35385623446a916433bb3383ab",
+        "unchanged": true
+      }
+    ],
+    "backup_manifest_sha256": "3b8e38be285f00ee69a4a6f91505f10333d40c2c0728825212915ea461320f1d",
+    "previous_comparison_correction": "porcelain output had no branch header while backup included branch header; no actual checkout difference"
+  },
+  "evidence_sha256": {
+    "history-e2e-focused-selected.log": "d567ff2ad4ae700ee637ac762b4bdf3a8c84eb307db524a154bb67d1ac80be7c",
+    "history-e2e-focused.log": "10430d4abdbd108757550247ef54aa526417db51010e4fcac2d0bf16fe54e830",
+    "final-preservation-same-format-private.json": "457d25bc7be45ad94d007e85b84e278305eec5b0a5545fb692a9b1a75bc0b0d3"
+  }
+}

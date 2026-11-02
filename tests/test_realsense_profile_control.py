@@ -114,8 +114,8 @@ class RobotSideRealSenseProfileTests(unittest.TestCase):
         })
         self.assertIsInstance(manager.runner, FixedLocalRealSenseProfileRunner)
         command = manager.runner._command("realsense-profile-status")
-        self.assertEqual(command[:2], ("/usr/bin/python3", "-I"))
-        self.assertTrue(command[2].endswith("robot_scope_realsense_local_command.py"))
+        self.assertEqual(command[:3], ("/usr/bin/python3", "-I", "-B"))
+        self.assertTrue(command[3].endswith("robot_scope_realsense_local_command.py"))
         for action in ("relay-start", "imu-stop", "realsense-profile-1920x1080", "status;id"):
             with self.subTest(action=action):
                 with self.assertRaises(ValueError):
@@ -143,6 +143,31 @@ class RobotSideRealSenseProfileTests(unittest.TestCase):
         self.assertFalse(options["shell"])
         self.assertEqual(set(options["env"]), {"PATH", "LANG", "LC_ALL"})
         self.assertEqual(options["timeout"], 20.0)
+
+    def test_isolated_local_child_import_does_not_write_bytecode(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            (directory / "sibling.py").write_text("VALUE = 'imported'\n", encoding="utf-8")
+            entry = directory / "benign_helper.py"
+            entry.write_text(
+                "import importlib.util, json, pathlib, sys\n"
+                "path = pathlib.Path(__file__).with_name('sibling.py')\n"
+                "spec = importlib.util.spec_from_file_location('sibling', path)\n"
+                "module = importlib.util.module_from_spec(spec)\n"
+                "spec.loader.exec_module(module)\n"
+                "print(json.dumps({'value': module.VALUE, 'action': sys.argv[1], "
+                "'isolated': sys.flags.isolated, 'dont_write_bytecode': sys.dont_write_bytecode}))\n",
+                encoding="utf-8",
+            )
+            with mock.patch("robot_dashboard.realsense_profile.LOCAL_HELPER", entry):
+                result = FixedLocalRealSenseProfileRunner()("realsense-profile-status", 5.0)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(json.loads(result.stdout), {
+                "value": "imported", "action": "realsense-profile-status",
+                "isolated": 1, "dont_write_bytecode": True,
+            })
+            self.assertEqual(list(directory.rglob("*.pyc")), [])
+            self.assertFalse((directory / "__pycache__").exists())
 
     def test_install_document_targets_the_forced_authorized_key_helper(self) -> None:
         install = (ROOT / "docs" / "INSTALL.md").read_text(encoding="utf-8")

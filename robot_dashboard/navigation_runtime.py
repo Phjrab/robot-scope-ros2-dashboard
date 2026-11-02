@@ -42,7 +42,7 @@ from robot_dashboard.localization_diagnostics import (
     MAX_COUNTER,
     SCHEMA as LOCALIZATION_DIAGNOSTICS_SCHEMA,
 )
-from robot_dashboard.relocalization.operational import load_bundle, pose_matrix, write_pose, write_transform
+from robot_dashboard.relocalization.operational import MATCH_TOPIC, load_bundle, pose_matrix, write_pose, write_transform
 
 
 POINT_FIELD_DTYPES: Mapping[int, str] = {
@@ -1066,6 +1066,7 @@ def _build_ros_runtime_node_class() -> type[Any]:
             )
             if self._operational is not None:
                 self.create_subscription(PointCloud2, '/cloud_registered', self._on_registered, qos_profile_sensor_data)
+                self.create_subscription(String, MATCH_TOPIC, self._on_operational_match, 10)
                 self.create_timer(.05, self._poll_operational)
             self.create_timer(0.1, self._on_health_timer)
             self._publish_static_lidar_transform(TransformStamped)
@@ -1243,10 +1244,51 @@ def _build_ros_runtime_node_class() -> type[Any]:
 
         def _operational_status(self):
             state = self._operational.status()
+            state['runtime_instance_generation'] = self._runtime_instance_generation
+            for key in ('accepted_initial_pose', 'estimated_pose'):
+                if state.get(key) is not None:
+                    state[key] = {**state[key], 'runtime_instance_generation': self._runtime_instance_generation}
             state['tf_authority'] = self._transform_authority.snapshot()
             if not state['tf_authority']['ready']:
                 state.update(ready=False, state=state['tf_authority']['reason'])
+                if state.get('estimated_pose') is not None:
+                    state['estimated_pose']['stale'] = True
             return state
+
+        def _on_operational_match(self, message):
+            engine = self._operational
+            request_id = None
+            try:
+                if not isinstance(message.data, str) or len(message.data) > 4096:
+                    raise ValueError('INVALID_MAP_MATCH_COMMAND')
+                request = json.loads(message.data)
+                incoming_id = request.get('request_id')
+                if not isinstance(incoming_id, str) or not 1 <= len(incoming_id) <= 128:
+                    raise ValueError('INVALID_MAP_MATCH_COMMAND')
+                request_id = incoming_id
+                if self.count_publishers(MATCH_TOPIC) != 1:
+                    raise ValueError('MAP_MATCH_PUBLISHER_NOT_UNIQUE')
+                stamp = request.get('stamp_ns')
+                if not isinstance(stamp, str) or not stamp.isdigit() or len(stamp) > 20:
+                    raise ValueError('INVALID_MAP_MATCH_STAMP')
+                age = (int(self.get_clock().now().nanoseconds) - int(stamp)) * 1e-9
+                if not 0 <= age <= .5:
+                    raise ValueError('MAP_MATCH_COMMAND_STALE')
+                expected = {**engine.pose_context(), 'runtime_instance_generation': self._runtime_instance_generation,
+                            'reference_sha256': engine.bundle['localization_3d']['sha256']}
+                if any(request.get(key) != expected[key] for key in expected):
+                    raise ValueError('MAP_MATCH_SOURCE_CHANGED')
+                if not self._transform_authority.ready:
+                    raise ValueError(self._transform_authority.reason)
+                if not self._odom_fresh():
+                    raise ValueError('INITIAL_POSE_ODOMETRY_STALE')
+                engine.start_matching(request.get('initial_pose_stamp_ns'))
+                accepted, reason = True, 'WAITING_MAP_CORRECTION'
+            except (ValueError, TypeError, AttributeError) as exc:
+                accepted, reason = False, str(exc)[:120] or 'INVALID_MAP_MATCH_COMMAND'
+            if request_id is not None:
+                engine.match_receipt = {'request_id': request_id, 'accepted': accepted,
+                    'reason': reason, 'localization_generation': engine.generation}
 
         def _poll_operational(self):
             engine = self._operational
@@ -1434,8 +1476,10 @@ def _build_ros_runtime_node_class() -> type[Any]:
                 try:
                     if not self._transform_authority.ready:
                         raise ValueError(self._transform_authority.reason)
-                    self._operational.reseed(pose_matrix(message))
-                    receipt(True, 'WAITING_MAP_CORRECTION')
+                    stamp = message.header.stamp
+                    self._operational.reseed(pose_matrix(message),
+                        stamp_ns=int(stamp.sec) * 1_000_000_000 + int(stamp.nanosec))
+                    receipt(True, self._operational.reason)
                 except ValueError as exc:
                     receipt(False, str(exc)[:120])
                     self.get_logger().warning(str(exc))

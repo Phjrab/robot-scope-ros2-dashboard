@@ -1,0 +1,880 @@
+{
+  "schema": "c0-final-round1-results.v1",
+  "closed_at": "2026-10-30T20:38:57.374972+09:00",
+  "source_main_sha": "846121b4988ed2932d329020857925558f8f2c79",
+  "actual_deployed_sha": "15706c48c5e6df28be105b6f5bde825dce7c4b1f",
+  "branch": "review/20261030-c0-3d-field-sweep",
+  "preceding_docs_commit": "8d96840ee4f1393535a4c5f70c737cabba58fa2a",
+  "source_manifest_verified_files": 2216,
+  "dashboard_pid": 43956,
+  "dashboard_actual_service": [
+    "robot-scope.service"
+  ],
+  "overlay_sha256": "95c6ee9b0294651c182092031eb4926291946eb8e72be5cf1bfb976219f1754d",
+  "config_hashes": {
+    "robot-scope.env": "12d37b1b2e34fc00096d68a831f21129252eb773afd095d72deec99f316abd9a",
+    "control.env": "907820b6a1f9ac51631f9beb22fa0324e66d5d0168664b222e64b3d661f3f524",
+    "go2-onboard-operational3d.json": "987a632cce75423facb52f4cd228cc3e60978c82cb2f0f04f4a64ae0dffecf58"
+  },
+  "saved_parameters_revision": "71933badef736b1361f1162355527488a9350b86a8b4b8865b81c38031100387",
+  "saved_parameters_values": {
+    "use_rotate_to_heading": false,
+    "rotation_shim_enabled": true,
+    "rotate_to_goal_heading": true,
+    "desired_linear_vel": 0.25,
+    "controller_frequency": 10.0,
+    "lookahead_time": 0.8,
+    "min_lookahead_dist": 0.25,
+    "use_velocity_scaled_lookahead_dist": true,
+    "rotate_to_heading_angular_vel": 0.5,
+    "max_angular_accel": 1.2,
+    "transform_tolerance": 0.3,
+    "closed_loop": false,
+    "angular_dist_threshold": 0.785,
+    "robot_radius": 0.22,
+    "inflation_radius": 0.25,
+    "cost_scaling_factor": 5.0,
+    "min_obstacle_height": -0.5,
+    "max_obstacle_height": 2.0,
+    "obstacle_max_range": 8.0,
+    "raytrace_max_range": 10.0,
+    "always_send_full_costmap": true,
+    "track_unknown_space": true,
+    "xy_goal_tolerance": 0.1,
+    "yaw_goal_tolerance": 0.1,
+    "required_movement_radius": 0.2,
+    "use_astar": true,
+    "enable_stamped_cmd_vel": false
+  },
+  "generated_job_yaml": null,
+  "live_ros_params": "UNAVAILABLE; Nav2 idle",
+  "controller_library_currently_loaded": "NOT_RUN; Nav2 idle",
+  "initial_match": {
+    "job_id": "71b49519f286e357642bb7bf",
+    "job_state": "succeeded",
+    "numerical_result": "FAIL",
+    "reason": "HIGH_RESIDUAL",
+    "candidate_applied": false,
+    "rmse_m": 0.23538279147536598,
+    "overlap": 0.7513513513513513,
+    "delta": {
+      "tilt_deg": 1.9960949016432883,
+      "xy_m": 0.24913364156357806,
+      "yaw_deg": 0.2536507452553142,
+      "z_m": 0.09619604087641669
+    },
+    "bounds": {
+      "tilt_deg": 10,
+      "xy_m": 0.75,
+      "yaw_deg": 25,
+      "z_m": 0.3
+    },
+    "residual_policy": {
+      "enforced": true,
+      "max_rmse_m": 0.05,
+      "original_max_rmse_m": 0.05,
+      "original_passed": false
+    },
+    "scan_points": 185,
+    "map_points": 13546,
+    "runtime_ms": 605.5715560000863,
+    "exact_stamp_rebase": "INVERSE_EXACT_STAMP_FASTLIO_ODOMETRY",
+    "map_revision": "c7d7ce7e04b2fb80519854cc71465f61af9fff210ac72e299105502497401ad5",
+    "reference_source_sha256": "6ec38aa876ffcfe505ee81204d94fa84e1c3cb438ae706a6a6b7fc0048970b5a",
+    "reference_array_sha256": "6c0580ec1aa9365364edbe2f73b660095400e1ff8b421dc50c334579e693c677",
+    "reference_asset_role": "EDITED_FULL_SOURCE",
+    "map_sampling_applied": false,
+    "ambiguity": "OTHER_LOCATIONS_UNVERIFIED"
+  },
+  "rows": [
+    {
+      "id": "V00",
+      "result": "PASS",
+      "scope_or_fact": "Source/PID/cwd/overlay/config audited; original main846121b and actual15706c4 distinct"
+    },
+    {
+      "id": "V01",
+      "result": "PASS",
+      "scope_or_fact": "Software3137/JS700 and representative browser18; actual code157 CI success. Docs8d CI history browser failure retained separately"
+    },
+    {
+      "id": "V02",
+      "result": "PASS",
+      "scope_or_fact": "One full edited PCD saved and re-read with attributes/retained bytes/parent hash preserved; E3 numerical worker reference pin scoped, operational worker blocked"
+    },
+    {
+      "id": "V03",
+      "result": "FAIL",
+      "scope_or_fact": "Fresh operator seed one match HIGH_RESIDUAL .2353827915m > .05m; inadmissible, not applied; actual operational TF/Nav2 downstream blocked"
+    },
+    {
+      "id": "V04",
+      "result": "BLOCKED_DEPENDENCY",
+      "scope_or_fact": "Valid operational source missing. No autonomous goals, no approach/precision arrival measured"
+    },
+    {
+      "id": "V05",
+      "result": "BLOCKED_DEPENDENCY",
+      "scope_or_fact": "No actual Nav2 success/stop/dwell/current source gate; button→one next goal→departure not attempted, no bypass"
+    },
+    {
+      "id": "V06",
+      "result": "PASS",
+      "scope_or_fact": "Scope: three separately authorized manual mixed ramp/stairs raw/IMU/LIO recordings. Stored-map localization remains blocked"
+    },
+    {
+      "id": "V07",
+      "result": "BLOCKED_DEPENDENCY",
+      "scope_or_fact": "Raw/LIO continuity evidence exists; matching/operational TF/scan/costmap inactive, so first ramp-specific map failure boundary and weighting comparison not measured"
+    },
+    {
+      "id": "V08",
+      "result": "PASS",
+      "scope_or_fact": "Scope: clean idle bridge stop and safe reported manual termination; final bridge/observation inactive, zero dashboard command/lease, no jobs. Physical moving autonomous stop and robot ACK not measured"
+    },
+    {
+      "id": "V09",
+      "result": "PASS",
+      "scope_or_fact": "All requirements adjudicated here before separate final diagnosis; original offline/live and seed result closures preserved"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "E1",
+      "title": "영역/Z 선택·제외·undo/redo",
+      "implementation": "기존 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "과거 FIELD_PASS",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V02",
+      "result": "PASS",
+      "evidence": "See preserved LIVE_ROUND1_RESULTS full-source editing verification"
+    },
+    {
+      "id": "E2",
+      "title": "전체 PCD 사본 저장·재조회·속성 보존",
+      "implementation": "기존 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "과거 FIELD_PASS",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V02",
+      "result": "PASS",
+      "evidence": "See preserved LIVE_ROUND1_RESULTS full-source editing verification"
+    },
+    {
+      "id": "E3",
+      "title": "사본 reference hash/revision 실제 worker 일치",
+      "implementation": "기존 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "과거 FIELD_PASS",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V02/V03",
+      "result": "BLOCKED_DEPENDENCY",
+      "evidence": "PASS scoped to actual seeded numerical worker: existing edited reference full XYZ count/revision/source hash matched; persistent operational worker NOT_RUN"
+    },
+    {
+      "id": "N1",
+      "title": "3D/2D map bundle·frame·origin",
+      "implementation": "기존 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "과거 FIELD_PASS",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V03",
+      "result": "BLOCKED_DEPENDENCY",
+      "evidence": "Fresh operator seed attempted once; HIGH_RESIDUAL blocked candidate application and downstream operational source/goal/dwell/release"
+    },
+    {
+      "id": "N2",
+      "title": "브라우저 독립 지속 저장 지도 정합",
+      "implementation": "기존 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "과거 FIELD_PASS",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V03",
+      "result": "BLOCKED_DEPENDENCY",
+      "evidence": "Fresh operator seed attempted once; HIGH_RESIDUAL blocked candidate application and downstream operational source/goal/dwell/release"
+    },
+    {
+      "id": "N3",
+      "title": "TF/body/controller odom 실제 소비",
+      "implementation": "기존 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "과거 FIELD_PASS",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V03",
+      "result": "BLOCKED_DEPENDENCY",
+      "evidence": "Fresh operator seed attempted once; HIGH_RESIDUAL blocked candidate application and downstream operational source/goal/dwell/release"
+    },
+    {
+      "id": "N4",
+      "title": "idle 전환·재시작 비복원·rollback",
+      "implementation": "기존 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "과거 보고/회귀",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V03",
+      "result": "BLOCKED_DEPENDENCY",
+      "evidence": "Idle, selected=null, LEGACY_2D preserved across C0 restart; selected-source transition/rollback NOT_RUN"
+    },
+    {
+      "id": "N5",
+      "title": "새 3D source의 실제 짧은 Nav2 목표",
+      "implementation": "기존 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "기존 허용오차 FIELD_PASS; 정밀 기준 실패",
+      "round1_software": "NOT_RUN",
+      "round1_field": "BLOCKED_OPERATOR",
+      "row": "V04",
+      "result": "BLOCKED_DEPENDENCY",
+      "evidence": "Fresh operator seed attempted once; HIGH_RESIDUAL blocked candidate application and downstream operational source/goal/dwell/release"
+    },
+    {
+      "id": "G1",
+      "title": "시험 모드·현재 stop 이벤트",
+      "implementation": "기존 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "전체 실기 NOT_RUN",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V05",
+      "result": "BLOCKED_DEPENDENCY",
+      "evidence": "Fresh operator seed attempted once; HIGH_RESIDUAL blocked candidate application and downstream operational source/goal/dwell/release"
+    },
+    {
+      "id": "G2",
+      "title": "실제 success·측정 정지 2초 dwell",
+      "implementation": "기존 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "전체 실기 NOT_RUN",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V04/V05",
+      "result": "BLOCKED_DEPENDENCY",
+      "evidence": "Fresh operator seed attempted once; HIGH_RESIDUAL blocked candidate application and downstream operational source/goal/dwell/release"
+    },
+    {
+      "id": "G3",
+      "title": "중복/만료/이전 stop/source 변경 차단",
+      "implementation": "기존 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "software 증거",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V05",
+      "result": "BLOCKED_DEPENDENCY",
+      "evidence": "Existing software negative gates PASS; real mission/source event sequence NOT_RUN"
+    },
+    {
+      "id": "G4",
+      "title": "버튼→다음 goal 1개→실제 출발·종료",
+      "implementation": "기존 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "NOT_RUN",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V05",
+      "result": "BLOCKED_DEPENDENCY",
+      "evidence": "Fresh operator seed attempted once; HIGH_RESIDUAL blocked candidate application and downstream operational source/goal/dwell/release"
+    },
+    {
+      "id": "R1",
+      "title": "평지·진입·상승·정상·하강·복귀 baseline",
+      "implementation": "계측 구현",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "NOT_RUN",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_OPERATOR",
+      "row": "V06",
+      "result": "PASS",
+      "evidence": "PASS for three explicitly approved manual raw/IMU/LIO captures: ramp ascent→stepped descent; stairs ascent→ramp descent; requested repeat ramp ascent→stairs descent. Full same-route ramp round trip not claimed."
+    },
+    {
+      "id": "R2",
+      "title": "동일 입력 후방/측면 후보 비교",
+      "implementation": "운영 미구현/미채택; 조건부",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "NOT_RUN",
+      "round1_software": "NOT_RUN",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V07",
+      "result": "NOT_RUN",
+      "evidence": "Actual private replay inputs now retained. Alternate weighting and adoption NOT_RUN; stored-map baseline quality not active. No policy change or same-input policy comparison."
+    },
+    {
+      "id": "R3",
+      "title": "품질·전방 관측·CPU/지연 손익",
+      "implementation": "지표 기반 구현; 실비교 없음",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "NOT_RUN",
+      "round1_software": "PASS",
+      "round1_field": "BLOCKED_DEPENDENCY",
+      "row": "V07",
+      "result": "NOT_RUN",
+      "evidence": "Actual private replay inputs now retained. Alternate weighting and adoption NOT_RUN; stored-map baseline quality not active. No policy change or same-input policy comparison."
+    },
+    {
+      "id": "R4",
+      "title": "실제 경사로 위치추정 결과",
+      "implementation": "관측 경로 실기 미검증",
+      "deployment_current": "15706c48c5e6df28be105b6f5bde825dce7c4b1f; source manifest verified",
+      "historical_evidence": "NOT_RUN",
+      "round1_software": "NOT_RUN",
+      "round1_field": "BLOCKED_OPERATOR",
+      "row": "V06",
+      "result": "BLOCKED_DEPENDENCY",
+      "evidence": "Stored-map ramp localization BLOCKED_HIGH_RESIDUAL; continuous raw/LIO recorded. No map correction/operational TF/Nav2/scan/costmap or independent ground truth accuracy measurement."
+    }
+  ],
+  "manual_cases": [
+    {
+      "id": "A",
+      "case": "RAMP_ASCENT_TO_STEPPED_DESCENT",
+      "collection_result": "PASS",
+      "db_count": 27,
+      "db_total_bytes": 7081345024,
+      "metadata_sha256": "65153c93afe11031166ba59e2f8e06e6375e594c51eeb2ea222cc1b55dead7cc",
+      "evidence_bundle_sha256": "ac9beca1705be01708ebb3bad454ce922c7e1d819d0424b939177178ed7229aa",
+      "api_samples": 141,
+      "pose_age_max_s": 0.165,
+      "lio_pitch_deg_range": [
+        -6.804546132714412,
+        17.066299291190223
+      ],
+      "lio_roll_deg_range": [
+        -13.04210755384462,
+        5.951226625797119
+      ],
+      "sampled_pose_stamps_strictly_increase": true,
+      "sampled_cloud_stamps_strictly_increase": true,
+      "all_sampled_guards_clear": true,
+      "lio_attitude_basis": "API robot_pose quaternion; batch snapshot not atomic; estimate, not ground truth",
+      "recording_result": {
+        "reason": "TIME_LIMIT",
+        "elapsed_s": 301.929554115,
+        "recorder_exit": 0,
+        "recorder_forced_kill": false,
+        "metadata_present": true,
+        "movement_commands_sent_by_recorder": 0
+      },
+      "topics": {
+        "/Odometry": {
+          "count": 3006,
+          "first_receive_ns": 1793358718042789977,
+          "last_receive_ns": 1793359018546270175,
+          "serialized_bytes": 2176344,
+          "duration_s": 300.503480198,
+          "mean_receive_hz": 9.999884187763893
+        },
+        "/cloud_registered": {
+          "count": 3006,
+          "first_receive_ns": 1793358718043094273,
+          "last_receive_ns": 1793359018546744234,
+          "serialized_bytes": 32644008,
+          "duration_s": 300.503649961,
+          "mean_receive_hz": 9.999878538546854
+        },
+        "/imu/body": {
+          "count": 150288,
+          "first_receive_ns": 1793358717961854302,
+          "last_receive_ns": 1793359018566731061,
+          "serialized_bytes": 48693312,
+          "duration_s": 300.604876759,
+          "mean_receive_hz": 499.94864228529343
+        },
+        "/cloud_registered_body": {
+          "count": 3006,
+          "first_receive_ns": 1793358718045961865,
+          "last_receive_ns": 1793359018550124317,
+          "serialized_bytes": 1971678912,
+          "duration_s": 300.504162452,
+          "mean_receive_hz": 9.999861484381247
+        },
+        "/lidar_points": {
+          "count": 3006,
+          "first_receive_ns": 1793358718025002936,
+          "last_receive_ns": 1793359018520376740,
+          "serialized_bytes": 5001343856,
+          "duration_s": 300.495373804,
+          "mean_receive_hz": 10.00015395232018
+        }
+      },
+      "operator_stages": [
+        {
+          "stage": "ENTRY",
+          "user_label": "진입",
+          "recorded_at_utc": "2026-10-30T11:13:35.858982+00:00",
+          "timing_basis": "USER_MESSAGE_RECEIVED; exact physical boundary time not measured",
+          "ordered_batch": true
+        },
+        {
+          "stage": "ASCENT",
+          "user_label": "상승",
+          "recorded_at_utc": "2026-10-30T11:13:35.858982+00:00",
+          "timing_basis": "USER_MESSAGE_RECEIVED; exact physical boundary time not measured",
+          "ordered_batch": true
+        },
+        {
+          "stage": "TOP",
+          "user_label": "정상",
+          "recorded_at_utc": "2026-10-30T11:14:08.166520+00:00",
+          "timing_basis": "USER_MESSAGE_RECEIVED; exact physical boundary time not measured"
+        },
+        {
+          "stage": "DESCENT",
+          "user_label": "하강",
+          "recorded_at_utc": "2026-10-30T11:14:31.164930+00:00",
+          "timing_basis": "USER_MESSAGE_RECEIVED; exact physical boundary time not measured"
+        },
+        {
+          "event": "OPERATOR_ROUTE_CORRECTION",
+          "recorded_at_utc": "2026-10-30T11:14:54.353033+00:00",
+          "user_text": "진입 상승은 경사로 하강은 계단식",
+          "entry_surface": "RAMP",
+          "ascent_surface": "RAMP",
+          "descent_surface": "STEPPED_OPERATOR_REPORTED",
+          "ramp_descent_verified": false,
+          "new_movement_authorization": false
+        },
+        {
+          "event": "ROUTE_CASE_DECLARATION",
+          "recorded_at_utc": "2026-10-30T11:17:14.203255+00:00",
+          "case": "RAMP_ASCENT_TO_STEPPED_DESCENT",
+          "ascent": "RAMP",
+          "descent": "STEPPED_OPERATOR_REPORTED",
+          "opposite_case_required": "STAIRS_ASCENT_TO_RAMP_DESCENT",
+          "current_operator_stop_confirmation": "PENDING",
+          "first_window_limit_s": 300
+        }
+      ],
+      "operator_stop": {
+        "user_text": "정지중",
+        "recorded_at_utc": "2026-10-30T11:18:17.498970+00:00",
+        "interpretation": "OPERATOR_REPORTED_STOPPED",
+        "flat_return": "NOT_CONFIRMED",
+        "robot_ack": "NOT_MEASURED"
+      }
+    },
+    {
+      "id": "B",
+      "case": "STAIRS_ASCENT_TO_RAMP_DESCENT",
+      "collection_result": "PASS",
+      "db_count": 27,
+      "db_total_bytes": 7081013248,
+      "metadata_sha256": "0c599e8bf8cc31e2eca8aa1af0cb3fca64b651c3fd9cc79332759bb1a61b4209",
+      "evidence_bundle_sha256": "9bf04359c8d423947581888f1f02be8f22488cd59f179fdf6be75d7a78b10561",
+      "api_samples": 142,
+      "pose_age_max_s": 0.248,
+      "lio_pitch_deg_range": [
+        -4.360146955003736,
+        14.834662612955952
+      ],
+      "lio_roll_deg_range": [
+        -5.056016712225744,
+        4.764606702769994
+      ],
+      "sampled_pose_stamps_strictly_increase": true,
+      "sampled_cloud_stamps_strictly_increase": true,
+      "all_sampled_guards_clear": true,
+      "lio_attitude_basis": "API robot_pose quaternion; batch snapshot not atomic; estimate, not ground truth",
+      "recording_result": {
+        "reason": "OPERATOR_FINISHED",
+        "elapsed_s": 295.4203351639999,
+        "recorder_exit": 0,
+        "recorder_forced_kill": false,
+        "metadata_present": true,
+        "movement_commands_sent_by_recorder": 0
+      },
+      "topics": {
+        "/Odometry": {
+          "type": "nav_msgs/msg/Odometry",
+          "count": 2941,
+          "serialized_bytes": 2129284,
+          "first_receive_ns": 1793359503038152014,
+          "last_receive_ns": 1793359797041851207,
+          "header_parse_errors": 0,
+          "duration_s": 294.003699193,
+          "mean_receive_hz": 9.999874178691964,
+          "header_time": {
+            "clock_verified": false,
+            "samples": 2941,
+            "nonincreasing_steps": 0,
+            "max_positive_gap_s": 0.101318836
+          }
+        },
+        "/cloud_registered": {
+          "type": "sensor_msgs/msg/PointCloud2",
+          "count": 2941,
+          "serialized_bytes": 37664468,
+          "first_receive_ns": 1793359503038528119,
+          "last_receive_ns": 1793359797042149423,
+          "header_parse_errors": 0,
+          "duration_s": 294.003621304,
+          "mean_receive_hz": 9.999876827911713,
+          "header_time": {
+            "clock_verified": false,
+            "samples": 2941,
+            "nonincreasing_steps": 0,
+            "max_positive_gap_s": 0.101318836
+          }
+        },
+        "/imu/body": {
+          "type": "sensor_msgs/msg/Imu",
+          "count": 147042,
+          "serialized_bytes": 47641608,
+          "first_receive_ns": 1793359503000169567,
+          "last_receive_ns": 1793359797114149411,
+          "header_parse_errors": 0,
+          "duration_s": 294.113979844,
+          "mean_receive_hz": 499.9456335873307,
+          "header_time": {
+            "clock_verified": false,
+            "samples": 147042,
+            "nonincreasing_steps": 0,
+            "max_positive_gap_s": 0.012171266
+          }
+        },
+        "/cloud_registered_body": {
+          "type": "sensor_msgs/msg/PointCloud2",
+          "count": 2941,
+          "serialized_bytes": 2073664672,
+          "first_receive_ns": 1793359503042043979,
+          "last_receive_ns": 1793359797044758861,
+          "header_parse_errors": 0,
+          "duration_s": 294.002714882,
+          "mean_receive_hz": 9.999907657927542,
+          "header_time": {
+            "clock_verified": false,
+            "samples": 2941,
+            "nonincreasing_steps": 0,
+            "max_positive_gap_s": 0.101318836
+          }
+        },
+        "/lidar_points": {
+          "type": "sensor_msgs/msg/PointCloud2",
+          "count": 2942,
+          "serialized_bytes": 4895720304,
+          "first_receive_ns": 1793359503019101765,
+          "last_receive_ns": 1793359797115943118,
+          "header_parse_errors": 0,
+          "duration_s": 294.096841353,
+          "mean_receive_hz": 10.000107401595525,
+          "header_time": {
+            "clock_verified": false,
+            "samples": 2942,
+            "nonincreasing_steps": 0,
+            "max_positive_gap_s": 0.101218939
+          }
+        }
+      },
+      "operator_stages": [
+        {
+          "event": "ROUTE_CASE_DECLARATION",
+          "recorded_at_utc": "2026-10-30T11:25:21.264861+00:00",
+          "case": "STAIRS_ASCENT_TO_RAMP_DESCENT",
+          "ascent": "STAIRS",
+          "descent": "RAMP",
+          "operator_placement": "Near first-case start, stopped and ready confirmed",
+          "operator_window": "new 5min one manual traversal; no autonomous goal",
+          "observation_session": "9cd70290ae00460f8e4240c87b0d2e44"
+        },
+        {
+          "stage": "ENTRY",
+          "user_label": "계단 진입",
+          "surface": "STAIRS",
+          "recorded_at_utc": "2026-10-30T11:26:34.100120+00:00",
+          "timing_basis": "USER_MESSAGE_RECEIVED; exact physical boundary not measured",
+          "ordered_batch": true
+        },
+        {
+          "stage": "ASCENT",
+          "user_label": "상승",
+          "surface": "STAIRS",
+          "recorded_at_utc": "2026-10-30T11:26:34.100120+00:00",
+          "timing_basis": "USER_MESSAGE_RECEIVED; exact physical boundary not measured",
+          "ordered_batch": true
+        },
+        {
+          "stage": "TOP",
+          "user_label": "정상",
+          "recorded_at_utc": "2026-10-30T11:26:52.782472+00:00",
+          "timing_basis": "USER_MESSAGE_RECEIVED; exact physical boundary not measured"
+        },
+        {
+          "stage": "DESCENT",
+          "user_label": "경사로 하강",
+          "surface": "RAMP",
+          "recorded_at_utc": "2026-10-30T11:27:24.438795+00:00",
+          "timing_basis": "USER_MESSAGE_RECEIVED; exact physical boundary not measured"
+        },
+        {
+          "stage": "STOPPED",
+          "recorded_at_utc": "2026-10-30T11:29:56.491662+00:00",
+          "basis": "OPERATOR_REPORT"
+        }
+      ],
+      "operator_stop": {
+        "user_text": "현재 정지 완료·조건 유지 · 추가 5분 1회 승인",
+        "recorded_at_utc": "2026-10-30T11:29:56.491662+00:00",
+        "interpretation": "OPERATOR_REPORTED_STOPPED",
+        "flat_return": "NOT_INDEPENDENTLY_CONFIRMED",
+        "robot_ack": "NOT_MEASURED"
+      }
+    },
+    {
+      "id": "C",
+      "case": "RAMP_ASCENT_TO_STAIRS_DESCENT_REPEAT",
+      "collection_result": "PASS",
+      "db_count": 24,
+      "db_total_bytes": 6199934976,
+      "metadata_sha256": "89ab4a69593bb6de11c60daa292121588d57a182e2abd6995232dce36c58d34c",
+      "evidence_bundle_sha256": "ab52feff5239262af42a4f13ace2a2663c06f20e8ef37fedd4f88d27e39bd664",
+      "api_samples": 131,
+      "pose_age_max_s": 0.135,
+      "lio_pitch_deg_range": [
+        -9.249136397096537,
+        6.709220534701812
+      ],
+      "lio_roll_deg_range": [
+        -7.0326782867244075,
+        3.105135698907222
+      ],
+      "sampled_pose_stamps_strictly_increase": true,
+      "sampled_cloud_stamps_strictly_increase": true,
+      "all_sampled_guards_clear": true,
+      "lio_attitude_basis": "API robot_pose quaternion; batch snapshot not atomic; estimate, not ground truth",
+      "recording_result": {
+        "reason": "OPERATOR_FINISHED",
+        "elapsed_s": 261.97056366000015,
+        "recorder_exit": 0,
+        "recorder_forced_kill": false,
+        "metadata_present": true,
+        "movement_commands_sent_by_recorder": 0
+      },
+      "topics": {
+        "/lidar_points": {
+          "type": "sensor_msgs/msg/PointCloud2",
+          "count": 2608,
+          "serialized_bytes": 4340117120,
+          "first_receive_ns": 1793359809614715139,
+          "last_receive_ns": 1793360070315035650,
+          "header_parse_errors": 0,
+          "duration_s": 260.700320511,
+          "mean_receive_hz": 9.999987705768856,
+          "header_time": {
+            "clock_verified": false,
+            "samples": 2608,
+            "nonincreasing_steps": 0,
+            "max_positive_gap_s": 0.100936175
+          }
+        },
+        "/cloud_registered_body": {
+          "type": "sensor_msgs/msg/PointCloud2",
+          "count": 2607,
+          "serialized_bytes": 1759313376,
+          "first_receive_ns": 1793359809629046776,
+          "last_receive_ns": 1793360070237783158,
+          "header_parse_errors": 0,
+          "duration_s": 260.608736382,
+          "mean_receive_hz": 9.999664770179185,
+          "header_time": {
+            "clock_verified": false,
+            "samples": 2607,
+            "nonincreasing_steps": 0,
+            "max_positive_gap_s": 0.101036072
+          }
+        },
+        "/imu/body": {
+          "type": "sensor_msgs/msg/Imu",
+          "count": 130354,
+          "serialized_bytes": 42234696,
+          "first_receive_ns": 1793359809585992534,
+          "last_receive_ns": 1793360070329170706,
+          "header_parse_errors": 0,
+          "duration_s": 260.743178172,
+          "mean_receive_hz": 499.92870729684927,
+          "header_time": {
+            "clock_verified": false,
+            "samples": 130354,
+            "nonincreasing_steps": 0,
+            "max_positive_gap_s": 0.013362302
+          }
+        },
+        "/cloud_registered": {
+          "type": "sensor_msgs/msg/PointCloud2",
+          "count": 2607,
+          "serialized_bytes": 35193756,
+          "first_receive_ns": 1793359809626847716,
+          "last_receive_ns": 1793360070236258866,
+          "header_parse_errors": 0,
+          "duration_s": 260.60941115,
+          "mean_receive_hz": 9.99963887911958,
+          "header_time": {
+            "clock_verified": false,
+            "samples": 2607,
+            "nonincreasing_steps": 0,
+            "max_positive_gap_s": 0.101036072
+          }
+        },
+        "/Odometry": {
+          "type": "nav_msgs/msg/Odometry",
+          "count": 2607,
+          "serialized_bytes": 1887468,
+          "first_receive_ns": 1793359809626606494,
+          "last_receive_ns": 1793360070236061773,
+          "header_parse_errors": 0,
+          "duration_s": 260.609455279,
+          "mean_receive_hz": 9.999637185880694,
+          "header_time": {
+            "clock_verified": false,
+            "samples": 2607,
+            "nonincreasing_steps": 0,
+            "max_positive_gap_s": 0.101036072
+          }
+        }
+      },
+      "operator_stages": [
+        {
+          "event": "ROUTE_CASE_DECLARATION",
+          "recorded_at_utc": "2026-10-30T11:30:29.220169+00:00",
+          "case": "RAMP_ASCENT_TO_STAIRS_DESCENT_REPEAT",
+          "repeat_of": "manual-ramp-20261030T111157Z",
+          "ascent": "RAMP",
+          "descent": "STAIRS",
+          "operator_window": "new 5min one additional manual traversal explicitly requested and approved",
+          "observation_session": "9cd70290ae00460f8e4240c87b0d2e44"
+        },
+        {
+          "stage": "ENTRY",
+          "user_label": "진입",
+          "surface": "RAMP",
+          "basis": "current approved route case",
+          "recorded_at_utc": "2026-10-30T11:30:59.790325+00:00",
+          "timing_basis": "USER_MESSAGE_RECEIVED; exact physical boundary not measured"
+        },
+        {
+          "stage": "ASCENT",
+          "user_label": "상승",
+          "surface": "RAMP",
+          "recorded_at_utc": "2026-10-30T11:31:33.080595+00:00",
+          "timing_basis": "USER_MESSAGE_RECEIVED; exact physical boundary not measured"
+        },
+        {
+          "stage": "TOP",
+          "user_label": "정상",
+          "recorded_at_utc": "2026-10-30T11:32:15.271233+00:00",
+          "timing_basis": "USER_MESSAGE_RECEIVED; exact physical boundary not measured"
+        },
+        {
+          "stage": "DESCENT",
+          "user_label": "하강시작",
+          "surface": "STAIRS",
+          "basis": "current explicitly requested and approved route case",
+          "recorded_at_utc": "2026-10-30T11:32:51.277415+00:00",
+          "timing_basis": "USER_MESSAGE_RECEIVED; exact physical boundary not measured"
+        },
+        {
+          "stage": "DESCENT_COMPLETE",
+          "user_label": "하강완료",
+          "surface": "STAIRS",
+          "recorded_at_utc": "2026-10-30T11:33:07.182378+00:00",
+          "timing_basis": "USER_MESSAGE_RECEIVED; exact physical boundary not measured",
+          "stop_confirmation": "PENDING"
+        },
+        {
+          "stage": "STOPPED",
+          "recorded_at_utc": "2026-10-30T11:34:26.108925+00:00",
+          "basis": "OPERATOR_REPORT"
+        }
+      ],
+      "operator_stop": {
+        "user_text": "안전한 위치에서 정지 완료",
+        "recorded_at_utc": "2026-10-30T11:34:26.108925+00:00",
+        "interpretation": "OPERATOR_REPORTED_STOPPED_AT_SAFE_LOCATION",
+        "robot_ack": "NOT_MEASURED",
+        "nav2_arrival_or_dwell_gate": "NOT_RUN; manual stop must not satisfy a Nav2 gate"
+      }
+    }
+  ],
+  "raw_db_total_bytes": 20362293248,
+  "raw_db_total_files": 78,
+  "raw_archive_location": "DEVICE_PRIVATE; metadata/telemetry/hash receipts also recovered to PC private evidence",
+  "manual_trials_requested_and_approved": 3,
+  "autonomous_goals": 0,
+  "candidate_applied": false,
+  "gate_bypasses": 0,
+  "quality_or_nav_policy_changes": [],
+  "extension_branches_merged": [],
+  "all_rows_adjudicated": true,
+  "all_field_requirements_passed": false,
+  "infrastructure_incidents": [
+    {
+      "scope": "stationary preparation before movement",
+      "result": "FAIL",
+      "fact": "First rosbag recorder SIGABRT: SQLite database is locked after concurrent read inspection; metadata absent. Preserved. Stopped doing live DB reads; one replacement recording succeeded. 2GiB cap raised to12GiB for verified input volume; each capture max300s."
+    },
+    {
+      "scope": "second observation preparation",
+      "result": "409_REJECTED",
+      "fact": "Starts rejected raw_capture and navigation ownership at admission; subsequent readback clear. No owner cancellation or gate weakening. Existing UI start after pausing view eventually accepted; actual cause of momentary contention not proven."
+    },
+    {
+      "scope": "final read-only audit",
+      "result": "CORRECTED",
+      "fact": "Guessed dashboard unit and library path not used as evidence. Actual PID cgroup robot-scope.service and overlay install/lib file resolved and audited."
+    }
+  ],
+  "ci": {
+    "deployed_code": {
+      "sha": "15706c48c5e6df28be105b6f5bde825dce7c4b1f",
+      "run_id": 41042751838,
+      "conclusion": "success"
+    },
+    "preceding_docs": {
+      "sha": "8d96840ee4f1393535a4c5f70c737cabba58fa2a",
+      "run_id": 41044928748,
+      "conclusion": "failure",
+      "failed_job": 124026576931,
+      "os_python": "ubuntu-22.04 /3.10",
+      "failure": "global_observation_history.spec.mjs:90; expected synthetic job not found, received IDLE · HISTORICAL_ONLY;226 passed1failed; Ubuntu24 and competition success",
+      "flaky_classification": "NOT_ESTABLISHED"
+    }
+  },
+  "left_state": {
+    "observation": "STOPPED / inactive / PID0 / Result success",
+    "bridge": "inactive / PID0 / Result success",
+    "dashboard": "active / PID43956 / Result success",
+    "nav2_pipeline": "idle",
+    "goal": "idle",
+    "lease_active": false,
+    "command": {
+      "source": null,
+      "deadman": false,
+      "linear_x": 0.0,
+      "linear_y": 0.0,
+      "angular_z": 0.0
+    },
+    "software_stop_latched": false,
+    "operational_activation": "LEGACY_2D",
+    "operational_selected": null,
+    "busy_components": [],
+    "unknown_components": [],
+    "all_owned_recorders_absent": true,
+    "operator_final_stop": "안전한 위치에서 정지 완료",
+    "robot_ack": "NOT_MEASURED",
+    "old_releases_and_backups_preserved": true,
+    "rollback_performed": false
+  },
+  "private_evidence_sha256": {
+    "three-route-first-results-private.json": "4af0e651e1ab0a69ef5b5b841701b547a0d4bf20096218cfa3ac8d3f0b35263c",
+    "final-state-private.json": "c87565908a46dc3ea6d5f69bb229d635123c407165208bd0e19ff784c930048c",
+    "final-device-audit-private.json": "a9b36d1df7d8b91c79815c2f593ae0193749b132c7d5050c58c7914ddfcb90e7",
+    "final-observation-stop-private.json": "62e3f47b8d04c3d16540a542a0bf18d96ff384a77cea382c070fe69613061818"
+  }
+}

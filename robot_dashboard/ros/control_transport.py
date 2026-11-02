@@ -183,6 +183,9 @@ class ControlTransport:
             "message": bridge_key_error or "signed Go2 bridge status waiting",
         }
         self.shutdown_started = False
+        self._observation_inhibit = None
+        self._inhibit_status_sequence = None
+        self._observation_release_receipt = None
 
     @staticmethod
     def _target_policy_unbound() -> None:
@@ -325,6 +328,159 @@ class ControlTransport:
             message = String()
             message.data = encoded
             self.status_callback(message)
+
+    @staticmethod
+    def _inhibit_proof(status):
+        value = status.get("observation_inhibit")
+        if not isinstance(value, dict) or value.get("schema") != "robot-scope.observation-inhibit.v1":
+            raise ValueError("CONTROL_BRIDGE_INHIBIT_UNSUPPORTED")
+        seq, token, source = value.get("sequence"), value.get("token"), value.get("source_id")
+        if (type(seq) is not int or not 0 < seq < 2**63 or type(value.get("violated")) is not bool
+                or (token is None) != (source is None)
+                or (token is not None and (not isinstance(token, str) or len(token) != 32
+                    or any(c not in '0123456789abcdef' for c in token)
+                    or not isinstance(source, str) or not 8 <= len(source) <= 128))):
+            raise ValueError("CONTROL_BRIDGE_INHIBIT_INVALID")
+        ack = value.get('release_ack')
+        if ack is not None and (not isinstance(ack, dict)
+                or not isinstance(ack.get('token'), str) or len(ack['token']) != 32
+                or any(c not in '0123456789abcdef' for c in ack['token'])
+                or not isinstance(ack.get('source_id'), str) or not 8 <= len(ack['source_id']) <= 128
+                or type(ack.get('seq')) is not int or ack['seq'] < 0):
+            raise ValueError('CONTROL_BRIDGE_INHIBIT_INVALID')
+        return value
+
+    def _invalidate_inhibit(self, reason):
+        if self._observation_inhibit is not None:
+            self._observation_inhibit['reason'] = self._observation_inhibit['reason'] or reason
+
+    def _inhibit_status_error(self, now):
+        status = self.status
+        age = now - self.status_received
+        issued = status.get('issued_at_ms')
+        if (self.status_received <= 0 or not 0 <= age <= min(.75, self.status_timeout_s)
+                or type(issued) is not int or abs(time.time() - issued / 1000.) > .75):
+            return 'CONTROL_BRIDGE_INHIBIT_STALE'
+        if (status.get('authenticated') is not True or status.get('available') is not True
+                or status.get('bridge_role', BRIDGE_ROLE_CONTROL) != BRIDGE_ROLE_CONTROL
+                or status.get('state') != 'idle'):
+            return 'CONTROL_BRIDGE_INHIBIT_UNREADY'
+        command = status.get('accepted_command') or {}
+        if (command.get('deadman') is not False
+                or any(type(command.get(k)) not in (int, float) or command[k] != 0
+                       for k in ('linear_x', 'linear_y', 'angular_z'))
+                or (status.get('action_guard') or {}).get('active') is not False):
+            return 'CONTROL_BRIDGE_COMMAND_BUSY'
+        return None
+
+    def _observe_inhibit_status(self, previous_epoch, now):
+        """Called for every authenticated status, under both transport locks."""
+        held = self._observation_inhibit
+        if held is None:
+            return
+        if self.bridge_epoch != held['epoch']:
+            self._invalidate_inhibit('CONTROL_BRIDGE_INHIBIT_EPOCH_CHANGED')
+            return
+        try:
+            proof = self._inhibit_proof(self.status)
+            last = self._inhibit_status_sequence
+            if last is not None and proof['sequence'] <= last:
+                raise ValueError('CONTROL_BRIDGE_INHIBIT_REPLAY')
+            self._inhibit_status_sequence = proof['sequence']
+            error = self._inhibit_status_error(now)
+            if error:
+                raise ValueError(error)
+            ack = proof.get('release_ack') or {}
+            if (held['releasing'] and proof['token'] is None
+                    and ack.get('token') == held['token'] and ack.get('source_id') == self.source_id
+                    and ack.get('seq') == held.get('release_seq')):
+                self._observation_release_receipt = dict(token=held['token'], epoch=held['epoch'], source='signed_release_ack')
+                self._observation_inhibit = None
+                return
+            if proof['token'] == held['token'] and proof['source_id'] == self.source_id:
+                held['acknowledged'] = True
+                if proof['violated']:
+                    raise ValueError('CONTROL_BRIDGE_INHIBIT_VIOLATED')
+            elif held['acknowledged'] or proof['token'] is not None:
+                raise ValueError('CONTROL_BRIDGE_INHIBIT_LOST')
+        except ValueError as exc:
+            self._invalidate_inhibit(str(exc))
+
+    def observation_inhibit_preflight(self):
+        """Read-only; never drain outputs, expire a lease or acquire an inhibit."""
+        with self.operation_lock, self.transport_lock, self.manager._lock:
+            if self._observation_inhibit is not None:
+                return 'CONTROL_BRIDGE_INHIBIT_RETAINED'
+            try:
+                proof = self._inhibit_proof(self.status)
+            except ValueError as exc:
+                return str(exc)
+            error = self._inhibit_status_error(time.monotonic())
+            if error:
+                return error
+            if (proof['token'] is not None or proof['violated'] or not self.go2_target()
+                    or self.shutdown_started or self.command_publisher is None or self.bridge_key is None):
+                return 'CONTROL_BRIDGE_INHIBIT_RETAINED'
+            manager = self.manager
+            if (manager._lease is not None or manager._drive is not None or manager._outputs
+                    or manager._actions or manager._motion_active
+                    or manager._action_guard_until > time.monotonic()):
+                return 'CONTROL_BRIDGE_COMMAND_BUSY'
+            return None
+
+    def begin_observation_inhibit(self):
+        with self.operation_lock, self.transport_lock:
+            reason = self.observation_inhibit_preflight()
+            if reason:
+                raise ValueError(reason)
+            token = secrets.token_hex(16)
+            self._inhibit_status_sequence = self._inhibit_proof(self.status)['sequence']
+            self._observation_inhibit = dict(token=token, epoch=self.bridge_epoch,
+                acknowledged=False, releasing=False, reason=None)
+            if not self._publish_outputs_result([dict(type='observation_inhibit', token=token, enabled=True)]):
+                self._invalidate_inhibit('CONTROL_BRIDGE_INHIBIT_SEND_UNKNOWN')
+            return token
+
+    def observation_inhibit_status(self, token):
+        with self.operation_lock, self.transport_lock:
+            held = self._observation_inhibit
+            if held is None:
+                receipt = self._observation_release_receipt
+                if receipt and receipt['token'] == token:
+                    return dict(state='RELEASED', reason=None, source=receipt['source'])
+                return dict(state='INVALID', reason='CONTROL_BRIDGE_INHIBIT_OWNER_CHANGED')
+            if held['token'] != token:
+                return dict(state='INVALID', reason='CONTROL_BRIDGE_INHIBIT_OWNER_CHANGED')
+            error = self._inhibit_status_error(time.monotonic())
+            if error:
+                self._invalidate_inhibit(error)
+            return dict(state='RELEASING' if held['releasing'] else 'INVALID' if held['reason']
+                        else 'HELD' if held['acknowledged'] else 'WAITING', reason=held['reason'],
+                        source='signed_control_bridge', bridge_epoch=held['epoch'],
+                        status_age_s=max(0., time.monotonic()-self.status_received)
+                        if self.status_received > 0 else None)
+
+    def release_observation_inhibit(self, token):
+        # Caller must first confirm the exact observation service is stopped.
+        with self.operation_lock, self.transport_lock:
+            held = self._observation_inhibit
+            if held is None or held['token'] != token or held['releasing']:
+                return
+            held['releasing'] = True
+            held['release_seq'] = self.bridge_seq + 1
+            if self.bridge_epoch != held['epoch']:
+                self._invalidate_inhibit('CONTROL_BRIDGE_INHIBIT_EPOCH_CHANGED')
+                return
+            if not self._publish_outputs_result([dict(type='observation_inhibit', token=token, enabled=False)]):
+                self._invalidate_inhibit('CONTROL_BRIDGE_INHIBIT_RELEASE_UNKNOWN')
+
+    def forget_observation_inhibit_after_bridge_stop(self, token):
+        # Only the observation owner calls this after an inactive service readback.
+        with self.operation_lock, self.transport_lock:
+            if self._observation_inhibit is not None and self._observation_inhibit['token'] == token:
+                self._observation_release_receipt = dict(token=token,
+                    epoch=self._observation_inhibit['epoch'], source='inactive_systemd_readback')
+                self._observation_inhibit = None
 
     @staticmethod
     def status_bridge_role(payload: Mapping[str, Any]) -> str:
@@ -1115,9 +1271,16 @@ class ControlTransport:
                     self._datagram_sync_epoch = ""
                     self._datagram_sync_required = True
                     self._datagram_sync_pending = None
+                # A fresh callback cannot erase an unobserved stale interval.
+                # Check the previous receipt before replacing it with this one.
+                if self._observation_inhibit is not None and (
+                        self.status_received <= 0
+                        or not 0 <= now - self.status_received <= min(.75, self.status_timeout_s)):
+                    self._invalidate_inhibit('CONTROL_BRIDGE_INHIBIT_STALE')
                 self.bridge_epoch = bridge_epoch
                 self.status_received = now
                 self.status = status
+                self._observe_inhibit_status(previous_epoch, now)
             if previous_epoch and previous_epoch != bridge_epoch:
                 # Revoke the old lease and publish with the newly observed epoch.
                 self.set_readiness(bridge_ready=False, lowstate_ready=False)
@@ -1187,8 +1350,18 @@ class ControlTransport:
                                 (bridge_epoch, self.bridge_seq, now) if sent else None
                             )
                     return
+            # A retained bridge-side hold must also block ARM after dashboard
+            # ownership bookkeeping is lost/restarted. Do not expire or steal
+            # the remote token; only exact release proof restores readiness.
+            with self.transport_lock:
+                control_inhibited = self._observation_inhibit is not None
+                if 'observation_inhibit' in self.status:
+                    try:
+                        control_inhibited = control_inhibited or self._inhibit_proof(self.status)['token'] is not None
+                    except ValueError:
+                        control_inhibited = True
             self.set_readiness(
-                bridge_ready=bridge_ready,
+                bridge_ready=bridge_ready and not control_inhibited,
                 lowstate_ready=lowstate_ready,
             )
 
@@ -1385,6 +1558,7 @@ class ControlTransport:
 
     def set_unready(self, message: str) -> None:
         with self.operation_lock:
+            self._invalidate_inhibit("CONTROL_BRIDGE_INHIBIT_UNREADY")
             with self.transport_lock:
                 if self.transport_mode == CONTROL_TRANSPORT_UDP:
                     self._datagram_sync_required = True
@@ -1429,6 +1603,7 @@ class ControlTransport:
                 }
                 self.status_received = 0.0
         if stale:
+            self._invalidate_inhibit("CONTROL_BRIDGE_INHIBIT_STALE")
             self.set_readiness(bridge_ready=False, lowstate_ready=False)
         return stale
 
@@ -1457,6 +1632,9 @@ class ControlTransport:
             "seq": sequence,
             "bridge_epoch": bridge_epoch,
         }
+        if kind == "observation_inhibit":
+            envelope.update(token=output["token"], enabled=output["enabled"])
+            return envelope
         if kind == "drive":
             velocity = output.get("velocity")
             if not isinstance(velocity, dict):
@@ -1509,6 +1687,9 @@ class ControlTransport:
                 return False
             try:
                 for output in outputs:
+                    if self._observation_inhibit is not None and output.get("type") in {"drive", "action"}:
+                        self._invalidate_inhibit("CONTROL_BRIDGE_COMMAND_DURING_OBSERVATION")
+                        continue  # Stop remains deliverable, even in a mixed batch.
                     self.bridge_seq += 1
                     envelope = self.bridge_envelope(
                         output,

@@ -2,11 +2,27 @@
 from __future__ import annotations
 
 import hashlib
+from collections import Counter
 import json
 import os
 from pathlib import Path
 import sys
 import time
+
+
+def _retained_candidate_metadata(value):
+    """Describe only the pinned backend's retained list, never search-space completeness."""
+    candidates = value.get("candidates")
+    if not isinstance(candidates, list):
+        return None
+    attempts = [item.get("attempt") if isinstance(item, dict) else None for item in candidates]
+    if (not 6 <= len(candidates) <= 18 or any(type(x) is not int or not 0 <= x < 6 for x in attempts)
+            or set(attempts) != set(range(6)) or any(n > 3 for n in Counter(attempts).values())):
+        return None
+    raw = json.dumps(candidates, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+    return {"schema": "robot-scope.retained-candidates.v1", "count": len(candidates),
+            "attempts": sorted(set(attempts)), "sha256": hashlib.sha256(raw).hexdigest(),
+            "scope": "PINNED_V031_RETAINED_SUBSET_NOT_GLOBAL_EXHAUSTIVE"}
 
 
 def main(folder: Path) -> None:
@@ -68,6 +84,10 @@ def main(folder: Path) -> None:
         raise ValueError("expected one complete observation")
     if reviewed:
         apply_ambiguity_override(values[0], allow_ambiguous=allow_ambiguous)
+        # This describes only the completed retained output of the reviewed source.
+        retention = _retained_candidate_metadata(values[0]) if context.get('retained_candidates_requested') is True else None
+        if retention is not None:
+            values[0]["candidate_retention"] = retention
     encoded = json.dumps(values[0], allow_nan=False, separators=(",", ":")).encode()
     if not 0 < len(encoded) <= 65_536:
         raise ValueError("result exceeds limit; diagnostics were not truncated")

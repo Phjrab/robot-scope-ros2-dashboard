@@ -27,6 +27,8 @@ jobs:
           python -m pip install -r requirements.txt -r requirements-competition-offline.txt
           npm ci --ignore-scripts
           npx playwright install --with-deps chromium
+      - name: C0 exact-source ASGI preparation and full application flow
+        run: python scripts/check_c0_prior_integration.py --output /tmp/c0-prior-integration
       - name: Installed core, authorization, replay and default-OFF boundaries
         run: python -m unittest discover -s tests/integration_i0 -t . -v
       - name: Deny undeclared optional HTTP clients
@@ -62,4 +64,5 @@ jobs:
             i0-cone-results/**/*.png
             i0-cone-results/**/trace.zip
             i0-timer.json
+            /tmp/c0-prior-integration/
           if-no-files-found: ignore

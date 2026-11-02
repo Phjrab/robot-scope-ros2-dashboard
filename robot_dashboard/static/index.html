@@ -668,6 +668,8 @@
           <article class="navigation-status-card"><span>GOAL</span><strong id="navigationGoalState">IDLE</strong><small id="navigationGoalNote">목표 없음</small></article>
         </section>
 
+        <article class="panel navigation-preparation-panel" id="navigationPreparation" aria-label="단계별 주행 준비"></article>
+
         <section class="navigation-main-grid">
           <article class="panel navigation-map-panel">
             <div class="panel-header">
@@ -675,7 +677,8 @@
               <div class="panel-state waiting" id="navigationMapState"><span></span>NO MAP</div>
             </div>
             <div class="navigation-map-toolbar">
-              <label><span>정적 2D 지도</span><select id="navigationMapSelect"><option value="">저장된 2D 지도 없음</option></select></label>
+              <label><span>3D 위치추정 지도</span><select id="navigationLocalizationMapSelect"><option value="">3D 위치추정 지도 선택</option></select></label>
+              <label><span>2D 경로 계산 지도</span><select id="navigationMapSelect"><option value="">저장된 2D 지도 없음</option></select></label>
               <div class="navigation-pipeline-actions">
                 <button id="navigationStartButton" class="navigation-primary" type="button" disabled>START NAV2</button>
                 <button id="navigationStopButton" class="navigation-danger" type="button" disabled>STOP</button>
@@ -686,6 +689,7 @@
               <div class="navigation-map-empty" id="navigationMapEmpty"><strong>STATIC MAP REQUIRED</strong><small>Saved Maps에서 2D YAML·PGM 지도를 준비하세요.</small></div>
               <div class="navigation-map-hint" id="navigationMapHint">도구를 선택한 뒤 지도에서 로봇 위치를 누르고 진행 방향으로 드래그하세요.</div>
             </div>
+            <p class="navigation-pose-legend">청록색 점·방향: 사용자 INITIAL POSE · 녹색 로봇: 정합 후 추정 위치 · 회색 로봇: 마지막 위치(오래됨) · 노랑/보라: 목표 위치·방향</p>
             <div class="navigation-pose-toolbar">
               <div class="navigation-pose-tools" role="group" aria-label="지도 상호작용 도구">
                 <button id="navigationInitialPoseTool" type="button" data-navigation-tool="initial"><span>①</span> INITIAL POSE</button>

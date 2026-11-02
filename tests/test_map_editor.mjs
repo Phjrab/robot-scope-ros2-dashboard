@@ -112,8 +112,20 @@ test('Saved Maps exposes PDF 09 conversion parameters, progress and safe backgro
   assert.match(appSource, /주의: FREE는 PCD 경계 사각형의 미관측 영역까지 자유공간으로 처리합니다/);
 });
 
-test('conversion uses only manageable binary PCD and the backend operation contract', () => {
-  assert.match(appSource, /entry\.kind === 'pointcloud3d' && entry\.manageable && entry\.format === 'pcd-binary'/);
+test('conversion includes full immutable PCD without granting rename/delete rights', () => {
+  const edited = Object.freeze({ kind:'pointcloud3d', format:'pcd-binary', manageable:false,
+    schema:'robot-scope.pcd-edited-map.v1', asset_role:'full_source', units:'m' });
+  assert.equal(editor.canConvertPcd(edited), true);
+  assert.equal(edited.manageable, false);
+  assert.equal(editor.canConvertPcd({ kind:'pointcloud3d', format:'pcd-binary', manageable:true }), true);
+  for (const value of [null, {}, {...edited,schema:null}, {...edited,asset_role:'preview'},
+    {...edited,units:'mm'}, {...edited,format:'pcd-ascii'}, {...edited,kind:'occupancy2d'}]) {
+    assert.equal(editor.canConvertPcd(value), false);
+  }
+  assert.match(appSource, /savedMapCatalog\.filter\(\(entry\) => mapEditorEngine\.canConvertPcd\(entry\)\)/);
+});
+
+test('conversion preserves the existing backend operation contract', () => {
   assert.match(appSource, /\/api\/v1\/saved-maps\/\$\{encodeURIComponent\(source\.id\)\}\/convert-2d/);
   for (const field of ['z_min', 'z_max', 'resolution', 'noise_radius', 'min_neighbors', 'background']) {
     assert.match(appSource, new RegExp(`${field}[:,]`));
@@ -146,6 +158,39 @@ test('conversion status is bound only to the reserved backend job id', () => {
   assert.equal(matchesJob({ jobId: 'a'.repeat(32) }, { job_id: 'a'.repeat(32) }), true);
   assert.equal(matchesJob({ jobId: 'a'.repeat(32) }, { job_id: 'b'.repeat(32) }), false);
   assert.equal(matchesJob({ jobId: 'a'.repeat(32) }, { state: 'idle', job_id: null }), false);
+});
+
+test('cached topic render cannot cancel a newly accepted conversion reservation', async () => {
+  const start = appSource.indexOf('function renderMappingControl(');
+  const end = appSource.indexOf('\nasync function refreshMappingControl()', start);
+  const calls = [];
+  const noop = () => {};
+  const node = { classList: { remove: noop, add: noop } };
+  const ui = new Proxy({}, { get: () => node });
+  const render = new Function('mappingControlSnapshot', 'ui', 'captureStickyLogScroll',
+    'hasFreshLaserMap', 'latestState', 'mappingPipelineActive', 'setStatePill',
+    'mappingLogLines', 'scheduleMappingLogScroll', 'mapConversionMatches',
+    'renderMapConversionOperation', `${appSource.slice(start, end)}; return renderMappingControl;`);
+  const cached = { operation: { state: 'idle', job_id: null } };
+  const run = render(cached, ui, noop, () => false, {}, () => false, noop,
+    [], noop, () => false, (operation) => calls.push(operation));
+  // POST reserved job A, while topics still hold the pre-POST idle snapshot.
+  run();
+  assert.deepEqual(calls, []);
+  cached.operation = { state: 'saving', job_id: 'a'.repeat(32), kind: 'pcd_to_2d' };
+  run({ trackConversion: true });
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].job_id, 'a'.repeat(32));
+  cached.operation = { state: 'succeeded', job_id: 'a'.repeat(32), kind: 'pcd_to_2d' };
+  run({ trackConversion: true });
+  assert.equal(calls[1].state, 'succeeded');
+  // A genuinely fresh mismatching/idle response must still reach the guard.
+  cached.operation = { state: 'idle', job_id: null };
+  run({ trackConversion: true });
+  assert.equal(calls[2].job_id, null);
+  const refresh = appSource.slice(end, appSource.indexOf('\nasync function startMappingSession', end));
+  assert.match(refresh, /requestGeneration !== mappingControlRequestGeneration/);
+  assert.match(refresh, /renderMappingControl\(\{ trackConversion: true \}\)/);
 });
 
 test('2D editor exposes brush, eraser, semantic values and non-destructive history', () => {

@@ -1,0 +1,157 @@
+{
+  "schema": "c0-validation.v1",
+  "completed_at": "2026-10-30T17:50:59.369959+09:00",
+  "source_sha": "846121b4988ed2932d329020857925558f8f2c79",
+  "product_source_changed": false,
+  "checks": [
+    {
+      "name": "python_full_pinned",
+      "result": "PASS",
+      "run": 3132,
+      "passed": 3130,
+      "skipped": 2,
+      "duration_s": 97.346,
+      "exit_code": 0,
+      "command": "C2_CROSS_REQUIRED=1 python -m unittest discover -s tests -v",
+      "python": "3.12",
+      "input": "SOFTWARE/SYNTHETIC",
+      "log": "python-unittest-pinned.log",
+      "skips": [
+        "optional SVG plotting dependency absent",
+        "optional rosbags backend not installed"
+      ],
+      "log_sha256": "5081b56ab4b48cda02d4cb5dcd93d1ce98ef8c0e8881a53b08e2aa0f35777abf"
+    },
+    {
+      "name": "python_c0_core",
+      "result": "PASS",
+      "run": 157,
+      "exit_code": 0,
+      "command": "PYTHONPATH=tests python -m unittest test_pcd_editing_codec test_pcd_editing_store test_pcd_editing_integration test_operational_3d_localization test_operational_navigation_bundle test_operational_navigation_api test_operational_runtime_binding test_operational_transform_authority test_operator_test_navigation test_goal_evidence_sink -v",
+      "log": "python-targeted-host.log",
+      "log_sha256": "c22f8942224be89b80a03b1cb48684c15e55bb2cc7a50163fa53d6c177c69668"
+    },
+    {
+      "name": "javascript_full",
+      "result": "PASS",
+      "run": 700,
+      "exit_code": 0,
+      "command": "node --test tests/*.mjs",
+      "node": "20.20.2",
+      "log": "javascript-unit-host.log",
+      "log_sha256": "775db897e472b43dd0d40121dce520ea67e02ce68df18f8e235c24bc4f80ce78"
+    },
+    {
+      "name": "chromium_representative",
+      "result": "PASS",
+      "run": 18,
+      "exit_code": 0,
+      "command": "PCD_EDIT_TEST_PYTHON=<existing-venv-python> PLAYWRIGHT_BROWSERS_PATH=<existing-browser-cache> node node_modules/@playwright/test/cli.js test tests/e2e/map_editor3d.spec.mjs tests/e2e/map_editor3d_full_source.spec.mjs tests/e2e/operational_navigation.spec.mjs tests/e2e/navigation_goal_urdf.spec.mjs --reporter=line",
+      "playwright": "1.62.1",
+      "input": "SYNTHETIC real browser with mock backend/temporary PCD store; no robot IO",
+      "log": "browser-e2e.log",
+      "log_sha256": "c863faba712aa0a6aa31850141f58cf492b4557a50b7e646416dcac2de7a23ca"
+    },
+    {
+      "name": "ruff",
+      "result": "PASS",
+      "exit_code": 0,
+      "command": "python -m ruff check robot_dashboard scripts",
+      "log": "ruff.log",
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "name": "mypy",
+      "result": "PASS",
+      "exit_code": 0,
+      "configured_files": 4,
+      "command": "python -m mypy --config-file mypy.ini",
+      "log": "mypy.log",
+      "log_sha256": "71144743c83babea384888a735db0c4daba3d4d7b7942b6839984bd5c21b52bb"
+    },
+    {
+      "name": "javascript_syntax",
+      "result": "PASS",
+      "exit_code": 0,
+      "modules": 112,
+      "command": "node scripts/check_frontend_syntax.mjs",
+      "node": "20.20.2",
+      "log": "javascript-syntax-node20.log",
+      "log_sha256": "c36cf76ce9fbdcddace4eea32781a3431bd0ae9127e0ccf6c9926aa08ce8af8e"
+    },
+    {
+      "name": "repository_secret_scan",
+      "result": "PASS",
+      "exit_code": 0,
+      "command": "python scripts/check_repository_secrets.py",
+      "log": "secrets.log",
+      "log_sha256": "f51365351584839cc9f4c5f0d4f0c9ead3ca82b9668aee614bb118f7edb4ae66"
+    }
+  ],
+  "historical_test_inputs_fetched_without_merge": [
+    "765622ecbe20dd29b40296dd2ad24fa508ac9443",
+    "380800ca9e211495769fe60ee8221e3f4fb40f16",
+    "9e9ebcc0cbc613d5b0a7f50a27a7b256c3f829bd"
+  ],
+  "preparation_attempts": [
+    {
+      "kind": "git DNS in sandbox",
+      "result": "FAILED_ENVIRONMENT",
+      "resolution": "read-only network-enabled fetch"
+    },
+    {
+      "kind": "javascript runner sandbox",
+      "observed": 77,
+      "meaning": "file-exit count only, not counted as 700 assertions",
+      "resolution": "host Node20 700 test results"
+    },
+    {
+      "kind": "browser local server sandbox",
+      "result": "EPERM before tests",
+      "resolution": "host bounded fixture run18 PASS"
+    },
+    {
+      "kind": "python asyncio sandbox",
+      "result": "no progress, interrupted by C0; no completed full-suite result claimed",
+      "resolution": "host bounded targeted157 and full3132"
+    },
+    {
+      "kind": "Node18 syntax",
+      "result": "ES module syntax failure",
+      "resolution": "existing required Node20 checked112 modules"
+    },
+    {
+      "kind": "first host full",
+      "run": 3099,
+      "skipped": 5,
+      "result": "PASS_WITH_MISSING_HISTORICAL_INPUTS",
+      "resolution": "fetched fixed CI inputs, final full3132 skipped2"
+    }
+  ],
+  "baseline_ci": {
+    "source_sha": "846121b4988ed2932d329020857925558f8f2c79",
+    "run_id": 41001998475,
+    "status": "completed",
+    "conclusion": "failure",
+    "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41001998475",
+    "job_id": 123888307012,
+    "failure": "20s test timeout at tests/e2e/navigation_goal_urdf.spec.mjs:114 stale-map GOAL label poll",
+    "other_jobs": [
+      "ubuntu22.04/3.10 success",
+      "competition-offline-integration success"
+    ],
+    "local_representative_reproduced": false
+  },
+  "c0_publication_ci": "Read exact pushed C0 SHA after publication; not substituted by baseline or device CI",
+  "private_evidence_manifest_sha256": "4da3e2b4604af31378ae9f988426e75f11cbc5677039746a83c19c68c0a1deb2",
+  "field_evidence_available": false,
+  "device_connection_probe": "No route to host",
+  "device_mutations": 0,
+  "goals_dispatched": 0,
+  "cleanup": {
+    "c0_created_node_modules_symlink_removed": true,
+    "sandbox_hung_test_processes_interrupted": true,
+    "local_test_server_and_browser_fixture_finished": true,
+    "device_cleanup": "UNOBSERVED; no device mutations"
+  }
+}

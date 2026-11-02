@@ -784,6 +784,13 @@ class NavigationCoordinator:
                 map_revision,
             )
 
+            operational_preflight = getattr(manager, 'operational_preflight', None)
+            if operational_preflight is not None:
+                try:
+                    await asyncio.to_thread(operational_preflight, map_id, map_revision)
+                except ValueError as exc:
+                    raise NavigationConflict(str(exc)) from exc
+
             # Reject every control gate before a cold mapping launch can have
             # any process side effect.
             await asyncio.to_thread(self._agent.navigation_start_preflight)
@@ -1131,6 +1138,12 @@ class NavigationCoordinator:
                 y=y,
                 yaw=yaw,
             )
+            handoff_check = getattr(self._jobs, "operational_initial_pose_check", None)
+            if handoff_check is not None:
+                try:
+                    await asyncio.to_thread(handoff_check, map_id, map_revision, pose)
+                except ValueError as exc:
+                    raise NavigationConflict(str(exc)) from exc
             await asyncio.to_thread(
                 self._agent.navigation_set_initial_pose,
                 map_id=map_id,
@@ -2401,14 +2414,23 @@ class NavigationCoordinator:
             result["calibration_assistant"] = dict(calibration)
         diagnostics = (runtime.get("runtime_health") or {}).get("localization_diagnostics")
         runtime_health = runtime.get("runtime_health") or {}
+        expected_source = getattr(self._jobs, 'operational_expected_source', None)
+        if expected_source is not None and pipeline_state in {'starting', 'running', 'stopping'} and manager_map:
+            result['operational_expected'] = expected_source(
+                pipeline.get('job_id'), manager_map.get('id'), manager_map.get('revision'))
         operational = runtime_health.get("operational_3d")
         if isinstance(operational, Mapping):
             result["operational_localization"] = {
+                **dict(operational),
                 "fresh": runtime_health.get("fresh") is True,
                 "state": operational.get("state"),
                 "ready": operational.get("ready") is True,
                 "metrics": dict(operational.get("metrics") or {}),
             }
+            if runtime_health.get('runtime_instance_generation') is not None:
+                result['operational_localization']['runtime_instance_generation'] = runtime_health['runtime_instance_generation']
+            if (result.get('pipeline') or {}).get('job_id') is not None:
+                result['operational_localization']['job_id'] = result['pipeline']['job_id']
         result["localization_diagnostics"] = dict(diagnostics) if isinstance(diagnostics, Mapping) else None
         result["localization_diagnostics_unavailable_reason"] = None if isinstance(diagnostics, Mapping) else "unobservable"
         deactivation_reason = runtime.get("deactivation_reason")

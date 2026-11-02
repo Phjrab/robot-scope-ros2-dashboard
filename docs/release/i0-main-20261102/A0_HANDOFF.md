@@ -1,3 +1,5 @@
+> 최신 통합·현장 검증 기준은 [C0+I0 A0 인계](../c0-main-20261102/A0_HANDOFF.md)다. 아래 C0 미인수·실패·작업 분담은 당시 기록으로 보존하며, A0는 통합된 main에서 검증을 이어간다.
+
 # A0 인계 — I0 main 소스 통합, 장비 미실행
 
 이번 인수는 검증된 I0 `ae41a9b6cf5cf5c7c133e818e3fad4693eb2053e` 전체와 main CI trigger 보완이다. C0는 병합하지 않았다. 모든 확장 기능은 기본 OFF이며 `BLOCKED_AUTH`, `BLOCKED_NATIVE_IDENTITY`, `ADVISORY_ONLY`, `DEVICE_NOT_RUN`을 유지한다. 게시 전 코드/workflow 후보 `2c9bdd15bcfe49886716bd78975886a89bfd218a`의 hosted CI 4개 job은 모두 성공했다. 최종 main/CI는 [MERGE_REPORT](MERGE_REPORT.md), [CI_COVERAGE](CI_COVERAGE.md) 및 최종 전달 receipt를 함께 확인한다.

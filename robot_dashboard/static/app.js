@@ -21,6 +21,8 @@ import { initializeControlBridgeServiceFeature } from './features/control/bridge
 import { connectionButtonLabel, connectionOutcomeNote, createReleaseAckTracker, overviewUnavailableReason, renderHeaderConnections, robotTargetLabel } from './features/control/session_contract.js';
 import { initializeNavigationLogFeature } from './features/navigation/log_controller.js';
 import { createNavigationPresetCatalog, initializeNavigationPresetFeature } from './features/navigation/presets.js';
+import { initializeNavigationPreparation } from './features/navigation/preparation.js';
+import { createPreNavigationDraftController, navigationMapCandidatesFrom, navigationCanvasPointFrom, navigationActiveMapMatches, operatorDraftSnapshot, renderDraftControls } from './features/navigation/pose_draft.js';
 import { createDatasetFeature } from './features/datasets/capture.js';
 import { renderSavedMapDownloadState } from './features/maps/download.js';
 import { initializeSavedMapObservations } from './features/maps/global_observation_integration.js';
@@ -488,6 +490,7 @@ let handledMappingOperation = '';
 let mappingControlRequestGeneration = 0;
 const navigationEngine = window.RobotNavigation;
 let navigationSnapshot = null;
+let navigationPreparation = null;
 let navigationStatusBusy = false;
 let navigationStatusRequestGeneration = 0;
 let navigationOperationBusy = false;
@@ -517,7 +520,8 @@ let navigationMapSourceCanvas = null;
 let navigationMapCells = null;
 let navigationMapLayout = null;
 let navigationMapTool = '';
-let navigationStagedPose = null;
+let navigationStagedPose = null, navigationDraftRevision = 0;
+let navigationPreDraftToolBinding = null;
 let navigationPointer = null;
 let navigationRenderFrame = 0;
 let mapAnnotationFeature = null, mapCropFeature = null;
@@ -1588,7 +1592,7 @@ function updateSavedMapManagement() {
 }
 
 function conversionCloudMaps() {
-  return savedMapCatalog.filter((entry) => entry.kind === 'pointcloud3d' && entry.manageable && entry.format === 'pcd-binary');
+  return savedMapCatalog.filter((entry) => mapEditorEngine.canConvertPcd(entry));
 }
 
 function renderMapConversionFeedback(kind, label, message, progress = 0) {
@@ -2729,7 +2733,7 @@ function scheduleMappingLogScroll(scrollSnapshot) {
   });
 }
 
-function renderMappingControl() {
+function renderMappingControl({ trackConversion = false } = {}) {
   if (!mappingControlSnapshot) return;
   const logScrollSnapshot = captureStickyLogScroll(ui.mappingLog);
   const pipeline = mappingControlSnapshot.pipeline || {};
@@ -2797,7 +2801,9 @@ function renderMappingControl() {
       }
     }
   }
-  renderMapConversionOperation(operation);
+  // Topic refreshes also render this cached snapshot. Only a new mapping
+  // response may invalidate an accepted conversion reservation.
+  if (trackConversion) renderMapConversionOperation(operation);
 }
 
 async function refreshMappingControl() {
@@ -2813,7 +2819,7 @@ async function refreshMappingControl() {
     mappingLogLines = mappingLogLines.slice(-80);
     mappingLogCursor = Number(payload.log_cursor || mappingLogCursor);
     mappingControlSnapshot = payload;
-    renderMappingControl();
+    renderMappingControl({ trackConversion: true });
   } catch (error) {
     if (requestGeneration !== mappingControlRequestGeneration) return;
     if (mapConversionTrackingExpired()) {
@@ -3401,28 +3407,10 @@ function navigationManualControlConflict() {
   );
 }
 
-function navigationMapCandidates() {
-  return savedMapCatalog.filter((entry) => (
-    entry.kind === 'occupancy2d' &&
-    entry.format === 'map-server-pgm' &&
-    typeof entry.revision === 'string' &&
-    entry.revision.length > 0
-  ));
-}
-
+function navigationMapCandidates() { return navigationMapCandidatesFrom(savedMapCatalog); }
 function navigationActiveMapMatchesSelection() {
-  if (!navigationEngine?.pipelineActive(navigationSnapshot)) return true;
-  const active = navigationSnapshot?.map || {};
-  const activeId = String(active.id || '');
-  const activeRevision = String(active.revision || '');
-  return Boolean(
-    activeId &&
-    activeRevision &&
-    navigationSelectedMapMeta?.id === activeId &&
-    String(navigationSelectedMapMeta?.revision || '') === activeRevision &&
-    String(navigationMapSnapshot?.revision || '') === activeRevision &&
-    navigationMapCandidates().some((entry) => entry.id === activeId && String(entry.revision || '') === activeRevision)
-  );
+  return navigationActiveMapMatches(navigationEngine?.pipelineActive(navigationSnapshot), navigationSnapshot?.map,
+    navigationSelectedMapMeta, navigationMapSnapshot, navigationMapCandidates());
 }
 
 async function syncNavigationMapOptions() {
@@ -3564,11 +3552,10 @@ async function loadNavigationMap(meta) {
 function drawNavigationPoseMarker(...args) {
   return navigationEngine?.drawPoseMarker(...args);
 }
-
 function drawNavigationPosePreview(context, layout, pose, ratio, state = 'staged') {
   if (!pose || !navigationEngine.worldToCanvas(layout, pose).inside) return;
   const preview = navigationEngine.navigationPosePreview(savedScene3d, context, layout, pose, state);
-  drawNavigationPoseMarker(context, layout, pose, preview.color, preview.label, ratio, state !== 'staged' && state !== 'current', preview.drawn);
+  drawNavigationPoseMarker(context, layout, pose, preview.color, pose.preBinding && pose.stale ? '초안 · 미확인' : preview.label, ratio, (pose.preBinding && pose.stale) || (state !== 'staged' && state !== 'current'), preview.drawn);
 }
 
 function drawNavigationMap() {
@@ -3615,11 +3602,14 @@ function drawNavigationMap() {
     }
     const goalOverlay = navigationEngine.goalPoseOverlay(navigationSnapshot, navigationMapSnapshot);
     if (goalOverlay) drawNavigationPosePreview(context, layout, goalOverlay.pose, ratio, goalOverlay.state);
+    const initialOverlay = navigationEngine.initialPoseOverlay(navigationSnapshot, navigationMapSnapshot);
+    if (initialOverlay) drawNavigationPosePreview(context, layout, initialOverlay, ratio, 'accepted');
     if (navigationStagedPose) {
       drawNavigationPosePreview(context, layout, navigationStagedPose, ratio);
     }
     // Keep the measured current robot visible above planned pose overlays.
-    const currentRobot = navigationEngine.currentRobotOverlay(navigationSnapshot, navigationMapSnapshot);
+    const currentRobot = navigationEngine.currentRobotOverlay(navigationSnapshot, navigationMapSnapshot,
+      { requireOperational: Boolean(navigationPreparation?.state()?.selected) });
     if (currentRobot) drawNavigationPosePreview(context, layout, currentRobot, ratio, 'current');
   } catch (error) {
     navigationMapLayout = null;
@@ -3637,15 +3627,7 @@ function scheduleNavigationMapDraw() {
   });
 }
 
-function navigationCanvasPoint(event) {
-  const bounds = ui.navigationMapCanvas.getBoundingClientRect();
-  if (!bounds.width || !bounds.height) return null;
-  return {
-    x: (event.clientX - bounds.left) * (ui.navigationMapCanvas.width / bounds.width),
-    y: (event.clientY - bounds.top) * (ui.navigationMapCanvas.height / bounds.height),
-  };
-}
-
+function navigationCanvasPoint(event) { return navigationCanvasPointFrom(ui.navigationMapCanvas, event); }
 function navigationPoseToolAllowed(mode) {
   const state = String(navigationSnapshot?.pipeline?.state || '').toLowerCase();
   const robotOnline = navigationSnapshot?.robot_online === true;
@@ -3654,60 +3636,78 @@ function navigationPoseToolAllowed(mode) {
   if (!navigationApiAvailable || state !== 'running' || !robotOnline || manualConflict || !navigationMapSnapshot || !navigationActiveMapMatchesSelection()) return false;
   if (mode === 'initial') return safety.can_set_initial_pose === true;
   return safety.can_send_goal === true &&
+    navigationPreparation?.permitsGoal() !== false &&
     String(navigationSnapshot?.localization?.state || '').toLowerCase() === 'localized' &&
     !navigationEngine?.goalActive(navigationSnapshot);
 }
 
+// Pre-navigation placement is a local, non-sendable draft bound to its entire context.
+const preNavigationDraft = createPreNavigationDraftController({
+  inputs: () => { const context = navigationPreparation?.draftContext(), status = context?.state;
+    return { selected: status?.selected, pair: status?.pair, mapMeta: navigationSelectedMapMeta,
+      mapData: navigationMapSnapshot, maps: savedMapCatalog, selected2d: ui.navigationMapSelect.value,
+      selected3d: $('#navigationLocalizationMapSelect').value, navigation: navigationSnapshot, epoch: context?.epoch,
+      navigationAvailable: navigationApiAvailable === true, preparationAvailable: context?.available === true, observing: context?.observing === true, observationAction: context?.observationAction, available: navigationApiAvailable && context?.available === true }; },
+  binding: () => navigationPointer?.preBinding || navigationStagedPose?.preBinding || navigationPreDraftToolBinding,
+  clear: () => { navigationMapTool = ''; navigationPreDraftToolBinding = null; discardNavigationPose(false); },
+  suspend: () => { if (navigationStagedPose?.preBinding) navigationStagedPose.stale = true; navigationPointer = null; navigationMapTool = ''; navigationPreDraftToolBinding = null; ui.navigationMapCanvas?.classList.remove('is-dragging'); },
+  archive: () => { if (navigationPointer) discardNavigationPose(false); else if (navigationStagedPose?.preBinding) { navigationStagedPose.stale = true; navigationStagedPose.historical = true; } navigationPointer = null; navigationMapTool = ''; navigationPreDraftToolBinding = null; },
+});
+const currentPreNavigationDraftBinding = () => preNavigationDraft.current();
+const invalidatePreNavigationDraft = () => preNavigationDraft.invalidate();
+const getOperatorDraft = () => operatorDraftSnapshot({ staged: navigationStagedPose, pointer: navigationPointer, toolBinding: navigationPreDraftToolBinding, currentBinding: currentPreNavigationDraftBinding(), revision: navigationDraftRevision });
+function navigationPosePlacementAllowed(mode) {
+  return navigationPoseToolAllowed(mode) || (mode === 'initial' && Boolean(currentPreNavigationDraftBinding()));
+}
+
 function renderNavigationPoseSelection() {
-  const initialAllowed = navigationPoseToolAllowed('initial');
-  const goalAllowed = navigationPoseToolAllowed('goal');
-  ui.navigationInitialPoseTool.disabled = navigationOperationBusy || !initialAllowed;
-  ui.navigationGoalPoseTool.disabled = navigationOperationBusy || !goalAllowed;
-  ui.navigationInitialPoseTool.classList.toggle('is-active', navigationMapTool === 'initial');
-  ui.navigationGoalPoseTool.classList.toggle('is-active', navigationMapTool === 'goal');
-  ui.navigationInitialPoseTool.setAttribute('aria-pressed', navigationMapTool === 'initial' ? 'true' : 'false');
-  ui.navigationGoalPoseTool.setAttribute('aria-pressed', navigationMapTool === 'goal' ? 'true' : 'false');
-  const staged = navigationStagedPose;
-  ui.navigationPoseMode.textContent = staged
-    ? `${staged.mode === 'initial' ? 'INITIAL' : 'GOAL'} · STAGED`
-    : navigationMapTool ? `${navigationMapTool === 'initial' ? 'INITIAL' : 'GOAL'} · DRAW ON MAP` : 'NO TOOL';
-  ui.navigationPoseCoordinates.textContent = staged
-    ? `X ${staged.x.toFixed(3)} · Y ${staged.y.toFixed(3)} · YAW ${staged.yaw.toFixed(3)} · ${staged.mode === 'initial' ? '초기 위치' : '목표 정지 자세'} 미리보기 (URDF 또는 방향 마커)`
-    : 'X — · Y — · YAW —';
-  const stagedAllowed = staged && navigationPoseToolAllowed(staged.mode);
-  ui.navigationPoseDiscard.disabled = !staged || navigationOperationBusy;
-  ui.navigationPoseSend.disabled = !stagedAllowed || navigationOperationBusy;
-  ui.navigationPoseSend.textContent = staged?.mode === 'goal' ? 'SEND GOAL' : 'SEND POSE';
+  invalidatePreNavigationDraft();
+  if (navigationStagedPose?.reconfirmBinding && preNavigationDraft.runtime({ ...navigationStagedPose, historical: true, preBinding: navigationStagedPose.historyBinding }) !== navigationStagedPose.reconfirmBinding) { const old = navigationStagedPose; navigationStagedPose = { mode: 'initial', x: old.x, y: old.y, yaw: old.yaw, preBinding: old.historyBinding, historical: true, stale: true }; navigationMapTool = ''; invalidatePreNavigationDraft(); }
+  renderDraftControls({ ui, initialAllowed: navigationPosePlacementAllowed('initial'), goalAllowed: navigationPosePlacementAllowed('goal'),
+    busy: navigationOperationBusy, tool: navigationMapTool, toolBinding: navigationPreDraftToolBinding,
+    staged: navigationStagedPose, sendAllowed: navigationPoseToolAllowed });
 }
 
 function discardNavigationPose(render = true) {
   navigationPointer = null;
-  navigationStagedPose = null;
+  navigationStagedPose = null; navigationDraftRevision++;
   ui.navigationMapCanvas?.classList.remove('is-dragging');
   if (render) {
     renderNavigationPoseSelection();
-    drawNavigationMap();
+    drawNavigationMap(); navigationPreparation?.draftChanged();
   }
 }
 
 function selectNavigationTool(mode) {
+  invalidatePreNavigationDraft();
   const normalized = mode === 'goal' ? 'goal' : 'initial';
-  if (!navigationPoseToolAllowed(normalized)) {
+  if (normalized === 'initial' && navigationStagedPose?.historical && navigationPoseToolAllowed('initial')) {
+    const previous = navigationStagedPose, key = preNavigationDraft.runtime(previous);
+    if (!key) { showToast('이전 초안의 지도·실행 문맥을 확인할 수 없습니다. 다시 지정하세요.', true); return; }
+    if (!window.confirm('이전 사용자 초안이 현재 정지 위치와 방향에 맞는지 직접 확인했나요? 확인 후에도 SEND POSE를 별도로 눌러야 합니다.')) return;
+    if (preNavigationDraft.runtime(previous) !== key || !navigationPoseToolAllowed('initial')) return;
+    navigationStagedPose = { mode: 'initial', x: previous.x, y: previous.y, yaw: previous.yaw, historyBinding: previous.preBinding, reconfirmBinding: key };
+    navigationMapTool = ''; navigationDraftRevision++; renderNavigationPoseSelection(); drawNavigationMap(); navigationPreparation?.draftChanged(); return;
+  }
+  if (!navigationPosePlacementAllowed(normalized)) {
     showToast(normalized === 'goal' ? '목표 전송 조건이 준비되지 않았습니다.' : '초기 위치 지정 조건이 준비되지 않았습니다.', true);
     return;
   }
   mapAnnotationFeature?.cancelDrawing({ render: false });
-  navigationMapTool = navigationMapTool === normalized ? '' : normalized;
+  navigationDraftRevision++; navigationMapTool = navigationMapTool === normalized ? '' : normalized;
+  navigationPreDraftToolBinding = navigationMapTool === 'initial' && !navigationPoseToolAllowed('initial') ? currentPreNavigationDraftBinding() : null;
   navigationStagedPose = null;
   renderNavigationPoseSelection();
-  drawNavigationMap();
+  drawNavigationMap(); navigationPreparation?.draftChanged();
 }
 
 function beginNavigationPose(event) {
   const canvasPoint = navigationCanvasPoint(event);
   if (mapAnnotationFeature?.beginPointer(event, canvasPoint)) return;
   if (event.button !== 0 || !navigationMapTool || navigationOperationBusy || !navigationMapLayout) return;
-  if (!navigationPoseToolAllowed(navigationMapTool)) return;
+  invalidatePreNavigationDraft();
+  if (!navigationMapTool || !navigationPosePlacementAllowed(navigationMapTool)) return;
+  const preBinding = navigationPreDraftToolBinding;
   const point = navigationCanvasPoint(event);
   let occupancy = null;
   try {
@@ -3727,15 +3727,19 @@ function beginNavigationPose(event) {
   }
   event.preventDefault();
   ui.navigationMapHint.classList.remove('is-error');
-  ui.navigationMapHint.textContent = '진행 방향으로 드래그한 뒤 SEND 버튼으로 확인하세요.';
+  ui.navigationMapHint.textContent = preBinding ? '방향을 드래그해 미전송 로컬 초안을 표시합니다. 실제 위치·높이·기울기의 확인이 아닙니다.' : '진행 방향으로 드래그한 뒤 SEND 버튼으로 확인하세요.';
   try { ui.navigationMapCanvas.setPointerCapture(event.pointerId); } catch (_) {}
-  navigationPointer = { id: event.pointerId, start: point, end: point, mode: navigationMapTool };
+  navigationPointer = { id: event.pointerId, start: point, end: point, mode: navigationMapTool, preBinding };
   ui.navigationMapCanvas.classList.add('is-dragging');
   updateNavigationStagedPose();
 }
 
 function updateNavigationStagedPose() {
+  invalidatePreNavigationDraft();
   if (!navigationPointer || !navigationMapLayout) return;
+  if (navigationPointer.preBinding && Math.hypot(navigationPointer.end.x - navigationPointer.start.x, navigationPointer.end.y - navigationPointer.start.y) < 4) {
+    navigationStagedPose = null; renderNavigationPoseSelection(); scheduleNavigationMapDraw(); return;
+  }
   const fallbackYaw = Number(navigationSnapshot?.localization?.pose?.yaw) || 0;
   const pose = navigationEngine.poseFromDrag(
     navigationMapLayout,
@@ -3743,7 +3747,7 @@ function updateNavigationStagedPose() {
     navigationPointer.end,
     fallbackYaw,
   );
-  navigationStagedPose = pose ? { mode: navigationPointer.mode, ...pose } : null;
+  navigationStagedPose = pose ? { mode: navigationPointer.mode, ...pose, ...(navigationPointer.preBinding ? { preBinding: navigationPointer.preBinding } : {}) } : null;
   renderNavigationPoseSelection();
   scheduleNavigationMapDraw();
 }
@@ -3764,10 +3768,10 @@ function finishNavigationPose(event) {
   const point = navigationCanvasPoint(event);
   if (point) navigationPointer.end = point;
   updateNavigationStagedPose();
-  navigationPointer = null;
+  navigationPointer = null; navigationDraftRevision++;
   ui.navigationMapCanvas.classList.remove('is-dragging');
   try { ui.navigationMapCanvas.releasePointerCapture(event.pointerId); } catch (_) {}
-  renderNavigationPoseSelection();
+  renderNavigationPoseSelection(); navigationPreparation?.draftChanged();
 }
 
 function navigationStatusCard(strong, note, state, label, message) {
@@ -3800,13 +3804,13 @@ function navigationBlockerMessage(blocker) {
 }
 
 function formatNavigationMetric(value, suffix = '', digits = 2) {
-  const number = Number(value);
-  return Number.isFinite(number) ? `${number.toFixed(digits)}${suffix}` : '—';
+  return typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(digits)}${suffix}` : '—';
 }
+function formatNavigationCount(value) { return Number.isSafeInteger(value) && value >= 0 ? String(value) : '—'; }
 
 function renderNavigationHealth(snapshot) {
   const health = snapshot?.localization_health;
-  const metrics = health?.metrics;
+  const metrics = snapshot?.session_mode === 'idle' || health?.reason_code === 'NAVIGATION_INACTIVE' ? null : health?.metrics;
   const state = String(health?.state || 'UNAVAILABLE').toUpperCase();
   const tone = state === 'READY' ? 'ok' : ['STALE', 'DISCONTINUITY', 'FRAME_MISMATCH', 'CALIBRATION_SUSPECTED'].includes(state) ? 'error' : 'waiting';
   setStatePill(ui.navigationHealthState, tone, state);
@@ -3818,10 +3822,10 @@ function renderNavigationHealth(snapshot) {
     ['POINTCLOUD', formatNavigationMetric(metrics?.cloud_frequency_hz, ' Hz'), `jitter ${formatNavigationMetric(metrics?.cloud_jitter_s, ' s', 3)} · age ${formatNavigationMetric(metrics?.cloud_age_s, ' s', 3)} · health ${formatNavigationMetric(metrics?.runtime_health_age_s, ' s', 3)}`],
     ['ODOMETRY', formatNavigationMetric(metrics?.odometry_frequency_hz, ' Hz'), `jitter ${formatNavigationMetric(metrics?.odometry_jitter_s, ' s', 3)} · age ${formatNavigationMetric(metrics?.odometry_age_s, ' s', 3)}`],
     ['TF AGE', formatNavigationMetric(metrics?.tf_age_s, ' s', 3), `map→odom ${formatNavigationMetric(metrics?.map_to_odom_age_s, ' s', 3)} · odom→base ${formatNavigationMetric(metrics?.odom_to_base_age_s, ' s', 3)}`],
-    ['FAST-LIO JUMPS', `${Number(metrics?.translation_jump_count) || 0} / ${Number(metrics?.heading_jump_count) || 0}`, 'translation / heading'],
-    ['SCAN POINTS', `${Number(metrics?.accepted_points) || 0} / ${Number(metrics?.input_points) || 0}`, 'accepted / input'],
+    ['FAST-LIO JUMPS', `${formatNavigationCount(metrics?.translation_jump_count)} / ${formatNavigationCount(metrics?.heading_jump_count)}`, 'translation / heading'],
+    ['SCAN POINTS', `${formatNavigationCount(metrics?.accepted_points)} / ${formatNavigationCount(metrics?.input_points)}`, 'accepted / input'],
     ['GOAL PROGRESS', formatNavigationMetric(metrics?.goal_progress_rate_mps, ' m/s', 3), `remaining ${formatNavigationMetric(metrics?.goal_remaining_distance_m, ' m')} · stall ${formatNavigationMetric(metrics?.controller_stall_duration_s, ' s')}`],
-    ['COSTMAP CLEARS', String(Number(metrics?.costmap_clear_count) || 0), `fresh sequence ${Number(metrics?.fresh_sequence_count) || 0}`],
+    ['COSTMAP CLEARS', formatNavigationCount(metrics?.costmap_clear_count), `fresh sequence ${formatNavigationCount(metrics?.fresh_sequence_count)}`],
   ];
   ui.navigationHealthMetrics.replaceChildren(...rows.map(([label, value, note]) => {
     const row = document.createElement('div');
@@ -4027,7 +4031,7 @@ function renderNavigationStatus() {
   const canStart = available && robotOnline && mapReady && parameterReady &&
     safety.can_start === true && !pipelineActive && !manualConflict;
   const canStop = safety.can_stop === true || pipelineActive;
-  ui.navigationStartButton.disabled = navigationOperationBusy || manualConflict || !canStart;
+  ui.navigationStartButton.disabled = navigationOperationBusy || manualConflict || !canStart || navigationPreparation?.canStart() === false;
   ui.navigationStartButton.textContent = startupPending ? 'STARTING…' : 'START NAV2';
   ui.navigationStopButton.textContent = startupPending ? 'STOP STARTUP' : 'STOP';
   ui.navigationStopButton.disabled = (navigationOperationBusy && navigationOperationKind !== 'start') || !canStop;
@@ -4052,12 +4056,14 @@ function renderNavigationStatus() {
   syncNavigationParameterControls();
   scheduleNavigationMapDraw();
   navigationLogFeature?.render();
+  navigationPreparation?.render();
 }
 
 function applyNavigationSnapshot(payload) {
   const snapshot = extractNavigationSnapshot(payload);
   if (!snapshot) throw new Error('서버가 유효한 navigation snapshot을 반환하지 않았습니다.');
   navigationSnapshot = snapshot;
+  void navigationPreparation?.refresh();
   navigationApiAvailable = true;
   renderNavigationStatus();
   renderControlStatus();
@@ -4112,6 +4118,10 @@ async function runNavigationMutation(path, body, successMessage) {
 }
 
 async function startNavigation() {
+  if (navigationPreparation?.canStart() === false) {
+    showToast('선택한 3D·2D 지도 연결과 초기 높이·기울기를 단계별 준비 화면에서 먼저 확인하세요.', true);
+    return;
+  }
   if (mapAnnotationFeature?.hasDirty() || mapAnnotationFeature?.hasActiveTool()) {
     showToast('지도 주석을 저장하거나 DISCARD한 뒤 Nav2를 시작하세요.', true);
     return;
@@ -4141,7 +4151,7 @@ async function stopNavigation() {
 
 async function sendNavigationPose() {
   const staged = navigationStagedPose;
-  if (!staged || !navigationSelectedMapMeta || !navigationPoseToolAllowed(staged.mode)) return;
+  if (!staged || staged.preBinding || !navigationSelectedMapMeta || !navigationPoseToolAllowed(staged.mode) || (staged.reconfirmBinding && preNavigationDraft.runtime({ ...staged, historical: true, preBinding: staged.historyBinding }) !== staged.reconfirmBinding)) return;
   if (navigationManualControlConflict()) {
     showToast('수동 제어가 활성화되어 위치·목표 명령을 보낼 수 없습니다.', true);
     return;
@@ -4158,7 +4168,8 @@ async function sendNavigationPose() {
   if (staged.mode === 'goal') body.confirmed = true;
   const response = await runNavigationMutation(endpoint, {
     ...body,
-  }, staged.mode === 'goal' ? 'Nav2 목표를 전송했습니다.' : '초기 위치를 접수했습니다. 정합 완료 후 Goal Pose가 활성화됩니다.');
+  }, staged.mode === 'goal' ? 'Nav2 목표를 전송했습니다.' : navigationPreparation?.state()?.selected?.workflow === 'staged_navigation_pair'
+    ? '초기 위치를 접수했습니다. 단계별 준비 ⑤에서 정합 시작을 누르세요.' : '초기 위치를 접수했습니다. 정합 완료 후 Goal Pose가 활성화됩니다.');
   if (response) {
     navigationMapTool = '';
     discardNavigationPose();
@@ -6705,6 +6716,13 @@ mapAnnotationFeature = mapAnnotationEngine?.createFeature({
     if (snapshot) navigationSnapshot = snapshot;
   },
 });
+navigationPreparation = initializeNavigationPreparation({
+  host: $('#navigationPreparation'), map3dSelect: $('#navigationLocalizationMapSelect'), map2dSelect: ui.navigationMapSelect,
+  api, getOperatorDraft, context: () => ({ maps: savedMapCatalog, map: navigationSelectedMapMeta, navigation: navigationSnapshot, busy: navigationOperationBusy }),
+  onChange: renderNavigationStatus,
+  actions: { refresh: refreshNavigation },
+});
+void navigationPreparation.refresh(true);
 ui.navigationMapSelect.addEventListener('change', () => {
   const selected = navigationMapCandidates().find((entry) => entry.id === ui.navigationMapSelect.value);
   if (!selected) return;
@@ -6758,6 +6776,8 @@ document.addEventListener('visibilitychange', () => {
   }
   syncCameraTransport();
 });
+window.addEventListener('blur', () => { if (navigationPointer?.preBinding || navigationStagedPose?.preBinding || navigationPreDraftToolBinding) { preNavigationDraft.suspend(); renderNavigationPoseSelection(); scheduleNavigationMapDraw(); } });
+document.addEventListener('visibilitychange', () => { if (document.hidden && (navigationPointer?.preBinding || navigationStagedPose?.preBinding || navigationPreDraftToolBinding)) { preNavigationDraft.suspend(); renderNavigationPoseSelection(); scheduleNavigationMapDraw(); } });
 window.addEventListener('pagehide', () => {
   if (controlArmBusy) invalidatePendingArm();
   if (controlLeaseId) failSafeDisarm('page_hidden');

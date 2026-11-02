@@ -143,7 +143,7 @@ def main() -> int:
         raise ValueError("SCOPE_WORKER_CHANGED_BEFORE_EXEC")
     if args.socket_fd is not None:
         os.set_inheritable(args.socket_fd, True)
-    argv = [os.sys.executable, "-I", str(worker), str(folder)]
+    argv = [os.sys.executable, "-I", "-B", str(worker), str(folder)]
     if args.socket_fd is not None:
         argv.append(str(args.socket_fd))
     os.execv(os.sys.executable, argv)

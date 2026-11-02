@@ -300,12 +300,22 @@ test('locked parameters and occupancy safety are enforced by the rendered contro
   assert.match(indexSource, /SOFTWARE STOP은 물리 E-stop이 아니므로/);
 });
 
-test('active navigation map is pinned to its exact catalog revision', () => {
+test('active navigation map is pinned to its exact catalog revision', async () => {
+  const source = readFileSync(new URL('../robot_dashboard/static/features/navigation/pose_draft.js', import.meta.url), 'utf8');
+  const { navigationActiveMapMatches: matches } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+  const active = { id: 'map-id', revision: 'revision' };
+  assert.equal(matches(true, active, active, active, [active]), true);
+  for (const [selected, loaded, catalog] of [
+    [{ ...active, id: 'other' }, active, [active]],
+    [{ ...active, revision: 'other' }, active, [active]],
+    [active, { ...active, revision: 'other' }, [active]],
+    [active, active, [{ ...active, id: 'other' }]],
+    [active, active, [{ ...active, revision: 'other' }]],
+    [null, active, [active]],
+  ]) assert.equal(matches(true, active, selected, loaded, catalog), false);
+  assert.equal(matches(true, {}, active, active, [active]), false);
   assert.match(appSource, /function navigationActiveMapMatchesSelection\(\)/);
-  assert.match(appSource, /navigationSelectedMapMeta\?\.id === activeId/);
-  assert.match(appSource, /navigationSelectedMapMeta\?\.revision \|\| ''\) === activeRevision/);
-  assert.match(appSource, /navigationMapSnapshot\?\.revision \|\| ''\) === activeRevision/);
-  assert.match(appSource, /entry\.id === activeId && String\(entry\.revision \|\| ''\) === activeRevision/);
+  assert.match(appSource, /return navigationActiveMapMatches\(navigationEngine\?\.pipelineActive\(navigationSnapshot\), navigationSnapshot\?\.map,\s*navigationSelectedMapMeta, navigationMapSnapshot, navigationMapCandidates\(\)\)/);
   assert.match(appSource, /pipelineActive && !exactActiveMap/);
   assert.match(appSource, /!navigationActiveMapMatchesSelection\(\)/);
   assert.match(appSource, /navigationSelectedMapMeta\?\.revision \|\| ''\) !== serverMapRevision/);
@@ -318,4 +328,52 @@ test('parameter revision conflicts reload only after the busy guard is released'
     appSource,
     /finally \{[\s\S]{0,180}navigationParameterBusy = false;[\s\S]{0,180}if \(reloadAfterConflict\) \{[\s\S]{0,120}await refreshNavigationParameters\(true\);/,
   );
+});
+
+test('navigation health metrics show unknown values without inventing zero and retain measured zero', () => {
+  const start = appSource.indexOf('function formatNavigationMetric(');
+  const end = appSource.indexOf('\nfunction renderNavigationStatus(', start);
+  assert.ok(start >= 0 && end > start);
+  const element = () => ({ children: [], textContent: '', className: '',
+    append(...nodes) { this.children.push(...nodes); }, replaceChildren(...nodes) { this.children = nodes; } });
+  const ui = { navigationHealthState: element(), navigationHealthReason: element(), navigationHealthMetrics: element(), navigationCalibrationList: element() };
+  const context = { ui, document: { createElement: element }, setStatePill: (node, tone, state) => { node.textContent = state; } };
+  vm.runInNewContext(`${appSource.slice(start, end)}\nthis.format = formatNavigationMetric; this.render = renderNavigationHealth;`, context);
+  for (const value of [null, undefined, '', ' ', '0', '1.2', false, true, [], {}, NaN, Infinity, -Infinity, Symbol('missing')]) {
+    assert.equal(context.format(value, ' Hz'), '—', `invalid metric ${String(value)}`);
+  }
+  assert.equal(context.format(0, ' Hz'), '0.00 Hz');
+  assert.equal(context.format(1.25, ' Hz'), '1.25 Hz');
+  const rows = () => Object.fromEntries(ui.navigationHealthMetrics.children.map(row => [row.children[0].textContent, { value: row.children[1].textContent, note: row.children[2].textContent }]));
+  const zeros = { cloud_frequency_hz: 0, cloud_jitter_s: 0, cloud_age_s: 0, runtime_health_age_s: 0,
+    odometry_frequency_hz: 0, odometry_jitter_s: 0, odometry_age_s: 0, tf_age_s: 0, map_to_odom_age_s: 0, odom_to_base_age_s: 0,
+    translation_jump_count: 0, heading_jump_count: 0, accepted_points: 0, input_points: 0, goal_progress_rate_mps: 0,
+    goal_remaining_distance_m: 0, controller_stall_duration_s: 0, costmap_clear_count: 0, fresh_sequence_count: 0 };
+  context.render({ pipeline: { state: 'idle' }, localization_health: { state: 'UNAVAILABLE', reason_code: 'NAVIGATION_INACTIVE', metrics: zeros } });
+  assert.equal(ui.navigationHealthState.textContent, 'UNAVAILABLE');
+  assert.match(ui.navigationHealthReason.textContent, /NAVIGATION_INACTIVE/);
+  assert.equal(rows().POINTCLOUD.value, '—'); assert.match(rows().POINTCLOUD.note, /age —/);
+  assert.equal(rows()['TF AGE'].value, '—'); assert.equal(rows()['FAST-LIO JUMPS'].value, '— / —');
+  assert.equal(rows()['SCAN POINTS'].value, '— / —'); assert.equal(rows()['COSTMAP CLEARS'].value, '—');
+  assert.equal(rows()['COSTMAP CLEARS'].note, 'fresh sequence —');
+  for (const [state, reason] of [['FRAME_MISMATCH', 'FRAME_CONTRACT_MISMATCH'], ['DISCONTINUITY', 'ODOMETRY_DISCONTINUITY'], ['UNAVAILABLE', 'SOURCE_PUBLISHER_CONFLICT']]) {
+    context.render({ session_mode: 'idle', pipeline: { state: 'idle' }, localization_health: { state, reason_code: reason, metrics: zeros } });
+    assert.equal(ui.navigationHealthState.textContent, state); assert.match(ui.navigationHealthReason.textContent, new RegExp(reason));
+    assert.equal(rows().POINTCLOUD.value, '—', `${reason} while inactive`); assert.match(rows().POINTCLOUD.note, /age —/);
+    assert.equal(rows()['TF AGE'].value, '—'); assert.equal(rows()['FAST-LIO JUMPS'].value, '— / —');
+    assert.equal(rows()['SCAN POINTS'].value, '— / —'); assert.equal(rows()['COSTMAP CLEARS'].value, '—');
+  }
+  context.render({ session_mode: 'localization_only', localization_health: { state: 'FRAME_MISMATCH', reason_code: 'FRAME_CONTRACT_MISMATCH', metrics: zeros } });
+  assert.equal(rows().POINTCLOUD.value, '0.00 Hz'); assert.equal(ui.navigationHealthState.textContent, 'FRAME_MISMATCH');
+  context.render({ pipeline: { state: 'running' }, localization_health: { state: 'READY', reason_code: 'HEALTHY', metrics: zeros } });
+  assert.equal(rows().POINTCLOUD.value, '0.00 Hz'); assert.match(rows().POINTCLOUD.note, /age 0\.000 s/);
+  assert.equal(rows()['TF AGE'].value, '0.000 s'); assert.equal(rows()['FAST-LIO JUMPS'].value, '0 / 0');
+  assert.equal(rows()['SCAN POINTS'].value, '0 / 0'); assert.equal(rows()['COSTMAP CLEARS'].value, '0');
+  assert.equal(rows()['COSTMAP CLEARS'].note, 'fresh sequence 0');
+  context.render({ localization_health: { state: 'READY', metrics: { cloud_frequency_hz: null, cloud_age_s: '', tf_age_s: false,
+    translation_jump_count: '0', heading_jump_count: -1, accepted_points: 1.5, input_points: 12,
+    costmap_clear_count: {}, fresh_sequence_count: Infinity } } });
+  assert.equal(rows().POINTCLOUD.value, '—'); assert.match(rows().POINTCLOUD.note, /age —/); assert.equal(rows()['TF AGE'].value, '—');
+  assert.equal(rows()['FAST-LIO JUMPS'].value, '— / —'); assert.equal(rows()['SCAN POINTS'].value, '— / 12');
+  assert.equal(rows()['COSTMAP CLEARS'].value, '—'); assert.equal(rows()['COSTMAP CLEARS'].note, 'fresh sequence —');
 });

@@ -764,7 +764,7 @@ class ControlBridgeLifecycleManager:
         active_state = str(systemd.get("active_state", "unknown"))
         if action == "start":
             return active_state == "active"
-        return active_state in {"inactive", "failed"}
+        return active_state == "inactive"
 
     def _dispatch(
         self,
@@ -789,6 +789,11 @@ class ControlBridgeLifecycleManager:
         if not current["available"]:
             self._update_operation(
                 operation_id, state="failed", error="systemd_status_unavailable"
+            )
+            return
+        if action == "stop" and current.get("active_state") == "failed":
+            self._update_operation(
+                operation_id, state="failed", error="service_stop_failed"
             )
             return
         if self._desired_state(action, current) and (
@@ -870,6 +875,11 @@ class ControlBridgeLifecycleManager:
                 )
                 return
             last = self._read_systemd()
+            if action == "stop" and last.get("active_state") == "failed":
+                self._update_operation(
+                    operation_id, state="failed", error="service_stop_failed"
+                )
+                return
             desired = self._desired_state(action, last)
             bridge_stale = action == "start" or self._bridge_status_fresh() is False
             if desired and bridge_stale:

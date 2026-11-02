@@ -72,6 +72,7 @@
       return {label: 'ALIGNING', note: `초기 위치 접수 · 정지 상태에서 3D 정합 확인 중 (${count}/3)`, tone: 'waiting'};
     }
     if (state === 'WAITING_EXPLICIT_INITIAL_POSE') return {label: 'NEED POSE', note: '주행 지도에서 현재 위치와 방향을 지정하세요.', tone: 'waiting'};
+    if (state === 'WAITING_EXPLICIT_MAP_MATCH') return {label: 'NEED MATCH', note: '초기 위치 접수 완료 · 단계별 준비 ⑤에서 정합 시작을 누르세요.', tone: 'waiting'};
     const reasons = {
       CORRECTION_JUMP_RESEED_REQUIRED: '추적 위치 보정 한도 초과 · 초기 위치 재지정 필요',
       INITIAL_REFINEMENT_OUT_OF_BOUNDS: '초기 정합이 클릭 위치에서 너무 벗어남 · 초기 위치 재지정 필요',
@@ -92,18 +93,21 @@
     const initial = pose?.mode === 'initial';
     const robot = pose?.mode === 'robot';
     const staged = state === 'staged';
-    const color = robot ? '#7df0b6' : initial ? '#5dded8' : staged ? '#ffc66d' : '#a28bff';
+    const color = robot ? (pose.stale ? '#a3aba8' : '#7df0b6') : initial ? '#5dded8' : staged ? '#ffc66d' : '#a28bff';
+    // A user seed is an input, never a measured robot. Keep its dot/arrow even
+    // when a URDF is loaded; drawing it must not alter the estimated pose.
+    if (initial) return { drawn: false, color, label: `INITIAL · ${staged ? '입력 중' : '사용자 입력'}` };
     let drawn = false;
     context.save();
     try {
-      context.globalAlpha *= robot ? 1 : staged ? 0.9 : 0.75;
+      context.globalAlpha *= robot ? (pose.stale ? .45 : 1) : staged ? 0.9 : 0.75;
       drawn = scene?.drawRobotMapPreview?.(context, pose, point => worldToCanvas(layout, point), color) === true;
     } catch (error) {
       console.warn('Navigation pose model preview unavailable:', error);
     } finally {
       context.restore();
     }
-    return { drawn, color, label: robot ? 'ROBOT' : initial ? `INITIAL · ${drawn ? 'URDF' : 'STAGED'}` : `GOAL · ${state.toUpperCase()}` };
+    return { drawn, color, label: robot ? (pose.stale ? 'ROBOT · 마지막 위치 · 오래됨' : 'ROBOT') : `GOAL · ${state.toUpperCase()}` };
   }
 
   function matchingPoseMap(snapshot, map) {
@@ -115,11 +119,37 @@
       && snapshot?.map?.id === id && snapshot?.map?.revision === map.revision);
   }
 
-  function currentRobotOverlay(snapshot, map) {
+  function currentRobotOverlay(snapshot, map, { requireOperational = false } = {}) {
+    const operational = snapshot?.operational_localization;
+    if (operational) {
+      const observation = operational.estimated_pose;
+      if (!operationalPoseMatches(snapshot, map, observation)) return null;
+      return { ...observation.pose, mode: 'robot',
+        stale: operational.fresh !== true || operational.ready !== true || observation.stale === true };
+    }
+    if (requireOperational || snapshot?.operational_expected) return null;
     const pose = snapshot?.localization?.pose;
     if (!matchingPoseMap(snapshot, map) || snapshot?.localization?.state !== 'localized'
         || !['x', 'y', 'yaw'].every(key => Number.isFinite(pose?.[key]))) return null;
     return { ...pose, mode: 'robot' };
+  }
+
+  function operationalPoseMatches(snapshot, map, observation) {
+    const source = snapshot?.operational_localization;
+    return Boolean(matchingPoseMap(snapshot, map) && source?.source === 'STORED_PCD_FASTLIO'
+      && observation?.map_id === (map.map_id || map.id) && observation?.map_revision === map.revision
+      && source.bundle_generation && observation.bundle_generation === source.bundle_generation
+      && Number.isInteger(source.localization_generation) && observation.localization_generation === source.localization_generation
+      && source.runtime_instance_generation && observation.runtime_instance_generation === source.runtime_instance_generation
+      && source.localization_map_id && observation.localization_map_id === source.localization_map_id
+      && source.localization_map_revision && observation.localization_map_revision === source.localization_map_revision
+      && ['x', 'y', 'z', 'roll', 'pitch', 'yaw'].every(key => Number.isFinite(observation.pose?.[key])));
+  }
+
+  function initialPoseOverlay(snapshot, map) {
+    const marker = snapshot?.operational_localization?.accepted_initial_pose;
+    if (marker?.accepted !== true || !operationalPoseMatches(snapshot, map, marker)) return null;
+    return { ...marker.pose, mode: 'initial' };
   }
 
   // Render-only association: an old goal must not move onto a newly selected map.
@@ -132,6 +162,7 @@
     if (!['pending', 'active', 'canceling', 'canceled', 'cancelled', 'succeeded', 'failed', 'rejected'].includes(state)
         || !goal?.goal_id || evidence?.goal_id !== goal.goal_id
         || !matchingPoseMap(snapshot, map)
+        || (snapshot.operational_localization && (!snapshot.pipeline?.job_id || pin?.job_id !== snapshot.pipeline.job_id))
         || pin?.map_id !== (map.map_id || map.id) || pin?.map_revision !== map.revision
         || !['x', 'y', 'yaw'].every(key => Number.isFinite(goal.pose?.[key]))) return null;
     return { pose: goal.pose, state: state === 'pending' ? 'sent' : state };
@@ -488,5 +519,6 @@
     drawPoseMarker,
     goalPoseOverlay,
     currentRobotOverlay,
+    initialPoseOverlay,
   });
 }));
