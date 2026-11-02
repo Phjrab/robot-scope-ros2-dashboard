@@ -490,7 +490,7 @@ test('observation rejection exposes bridge reason and does not retry or bypass t
   await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
   f.inputs.start_blockers.items = ['CONTROL_BRIDGE_NOT_INACTIVE', 'OWNER_BUSY:navigation'];
   await page.evaluate(() => window.preparation.refresh(true));
-  await expect(page.locator('[data-prep="observation-status"]')).toContainText('제어 bridge가 비활성 상태가 아닙니다');
+  await expect(page.locator('[data-prep="observation-status"]')).toContainText('현재 bridge의 관측용 명령 차단을 확인하지 못했습니다');
   await expect(page.locator('[data-prep="observation-status"]')).toContainText('주행이 센서를 사용 중입니다');
   await expect(page.locator('[data-prep="details"]')).toContainText('CONTROL_BRIDGE_NOT_INACTIVE');
   await expect(page.getByRole('button', { name: '센서 관측 시작' })).toBeDisabled();
@@ -499,7 +499,7 @@ test('observation rejection exposes bridge reason and does not retry or bypass t
   await page.evaluate(() => window.preparation.refresh(true));
   f.rejectObservation(true);
   await page.getByRole('button', { name: '센서 관측 시작' }).click();
-  await expect(page.locator('[data-prep="observation-error"]')).toContainText('제어 bridge가 비활성 상태가 아닙니다');
+  await expect(page.locator('[data-prep="observation-error"]')).toContainText('현재 bridge의 관측용 명령 차단을 확인하지 못했습니다');
   await expect(page.locator('[data-prep="details"]')).toContainText('control_bridge_not_inactive');
   expect(f.writes.filter(write => write.path.includes('/observations/'))).toHaveLength(1);
   expect(f.writes.filter(write => /seed-geometry|\/match|\/goal/.test(write.path))).toHaveLength(0);
@@ -1131,3 +1131,59 @@ for (const reason of ['PRIOR_NO_MATCH', 'PRIOR_MULTIPLE_MATCHES']) {
   expect(f.writes.filter(v=>v.path.endsWith('/confirm-geometry'))).toHaveLength(0);
  });
 }
+
+test('active bridge proof enables proposal only while current control guards remain clear', async ({ page }) => {
+  const f = await proposalFixture(page);
+  f.observation.bridge_guard = { mode: 'active_inhibited', state: 'HELD', source: 'signed_control_bridge', status_age_s: .12 };
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.getByRole('button', { name: '초기 위치 제안 계산' })).toBeEnabled();
+  await expect(page.locator('[data-prep="observation-status"]')).toContainText('제어 bridge 켜짐');
+  await expect(page.locator('[data-prep="observation-status"]')).toContainText('동작 명령 차단 확인');
+  await expect(page.locator('[data-prep="observation-status"]')).toContainText('0.12초 전');
+  for (const code of ['CONTROL_BRIDGE_INHIBIT_STALE', 'OWNER_UNKNOWN:control', 'OWNER_BUSY:navigation']) {
+    f.inputs.start_blockers.items = [code];
+    await page.evaluate(() => window.preparation.refresh(true));
+    await expect(page.getByRole('button', { name: '초기 위치 제안 계산' })).toBeDisabled();
+  }
+  f.inputs.start_blockers.items = ['CONTROL_BRIDGE_INHIBIT_VIOLATED'];
+  Object.assign(f.observation, { state: 'INVALIDATED', reason: 'CONTROL_BRIDGE_INHIBIT_VIOLATED', can_stop: true });
+  f.observation.bridge_guard.state = 'INVALID';
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.getByRole('button', { name: '초기 위치 제안 계산' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '센서 관측 종료' })).toBeEnabled();
+  expect(f.writes.filter(value => /initialization-proposals|seed-geometry|\/match|\/goal/.test(value.path))).toHaveLength(0);
+});
+
+test('old active bridge explains missing inhibit capability and sends no implicit commands', async ({ page }) => {
+  const f = await fixture(page);
+  await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
+  await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
+  f.inputs.start_blockers.items = ['CONTROL_BRIDGE_INHIBIT_UNSUPPORTED'];
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.getByRole('button', { name: '센서 관측 시작' })).toBeDisabled();
+  await expect(page.locator('[data-prep="observation-status"]')).toContainText('관측용 명령 차단 계약을 지원하지 않습니다');
+  f.inputs.start_blockers.items = [];
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.getByRole('button', { name: '센서 관측 시작' })).toBeEnabled();
+  expect(f.writes.filter(value => value.path.includes('/observations/'))).toHaveLength(0);
+});
+
+for (const [state, reason, guardState, message] of [
+  ['STARTING', 'OBSERVATION_START_PENDING', 'WAITING', '실제 실행 세대를 기다립니다'],
+  ['UNKNOWN', 'OBSERVATION_START_OUTCOME_UNKNOWN', 'INVALID', '시작 결과가 불명입니다'],
+  ['STOPPED', 'OBSERVATION_STOP_ACCEPTANCE_UNCONFIRMED', 'HELD', '종료 요청의 수락을 확인하지 못했습니다'],
+  ['STOPPED', 'CONTROL_BRIDGE_INHIBIT_RELEASE_PENDING', 'RELEASING', '차단 해제를 확인 중입니다'],
+]) test(`bridge uncertain boundary ${state} ${reason} blocks start and proposal without implicit retry`, async ({ page }) => {
+  const f = await proposalFixture(page);
+  const writesBefore = structuredClone(f.writes); // fixture includes one explicit start
+  Object.assign(f.observation, { state, reason, active: false, can_start: false, can_stop: false,
+    bridge_guard: { mode: 'active_inhibited', state: guardState, source: 'signed_control_bridge', status_age_s: .1 } });
+  f.inputs.start_blockers.items = ['OBSERVATION_SESSION_NOT_STARTABLE'];
+  f.inputs.evidence.valid = false;
+  await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.getByRole('button', { name: '센서 관측 시작' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '센서 관측 종료' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '초기 위치 제안 계산' })).toBeDisabled();
+  await expect(page.locator('[data-prep="observation-status"]')).toContainText(message);
+  expect(f.writes).toEqual(writesBefore);
+});

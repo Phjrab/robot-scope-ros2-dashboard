@@ -146,7 +146,7 @@ class PreparationTests(unittest.TestCase):
         with patch('robot_dashboard.application.ownership_readback.ownership_readback', return_value=owners):
             result = observation_start_blockers(runtime)
         self.assertEqual(result['items'], ['OWNER_BUSY:navigation', 'OWNER_UNKNOWN:dataset',
-                                           'CONTROL_BRIDGE_NOT_INACTIVE'])
+                                           'CONTROL_BRIDGE_STATE_UNKNOWN'])
         self.assertTrue(result['advisory'])
         bridge._read_systemd = lambda: {'available': False, 'active_state': 'unknown'}
         with patch('robot_dashboard.application.ownership_readback.ownership_readback', return_value=owners):

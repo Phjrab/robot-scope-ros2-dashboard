@@ -192,10 +192,8 @@ class ProposalTests(unittest.TestCase):
                     self.runtime.agent.pose = original_pose
                     self.owners['busy_components'] = ['fastlio_observation']
                     self.runtime.lifecycle.control_bridge_lifecycle._read_systemd = lambda: {'available': True, 'active_state': 'inactive'}
-                if field in ('session', 'pair', 'source'):
-                    self.assertEqual(self.coordinator.get(started['proposal_id'])['state'], 'stale')
-                else:
-                    self.assertEqual(self.coordinator.get(started['proposal_id'])['state'], 'ready')
+                # An observed ownership/bridge loss invalidates this proposal permanently.
+                self.assertEqual(self.coordinator.get(started['proposal_id'])['state'], 'stale')
 
     def test_admission_rejects_unavailable_backend_and_wrong_or_busy_context(self):
         for field in ('session', 'pair', 'busy', 'unknown', 'bridge', 'backend'):

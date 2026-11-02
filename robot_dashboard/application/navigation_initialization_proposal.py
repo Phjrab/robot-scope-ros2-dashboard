@@ -15,6 +15,7 @@ import time
 
 from .anchor_proposal import source_contract, imu_matrix, current_imu
 from .ownership_readback import ownership_readback
+from .observation_bridge import bridge_observation_error
 from .navigation_preparation_inputs import _source_identity
 from .operational_navigation import _navigation_map_body_pose
 from .planar_prior_selection import select_candidates, validate_prior, PriorRejected
@@ -84,9 +85,9 @@ class NavigationInitializationProposals:
                     allowed.add('global_observation')
             busy = [x for x in owners['busy_components'] if x not in allowed]
             unknown = list(owners['unknown_components'])
-            bridge = self.runtime.lifecycle.control_bridge_lifecycle._read_systemd()
-            if bridge.get('available') is not True or bridge.get('active_state') != 'inactive':
-                raise ProposalConflict('CONTROL_BRIDGE_NOT_INACTIVE')
+            bridge_error = bridge_observation_error(self.runtime)
+            if bridge_error:
+                raise ProposalConflict(bridge_error)
             if busy or unknown:
                 raise ProposalConflict('OWNERSHIP_BUSY_OR_UNKNOWN')
         except ProposalConflict:
@@ -178,6 +179,9 @@ class NavigationInitializationProposals:
                 try:
                     if self.runtime.global_observation is not owner:
                         raise ProposalConflict('SOURCE_OR_CONTEXT_CHANGED')
+                    # The session snapshot consumes the sticky in-memory bridge/
+                    # control guard. Full owner sampling runs on its coordinated
+                    # async monitor; a worker thread must not bypass that lock.
                     session = self._session(record['session']['session_id'])
                     if self._session_binding(session) != record['session']:
                         raise ProposalConflict('OBSERVATION_SESSION_CHANGED')
@@ -329,6 +333,12 @@ class NavigationInitializationProposals:
                     or current.get('operator_prior_resolution') != expected_resolution):
                 raise ProposalConflict('OPERATOR_PRIOR_PROOF_CHANGED')
             return current
+
+    def owns_observation_job(self, job_id, session_id):
+        with self._lock:
+            record = self._records.get(job_id)
+            return bool(record and record['session']['session_id'] == session_id
+                        and record['owner'] is self.runtime.global_observation)
 
     def handoff_watch_context(self, proposal_id, session_id):
         """Revalidate and capture the real source identity for the handoff watcher."""
@@ -491,6 +501,7 @@ class NavigationInitializationProposals:
                     raise ProposalConflict('SOURCE_OR_CONTEXT_CHANGED')
                 self.runtime.operational_navigation.verify_preparation_calibration(
                     record['pair']['generation'], record['pair']['calibration_sha256'], record['T_imu_base'])
+                self._ownership(own_job=proposal_id)
                 pose_age = proposal['pose_age_s'] + time.monotonic() - proposal_read_at
                 if not math.isfinite(pose_age) or not 0 <= pose_age <= 1.:
                     raise ProposalConflict('OBSERVATION_INPUTS_UNAVAILABLE')
@@ -538,7 +549,7 @@ class NavigationInitializationProposals:
                     AttributeError, KeyError, TypeError, ValueError, OSError, OverflowError) as exc:
                 reason = str(exc) or 'SOURCE_OR_CONTEXT_CHANGED'
                 if reason in {'MAP_PAIR_REQUIRED', 'MAP_PAIR_CHANGED', 'OBSERVATION_SESSION_CHANGED',
-                              'SOURCE_OR_CONTEXT_CHANGED', 'CALIBRATION_CHANGED'}:
+                              'SOURCE_OR_CONTEXT_CHANGED', 'CALIBRATION_CHANGED', 'OWNERSHIP_BUSY_OR_UNKNOWN'} or reason.startswith('CONTROL_'):
                     with record['gate_lock']:
                         record['invalidated_reason'] = reason
                 return self._empty(record, 'stale', reason)

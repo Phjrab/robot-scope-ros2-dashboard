@@ -53,7 +53,19 @@ const INPUT_REASONS = {
   SUBSCRIPTION_EVIDENCE_CHANGED: '검사 중 구독 출처 근거가 바뀌었습니다 → 현재 구독 상태를 확인하세요.',
   SUBSCRIPTION_EVIDENCE_UNAVAILABLE: '검사 당시 구독 출처 근거를 확인하지 못했습니다 → 현재 구독 상태를 확인하세요.',
   OBSERVATION_SESSION_NOT_STARTABLE: '관측 세션을 시작할 수 없는 상태입니다 → 현재 관측 상태를 확인하세요.',
-  CONTROL_BRIDGE_NOT_INACTIVE: '제어 bridge가 비활성 상태가 아닙니다 → 기존 안전 절차로 상태를 확인하세요.',
+  CONTROL_BRIDGE_NOT_INACTIVE: '현재 bridge의 관측용 명령 차단을 확인하지 못했습니다 → bridge 상태와 관측 세션을 확인하세요.',
+  CONTROL_BRIDGE_INHIBIT_UNSUPPORTED: '활성 bridge가 관측용 명령 차단 계약을 지원하지 않습니다 → 검증된 bridge 버전이 필요합니다.',
+  CONTROL_BRIDGE_INHIBIT_RETAINED: '이전 관측의 명령 차단이 남아 있습니다 → 관측 종료와 bridge 복구 상태를 확인하세요.',
+  CONTROL_BRIDGE_INHIBIT_STALE: 'bridge의 서명된 명령 차단 상태가 오래됐습니다 → 새 상태가 필요합니다.',
+  CONTROL_BRIDGE_INHIBIT_UNREADY: 'bridge의 현재 제어 상태가 불확실합니다 → 정지·연결·제어 상태를 확인하세요.',
+  CONTROL_BRIDGE_COMMAND_BUSY: '기존 제어권 또는 대기 명령이 있습니다 → 기존 제어 작업을 종료하세요.',
+  CONTROL_BRIDGE_INHIBIT_VIOLATED: '관측 도중 bridge 차단 조건을 잃었습니다 → 이번 관측을 종료하고 원인을 확인하세요.',
+  CONTROL_BRIDGE_INHIBIT_RELEASE_PENDING: '관측은 정지됐으나 bridge 명령 차단 해제를 확인 중입니다.',
+  OBSERVATION_STATUS_UNCONFIRMED: '관측 상태 조회가 실패했습니다 → 이번 관측은 재사용하지 않고 종료 상태를 확인하세요.',
+  OBSERVATION_START_PENDING: '관측 시작 요청 후 실제 실행 세대를 기다립니다 → 명령 차단을 유지합니다.',
+  OBSERVATION_STOP_ACCEPTANCE_UNCONFIRMED: '관측 종료 요청의 수락을 확인하지 못했습니다 → 명령 차단을 유지하며 담당자의 정지·회수 확인이 필요합니다.',
+  OBSERVATION_START_OUTCOME_UNKNOWN: '관측 시작 결과가 불명입니다 → 명령 차단을 유지하며 현재 세션과 종료 상태를 확인하세요.',
+  OBSERVATION_OWNER_CHANGED_OR_UNKNOWN: '관측 도중 다른 작업의 소유권이 바뀌었거나 불명입니다 → 이번 관측을 종료하고 상태를 확인하세요.',
   CONTROL_BRIDGE_STATE_UNKNOWN: '제어 bridge 상태를 확인하지 못했습니다 → 연결과 상태를 확인하세요.',
   START_BLOCKERS_UNAVAILABLE: '시작 조건을 확인하지 못했습니다 → 연결과 상태를 다시 확인하세요.',
   OBSERVATION_STATUS_UNAVAILABLE: '관측 상태를 확인하지 못했습니다 → 연결과 상태를 다시 확인하세요.',
@@ -94,6 +106,8 @@ const INPUT_REASONS = {
 };
 function inputReason(code) {
   if (INPUT_REASONS[code]) return INPUT_REASONS[code];
+  if (typeof code === 'string' && code.startsWith('CONTROL_BRIDGE_INHIBIT_')) return 'bridge의 관측용 명령 차단을 확인할 수 없습니다 → 이번 관측을 종료하고 bridge 상태를 확인하세요.';
+  if (typeof code === 'string' && code.startsWith('CONTROL_') && code.includes('DURING_OBSERVATION')) return '관측 도중 제어 상태가 바뀌었거나 불명입니다 → 이번 관측을 종료하고 상태를 확인하세요.';
   const owners = { mapping: '지도 작성', navigation: '주행', slam: 'SLAM', control: '수동 제어', raw_capture: '센서 원본 기록', dataset: '데이터 기록', mission: '미션', mission_routes: '미션 경로', route_planner: '경로 계획', lifecycle: '실행 전환', global_observation: '전역 관측', relocalization: '위치 재추정', sensor_tracking: '센서 추적' };
   if (typeof code === 'string' && code.startsWith('OWNER_BUSY:')) return `${owners[code.slice(11)] || '다른 작업'}이 센서를 사용 중입니다 → 해당 작업의 종료 상태를 확인하세요.`;
   if (typeof code === 'string' && code.startsWith('OWNER_UNKNOWN:')) return `${owners[code.slice(14)] || '다른 작업'}의 점유 상태를 확인하지 못했습니다 → 현재 작업 상태를 확인하세요.`;
@@ -565,8 +579,14 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     if (proposalContext && !proposalContextMatches()) invalidateProposal();
     el('observe-start').disabled = observationBusy || busy || navigationBusy || model.active || !inputsCurrent || observation?.can_start !== true || !Array.isArray(blockers) || blockers.length > 0;
     el('observe-stop').disabled = observationBusy || observation?.can_stop !== true || !/^[a-f0-9]{32}$/.test(observation?.session_id || '');
-    const sessionLabels = { UNAVAILABLE: '사용 불가', CHECKING: '확인 중', STOPPED: '정지', FAILED: '시작 실패 또는 종료', STARTING: '시작 중', WAITING_INPUTS: '입력 대기', READY: '입력 준비', STOPPING: '종료 중', UNKNOWN: '상태 미확인' };
-    el('observation-status').textContent = inputsError ? '관측 입력 확인 실패 → 연결과 상태를 다시 확인하세요.' : `관측 상태: ${sessionLabels[observation?.state] || '확인 중'} · ${observation?.reason || '서버 상태 확인 필요'} · 시작 사전 검사: ${Array.isArray(blockers) ? blockers.length ? blockers.map(inputReason).join(' · ') : '현재 차단 항목 없음' : inputReason('START_BLOCKERS_UNAVAILABLE')} · 사전 검사는 권고이며 서버의 최종 승인 보장이 아닙니다.`;
+    const sessionLabels = { UNAVAILABLE: '사용 불가', CHECKING: '확인 중', STOPPED: '정지', FAILED: '시작 실패 또는 종료', STARTING: '시작 중', WAITING_INPUTS: '입력 대기', READY: '입력 준비', STOPPING: '종료 중', UNKNOWN: '상태 미확인', INVALIDATED: '관측 무효화' };
+    el('observation-status').textContent = inputsError ? '관측 입력 확인 실패 → 연결과 상태를 다시 확인하세요.' : `관측 상태: ${sessionLabels[observation?.state] || '확인 중'} · ${observation?.reason?.startsWith('CONTROL_') || observation?.reason?.startsWith('OBSERVATION_') ? inputReason(observation.reason) : observation?.reason || '서버 상태 확인 필요'} · 시작 사전 검사: ${Array.isArray(blockers) ? blockers.length ? blockers.map(inputReason).join(' · ') : '현재 차단 항목 없음' : inputReason('START_BLOCKERS_UNAVAILABLE')} · 사전 검사는 권고이며 서버의 최종 승인 보장이 아닙니다.`;
+    const guard = observation?.bridge_guard;
+    if (guard?.mode === 'active_inhibited') {
+      const labels = { HELD: '관측 중 동작 명령 차단 확인', WAITING: '차단 응답 대기', INVALID: '차단 조건 유실', RELEASING: '차단 해제 확인 중' };
+      const age = finite(guard.status_age_s) ? `${guard.status_age_s.toFixed(2)}초 전` : '신선도 미확인';
+      el('observation-status').textContent += ` · 제어 bridge 켜짐 · ${labels[guard.state] || '차단 상태 미확인'} · 서명된 bridge 상태 ${age}. 실제 정지 상태는 현장에서 확인해야 합니다.`;
+    }
     const bridgeError = /control_bridge_not_inactive/i.test(observationError);
     el('observation-error').textContent = observationError ? bridgeError ? `관측 시작이 거절됐습니다. ${inputReason('CONTROL_BRIDGE_NOT_INACTIVE')} 자동 재시도하지 않습니다.` : '관측 요청이 거절됐거나 응답을 확인하지 못했습니다 → 기술 상세의 서버 사유를 확인하세요. 자동 재시도하지 않습니다.' : '';
     const evidence = inputs?.evidence;
@@ -602,7 +622,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     const proposalReadyToRequest = Boolean(['none', 'ready'].includes(priorInput.status) && inputsCurrent && !busy && !navigationBusy && !model.active && !observationBusy
       && observation?.active === true && observation.state === 'READY' && /^[a-f0-9]{32}$/.test(observation.session_id || '')
       && /^[a-f0-9]{32}$/.test(pair?.generation || '') && proposalSource(inputs?.evidence) && pair.calibration_sha256
-      && Array.isArray(blockers) && !blockers.some(code => ['OWNER_BUSY:global_observation', 'OWNER_UNKNOWN:global_observation', 'START_BLOCKERS_UNAVAILABLE', 'OBSERVATION_STATUS_UNAVAILABLE'].includes(code))
+      && Array.isArray(blockers) && !blockers.some(code => (['START_BLOCKERS_UNAVAILABLE', 'OBSERVATION_STATUS_UNAVAILABLE'].includes(code) || code.startsWith('CONTROL_') || code.startsWith('OWNER_UNKNOWN:') || (code.startsWith('OWNER_BUSY:') && !['OWNER_BUSY:fastlio_observation', 'OWNER_BUSY:legacy_alignment'].includes(code))))
       && inputsRequestedAt >= advisoryAfter && (!cleanupId || cleanupSettled()));
     el('proposal').disabled = proposalBusy || handoffBusy || handoffAwaitingStatus || handoffInfo.active || ['capturing', 'running'].includes(proposal?.state) || !proposalReadyToRequest;
     const poseText = value => ['x', 'y', 'z', 'roll', 'pitch', 'yaw'].map(key => `${key} ${finite(value?.pose?.[key]) ? value.pose[key].toFixed(3) : '미확인'}`).join(' · ');
@@ -809,7 +829,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     const { model, handoffInfo, busy: navigationBusy } = current(), pair = inputs?.pair, session = inputs?.observation, blockers = inputs?.start_blockers?.items;
     if (el('confirm-handoff').disabled || (proposalContext?.operatorPrior && (!el('conditional-ack').checked || proposal?.operator_prior_resolution?.candidate_vs_prior?.within_existing_handoff_reference !== true)) || handoffBusy || handoffAwaitingStatus || !el('supervision').checked || !proposalPoseValid()
         || !proposalContextMatches() || !cleanupSettled() || !available || busy || navigationBusy || model.active || observationBusy || handoffInfo.active
-        || !Array.isArray(blockers) || blockers.some(code => ['OWNER_BUSY:global_observation', 'OWNER_UNKNOWN:global_observation', 'START_BLOCKERS_UNAVAILABLE', 'OBSERVATION_STATUS_UNAVAILABLE'].includes(code))
+        || !Array.isArray(blockers) || blockers.some(code => (['START_BLOCKERS_UNAVAILABLE', 'OBSERVATION_STATUS_UNAVAILABLE'].includes(code) || code.startsWith('CONTROL_') || code.startsWith('OWNER_UNKNOWN:') || (code.startsWith('OWNER_BUSY:') && !['OWNER_BUSY:fastlio_observation', 'OWNER_BUSY:legacy_alignment'].includes(code))))
         || inputsRequestedAt < advisoryAfter || !pair || !session || !globalThis.crypto?.getRandomValues) return;
     const ctx = proposalContext, proposalId = proposal.proposal_id, token = proposalEpoch;
     const requestId = [...globalThis.crypto.getRandomValues(new Uint8Array(16))].map(value => value.toString(16).padStart(2, '0')).join('');

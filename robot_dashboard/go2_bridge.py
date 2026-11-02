@@ -667,6 +667,11 @@ class Go2BridgeCore:
         self._last_stop = 0.0
         self._last_error = ""
         self._last_request: SportRequest | None = None
+        # Sticky command inhibit: only the exact signed owner/token can release
+        # it. A dashboard crash or timeout must never silently re-enable motion.
+        self._observation_inhibit: dict[str, Any] | None = None
+        self._inhibit_release_ack: dict[str, Any] | None = None
+        self._inhibit_status_sequence = 0
 
     @property
     def bridge_epoch(self) -> str:
@@ -782,7 +787,7 @@ class Go2BridgeCore:
         transport_age_s: float = 0.0,
     ) -> None:
         kind = payload.get("type")
-        if kind not in {"drive", "stop", "action"}:
+        if kind not in {"drive", "stop", "action", "observation_inhibit"}:
             raise BridgeCommandError("unknown bridge command")
         bridge_epoch = payload.get("bridge_epoch")
         if not isinstance(bridge_epoch, str) or not compare_digest(
@@ -799,6 +804,34 @@ class Go2BridgeCore:
             raise BridgeCommandError("bridge command exceeded its transport deadline")
         self._accept_source(source_id, seq, float(now), str(kind))
         self._last_error = ""
+
+        if kind == "observation_inhibit":
+            token, enabled = payload.get("token"), payload.get("enabled")
+            if (not isinstance(token, str) or len(token) != 32
+                    or any(c not in '0123456789abcdef' for c in token)
+                    or type(enabled) is not bool):
+                raise BridgeCommandError("invalid observation inhibit")
+            held = self._observation_inhibit
+            if held and (held['token'] != token or held['source_id'] != source_id):
+                raise BridgeCommandError("observation inhibit owner mismatch")
+            if enabled:
+                if held is not None:
+                    raise BridgeCommandError("observation inhibit already retained")
+                if (self._deadman or self._moving or any(self._target)
+                        or self._pending_action is not None
+                        or now < max(self._action_guard_until, self._action_hold_until)):
+                    raise BridgeCommandError("bridge busy before observation")
+                self._observation_inhibit = dict(token=token, source_id=source_id, violated=False)
+            else:
+                if held is None:
+                    raise BridgeCommandError("observation inhibit is not owned")
+                self._observation_inhibit = None
+                self._inhibit_release_ack = dict(token=token, source_id=source_id, seq=seq)
+            return
+
+        if self._observation_inhibit is not None and kind != 'stop':
+            self._observation_inhibit['violated'] = True
+            raise BridgeCommandError("motion command blocked by observation inhibit")
 
         if kind == "stop":
             self.force_stop(str(payload.get("reason", "dashboard stop")))
@@ -868,6 +901,8 @@ class Go2BridgeCore:
         )
 
     def force_stop(self, reason: str = "stop") -> None:
+        if self._observation_inhibit is not None:
+            self._observation_inhibit['violated'] = True
         self._target = (0.0, 0.0, 0.0)
         self._deadman = False
         self._moving = False
@@ -917,6 +952,9 @@ class Go2BridgeCore:
             )
         )
         requests: list[SportRequest] = []
+
+        if self._observation_inhibit is not None and not ready:
+            self._observation_inhibit['violated'] = True
 
         if not ready and (
             self._deadman or any(value != 0.0 for value in self._target)
@@ -1028,7 +1066,16 @@ class Go2BridgeCore:
         )
         action_remaining = max(0.0, self._action_hold_until - now)
         control_ready = ready and action_remaining <= 0.0
+        self._inhibit_status_sequence += 1
         return {
+            "observation_inhibit": {
+                "schema": "robot-scope.observation-inhibit.v1",
+                "sequence": self._inhibit_status_sequence,
+                "token": (self._observation_inhibit or {}).get('token'),
+                "source_id": (self._observation_inhibit or {}).get('source_id'),
+                "violated": (self._observation_inhibit or {}).get('violated', False),
+                "release_ack": dict(self._inhibit_release_ack) if self._inhibit_release_ack else None,
+            },
             "ready": control_ready,
             "state": (
                 "action"

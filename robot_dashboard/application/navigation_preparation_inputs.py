@@ -5,6 +5,7 @@ import math
 import time
 
 from .runtime_health_sample import capture_runtime_health
+from .observation_bridge import bridge_admission_error, bridge_observation_error
 
 from .anchor_proposal import imu_matrix, source_contract
 from ..observation_service import inspect_inputs
@@ -35,8 +36,11 @@ def observation_start_blockers(runtime):
         bridge = runtime.lifecycle.control_bridge_lifecycle._read_systemd()
         if bridge.get('available') is not True or bridge.get('active_state') == 'unknown':
             items.append('CONTROL_BRIDGE_STATE_UNKNOWN')
-        elif bridge.get('active_state') != 'inactive':
-            items.append('CONTROL_BRIDGE_NOT_INACTIVE')
+        else:
+            error = (bridge_observation_error(runtime) if session.get('active')
+                     else bridge_admission_error(runtime, bridge))
+            if error:
+                items.append(error)
     except Exception:
         items.append('START_BLOCKERS_UNAVAILABLE')
     return {'items': list(dict.fromkeys(items)), 'advisory': True}
