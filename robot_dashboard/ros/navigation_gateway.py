@@ -1455,13 +1455,14 @@ class NavigationRosGateway:
                 count != 1 for count in sanitized_counts.values()
             ):
                 raise ValueError("ready health has non-unique sensor sources")
-            input_points = int(payload.get("input_points", 0))
-            accepted_points = int(payload.get("accepted_points", 0))
-            if (
-                input_points < 0
-                or accepted_points < 0
-                or accepted_points > input_points
-            ):
+            input_points = payload.get("input_points")
+            accepted_points = payload.get("accepted_points")
+            for key, value in (("input_points", input_points), ("accepted_points", accepted_points)):
+                if key in payload and (type(value) is not int or value < 0):
+                    raise ValueError(f"health {key} is invalid")
+            if (accepted_points is not None and
+                    ((input_points is None and accepted_points > 0)
+                     or (input_points is not None and accepted_points > input_points))):
                 raise ValueError("health point counts are invalid")
             bounded_metrics: Dict[str, Any] = {}
             for key, maximum in (
@@ -1732,7 +1733,7 @@ class NavigationRosGateway:
                     )
                     if (samples == 0) != all(value is None for value in durations):
                         raise ValueError(f"health {prefix} window is inconsistent")
-            bounded_integers: Dict[str, int] = {}
+            bounded_integers: Dict[str, Any] = {}
             for key in (
                 "cloud_sequence",
                 "odometry_sequence",
@@ -1741,6 +1742,9 @@ class NavigationRosGateway:
                 "odometry_sample_count",
                 "odometry_interval_count",
             ):
+                if key in {"translation_jump_count", "heading_jump_count"} and key not in payload:
+                    bounded_integers[key] = None
+                    continue
                 value = payload.get(key, 0)
                 if isinstance(value, bool) or not isinstance(value, int) or value < 0 or value > 2**53 - 1:
                     raise ValueError(f"health {key} is invalid")
