@@ -203,6 +203,13 @@ class OperationalNavigation:
                     if (resolution.get('classification') != 'CONDITIONAL_ON_OPERATOR_PRIOR'
                             or resolution.get('candidate_vs_prior', {}).get('within_existing_handoff_reference') is not True):
                         raise ValueError('PRIOR_HANDOFF_MISMATCH')
+                    current_members = proposal.get('current_vs_prior') or {}
+                    checks = current_members.get('member_checks')
+                    if (current_members.get('all_members_within_prior_bounds') is not True
+                            or not isinstance(checks, list)
+                            or [c.get('candidate_index') for c in checks if isinstance(c, dict)] != resolution.get('matching_member_indices')
+                            or any(c.get('within_prior_bounds') is not True for c in checks)):
+                        raise ValueError('PRIOR_HANDOFF_MISMATCH')
                 elif resolution is not None:
                     raise ValueError('OPERATOR_PRIOR_PROOF_CHANGED')
                 provenance = proposal.get('provenance') or {}
@@ -246,6 +253,44 @@ class OperationalNavigation:
                         or not isinstance(watch_context.get('stamps'), tuple) or len(watch_context['stamps']) != 2
                         or any(type(stamp) is not int or stamp <= 0 for stamp in watch_context['stamps'])):
                     raise ValueError('HANDOFF_MONITOR_UNAVAILABLE')
+                if conditional:
+                    # A live publisher may advance while the watcher is set up.
+                    # Capture one new owner-validated proposal after that point;
+                    # its representative pose and every member check share the
+                    # same odometry sample and the original immutable proof.
+                    try:
+                        fresh = proposal_owner.validate_conditional_confirmation(proposal_id, resolution)
+                    except RuntimeError as exc:
+                        raise ValueError('OBSERVATION_INPUTS_UNAVAILABLE') from exc
+                    proposal_read_at = time.monotonic()
+                    provenance = fresh.get('provenance') or {}
+                    current_members = fresh.get('current_vs_prior') or {}
+                    checks = current_members.get('member_checks')
+                    if (current_members.get('all_members_within_prior_bounds') is not True
+                            or not isinstance(checks, list)
+                            or [c.get('candidate_index') for c in checks if isinstance(c, dict)] != resolution.get('matching_member_indices')
+                            or any(c.get('within_prior_bounds') is not True for c in checks)):
+                        raise ValueError('PRIOR_HANDOFF_MISMATCH')
+                    body = fresh['body_candidate']['pose']
+                    pose = _navigation_map_body_pose(bundle['calibration'], body)
+                    prior = resolution['operator_prior']
+                    angle = math.atan2(math.sin(pose['yaw']-prior['pose']['yaw']), math.cos(pose['yaw']-prior['pose']['yaw']))
+                    distance = math.hypot(pose['x']-prior['pose']['x'], pose['y']-prior['pose']['y'])
+                    if (distance > MAX_XY_M or abs(angle) > MAX_YAW_RAD
+                            or distance > prior['bounds']['xy_m'] or abs(angle) > prior['bounds']['yaw_rad']):
+                        raise ValueError('PRIOR_HANDOFF_MISMATCH')
+                    stamp = current_members.get('pose_stamp_ns')
+                    age = provenance.get('pose_age_s')
+                    latest_session = observation.snapshot()
+                    if (not isinstance(stamp, str) or not stamp.isdecimal()
+                            or stamp != provenance.get('proposal_stamp_ns')
+                            or int(stamp) < watch_context['stamps'][1]
+                            or type(age) not in (int, float) or not math.isfinite(age)
+                            or not 0 <= age + time.monotonic() - proposal_read_at <= 1.
+                            or time.monotonic() >= resolution['expires_monotonic_s']
+                            or latest_session.get('session_id') != session_id or latest_session.get('state') != 'READY'
+                            or latest_session.get('started_monotonic_s') != session['started_monotonic_s']):
+                        raise ValueError('OBSERVATION_INPUTS_UNAVAILABLE')
                 if self._handoff_watch_closed:
                     raise ValueError('HANDOFF_MONITOR_UNAVAILABLE')
                 observation.reserve_handoff_receipt(identifier, session_id, session['started_monotonic_s'])
@@ -265,6 +310,8 @@ class OperationalNavigation:
                     'owner_start_ticks': process_identity(os.getpid()), 'stop_nonce': '', 'stop_state': 'NOT_REQUESTED'}
                 if conditional:
                     proof['operator_prior_resolution'] = copy.deepcopy(resolution)
+                    proof['operator_prior_current_members'] = {'pose_stamp_ns': current_members['pose_stamp_ns'],
+                        'member_checks': copy.deepcopy(current_members['member_checks'])}
                 geometry = {k: pose[k] for k in ('z','roll','pitch')}
                 geometry.update(source='proposal_confirmed', frame='map', confirmed_at=time.time(), handoff=proof)
                 self.selected = copy.deepcopy(bundle)

@@ -11,15 +11,30 @@ import re
 from collections import Counter
 from copy import deepcopy
 
+import numpy as np
+
 from ..relocalization.experimental_se3 import inverse, validate_transform
 from ..relocalization.external_global_observation import ExternalGlobalObservationRunner
-from ..relocalization.handoff_policy import MAX_XY_M, MAX_YAW_RAD
+from ..relocalization.handoff_policy import GROUPING_POLICY, MAX_XY_M, MAX_YAW_RAD
 from ..relocalization.operational import display_pose
 from ..relocalization.v031_observation_compat import SELECTION_POLICY, _ambiguity_eligible
 
 
 class PriorRejected(ValueError):
     pass
+
+
+# These are the defaults of the hash-pinned v031 SE3Config used by this
+# worker, not a new clustering policy. Preserve its first-representative order.
+_PINNED_DUPLICATE_TRANSLATION_M = .10
+_PINNED_DUPLICATE_ROTATION_RAD = .05
+
+
+def _pinned_duplicate(first, other):
+    relative = first[:3, :3].T @ other[:3, :3]
+    angle = np.arccos(np.clip((np.trace(relative) - 1) / 2, -1, 1))
+    return (np.linalg.norm(first[:3, 3] - other[:3, 3]) <= _PINNED_DUPLICATE_TRANSLATION_M
+            and angle <= _PINNED_DUPLICATE_ROTATION_RAD)
 
 
 def validate_prior(prior):
@@ -78,9 +93,12 @@ def select_candidates(observation, context, prior, *, nav_from_localization, odo
     prior_imu = validate_transform(odom_from_imu_at_prior)
     body = validate_transform(imu_from_base)
     capture_inverse = inverse(validate_transform(context['anchor_capture']['T_odom_imu']))
-    matches, eligible = [], 0
+    eligible_candidates = []
     for index, candidate in enumerate(observation['candidates']):
         gates = candidate['gate_reasons']
+        if ('duplicate_of' not in candidate or
+                (candidate['duplicate_of'] is not None and type(candidate['duplicate_of']) is not int)):
+            raise PriorRejected('CANDIDATE_DUPLICATE_INVALID')
         known_rejections = {'INVALID_SE3', 'FEWER_THAN_60_DISTINCT_INLIER_VOXELS',
             'DEGENERATE_INLIER_GEOMETRY', 'DEGENERATE_GEOMETRY', 'OVERLAP_BELOW_0.60',
             'FEWER_THAN_60_INLIERS', 'FAILED_RANSAC', 'REFINEMENT_NOT_STATIONARY'}
@@ -91,24 +109,58 @@ def select_candidates(observation, context, prior, *, nav_from_localization, odo
         if gates not in ([], ['AMBIGUOUS_ALTERNATIVES']):
             if 'AMBIGUOUS_ALTERNATIVES' in gates:
                 raise PriorRejected('CANDIDATE_QUALITY_UNAVAILABLE')
+            if candidate['duplicate_of'] is not None:
+                raise PriorRejected('CANDIDATE_DUPLICATE_INVALID')
             continue
         if ((top_gates and gates != ['AMBIGUOUS_ALTERNATIVES']) or (not top_gates and gates)
                 or not _ambiguity_eligible({**candidate, 'gate_reasons': ['AMBIGUOUS_ALTERNATIVES']})
                 or candidate.get('scan_count') != n):
             raise PriorRejected('CANDIDATE_QUALITY_UNAVAILABLE')
-        eligible += 1
-        p = display_pose(nav @ validate_transform(candidate['map_from_scan']) @ capture_inverse @ prior_imu @ body)
+        matrix = validate_transform(candidate['map_from_scan'])
+        p = display_pose(nav @ matrix @ capture_inverse @ prior_imu @ body)
         q, bounds = prior['pose'], prior['bounds']
         angle = abs(math.atan2(math.sin(p['yaw'] - q['yaw']), math.cos(p['yaw'] - q['yaw'])))
         distance = math.hypot(p['x'] - q['x'], p['y'] - q['y'])
-        if distance <= bounds['xy_m'] and angle <= bounds['yaw_rad']:
-            matches.append((index, distance, angle))
+        eligible_candidates.append((index, candidate['duplicate_of'], matrix, distance, angle,
+                                    distance <= bounds['xy_m'] and angle <= bounds['yaw_rad'], p))
+    # Replay _finish's accepted-representative search in original order, then
+    # require every member of each verified group to agree on prior membership.
+    representatives = []
+    matches = []
+    matched_retained = 0
+    matching_members = []
+    for index, marker, matrix, distance, angle, inside, p in eligible_candidates:
+        representative = next((item for item in representatives if _pinned_duplicate(item[1], matrix)), None)
+        if marker != (representative[0] if representative is not None else None):
+            raise PriorRejected('CANDIDATE_DUPLICATE_INVALID')
+        if representative is not None:
+            if inside != representative[2]:
+                raise PriorRejected('PRIOR_DUPLICATE_BOUNDARY')
+        else:
+            representatives.append((index, matrix, inside))
+            if inside:
+                matches.append((index, distance, angle))
+        if inside:
+            matched_retained += 1
+            matching_members.append((index, p))
     if len(matches) != 1:
         raise PriorRejected('PRIOR_NO_MATCH' if not matches else 'PRIOR_MULTIPLE_MATCHES')
     index, distance, angle = matches[0]
+    representative_pose = matching_members[0][1]
+    def delta(a, b):
+        return math.atan2(math.sin(a-b), math.cos(a-b))
+    geometry = [{'candidate_index': i, 'z_m': p['z'], 'roll_rad': p['roll'], 'pitch_rad': p['pitch'],
+                 'z_delta_m': p['z']-representative_pose['z'],
+                 'roll_delta_rad': delta(p['roll'],representative_pose['roll']),
+                 'pitch_delta_rad': delta(p['pitch'],representative_pose['pitch'])}
+                for i, p in matching_members]
     return {'candidate_index': index, 'classification': 'CONDITIONAL_ON_OPERATOR_PRIOR',
-            'retained_candidate_count': retention['count'], 'eligible_candidate_count': eligible,
-            'matching_candidate_count': 1, 'original_ambiguity_preserved': True,
+            'retained_candidate_count': retention['count'], 'eligible_candidate_count': len(eligible_candidates),
+            'grouping_policy': GROUPING_POLICY, 'matching_candidate_count': matched_retained,
+            'matching_hypothesis_count': 1, 'matching_retained_candidate_count': matched_retained,
+            'matching_member_indices': [i for i, _ in matching_members], 'matching_member_geometry': geometry,
+            'verified_duplicate_count': len(eligible_candidates) - len(representatives),
+            'original_ambiguity_preserved': True,
             'original_ambiguity_unresolved': bool(top_gates),
             'candidate_vs_prior': {'xy_distance_m': distance, 'absolute_wrapped_yaw_rad': angle,
                 'within_existing_handoff_reference': distance <= MAX_XY_M and angle <= MAX_YAW_RAD},

@@ -34,7 +34,8 @@ class ConditionalProposalTests(unittest.TestCase):
             for i in range(6):
                 m=self.case.runner.pose.copy();m[0,3] += 0 if i==0 else 3+i
                 result['candidates'].append({**copy.deepcopy(base),'attempt':i,'map_from_scan':m.tolist(),
-                    'gate_reasons':['AMBIGUOUS_ALTERNATIVES'] if self.ambiguous else [],'capped_full_rmse_m':.1})
+                    'gate_reasons':['AMBIGUOUS_ALTERNATIVES'] if self.ambiguous else [],'capped_full_rmse_m':.1,
+                    'duplicate_of':None})
             result['candidate_retention']=retained_candidate_digest(result)
             result['execution']={'source_pin_sha256':self.pin_sha,'worker_reaped':True}
             return result

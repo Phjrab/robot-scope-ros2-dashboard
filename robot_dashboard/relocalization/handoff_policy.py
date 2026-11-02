@@ -5,6 +5,7 @@ import time
 
 POLICY_ID = 'robot-scope.proposal-handoff.local-v1'
 CONDITIONAL_POLICY_ID = 'robot-scope.proposal-handoff.operator-prior-v1'
+GROUPING_POLICY = 'PINNED_V031_SE3_FIRST_REPRESENTATIVE_V1'
 TTL_S, MAX_XY_M, MAX_YAW_RAD = 120., .25, .20
 
 
@@ -13,6 +14,59 @@ def process_identity(pid):
     with open(f'/proc/{pid}/stat', encoding='ascii') as stream:
         value = stream.read().rsplit(')', 1)[1].split()
     return value[19]
+
+
+def _valid_prior_group(resolution, current_members):
+    """Validate the stored grouping and all-member confirmation diagnostics."""
+    indices = resolution.get('matching_member_indices')
+    geometry = resolution.get('matching_member_geometry')
+    raw_count = resolution.get('matching_candidate_count')
+    retained_count = resolution.get('retained_candidate_count')
+    eligible_count = resolution.get('eligible_candidate_count')
+    duplicates = resolution.get('verified_duplicate_count')
+    if (resolution.get('grouping_policy') != GROUPING_POLICY
+            or type(raw_count) is not int or type(retained_count) is not int or type(eligible_count) is not int
+            or type(duplicates) is not int or type(resolution.get('matching_hypothesis_count')) is not int
+            or resolution['matching_hypothesis_count'] != 1
+            or type(resolution.get('matching_retained_candidate_count')) is not int
+            or resolution['matching_retained_candidate_count'] != raw_count
+            or not 1 <= raw_count <= eligible_count <= retained_count <= 18
+            or not raw_count-1 <= duplicates < eligible_count
+            or not isinstance(indices, list) or len(indices) != raw_count
+            or any(type(i) is not int or not 0 <= i < retained_count for i in indices)
+            or indices != sorted(set(indices)) or indices[0] != resolution.get('candidate_index')
+            or not isinstance(geometry, list) or len(geometry) != raw_count):
+        return False
+    keys = {'candidate_index','z_m','roll_rad','pitch_rad','z_delta_m','roll_delta_rad','pitch_delta_rad'}
+    for i, member in zip(indices, geometry):
+        if (not isinstance(member, dict) or set(member) != keys or type(member['candidate_index']) is not int
+                or member['candidate_index'] != i
+                or any(type(member[k]) not in (int, float) or not math.isfinite(member[k]) for k in keys - {'candidate_index'})):
+            return False
+    first = geometry[0]
+    for member in geometry:
+        for axis, delta_key in (('z_m','z_delta_m'), ('roll_rad','roll_delta_rad'), ('pitch_rad','pitch_delta_rad')):
+            delta = member[axis] - first[axis]
+            if axis != 'z_m':
+                delta = math.atan2(math.sin(delta), math.cos(delta))
+            if not math.isclose(delta, member[delta_key], rel_tol=0., abs_tol=1e-9):
+                return False
+    if not isinstance(current_members, dict) or set(current_members) != {'pose_stamp_ns', 'member_checks'}:
+        return False
+    stamp, checks = current_members['pose_stamp_ns'], current_members['member_checks']
+    if (not isinstance(stamp, str) or not stamp.isdecimal() or int(stamp) <= 0
+            or not isinstance(checks, list) or len(checks) != raw_count):
+        return False
+    bounds = resolution['operator_prior']['bounds']
+    for i, check in zip(indices, checks):
+        if (not isinstance(check, dict) or set(check) != {'candidate_index','xy_distance_m','absolute_wrapped_yaw_rad','within_prior_bounds'}
+                or type(check['candidate_index']) is not int or check['candidate_index'] != i
+                or check['within_prior_bounds'] is not True
+                or any(type(check[k]) not in (int, float) or not math.isfinite(check[k]) or check[k] < 0
+                       for k in ('xy_distance_m','absolute_wrapped_yaw_rad'))
+                or check['xy_distance_m'] > bounds['xy_m'] or check['absolute_wrapped_yaw_rad'] > bounds['yaw_rad']):
+            return False
+    return True
 
 
 def validate_handoff(geometry, bundle=None):
@@ -60,7 +114,6 @@ def validate_handoff(geometry, bundle=None):
                 or type(resolution.get('original_ambiguity_unresolved')) is not bool
                 or resolution.get('global_uniqueness_verified') is not False
                 or resolution.get('absolute_accuracy_m') is not None
-                or resolution.get('matching_candidate_count') != 1
                 or type(resolution.get('candidate_index')) is not int
                 or type(resolution.get('retained_candidate_count')) is not int
                 or type(resolution.get('eligible_candidate_count')) is not int
@@ -97,6 +150,8 @@ def validate_handoff(geometry, bundle=None):
                 or abs(prior_pose['x']) > 1000 or abs(prior_pose['y']) > 1000 or abs(prior_pose['yaw']) > math.pi
                 or not .1 <= prior_bounds['xy_m'] <= 3. or not math.pi/180 <= prior_bounds['yaw_rad'] <= math.pi/2):
             raise ValueError('INITIAL_GEOMETRY_PROVENANCE_REQUIRED')
+        if not _valid_prior_group(resolution, proof.get('operator_prior_current_members')):
+            raise ValueError('INITIAL_GEOMETRY_PROVENANCE_REQUIRED')
         anchor_stamp = resolution.get('prior_anchor_stamp_ns')
         diagnostic = resolution.get('candidate_vs_prior')
         if (not isinstance(anchor_stamp,str) or not anchor_stamp.isdecimal() or int(anchor_stamp) <= 0
@@ -111,7 +166,7 @@ def validate_handoff(geometry, bundle=None):
                 or resolution.get('localization_3d',{}).get('map_id') != proof['localization_map_id']
                 or resolution.get('localization_3d',{}).get('revision') != proof['localization_map_revision']):
             raise ValueError('INITIAL_GEOMETRY_PROVENANCE_REQUIRED')
-    elif resolution is not None:
+    elif resolution is not None or proof.get('operator_prior_current_members') is not None:
         raise ValueError('INITIAL_GEOMETRY_PROVENANCE_REQUIRED')
     if bundle is not None and (proof['bundle_generation'] != bundle.get('generation')
             or proof['calibration_sha256'] != (bundle.get('map_binding') or {}).get('calibration_sha256')

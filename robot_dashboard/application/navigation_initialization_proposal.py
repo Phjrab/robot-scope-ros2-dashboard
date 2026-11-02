@@ -23,6 +23,7 @@ from ..observation_service import inputs_ready
 from ..relocalization.experimental_se3 import _rpy, from_translation_rpy, validate_transform, inverse
 from ..relocalization.handoff_policy import MAX_XY_M, MAX_YAW_RAD
 from ..relocalization.external_global_observation import ExternalGlobalObservationError
+from ..relocalization.operational import display_pose
 from ..relocalization.v031_observation_compat import supports_pin
 from ..relocalization.global_observation_jobs import (
     GlobalObservationBusy, GlobalObservationConflict, GlobalObservationNotFound, GlobalObservationUnavailable,
@@ -544,6 +545,44 @@ class NavigationInitializationProposals:
                         'within_prior_bounds': distance <= prior_bounds['xy_m'] and abs(yaw_delta) <= prior_bounds['yaw_rad'],
                         'within_existing_handoff_reference': distance <= MAX_XY_M and abs(yaw_delta) <= MAX_YAW_RAD,
                         'pose_stamp_ns': proposal['proposal_stamp_ns'], 'pose_age_s': pose_age}
+                    checks = []
+                    for member_index in resolution['matching_member_indices']:
+                        member = observation['candidates'][member_index]
+                        projected = display_pose(validate_transform(record['T_nav_map_from_localization_map'])
+                            @ validate_transform(member['map_from_scan']) @ inverse(validate_transform(captured['T_odom_imu']))
+                            @ odom_now @ validate_transform(record['T_imu_base']))
+                        member_distance = math.hypot(projected['x']-prior_pose['x'], projected['y']-prior_pose['y'])
+                        member_yaw = abs(math.atan2(math.sin(projected['yaw']-prior_pose['yaw']),
+                                                    math.cos(projected['yaw']-prior_pose['yaw'])))
+                        checks.append({'candidate_index':member_index, 'xy_distance_m':member_distance,
+                                       'absolute_wrapped_yaw_rad':member_yaw,
+                                       'within_prior_bounds':member_distance <= prior_bounds['xy_m'] and member_yaw <= prior_bounds['yaw_rad']})
+                    result['current_vs_prior']['member_checks'] = checks
+                    result['current_vs_prior']['all_members_within_prior_bounds'] = all(c['within_prior_bounds'] for c in checks)
+                    # The member projections consume time too; never present the
+                    # earlier pose age or bypass the final source/TTL fences.
+                    self.runtime.operational_navigation.verify_preparation_calibration(
+                        record['pair']['generation'], record['pair']['calibration_sha256'], record['T_imu_base'])
+                    latest = getattr(self.runtime.operational_navigation, 'preparation_snapshot',
+                                     self.runtime.operational_navigation.status)()
+                    if (not latest.get('pair') or self._pair(latest) != record['pair']
+                            or latest['selected']['calibration']['T_imu_base'] != record['T_imu_base']
+                            or latest['selected']['calibration']['T_nav_map_from_localization_map'] != record['T_nav_map_from_localization_map']):
+                        raise ProposalConflict('SOURCE_OR_CONTEXT_CHANGED')
+                    if not 0 < resolution['expires_monotonic_s'] - time.monotonic() <= 120.:
+                        raise ProposalConflict('OPERATOR_PRIOR_EXPIRED')
+                    if (self._session_binding(self._session(record['session']['session_id'])) != record['session']
+                            or self._source(session, record['source_identity'])[0] != record['source_contract']):
+                        raise ProposalConflict('SOURCE_OR_CONTEXT_CHANGED')
+                    with record['gate_lock']:
+                        invalidated = record.get('invalidated_reason')
+                    if invalidated:
+                        return self._empty(record, 'stale', invalidated)
+                    age_after_members = proposal['pose_age_s'] + time.monotonic() - proposal_read_at
+                    if not math.isfinite(age_after_members) or not 0 <= age_after_members <= 1.:
+                        raise ProposalConflict('OBSERVATION_INPUTS_UNAVAILABLE')
+                    result['provenance']['pose_age_s'] = age_after_members
+                    result['current_vs_prior']['pose_age_s'] = age_after_members
                 return result
             except (ProposalConflict, ProposalUnavailable, GlobalObservationConflict, ObservationAlignmentError, ExternalGlobalObservationError,
                     AttributeError, KeyError, TypeError, ValueError, OSError, OverflowError) as exc:

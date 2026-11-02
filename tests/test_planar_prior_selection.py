@@ -27,10 +27,11 @@ class ConditionalPrototypeTests(unittest.TestCase):
         obj.update(gate_reasons=['AMBIGUOUS_ALTERNATIVES'], selected_candidate=None,
                    ambiguity_override={'enabled':False,'applied':False})
         obj['candidates']=[{**copy.deepcopy(prototype), 'map_from_scan':m.tolist(),
-                            'gate_reasons':['AMBIGUOUS_ALTERNATIVES'], 'capped_full_rmse_m':.1, 'attempt':i}
+                            'gate_reasons':['AMBIGUOUS_ALTERNATIVES'], 'capped_full_rmse_m':.1,
+                            'attempt':i, 'duplicate_of':None}
                            for i,m in enumerate(matrices)]
         for i in range(len(matrices),6):
-            obj['candidates'].append({'attempt':i,'map_from_scan':None,'gate_reasons':['FAILED_RANSAC']})
+            obj['candidates'].append({'attempt':i,'map_from_scan':None,'gate_reasons':['FAILED_RANSAC'], 'duplicate_of':None})
         obj['candidate_retention']=retained_candidate_digest(obj)
         return obj
     def call(self, matrices, **opts):
@@ -42,7 +43,10 @@ class ConditionalPrototypeTests(unittest.TestCase):
         far=from_translation_rpy([2.,0.,0.],[0.,0.,0.])
         self.assertEqual(self.call([near,far])['candidate_index'],0)
         with self.assertRaisesRegex(PriorRejected,'PRIOR_NO_MATCH'): self.call([far])
-        with self.assertRaisesRegex(PriorRejected,'PRIOR_MULTIPLE_MATCHES'): self.call([near,near])
+        duplicate=self.observation([near,near]);duplicate['candidates'][1]['duplicate_of']=0
+        duplicate['candidate_retention']=retained_candidate_digest(duplicate)
+        self.assertEqual(select_candidates(duplicate,self.ctx,self.prior,nav_from_localization=self.ident,
+            odom_from_imu_at_prior=self.ident,imu_from_base=self.ident,allow_ambiguous=False)['candidate_index'],0)
         alternative=from_translation_rpy([.1,.1,2.],[.4,.2,0.])
         with self.assertRaisesRegex(PriorRejected,'PRIOR_MULTIPLE_MATCHES'): self.call([near,alternative])
     def test_inclusive_bounds_and_wrap_and_handoff_diagnostic(self):
@@ -113,7 +117,7 @@ class ConditionalPrototypeTests(unittest.TestCase):
                     odom_from_imu_at_prior=self.ident,imu_from_base=self.ident,allow_ambiguous=False)
 
     def test_quality_failure_must_not_be_omitted(self):
-        obs=self.observation([self.ident,self.ident]);obs['candidates'][1]['inlier_count']=0;obs['candidate_retention']=retained_candidate_digest(obs)
+        obs=self.observation([self.ident,self.ident]);obs['candidates'][1]['duplicate_of']=0;obs['candidates'][1]['inlier_count']=0;obs['candidate_retention']=retained_candidate_digest(obs)
         with self.assertRaisesRegex(PriorRejected,'CANDIDATE_QUALITY_UNAVAILABLE'):
             select_candidates(obs,self.ctx,self.prior,nav_from_localization=self.ident,
                  odom_from_imu_at_prior=self.ident,imu_from_base=self.ident,allow_ambiguous=False)
