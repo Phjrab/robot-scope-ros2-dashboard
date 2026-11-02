@@ -82,3 +82,37 @@ test('all grouped members and confirmation-time evidence must match and fit the 
   assert.equal(validCurrent(other.proof,other.current),true,'an accurate outside report is informational');
   assert.equal(validCurrent(other.proof,other.current,true),false,'confirmation evidence requires every member inside');
 });
+
+function nextRepresentablePositive(value) {
+  const buffer = new ArrayBuffer(8), view = new DataView(buffer);
+  view.setFloat64(0, value, false);
+  view.setBigUint64(0, view.getBigUint64(0, false) + 1n, false);
+  return view.getFloat64(0, false);
+}
+
+test('proof TTL accepts the generated absolute deadline and rejects the next representable value', () => {
+  const accepted = 8.000000000000016, deadline = accepted + 120;
+  assert.ok(deadline - accepted > 120, 'the generator and subtraction differ at this deterministic boundary');
+  for (const make of [fixture, groupedFixture]) {
+    const {ctx,proof} = make(); proof.accepted_monotonic_s = accepted; proof.expires_monotonic_s = deadline;
+    assert.equal(valid(proof,ctx),true,'exact generated deadline is allowed');
+    proof.expires_monotonic_s = nextRepresentablePositive(deadline);
+    assert.ok(proof.expires_monotonic_s > accepted + 120);
+    assert.equal(valid(proof,ctx),false,'the immediately larger float is rejected');
+    proof.expires_monotonic_s = accepted + 119;
+    assert.equal(valid(proof,ctx),true,'shorter positive duration is allowed');
+    for (const value of [accepted, 0, -1, NaN, Infinity, -Infinity, null, '128']) {
+      proof.expires_monotonic_s = value; assert.equal(valid(proof,ctx),false,`invalid expiry ${value}`);
+    }
+    for (const value of [-1, NaN, Infinity, -Infinity, null, '8']) {
+      proof.accepted_monotonic_s = value; proof.expires_monotonic_s = deadline;
+      assert.equal(valid(proof,ctx),false,`invalid accepted time ${value}`);
+    }
+    proof.accepted_monotonic_s = 0; proof.expires_monotonic_s = 120;
+    assert.equal(valid(proof,ctx),true,'zero accepted time is valid with a generated deadline');
+    proof.expires_monotonic_s = nextRepresentablePositive(120);
+    assert.equal(valid(proof,ctx),false,'a deadline beyond the generated bound remains invalid at zero');
+    proof.accepted_monotonic_s = Number.MAX_VALUE; proof.expires_monotonic_s = Number.MAX_VALUE;
+    assert.equal(valid(proof,ctx),false,'equal times remain invalid even if addition rounds');
+  }
+});

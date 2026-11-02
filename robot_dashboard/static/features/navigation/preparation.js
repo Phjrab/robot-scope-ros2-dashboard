@@ -222,7 +222,7 @@ function validConditionalResolution(proof, ctx) {
     && proof.original_ambiguity_preserved === true && typeof proof.original_ambiguity_unresolved === 'boolean' && proof.global_uniqueness_verified === false && proof.absolute_accuracy_m === null
     && /^[a-f0-9]{32}$/.test(proof.prior_id || '') && /^[a-f0-9]{64}$/.test(proof.source_contract_sha256 || '') && /^[a-f0-9]{64}$/.test(proof.original_observation_sha256 || '')
     && /^[1-9][0-9]{0,19}$/.test(proof.prior_anchor_stamp_ns || '') && finite(proof.accepted_monotonic_s) && finite(proof.expires_monotonic_s)
-    && proof.accepted_monotonic_s >= 0 && proof.expires_monotonic_s > proof.accepted_monotonic_s && proof.expires_monotonic_s - proof.accepted_monotonic_s <= 120
+    && proof.accepted_monotonic_s >= 0 && proof.expires_monotonic_s > proof.accepted_monotonic_s && proof.expires_monotonic_s <= proof.accepted_monotonic_s + 120
     && proof.bundle_generation === ctx.generation && proof.observation_session_id === ctx.session_id && proof.calibration_sha256 === ctx.calibration_sha256
     && samePin(proof.localization_3d, ctx.localization_3d) && samePin(proof.navigation_2d, ctx.navigation_2d)
     && prior?.frame === 'map' && prior.pose_reference === 'base_link' && prior.units === 'metres_radians' && prior.source === 'OPERATOR_CURRENT_MAP_DRAFT'
@@ -335,7 +335,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
   let draftContextEpoch = 0, draftContextConfirmed = false, draftRefreshPending = false, priorAckRevision = null, observationDraftPending = false, observationDraftAction = null;
   let lastContext = '', invalidated = '', selected3d = '', draft3dRevision = '', geometryGeneration = '';
   let inputs = null, inputsError = '', observationError = '', observationBusy = false, inputsRevision = 0, inputsRequestedAt = 0;
-  let proposal = null, proposalError = '', proposalFailureDetail = '', proposalBusy = false, proposalEpoch = 0, proposalContext = null, proposalVerified = false, proposalCheckedAt = 0, proposalTimer = null, proposalExpiryTimer = null;
+  let proposal = null, proposalError = '', proposalFailureDetail = '', proposalBusy = false, proposalEpoch = 0, proposalContext = null, proposalVerified = false, proposalCheckedAt = 0, proposalTimer = null, proposalExpiryTimer = null, proposalConsentBinding = null, proposalProofBinding = null;
   let cleanup = null, cleanupId = null, cleanupTimer = null, cleanupEpoch = 0, advisoryAfter = 0, advisoryRefreshPending = false;
   let handoff = null, handoffReadAt = 0, handoffEpoch = 0, handoffTimer = null, handoffClock = null, handoffReading = false, handoffBusy = false, handoffError = '', handoffFailureDetail = '', handoffAwaitingStatus = false;
   const invalidHandoffs = new Map();
@@ -514,7 +514,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
   function invalidateProposal(message = '관측 또는 지도 상태가 바뀌어 이전 제안을 사용할 수 없습니다.') {
     if (!proposalContext && !proposal && !proposalBusy) return;
     ++proposalEpoch; clearTimeout(proposalTimer); clearTimeout(proposalExpiryTimer); proposalTimer = null; proposalExpiryTimer = null;
-    proposal = null; proposalContext = null; proposalVerified = false; proposalError = message;
+    proposal = null; proposalContext = null; proposalVerified = false; proposalConsentBinding = null; proposalProofBinding = null; proposalError = message;
     el('supervision').checked = false; el('conditional-ack').checked = false;
     if (cleanupId && !cleanupSettled()) scheduleCleanupPoll();
   }
@@ -553,12 +553,19 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
       && samePin(value.pair.localization_3d, ctx.localization_3d) && samePin(value.pair.navigation_2d, ctx.navigation_2d)
       && value.pair.calibration_sha256 === ctx.calibration_sha256);
   }
-  function proposalPoseValid() {
+  function proposalConsentKey() {
+    const ctx = proposalContext;
+    if (!ctx?.operatorPrior || !proposalVerified || proposal?.state !== 'ready' || !proposal.operator_prior_resolution) return null;
+    return JSON.stringify([proposal.proposal_id, ctx.generation, ctx.session_id, ctx.calibration_sha256,
+      ctx.localization_3d, ctx.navigation_2d, ctx.source, ctx.operatorPrior, ctx.draftRevision, proposal.operator_prior_resolution]);
+  }
+  function proposalPoseValid(ignoreFreshness = false) {
     const age = proposal?.provenance?.pose_age_s;
-    const fresh = finite(age) && age >= 0 && age + (performance.now() - proposalCheckedAt) / 1000 <= 1;
+    const ageValid = finite(age) && age >= 0;
+    const fresh = ageValid && age + (performance.now() - proposalCheckedAt) / 1000 <= 1;
     const cleanupUnsafe = cleanup && (['CANCELLING', 'CANCEL_PENDING', 'CANCEL_FAILED', 'CLEANUP_UNCONFIRMED', 'JOB_UNAVAILABLE'].includes(cleanup.state) || cleanup.cancellation_requested === true);
-    const conditional = proposalContext?.operatorPrior ? proposal?.classification === 'CONDITIONAL_ON_OPERATOR_PRIOR' && typeof proposal?.quality?.ambiguity_unresolved === 'boolean' && proposal.quality.ambiguity_unresolved === proposal.operator_prior_resolution?.original_ambiguity_unresolved && validConditionalResolution(proposal.operator_prior_resolution, proposalContext) && validPriorCurrentMembers(proposal.operator_prior_resolution, proposal.current_vs_prior) && (!proposal.operator_prior_resolution.grouping_policy || proposal.current_vs_prior.pose_age_s + (performance.now() - proposalCheckedAt) / 1000 <= 1) : proposal?.quality?.ambiguity_unresolved === false && !proposal?.operator_prior_resolution && !proposal?.classification;
-    return Boolean(conditional && proposalVerified && proposal?.state === 'ready' && proposalContextMatches() && fresh && !cleanupUnsafe
+    const conditional = proposalContext?.operatorPrior ? proposal?.classification === 'CONDITIONAL_ON_OPERATOR_PRIOR' && typeof proposal?.quality?.ambiguity_unresolved === 'boolean' && proposal.quality.ambiguity_unresolved === proposal.operator_prior_resolution?.original_ambiguity_unresolved && validConditionalResolution(proposal.operator_prior_resolution, proposalContext) && validPriorCurrentMembers(proposal.operator_prior_resolution, proposal.current_vs_prior) && (!proposal.operator_prior_resolution.grouping_policy || ignoreFreshness || proposal.current_vs_prior.pose_age_s + (performance.now() - proposalCheckedAt) / 1000 <= 1) : proposal?.quality?.ambiguity_unresolved === false && !proposal?.operator_prior_resolution && !proposal?.classification;
+    return Boolean(conditional && proposalVerified && proposal?.state === 'ready' && proposalContextMatches() && ageValid && (ignoreFreshness || fresh) && !cleanupUnsafe
       && proposal.imu_hypothesis?.pose_reference === 'FASTLIO_IMU' && proposal.imu_hypothesis?.units === 'metres_degrees'
       && proposal.imu_hypothesis?.approximate_only === true && proposal.imu_hypothesis?.requires_reanchor === true
       && proposal.body_candidate?.pose_reference === 'base_link' && proposal.body_candidate?.units === 'metres_radians'
@@ -683,8 +690,11 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
       : '② 서버 확인 적용값 없음';
     const conditional = Boolean(proposalContext?.operatorPrior && validPoses);
     const withinHandoff = !conditional || (proposal.operator_prior_resolution.candidate_vs_prior.within_existing_handoff_reference === true && (!proposal.operator_prior_resolution.grouping_policy || (proposal.current_vs_prior?.all_members_within_prior_bounds === true && proposal.current_vs_prior?.within_existing_handoff_reference === true)));
-    el('conditional-label').hidden = !conditional;
-    if (!conditional) el('conditional-ack').checked = false;
+    const consentAvailable = Boolean(proposalProofBinding && proposalPoseValid(true) && proposalConsentKey() === proposalProofBinding);
+    const preserveConsent = Boolean(proposalConsentBinding && consentAvailable && proposalConsentBinding === proposalProofBinding);
+    if (proposalConsentBinding && !preserveConsent) { proposalConsentBinding = null; el('conditional-ack').checked = false; el('supervision').checked = false; }
+    el('conditional-label').hidden = !consentAvailable;
+    if (!consentAvailable) el('conditional-ack').checked = false;
     el('supervision').disabled = handoffBusy || handoffInfo.active;
     el('confirm-handoff').disabled = (conditional && (!el('conditional-ack').checked || !withinHandoff)) || handoffBusy || handoffAwaitingStatus || !el('supervision').checked || !validPoses || !proposalReadyToRequest || !cleanupSettled() || handoffInfo.active;
     const proposalNodes = [node('p', '정보성 제안은 저장 3D 지도 기준이며 운영 보정 위치·Nav2 준비·TF 적용 결과가 아닙니다. 자동 입력·전송하지 않습니다.')];
@@ -827,7 +837,11 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
       if (result.state === 'ready' && !['observer_id', 'cloud_epoch', 'pose_epoch'].every(key => result.provenance?.source_contract?.[key] === ctx.source?.[key])) {
         invalidateProposal('제안의 센서 출처가 현재 관측과 달라 사용할 수 없습니다.'); render(); return;
       }
-      proposal = result; proposalVerified = true; proposalCheckedAt = requestedAt; clearTimeout(proposalExpiryTimer); render();
+      proposal = result; proposalVerified = true; proposalCheckedAt = requestedAt; clearTimeout(proposalExpiryTimer);
+      const readyKey = proposalConsentKey(), validBinding = proposalPoseValid(true);
+      if (proposalProofBinding && (!validBinding || readyKey !== proposalProofBinding)) { invalidateProposal('제안 증명이나 현재 문맥이 바뀌어 이전 동의를 사용할 수 없습니다.'); render(); return; }
+      if (ctx.operatorPrior && validBinding) proposalProofBinding = readyKey;
+      render();
       if (result.state === 'ready') {
         const age = result.provenance?.pose_age_s;
         if (finite(age) && age >= 0) proposalExpiryTimer = setTimeout(() => { if (token === proposalEpoch) render(); }, Math.max(0, 1001 - age * 1000 - (performance.now() - requestedAt)));
@@ -847,6 +861,8 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     if (!globalThis.crypto?.getRandomValues) { proposalError = '안전한 요청 식별자를 만들 수 없습니다.'; render(); return; }
     const requestId = [...globalThis.crypto.getRandomValues(new Uint8Array(16))].map(value => value.toString(16).padStart(2, '0')).join('');
     clearTimeout(proposalTimer); clearTimeout(proposalExpiryTimer); clearTimeout(cleanupTimer); ++cleanupEpoch; cleanup = null; cleanupId = null; const token = ++proposalEpoch;
+    if (proposalContext || proposal || proposalProofBinding || proposalConsentBinding) { el('supervision').checked = false; el('conditional-ack').checked = false; }
+    proposalProofBinding = null; proposalConsentBinding = null;
     proposal = null; proposalError = ''; proposalFailureDetail = ''; proposalContext = ctx; proposalVerified = false; proposalBusy = true; render();
     try {
       const result = await api('/api/v1/navigation/operational-3d/initialization-proposals', { method: 'POST',
@@ -871,7 +887,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
         || inputsRequestedAt < advisoryAfter || !pair || !session || !globalThis.crypto?.getRandomValues) return;
     const ctx = proposalContext, proposalId = proposal.proposal_id, token = proposalEpoch;
     const requestId = [...globalThis.crypto.getRandomValues(new Uint8Array(16))].map(value => value.toString(16).padStart(2, '0')).join('');
-    handoffBusy = true; handoffAwaitingStatus = true; handoffError = ''; handoffFailureDetail = ''; el('supervision').checked = false; el('conditional-ack').checked = false; ++inputsRevision; render();
+    handoffBusy = true; handoffAwaitingStatus = true; handoffError = ''; handoffFailureDetail = ''; el('supervision').checked = false; el('conditional-ack').checked = false; proposalConsentBinding = null; ++inputsRevision; render();
     try {
       const result = await api(`/api/v1/navigation/operational-3d/initialization-proposals/${proposalId}/confirm-geometry`, { method: 'POST',
         body: JSON.stringify({ request_id: requestId, bundle_generation: ctx.generation, observation_session_id: ctx.session_id, confirmed: true, stationary_supervision_acknowledged: true, ...(ctx.operatorPrior ? { conditional_prior_acknowledged: true } : {}) }), signal: AbortSignal.timeout(15000) });
@@ -904,7 +920,11 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
   el('prior-stationary').onchange = () => { const draft = getOperatorDraft(); priorAckRevision = el('prior-stationary').checked && draft?.status === 'ready' ? draft.revision : null; invalidateProposal('초안 확인이 바뀌어 이전 제안을 사용할 수 없습니다.'); render(); };
   el('proposal').onclick = () => { void calculateProposal(); };
   el('supervision').onchange = () => { render(); };
-  el('conditional-ack').onchange = () => { render(); };
+  el('conditional-ack').onchange = () => {
+    proposalConsentBinding = el('conditional-ack').checked && proposalProofBinding && proposalPoseValid(true) && proposalConsentKey() === proposalProofBinding ? proposalProofBinding : null;
+    if (!proposalConsentBinding) el('conditional-ack').checked = false;
+    render();
+  };
   el('confirm-handoff').onclick = () => { void confirmHandoff(); };
   return { render() { const result = render(); const next = current().draft3d; if (selected3d && next?.id === selected3d && draft3dRevision && next.revision !== draft3dRevision) invalidated = '3D 지도 revision이 변경됐습니다. ①부터 다시 확인하세요.'; return result; }, refresh,
     canStart: () => { const value = current(); return !busy && !handoffBusy && !handoffAwaitingStatus && !observationBusy && value.model.canStart && (state?.selected?.seed_geometry?.source !== 'proposal_confirmed' || value.handoffInfo.unexpired && handoff?.state === 'OBSERVATION_STOPPED' && state?.pair?.can_start === true); }, permitsGoal: () => available && (!current().model.enabled || current().model.tracking),
