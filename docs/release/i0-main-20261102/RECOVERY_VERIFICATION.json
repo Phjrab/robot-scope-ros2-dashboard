@@ -309,6 +309,42 @@
       "sha": "2c9bdd15bcfe49886716bd78975886a89bfd218a",
       "commit_and_tree_available": true,
       "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/c0-bridge-0ba895b7a78e",
+      "sha": "0ba895b7a78e39d52b03f2878aaf0f7b08fde11a",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/c0-prior-6b6c9e2800d3",
+      "sha": "6b6c9e2800d3b446ef6dda3daadba933da2b009a",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/c0-ui-f7bae0121d7a",
+      "sha": "f7bae0121d7a8ad625444b12b9694aa8f152c047",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/c0-asgi-19138b32cdfb",
+      "sha": "19138b32cdfb5213bbbc586f07827c00217ffe8f",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/c0-review-b7d1b1814cab",
+      "sha": "b7d1b1814cabb3e28ab809e8dde34b7099fa63fd",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/c0-latest-8d22fada23c6",
+      "sha": "8d22fada23c60fa86e47d3fd24f0e9af57432b82",
+      "commit_and_tree_available": true,
+      "submodules": 0
     }
   ],
   "bundle_verified": true,

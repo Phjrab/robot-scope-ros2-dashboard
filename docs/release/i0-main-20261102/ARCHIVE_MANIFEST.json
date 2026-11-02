@@ -524,6 +524,54 @@
       "remote_peeled_sha": "2c9bdd15bcfe49886716bd78975886a89bfd218a",
       "purpose": "Exact code/workflow candidate checked before main publication",
       "historical_references": []
+    },
+    {
+      "tag": "archive/20261102/c0-bridge-0ba895b7a78e",
+      "sha": "0ba895b7a78e39d52b03f2878aaf0f7b08fde11a",
+      "object": "0fe8fa66ee0fc536746e807fa1e1dc54acc554f6",
+      "subject": "fix(observation): fence active bridge sessions with exact stop receipts",
+      "remote_peeled_sha": "0ba895b7a78e39d52b03f2878aaf0f7b08fde11a",
+      "purpose": "External C0 progress; archive only, not merged"
+    },
+    {
+      "tag": "archive/20261102/c0-prior-6b6c9e2800d3",
+      "sha": "6b6c9e2800d3b446ef6dda3daadba933da2b009a",
+      "object": "1c308fdc5161f34374cfc41b70debd09b01d167c",
+      "subject": "fix(navigation): validate retained duplicate hypotheses",
+      "remote_peeled_sha": "6b6c9e2800d3b446ef6dda3daadba933da2b009a",
+      "purpose": "External C0 progress; archive only, not merged"
+    },
+    {
+      "tag": "archive/20261102/c0-ui-f7bae0121d7a",
+      "sha": "f7bae0121d7a8ad625444b12b9694aa8f152c047",
+      "object": "dab80499099ce9ff9d2ec6a4f48f6a4984897052",
+      "subject": "Preserve operator drafts and validate grouped prior UI",
+      "remote_peeled_sha": "f7bae0121d7a8ad625444b12b9694aa8f152c047",
+      "purpose": "External C0 progress; archive only, not merged"
+    },
+    {
+      "tag": "archive/20261102/c0-asgi-19138b32cdfb",
+      "sha": "19138b32cdfb5213bbbc586f07827c00217ffe8f",
+      "object": "980f82167fc1f8d9dc0089cd9076c03ac3a33a41",
+      "subject": "Complete offline prior ASGI and full-app integration harness",
+      "remote_peeled_sha": "19138b32cdfb5213bbbc586f07827c00217ffe8f",
+      "purpose": "External C0 progress; archive only, not merged"
+    },
+    {
+      "tag": "archive/20261102/c0-review-b7d1b1814cab",
+      "sha": "b7d1b1814cabb3e28ab809e8dde34b7099fa63fd",
+      "object": "6a495babc072ce0380492a048747c63b27e8fd82",
+      "subject": "Document independent offline prior review",
+      "remote_peeled_sha": "b7d1b1814cabb3e28ab809e8dde34b7099fa63fd",
+      "purpose": "External C0 progress; archive only, not merged"
+    },
+    {
+      "tag": "archive/20261102/c0-latest-8d22fada23c6",
+      "sha": "8d22fada23c60fa86e47d3fd24f0e9af57432b82",
+      "object": "fdce2cbe383a76d80254f707643ccdb4366ee7ee",
+      "subject": "docs(c0): record integrated preparation checks and deployment limits",
+      "remote_peeled_sha": "8d22fada23c60fa86e47d3fd24f0e9af57432b82",
+      "purpose": "External C0 progress; archive only, not merged"
     }
   ],
   "remote_verified": true

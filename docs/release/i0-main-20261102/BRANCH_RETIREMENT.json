@@ -889,12 +889,12 @@
     },
     {
       "ref": "refs/heads/review/20261030-c0-3d-field-sweep",
-      "expected_sha": "06bd98ba279e149bfecfd91007d65002d83e30b0",
+      "expected_sha": "8d22fada23c60fa86e47d3fd24f0e9af57432b82",
       "decision": "KEEP",
-      "reason": "Paused incomplete checkpoint, failed CI; explicitly excluded from merge and deletion.",
-      "archive_tag": "archive/20261102/c0-paused-06bd98ba279e",
-      "peeled_sha": "06bd98ba279e149bfecfd91007d65002d83e30b0",
-      "writer_status": "NOT_RETIRING",
+      "reason": "Explicitly preserved and excluded from main. Six external commits appeared during release; latest CI still failed. Both old checkpoint and latest progression archived.",
+      "archive_tag": "archive/20261102/c0-latest-8d22fada23c6",
+      "peeled_sha": "8d22fada23c60fa86e47d3fd24f0e9af57432b82",
+      "writer_status": "EXTERNAL_REF_ADVANCED; workspace state unknown",
       "open_prs_at_audit": 0,
       "source_coverage": {
         "kind": "NOT_IMPORTED_IN_THIS_RELEASE"
@@ -904,7 +904,8 @@
         "result": "REF_RETAINED"
       },
       "history_classification": "PRESERVED",
-      "restore_recipe": "git fetch origin tag archive/20261102/c0-paused-06bd98ba279e && git branch <new-local-recovery-name> archive/20261102/c0-paused-06bd98ba279e^{commit}"
+      "restore_recipe": "git fetch origin tag archive/20261102/c0-latest-8d22fada23c6 && git branch <new-local-recovery-name> archive/20261102/c0-latest-8d22fada23c6^{commit}",
+      "initial_expected_sha": "06bd98ba279e149bfecfd91007d65002d83e30b0"
     },
     {
       "ref": "refs/heads/review/20261030-x-c5-ui-usability",

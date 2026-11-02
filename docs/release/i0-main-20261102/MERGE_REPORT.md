@@ -4,7 +4,8 @@
 
 - pre-main: `846121b4988ed2932d329020857925558f8f2c79`
 - I0: `ae41a9b6cf5cf5c7c133e818e3fad4693eb2053e`, main 대비 ahead 14 / behind 0
-- 보존 C0: `06bd98ba279e149bfecfd91007d65002d83e30b0`; 병합 제외
+- 초기 보존 C0: `06bd98ba279e149bfecfd91007d65002d83e30b0`; 병합 제외
+- 게시 시점 새 C0 관측: `8d22fada23c60fa86e47d3fd24f0e9af57432b82`; 외부 6개 commit, 별도 archive 및 실패 기록 보존, main 미인수
 - 독립 정상 clone의 로컬 main에서 I0를 `git merge --ff-only`로 인수했다. 기존 main checkout의 CSS dirty 2건은 그대로 두었다.
 - I0 이후 변경은 `.github/workflows/i0-offline.yml` push branches의 `main` 추가와 이 release 문서뿐이다. production/test/dependency 파일은 I0와 동일하다. [CANDIDATE_SCOPE](CANDIDATE_SCOPE.json), [SOURCE_COVERAGE](SOURCE_COVERAGE.json) 참조.
 
@@ -17,6 +18,8 @@
 main 원격 변경 전 최초 복구 50개와 코드/workflow 후보 1개, 총 51개 annotated archive tag를 push하고 tag object/peeled SHA를 원격 재조회했다. pre-main, I0, C0, 10개 역할 HEAD와 코드/재현 도구가 참조하는 repository historical commit 46개를 포함한다. 새 원격 clone에 tag를 fetch해 commit/tree, 전체 object 연결성, C0 역할별 이력을 확인했다. bundle 검증도 통과했다. [ARCHIVE_MANIFEST](ARCHIVE_MANIFEST.json), [RECOVERY_VERIFICATION](RECOVERY_VERIFICATION.json) 참조.
 
 사용자 추가 답변은 “다른 기기 상태를 모름 — 불확실한 ref 유지”였다. 따라서 정리 후보 11개는 `ARCHIVE_ONLY`, C0와 main 및 범위 밖 과거 8개 ref는 `KEEP`다. 원격/로컬 branch·worktree·clone 삭제는 0건이다. 어떤 역할도 `MERGED_HISTORY`로 오기하지 않았으며 source 선별 인수와 원본 archive를 구분했다. [BRANCH_RETIREMENT](BRANCH_RETIREMENT.json)에 모든 ref, SHA, coverage, 제외 경로/이유, 삭제 미실행 receipt 및 복구법을 기록했다.
+
+첫 main 게시 SHA는 `2526a683ca6abafcc2529b2f02feca4d7777a347`이다. 직전 main/I0는 lock과 같았고, C0만 외부에서 진행했다. 모든 ref를 비교한 추가 assertion은 이를 감지했지만 shell 후속 명령이 그 assertion에 연결되지 않아 정상 main push가 계속됐다. C0 ref나 코드는 변경하지 않았다. 이 관측과 새 C0 실패를 문서만으로 보완하고, 후속 게시에는 실패 시 중단하는 명시 guard를 사용한다. 추가 C0 역할/최신 checkpoint 6개를 원격 태그 및 새 clone에서 검증해 **총 57개 archive tag**를 보존한다. [C0_LATEST_OBSERVATION](C0_LATEST_OBSERVATION.json) 참조.
 
 ## 검증 범위와 미완료
 

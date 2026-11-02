@@ -24,7 +24,17 @@ I0 [SOURCE_LOCK](../../integration/i0/SOURCE_LOCK.json)의 258개 인수 파일�
 
 값이 정확히 문자열 `1`일 때만 켜진다. 화면 노출·query/localStorage는 권한이 아니다. 실제 지도에 합성 frame을 이름만 바꿔 적용하지 않는다. 현재 지도·설정·raw PCD/bag·비밀은 이번 릴리스에 추가하지 않았다.
 
-## C0는 중단된 미완료 checkpoint
+## C0 최신 관측: 미인수·CI 실패, 장비 미완료
+
+병합 직전 읽기에서 C0가 외부 작업으로 `8d22fada23c60fa86e47d3fd24f0e9af57432b82`까지 6개 commit 진행했음을 확인했다. 최신 복구 tag는 `archive/20261102/c0-latest-8d22fada23c6`이며 5개 역할 commit도 별도 archive했다. C0 ref에는 쓰지 않았고 새 코드를 main에 넣지 않았다.
+
+[새 C0 통합 오프라인 기록](https://github.com/Phjrab/robot-scope-ros2-dashboard/blob/8d22fada23c60fa86e47d3fd24f0e9af57432b82/docs/c0-field-validation/20261102/C0_INTEGRATED_OFFLINE_RESULTS.md)과 같은 디렉터리의 `C1_4_OFFLINE_REVIEW.md`를 먼저 읽는다. 새 기록은 exact-stop inhibition, SE(3) duplicate 그룹/all-member 검증, draft 보존과 safety listener, ASGI 31건 및 full-app 합성 흐름을 보고한다. 이는 C0 소유자의 보고이며 이번 I0 작업에서 독립 재실행한 결과가 아니다. 종전 2개 Node 실패와 중복 후보 미완료 항목은 아래 과거 기록으로 보존하되, 최신 코드에서 여전히 같은 상태라고 단정하지 않는다.
+
+[최신 C0 CI 41370328845](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41370328845)는 competition/Ubuntu 3.10 성공, Ubuntu 3.12 전수 Python 실패다. `test_navigation_operator_prior_handoff.py:54`의 `test_ack_receipt_dual_bounds_and_tamper`에서 `ValueError: INITIAL_GEOMETRY_PROVENANCE_REQUIRED`; 3,399건, error 1/skip 2다. 이 job의 후속 JS/browser/mission은 실행되지 않았다. 원문 로그와 [job/step receipt](C0_LATEST_CI.json)를 보존했으며 재실행하거나 수리하지 않았다. 원인은 미확정이다.
+
+이 새 후보도 실제 위치/지도 정합/장비 배포/주행 완료가 아니다. 마지막 보고된 장비 source는 여전히 f509이며 현재 base는 조회하지 않았다. 기존 배포 helper는 dashboard만 재시작하고 다른 과거 base에 고정되어 있어 새 bridge 후보에 재사용할 수 없다는 C0 제한을 인계한다. 향후 별도 승인이 있을 때 실제 두 process의 loaded source·identity·inhibition/stop acknowledgement와 복구 절차를 검증해야 한다.
+
+### 초기 06bd checkpoint와 실패 — 과거 기록 보존
 
 - 유지 ref: `review/20261030-c0-3d-field-sweep`
 - 고정 HEAD: `06bd98ba279e149bfecfd91007d65002d83e30b0`
@@ -38,7 +48,7 @@ I0 [SOURCE_LOCK](../../integration/i0/SOURCE_LOCK.json)의 258개 인수 파일�
 
 ## A0 우선 작업
 
-1. C0 archive에서 최신 통합 snapshot을 고정해 실패 2건의 실제 이벤트 순서·예외 경로를 검증하고, prior 범위/조건부 proof/TTL/단회 사용/중복 후보 및 ASGI↔UI 전체 흐름을 재검증한다. 그 후 필요한 변경만 선택 인수한다. C0 전체 병합이나 과거 app/navigation 파일 덮어쓰기는 하지 않는다.
+1. 최신 C0 `8d22fada…`의 `INITIAL_GEOMETRY_PROVENANCE_REQUIRED` CI 실패부터 재현/분석하고, 새 duplicate/all-member·exact-stop·draft·ASGI/full-app 보고를 고정 snapshot에서 확인한다. 초기 06bd의 실패와 새 수정 주장을 구분하고 검증 후 필요한 변경만 선택 인수한다. C0 전체 병합이나 과거 app/navigation 파일 덮어쓰기는 하지 않는다.
 2. 운영 auth/mutation/source qualification owner를 정한다. I0의 세 공유 hook과 최신 C0 지도 pairing·height/tilt·source/session/generation·관측 ownership·STOP/lease 경계를 수동 대조한다. 이전 [C0_RECONCILIATION](../../integration/i0/C0_RECONCILIATION.md)은 당시 snapshot의 기록이며 최신 C0 전체와 같다고 가정하지 않는다.
 3. C4 genuine per-message identity 또는 검토된 Humble graph evidence 계약을 먼저 확보한다. `OWNER_SOURCE_IDENTITY_UNAVAILABLE`, `GRAPH_ENDPOINT_CONTRACT_UNAVAILABLE`, QoS UNKNOWN/history=0를 원하는 값으로 덮지 않는다. 이어 기존 D3 native 환경에서 marking, 근거 있는 clearing, planner 변화, stale/epoch/late frame, 실제 simulated actuator까지 별도 검증한다.
 4. C4 원본 실패 기록: archive `archive/20261102/x-c4-b7242fca7c1b`의 `docs/parallel-expansion-20261029/C4/ROS_ADAPTER.md`, `ROS_EVIDENCE.json`. [native 41035596751](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41035596751)는 62 callbacks/accepted 0/published 0으로 실패했다. [표준 CI 41035596779](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41035596779)의 Ubuntu 24.04 browser download timeout도 별도 미해결 기록이다. 원래 D3 native 5개 기록 재생을 C4 end-to-end 성공으로 바꾸지 않는다.

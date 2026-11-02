@@ -17,7 +17,7 @@
 
 ## 고정 객체 복구
 
-[ARCHIVE_MANIFEST](ARCHIVE_MANIFEST.json)의 50개 annotated tag를 main 원격 변경 **전에** push했다. tag object와 peeled commit을 원격 재조회했다. main만 clone한 새 원격 clone에 archive tag를 추가 fetch해 최초 50개 HEAD/tree와 historical repository commit 46개를 확인했다. `git fsck --full` 통과, 모든 tagged tree에서 .gitattributes/.gitmodules 및 gitlink 없음(선언된 LFS/submodule 의존성 없음)이다. 전체 로컬 Git bundle도 `git bundle verify`를 통과했다. 추가 코드/workflow 후보 태그 `archive/20261102/i0-main-candidate-2c9bdd1`도 원격 push/peeled SHA와 새 clone fetch를 확인했다(총 51개). 결과·bundle SHA256는 [RECOVERY_VERIFICATION](RECOVERY_VERIFICATION.json)에 있다.
+[ARCHIVE_MANIFEST](ARCHIVE_MANIFEST.json)의 50개 annotated tag를 main 원격 변경 **전에** push했다. tag object와 peeled commit을 원격 재조회했다. main만 clone한 새 원격 clone에 archive tag를 추가 fetch해 최초 50개 HEAD/tree와 historical repository commit 46개를 확인했다. `git fsck --full` 통과, 모든 tagged tree에서 .gitattributes/.gitmodules 및 gitlink 없음(선언된 LFS/submodule 의존성 없음)이다. 전체 로컬 Git bundle도 `git bundle verify`를 통과했다. 추가 코드/workflow 후보 태그 `archive/20261102/i0-main-candidate-2c9bdd1`도 원격 push/peeled SHA와 새 clone fetch를 확인했다(총 51개). 그 뒤 발견한 외부 C0 진행분 6개도 추가 태그/fetch로 보존했다(최종 총 57개); C0는 main에 들어오지 않았다. 결과·bundle SHA256는 [RECOVERY_VERIFICATION](RECOVERY_VERIFICATION.json)에 있다.
 
 | 소비자 | exact historical SHA |
 |---|---|

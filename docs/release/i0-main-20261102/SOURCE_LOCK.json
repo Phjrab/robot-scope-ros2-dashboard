@@ -71,5 +71,11 @@
     "refs/heads/review/20261030-x-c7-capacity-diagnostics": "ec724dafd33db92ecb27db17e0bdd2eee5a30455"
   },
   "upstream_source_lock_sha256": "2f070da34db519fbb0f599ed9d26216bb0872a4d8856eb85f03087534c36f151",
-  "workspaces": "Existing local clones/worktrees preserved; original main has two dirty CSS files. Other-device unpushed/dirty state UNKNOWN. No workspace deletion authorized."
+  "workspaces": "Existing local clones/worktrees preserved; original main has two dirty CSS files. Other-device unpushed/dirty state UNKNOWN. No workspace deletion authorized.",
+  "later_read_only_c0_observation": {
+    "sha": "8d22fada23c60fa86e47d3fd24f0e9af57432b82",
+    "previous_sha": "06bd98ba279e149bfecfd91007d65002d83e30b0",
+    "report": "C0_LATEST_OBSERVATION.json",
+    "merged": false
+  }
 }

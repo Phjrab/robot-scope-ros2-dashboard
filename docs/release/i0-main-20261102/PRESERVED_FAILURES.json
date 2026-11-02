@@ -833,6 +833,11 @@
   ],
   "retained_log_files": [
     {
+      "name": "c0-ci-41370328845-job-125039217069.log",
+      "sha256": "2bd4e9fe4a6fe765f85e63f92d460a23fb9339b8217c715666b4a6e71cd02af9",
+      "location": "local i0-main-20261102-evidence; not committed"
+    },
+    {
       "name": "c0-ci-41304523565-job-124842082483.log",
       "sha256": "94029c6fa1a867811ca5fbb3fc45ca64aef941e24d5f4d83666bcd00fba619d3",
       "location": "local i0-main-20261102-evidence; not committed"
@@ -842,5 +847,6 @@
       "sha256": "2518d80c276236feb0f118073baec3077029fb011fcc90c5a1c83bc01589931f",
       "location": "local i0-main-20261102-evidence; not committed"
     }
-  ]
+  ],
+  "latest_c0_receipt": "C0_LATEST_CI.json"
 }
