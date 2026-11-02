@@ -2,17 +2,18 @@
 
 Result ID: `C0-INTEGRATED-OFFLINE-20261102-01`
 
-This change completes the offline implementation of an operator draft before sensor preparation and guarded observation while the control bridge remains running. It does not establish a current robot pose, a successful map match, or readiness for physical navigation. Deployment and hardware validation remain separate.
+This report records the first offline integration snapshot for an operator draft before sensor preparation and guarded observation while the control bridge remains running. Its published commit `8d22fada23c60fa86e47d3fd24f0e9af57432b82` later failed CI as described below. Subsequent repairs and validation belong to separate snapshots. No result here establishes a current robot pose, successful map match or readiness for physical navigation. Deployment and hardware validation remain separate.
+
+Subsequent fixes and frozen results are recorded in [C0 follow-up results](C0_FOLLOWUP_RESULTS.md).
 
 ## Behavior
 
 1. Connect the selected 3D localization and 2D navigation maps and draw a position/direction draft. This draft narrows the sensor-based initialization proposal; drawing or restoring it sends no INITIAL POSE or goal.
 2. Acquire fresh stationary observation evidence, calculate the proposal, inspect height/roll/pitch and source/quality evidence, and explicitly confirm eligible geometry. A prior supplies neither missing sensor measurements nor permission to ignore ambiguity or quality gates.
-3. Stop the exact observation session and satisfy its handoff conditions before the existing Nav2 start control can be used.
-4. After runtime changes, explicitly reconfirm the preserved draft or draw a new one, then use the existing SEND POSE control. Restoration does not send it automatically.
-5. Explicitly start stored-map matching after the matching INITIAL POSE receipt.
-6. Inspect current estimate, correction count, freshness, residual/overlap and runtime application evidence. Residual/overlap is not physical position accuracy.
-7. Send a goal only after the existing readiness and safety gates permit it.
+3. Start Nav2 with the existing control and verify its nodes/TF. First stop the exact observation session and satisfy its handoff conditions.
+4. Reconfirm the preserved draft after runtime changes or draw a new one, explicitly SEND POSE, verify the matching receipt, then separately start stored-map matching. The display combines INITIAL POSE and matching in stage 4; restoring the draft triggers neither action.
+5. Inspect the current estimate, correction count, freshness, residual/overlap and runtime application evidence. Residual/overlap is not physical position accuracy.
+6. Send a goal only after the existing readiness and safety gates permit it.
 
 The preparation panel retains text links to existing Nav2, INITIAL POSE and goal controls. Two expected handoff transition states preserve the draft as stale and unsendable; map, calibration, pair-generation changes and other invalid conditions invalidate it. Visibility/blur draft handling cannot prevent the existing disarm and camera cleanup listeners from running.
 
@@ -43,13 +44,13 @@ The first combined snapshot contained 2,323 files. Complete file sets and SHA-25
 | Actual ASGI/preparation component | 31 PASS / 0 FAIL | One final run with grouping assertions required |
 | Full application flow | PASS | Canvas draft, proposal, explicit confirm/stop, mock Nav2, preserved-draft reconfirmation, explicit pose receipt, matching arm |
 
-The three browser failures concerned old stage-one completion/current-step expectations without a draft and an obsolete stage-one label. The original logs, screenshots and traces are retained. A test-only repair explicitly checks missing draft → stage 1 needs input → context-bound draft with bounds/acknowledgement → stage 2, preserving the existing invalidation, recovery and pending-action checks. The three repaired cases passed once; the complete affected file then passed all 61 cases once. These are separate runs, not a claimed new 92-case run. All 406 product files in the test copy and integrated tree matched the frozen snapshot. Final test file SHA-256: `dbcc3112548e2edd4cc029b99006f7db03e27ac481370bf3b04432e9160985f0`. Only this browser test and documentation changed after the frozen validation; full Python/Node and ASGI/UI checks were not redundantly repeated.
+The three browser failures concerned old stage-one completion/current-step expectations without a draft and an obsolete stage-one label. The original logs, screenshots and traces are retained. A test-only repair explicitly checks missing draft → stage 1 needs input → context-bound draft with bounds/acknowledgement → stage 2, preserving the existing invalidation, recovery and pending-action checks. The three repaired cases passed once; the complete affected file then passed all 61 cases once. These are separate runs, not a claimed new 92-case run. All 406 product files in the test copy and integrated tree matched the frozen snapshot. Final test file SHA-256: `dbcc3112548e2edd4cc029b99006f7db03e27ac481370bf3b04432e9160985f0`. Before publication of `8d22fada`, only this browser test and documentation changed after that frozen validation; full Python/Node and ASGI/UI checks were not redundantly repeated.
 
 The full-app terminal state is `MATCH_ARMED`; the localizer remains not ready with no estimated pose. No automatic INITIAL POSE and no goal were sent. The actual ASGI coordinator/manager, selector, localizer reseed/start and receipt waiters were exercised. Sensor samples, solver candidates/execution, Nav2 launch, ROS receipt transport, map pixels and dashboard transport were synthetic. Metadata envelope/worker-reaped fixture inputs do not prove external solver execution, process reaping or source-file verification. No actual ROS/TF, registration convergence, robot stationarity or hardware accuracy was tested. Origin routing guards are not an OS-wide network-isolation proof.
 
 ## Preserved failures and repair boundaries
 
-- The previous published checkpoint `06bd98b` and its CI run `41304523565` failed two Node source-order assertions on both OS jobs; browser jobs were skipped after that failure. The safety listener repair passes the current Node set. The older failure was not rerun or relabeled.
+- The previous published checkpoint `06bd98b` and its CI run `41304523565` failed two Node source-order assertions on both OS jobs; browser jobs were skipped after that failure. The safety listener repair passed that snapshot's Node set. The older failure was not rerun or relabeled.
 - An exact-stop synthetic counterexample failed twice before C0 repaired inhibition release. The corrected bridge cases preserve the hold when stop acceptance is unknown.
 - A grouped-candidate counterexample exposed representative-only current-pose checking. Confirmation now checks every member. A later timestamp-equality check was corrected to allow a fresh forward sample without allowing stale or reversed evidence.
 - A full-app test exposed draft loss in expected handoff transition states. The UI now preserves it as stale, requiring explicit reconfirmation and separate transmission.
@@ -67,9 +68,9 @@ Role-owned commits were serialized, with each role committing its own work:
 | C1.2 | `f7bae0121d7a8ad625444b12b9694aa8f152c047` | Draft lifecycle, safety listeners, proof display and browser expectation repair |
 | C1.3 | `19138b32cdfb5213bbbc586f07827c00217ffe8f` | Actual ASGI/full-app synthetic harness and results |
 | C1.4 | `b7d1b1814cabb3e28ab809e8dde34b7099fa63fd` | Independent review |
-| C0 | This report's commit | Integrated validation and remaining field/deployment limits |
+| C0 | `8d22fada23c60fa86e47d3fd24f0e9af57432b82` | First integrated validation report and remaining field/deployment limits |
 
-Intermediate commits are not independently represented as fully validated releases. At this report's commit, final branch publication and exact-SHA CI are pending. The final SHA and CI outcome will be recorded in a GitHub commit comment; no previous run is reused as final-SHA evidence. No CI rerun was requested.
+Intermediate commits are not independently represented as fully validated releases. The first integration's published SHA was `8d22fada23c60fa86e47d3fd24f0e9af57432b82`. Its first CI run `41370328845` failed on Ubuntu 24.04/Python 3.12 with one handoff-provenance error; subsequent Node/browser checks on that OS were skipped. Ubuntu 22.04/Python 3.10 passed, including 307 browser cases and 10 separate mission API cases. Competition offline checks passed. The failure and limits were recorded in commit comment `207679682`. No CI rerun was requested. Later candidate results do not replace this first failure or validate this exact SHA retroactively.
 
 No device access, deployment, sensor observation, live Nav2 start, INITIAL POSE, goal or physical movement occurred during this offline integration. The last recorded deployed source was `f50989a37b0203634f8dccefc4d149edafe0eadc`; this is historical evidence, not a current base check. Maps, calibration, sensor/drive settings and policy gates were not changed on the device. No expansion branches were integrated.
 
