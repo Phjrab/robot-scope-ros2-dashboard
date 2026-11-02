@@ -3,7 +3,12 @@ const status=p=>p.locator('[data-testid=cone-status]');
 const toggle=p=>p.locator('[data-layer=cones]');
 async function control(page,command){const r=await page.request.post('/__i0_test__/cone',{data:{command},headers:{Origin:'http://127.0.0.1:4192','x-i0-synthetic-fixture':'local-test-only'}});expect(r.ok()).toBe(true);}
 async function pixels(page){return page.locator('.os-overlay').evaluate(c=>Array.from(c.getContext('2d').getImageData(0,0,c.width,c.height).data).filter((v,i)=>i%4===3&&v>0).length);}
-test.beforeEach(async({page})=>{await page.goto('/');await control(page,'reset');});
+test.beforeEach(async({page})=>{
+ // Acquire the demo cookie without mounting a scene from the previous generation.
+ expect((await page.request.get('/')).ok()).toBe(true);
+ await control(page,'reset');
+ await page.goto('/');
+});
 for(const width of [390,820,1280,1440])for(const theme of ['dark','light'])test(`cone actual C1/C3 ${width}px ${theme}`,async({page},info)=>{
  const writes=[],external=[],errors=[];page.on('request',r=>{if(r.method()!=='GET')writes.push(r.url());if(!r.url().startsWith('http://127.0.0.1:4192/'))external.push(r.url());});page.on('pageerror',e=>errors.push(e.message));
  await page.setViewportSize({width,height:1000});await page.evaluate(t=>document.documentElement.dataset.theme=t,theme);

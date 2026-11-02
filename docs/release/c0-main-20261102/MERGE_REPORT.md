@@ -1,6 +1,6 @@
 # C0 → main 통합 보고 — 2026-11-02
 
-검증 확정: **2026-11-03 KST, 통합 소스 소프트웨어 검증 PASS**. 부모 관계를 보존한 merge와 실행기 최소 보완을 완료했다. 검증 후보는 `aaf5216a16e3cfb164dc04db8f7f5ca3128ccd0c`이며 아래 두 exact-candidate CI가 성공했다. 이후 게시 commit은 이 인계 문서만 확정하며, 최종 main SHA와 그 push CI는 마지막 전달 receipt에서 별도로 확정한다.
+**2026-11-03 KST: main 통합 게시 후 확인된 테스트 준비 순서를 최소 보완했다.** 부모 관계를 보존한 merge 후보 `aaf5216a16e3cfb164dc04db8f7f5ca3128ccd0c`의 두 CI는 성공했다. 최초 main `d82663ec62400c012eb94549a03c82ccaadf2307`에서는 I0 콘 테스트의 세대 초기화 경합이 확인됐고, 아래와 같이 제품 조건을 유지한 채 테스트만 수정했다. 최종 main SHA와 그 exact-SHA 두 CI는 마지막 전달 receipt로 확정한다.
 
 ## 소스와 보존
 
@@ -67,9 +67,17 @@ C0 full-app은 proposal1, geometry confirm1, exact observation stop1, mock Nav2 
 
 표준 35 SKIP은 기존 historical export/선택 의존성 검사이며 새 skip을 추가하지 않았다. I0 실제 제품 검사는 현재 merged tree를 사용하고 C7 과거 고정 진단은 별도 단계로 구분한다. 수치와 과거 source 결과를 합산하지 않는다. 위 두 run은 후보 태그의 push/dispatch 결과이며 main push 결과로 표기하지 않는다.
 
+## 최초 main CI와 콘 테스트 준비 순서 보완
+
+최초 게시 main은 `d82663ec62400c012eb94549a03c82ccaadf2307`이다. [I0 CI 41493222165](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41493222165), attempt1은 콘 browser 10 PASS/1 FAIL이었다. `cone.product.mjs:23:79`는 2초 안의 STALE을 기대했지만 `CONES · UNAVAILABLE · PAIRED_REAL_PRODUCER_INPUT_REQUIRED`를 받았다. 앞선 C0 helper10/ASGI37/전체 앱8, I0 Python45/HTTP 차단4/확장 JS82 PASS·2 SKIP/제품9/transport5는 통과했고 후속 timer·C7 단계는 SKIP됐다. [동일 main 표준 CI 41493221997](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41493221997)는 수정 시점 실행 중이며 최종 receipt에 별도 보존한다.
+
+원본 trace는 화면의 context/snapshot이 generation9를 받은 뒤 beforeEach reset이 generation10으로 올리고, 테스트가 이전 VALID를 확인한 직후 snapshot을 차단했음을 보여준다. 다음 context10을 받은 제품은 이전 프레임을 올바르게 무효화했다. 실제 polling/adapter/consumer를 사용한 결정적 재현도 같은 세대에서는 1001ms 뒤 STALE, 세대 변경에서는 정확히 위 UNAVAILABLE을 확인했다. 제품의 세대 차단 결함이 아니라 테스트 준비 순서 문제다.
+
+`tests/integration_i0/cone.product.mjs`의 beforeEach만 쿠키 취득용 API GET→reset→화면 이동으로 바꿨다. 이전 세대 화면을 먼저 마운트하지 않으며 TTL1000ms, STALE2000ms assertion, timeout·픽셀 제거·tab abort·재개 검사를 그대로 유지했다. 수정 후 로컬 전체 콘11개가 18.7초에 PASS했다. 기존 실패 run/trace와 재현 자료를 보존하고 새 forward main commit을 검증한다. 제품 코드는 수정하지 않았으며 CI 실패를 재실행 성공으로 덮지 않았다.
+
 ## 게시·인계 경계
 
-검증된 후보 이후에는 세 release 문서만 확정했다. 코드·tests·workflow subtree는 SOURCE_LOCK의 후보와 동일하다. main에는 부모 관계를 보존한 정상 forward push를 사용한다. push 직전 원격 ref를 다시 대조하며 force push하지 않는다. 최종 main SHA와 그 exact-SHA 두 CI의 run/job/step 결과는 게시 후 최종 receipt로 확정한다. 자신의 최종 SHA를 문서에 넣기 위한 commit 반복은 하지 않는다.
+검증된 후보 이후에는 세 release 문서를 확정하고, 최초 main CI에서 확인된 콘 browser 테스트의 초기화 순서만 보완했다. 제품·scripts·workflow subtree는 SOURCE_LOCK의 후보와 동일하며 tests 차이는 위 한 파일이다. main에는 부모 관계를 보존한 정상 forward push를 사용한다. push 직전 원격 ref를 다시 대조하며 force push하지 않는다. 최종 main SHA와 그 exact-SHA 두 CI의 run/job/step 결과는 게시 후 최종 receipt로 확정한다. 자신의 최종 SHA를 문서에 넣기 위한 commit 반복은 하지 않는다.
 
 단일 최신 현장 인계는 [A0_HANDOFF](A0_HANDOFF.md)다. 기존 I0 인계는 이 문서로 안내하되 과거 기록을 보존했다. A0는 C0/I0를 다시 병합하지 않고 통합 main에서 검증을 시작한다. 현재 장비 readback/배포·복구, 정지 관측·초기값, exact stop/인계·Nav2·INITIAL POSE·정합, 지속 TF/odom, 별도 승인 P1/P2·stop-and-go·경사로와 독립 I0 의존 항목은 NOT_RUN이다. 기존 Maps history poll/open 경합은 미수리 backlog로 남는다.
 

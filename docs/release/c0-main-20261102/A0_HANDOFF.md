@@ -15,7 +15,7 @@
 
 통합 검증 대상과 실제 검사 결과는 [SOURCE_LOCK](SOURCE_LOCK.json), [MERGE_REPORT](MERGE_REPORT.md)를 따른다. 최종 main SHA와 그 SHA의 표준 CI·I0 통합 CI는 게시 후 최종 전달 receipt로 확정한다. 이전 main 또는 C0 단독 CI 성공을 통합본 성공으로 대신하지 않는다.
 
-검증 기준 후보 `aaf5216a16e3cfb164dc04db8f7f5ca3128ccd0c`는 표준 CI3개 작업과 I0 통합 CI 모두 SUCCESS다. C0 ASGI37/전체 앱8, I0 제품9/콘11, Linux 두 환경의 전체 browser333/mission10을 확인했다. 이 문서를 확정하는 후속 commit은 제품 코드를 바꾸지 않는다. A0는 최종 전달 receipt의 main SHA와 현재 실행 장비 SHA를 별도로 대조한다.
+검증 기준 후보 `aaf5216a16e3cfb164dc04db8f7f5ca3128ccd0c`는 표준 CI3개 작업과 I0 통합 CI 모두 SUCCESS다. C0 ASGI37/전체 앱8, I0 제품9/콘11, Linux 두 환경의 전체 browser333/mission10을 확인했다. 최초 main `d82663ec62400c012eb94549a03c82ccaadf2307`의 I0 CI에서는 콘 테스트의 화면 로드 후 세대 reset 경합이 확인됐다. 테스트만 reset 후 화면 로드하도록 보완했고 로컬 콘11개가 통과했다. 제품·TTL·세대 무효화는 변경하지 않았다. 최초 실패와 후속 정확한 main CI를 구분하며, A0는 최종 전달 receipt의 main SHA와 현재 실행 장비 SHA를 별도로 대조한다.
 
 **DEVICE_NOT_RUN**: 이 소스 통합에서는 로봇/Jetson 접속, 배포, 서비스 재시작, 센서 실행, 실제 ROS graph·INITIAL POSE·goal·TF·속도/자세 명령과 주행을 수행하지 않았다.
 

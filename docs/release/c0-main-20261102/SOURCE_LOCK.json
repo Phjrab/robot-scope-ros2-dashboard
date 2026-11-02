@@ -512,7 +512,7 @@
   "local_pre_ci_snapshot_tree": "340b0394d07f93176e1fa6e3aac8f92d8c429063",
   "local_pre_ci_manifest_sha256": "f07d4f65a1eb14ae34754d645108cb31960c1e9e9e6e00f59d88a952518756fa",
   "schema": "robot-scope.c0-main-source-lock.v1",
-  "state": "SOFTWARE_VALIDATED_MAIN_PUBLICATION_RECEIPT_SEPARATE",
+  "state": "MERGED_TEST_SETUP_CORRECTED_FINAL_MAIN_CI_RECEIPT_SEPARATE",
   "source_branch": "review/20261030-c0-3d-field-sweep",
   "archives": {
     "main": "archive/20261102/pre-c0-main-31ebb43ef719",
@@ -529,7 +529,8 @@
     "scripts/check_c0_prior_integration.py",
     "tests/fixtures/planar_prior_integration/fixture_server.py",
     ".github/workflows/i0-offline.yml",
-    "tests/test_c0_prior_integration_runner.py"
+    "tests/test_c0_prior_integration_runner.py",
+    "tests/integration_i0/cone.product.mjs"
   ],
   "production_preservation": {
     "main_changed_paths_byte_identical": 102,
@@ -1171,7 +1172,8 @@
       ".github/workflows/i0-offline.yml",
       "docs/release/i0-main-20261102/A0_HANDOFF.md",
       "tests/e2e/dashboard_backend.mjs",
-      "tests/e2e/live_observation.spec.mjs"
+      "tests/e2e/live_observation.spec.mjs",
+      "tests/integration_i0/cone.product.mjs"
     ],
     "c0": [
       "tests/e2e/dashboard_backend.mjs",
@@ -1255,5 +1257,46 @@
       "device": "NOT_RUN"
     }
   },
-  "final_main_receipt": "Final main SHA and its push-triggered standard/I0 CI are recorded after publication in the final delivery receipt; not substituted by candidate CI."
+  "final_main_receipt": "Final main SHA and its push-triggered standard/I0 CI are recorded after publication in the final delivery receipt; not substituted by candidate CI.",
+  "code_trees_scope": "Validated candidate aaf5216a16e3cfb164dc04db8f7f5ca3128ccd0c; final published code trees are bound in the final receipt. Only the cone browser test setup changes after that candidate.",
+  "first_main_publication": {
+    "sha": "d82663ec62400c012eb94549a03c82ccaadf2307",
+    "standard_run": 41493221997,
+    "standard_result": "in_progress_at_correction_commit; final receipt preserves result",
+    "i0_run": 41493222165,
+    "i0_result": "failure",
+    "i0_job": 125441353640,
+    "failed_step": "Cone display, isolated C1 source, expiry and lifecycle",
+    "cone_browser": {
+      "pass": 10,
+      "fail": 1,
+      "assertion": "tests/integration_i0/cone.product.mjs:23:79",
+      "expected": "STALE",
+      "actual": "CONES · UNAVAILABLE · PAIRED_REAL_PRODUCER_INPUT_REQUIRED"
+    },
+    "cause": "Trace confirms context/snapshot generation9, then fixture reset generation10 after page mount; test accepts old VALID then stalls the next snapshot while new context correctly invalidates old frame.",
+    "completed_before_failure": "C0 helper10/component37/full-app8; I0 Python45/optional client denial4/expansion JS82pass2skip/product9/scene transport5",
+    "not_run_after_failure": [
+      "timer cleanup",
+      "pinned diagnostics preparation",
+      "C7 baseline/bounded"
+    ],
+    "evidence": "Original run logs, screenshot/trace and deterministic actual-consumer counterexample retained outside source tree."
+  },
+  "post_publication_test_correction": {
+    "path": "tests/integration_i0/cone.product.mjs",
+    "sha256": "09c357174fd9fc1a24ada254891a7fc73b14dbe981e5721ebee0a4d8d016438b",
+    "change": "Get demo cookie via page.request without mounting UI, reset fixture, then navigate page.",
+    "local_result": "11 PASS (18.7s)",
+    "counterexample": "Actual polling/adapter/consumer: unchanged generation expires STALE at1001ms; reset generation invalidates to the exact UNAVAILABLE seen in CI. Trace confirms corresponding original ordering.",
+    "preserved": [
+      "production code",
+      "generation invalidation",
+      "1000ms TTL",
+      "2000ms STALE assertion",
+      "timeout/pixel/abort/reopen checks",
+      "workflow limits"
+    ],
+    "remote_validation": "New forward main commit standard/I0 CI required; final receipt records its exact SHA and all results."
+  }
 }
