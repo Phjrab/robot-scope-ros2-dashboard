@@ -131,7 +131,7 @@ def validate_handoff(geometry, bundle=None):
         accepted, prior_expiry = resolution.get('accepted_monotonic_s'), resolution.get('expires_monotonic_s')
         if (type(accepted) not in (int,float) or type(prior_expiry) not in (int,float)
                 or not math.isfinite(accepted) or not math.isfinite(prior_expiry)
-                or not 0 < prior_expiry-accepted <= 120. or accepted > time.monotonic() or deadline > prior_expiry):
+                or not accepted < prior_expiry <= accepted + TTL_S or accepted > time.monotonic() or deadline > prior_expiry):
             raise ValueError('INITIAL_GEOMETRY_PROVENANCE_REQUIRED')
         prior = resolution.get('operator_prior')
         if (not isinstance(prior, dict) or set(prior) != {'frame','pose_reference','units','pose','bounds','source',
