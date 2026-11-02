@@ -91,7 +91,7 @@ def run_probe(repo, output, mode, probe, env, manifest):
                 archive.write(repo / name, name)
     verify_source(repo, manifest)
     port_preflight()  # Never reuse or terminate a listener belonging to another run.
-    errors, server = [], None
+    errors, server, probe_completed = [], None, False
     receipt = {"mode": mode, "state": "FAIL", "snapshot_id": manifest["snapshot_id"]}
     with (directory / "server.stdout").open("wb") as stdout, \
             (directory / "server.stderr").open("wb") as stderr:
@@ -103,9 +103,12 @@ def run_probe(repo, output, mode, probe, env, manifest):
             run_logged(["node", str(HARNESS / probe)], directory, "probe", repo, env, 600)
             if server.poll() is not None:
                 raise RuntimeError("Owned fixture exited during the probe")
+            probe_completed = True
         except Exception as error:
             errors.append(f"{type(error).__name__}: {error}")
         finally:
+            if not probe_completed and not errors:
+                errors.append("Probe interrupted before completion")
             if server is not None:
                 try:
                     receipt["sent_sigterm"] = server.poll() is None
@@ -172,9 +175,12 @@ def main():
                    PRIOR_RETENTION_ADAPTER_SHA256=hashlib.sha256(adapter.read_bytes()).hexdigest(),
                    PRIOR_NODE_ROOT=str(repo), PRIOR_CHROMIUM=chromium, PRIOR_REQUIRE_GROUPING="1")
         verify_source(repo, manifest)
+        # These unit fixtures deliberately include legacy ungrouped proofs.
+        # Both actual API/browser probes below still require grouped evidence.
+        helper_env = {key: value for key, value in env.items() if key != "PRIOR_REQUIRE_GROUPING"}
         try:
             run_logged(["node", "--test", str(HARNESS / "test_contract_assertions.mjs")],
-                       output, "helper", repo, env, 120)
+                       output, "helper", repo, helper_env, 120)
         finally:
             verify_source(repo, manifest)
         for mode, probe in [("component", "browser_probe.mjs"), ("full-app", "full_app_probe.mjs")]:

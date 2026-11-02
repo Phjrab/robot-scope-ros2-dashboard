@@ -45,6 +45,12 @@ C0 지도 조합/계보·복사형 변환·선택/교정, X/Y/yaw 미전송 초�
 
 추가 mission browser 10개와 콘 browser 11개는 PASS했다. I0 제품 첫 실행과 startup 진단 실행은 server startup 10초 timeout으로 각각 테스트0개 실행이며, 원인 진단을 별도로 진행한다. 시간/검사 조건을 늘리지 않았다. Linux 후보 CI 결과는 완료 후 이 보고서에 확정한다. Linux C0 하니스는 실제 준비/proposal/confirmation/stop/match API와 UI를 사용하지만 센서·solver·Nav2/ROS는 합성이다. MATCH_ARMED는 요청 경로 성공이지 연속 정합·실장비 위치 정확도·주행 준비가 아니다.
 
+## 첫 Linux 후보와 실행기 보완
+
+첫 부모보존 merge 후보는 `0947497db7f004ce0c2b47e2848cbaecdd6ef674`, 보존 태그는 `archive/20261102/c0-main-candidate-0947497db7f0`다. 첫 [I0 CI 41415084487](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41415084487)는 새 C0 helper 단계에서 5 PASS/5 FAIL로 종료됐다. helper의 과거 ungrouped proof fixture에 실행기가 `PRIOR_REQUIRE_GROUPING=1`을 잘못 주입한 원인이 확인됐다. 실제 ASGI/전체 앱 및 후속 I0 검사는 이 실행에서 SKIP이며 성공으로 표시하지 않는다. 실패 run/artifact는 보존하고 자동 재실행하지 않았다.
+
+실행기만 보완하여 legacy unit fixture는 기존 모드로 실행하고, 실제 component/full-app에는 그룹 검증을 계속 필수 적용한다. 별도 중단 반례에서 최상위 명령은 실패하지만 개별 receipt가 PASS로 남는 문제도 발견해, probe 완료 전 중단은 receipt에도 FAIL로 기록한다. 해당 회귀 2개(중단 위치/예외 종류 4개 조합 포함)와 helper10개가 통과했다. 제품 및 원래 검증 assertion/한도는 변경하지 않았다. 수정 후보는 별도 commit/tag로 검증한다.
+
 ## 게시·인계 경계
 
 후보의 Linux 표준 CI와 I0 통합 CI를 확인한 뒤 main에 정상 forward push한다. push 직전 원격 ref를 다시 대조하며 force push하지 않는다. 최종 main SHA와 그 exact-SHA 두 CI의 run/job/step 결과는 게시 후 최종 receipt로 확정한다. 자신의 최종 SHA를 문서에 넣기 위한 commit 반복은 하지 않는다.

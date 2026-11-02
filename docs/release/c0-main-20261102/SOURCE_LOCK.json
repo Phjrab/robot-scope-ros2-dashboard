@@ -527,7 +527,8 @@
     "tests/test_dashboard_fixture_lifecycle.mjs",
     "scripts/check_c0_prior_integration.py",
     "tests/fixtures/planar_prior_integration/fixture_server.py",
-    ".github/workflows/i0-offline.yml"
+    ".github/workflows/i0-offline.yml",
+    "tests/test_c0_prior_integration_runner.py"
   ],
   "production_preservation": {
     "main_changed_paths_byte_identical": 102,
@@ -631,6 +632,11 @@
       "tests_run": 0,
       "timeout_ms": 10000,
       "reason": "ECONNREFUSED until timeout; root cause under investigation"
+    },
+    "runner_regressions": {
+      "tests": 2,
+      "result": "PASS",
+      "interrupt_combinations": 4
     }
   },
   "source_ci": {
@@ -664,5 +670,13 @@
       "tests/fixtures/planar_prior_integration/fixture_server.py",
       "tests/test_dashboard_fixture_lifecycle.mjs"
     ]
+  },
+  "first_candidate": {
+    "sha": "0947497db7f004ce0c2b47e2848cbaecdd6ef674",
+    "archive": "archive/20261102/c0-main-candidate-0947497db7f0",
+    "standard_run": 41415083777,
+    "i0_run": 41415084487,
+    "i0_result": "failure",
+    "failure": "Runner incorrectly enabled grouped proof validation on historical helper unit fixtures; 5pass5fail; actual API/probes and later I0 checks skipped"
   }
 }
