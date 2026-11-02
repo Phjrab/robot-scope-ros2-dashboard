@@ -25,7 +25,7 @@ async function runCase(name,fn){
  await page.route('**/*',route=>{const u=new URL(route.request().url());return u.origin===base?route.continue():route.abort('blockedbyclient')});
  try{await fresh(page);await fn(page);assert.deepEqual(errors,[]);result.state='PASS';}
  catch(e){result.error=e.stack;await page.screenshot({path:`${output}/${run}-${name}.png`,fullPage:true}).catch(()=>{});}
- finally{result.errors=errors;result.server=await local('/__fixture/result').catch(e=>({unavailable:String(e)}));result.details=await page.locator('[data-prep="details"]').textContent().then(JSON.parse).catch(()=>null);result.dom=await page.locator('#host').innerText().catch(()=>null);await page.close();results.push(result);await writeFile(`${output}/cases-${run}.json`,JSON.stringify(results,null,2));console.log(JSON.stringify({case:name,state:result.state,error:result.error?.split('\n')[0]}));}
+ finally{result.errors=errors;if(page.recoveryEvidence)result.recovery_evidence=page.recoveryEvidence;result.server=await local('/__fixture/result').catch(e=>({unavailable:String(e)}));result.details=await page.locator('[data-prep="details"]').textContent().then(JSON.parse).catch(()=>null);result.dom=await page.locator('#host').innerText().catch(()=>null);await page.close();results.push(result);await writeFile(`${output}/cases-${run}.json`,JSON.stringify(results,null,2));console.log(JSON.stringify({case:name,state:result.state,error:result.error?.split('\n')[0]}));}
 }
 try{
  await runCase('missing_prior_draft_or_bounds_never_posts',async page=>{
@@ -72,13 +72,32 @@ try{
   r=await local('/__fixture/result');assert.equal(r.state.selected.seed_geometry,null);assert.equal(posts(r,'/fastlio/stop').length,0);assert.deepEqual(await page.evaluate(()=>window.actions),[]);
  });
  await runCase('confirm_response_lost_and_status_failure_no_retry',async page=>{
+  page.recoveryEvidence=[];
+  const isPreparation=(response,status)=>response.request().method()==='GET'&&new URL(response.url()).pathname==='/api/v1/navigation/operational-3d/preparation-inputs'&&response.status()===status;
+  const appliedPreparation=async response=>{
+   if(!isPreparation(response,200))return false;
+   const value=await response.json();return value.operational_state?.selected?.seed_geometry?.source==='proposal_confirmed'&&value.operational_state?.initialization_handoff?.state==='CONFIRMED_OBSERVATION_ACTIVE';
+  };
+  const recordResponse=(phase,response)=>{const request=response.request();page.recoveryEvidence.push({phase,method:request.method(),url:response.url(),status:response.status(),request_start_time_ms:request.timing().startTime,request_id:request.method()==='POST'?request.postDataJSON()?.request_id:null});};
+  const readDetails=()=>page.locator('[data-prep="details"]').textContent().then(JSON.parse);
   await setupPrior(page);await page.locator('[data-prep="proposal"]').click();await expect(page.locator('[data-prep="geometry-preview"]')).toContainText('미적용');
-  await local('/__fixture/change/lose-confirm-response',{});await settledPreview(page);await page.locator('[data-prep="supervision"]').check();await page.locator('[data-prep="conditional-ack"]').check();await expect(page.locator('[data-prep="confirm-handoff"]')).toBeEnabled();await page.locator('[data-prep="confirm-handoff"]').click();
+  await local('/__fixture/change/lose-confirm-response',{});await settledPreview(page);await page.locator('[data-prep="supervision"]').check();await page.locator('[data-prep="conditional-ack"]').check();await expect(page.locator('[data-prep="confirm-handoff"]')).toBeEnabled();
+  const [lostResponse,readback]=await Promise.all([
+   page.waitForResponse(response=>response.request().method()==='POST'&&new URL(response.url()).pathname.endsWith('/confirm-geometry')&&response.status()===503),
+   page.waitForResponse(appliedPreparation),page.locator('[data-prep="confirm-handoff"]').click(),
+  ]);
+  recordResponse('confirmation_response_lost',lostResponse);recordResponse('confirmed_readback_before_injection',readback);
+  const restored=(await readback.json()).operational_state,handoff=restored.initialization_handoff;
+  const expectRecovered=()=>expect.poll(async()=>{const d=await readDetails();return {error:d.preparation_inputs_error,source:d.selected?.seed_geometry?.source,generation:d.selected?.generation,pair_generation:d.preparation_inputs?.pair?.generation,handoff_id:d.initialization_handoff?.handoff_id,geometry_handoff_id:d.selected?.seed_geometry?.handoff?.handoff_id,handoff_state:d.initialization_handoff?.state,session_id:d.preparation_inputs?.observation?.session_id,handoff_session_id:d.initialization_handoff?.observation_session_id,can_stop:d.preparation_inputs?.observation?.can_stop};}).toEqual({error:'',source:'proposal_confirmed',generation:restored.selected.generation,pair_generation:restored.selected.generation,handoff_id:handoff.handoff_id,geometry_handoff_id:handoff.handoff_id,handoff_state:'CONFIRMED_OBSERVATION_ACTIVE',session_id:handoff.observation_session_id,handoff_session_id:handoff.observation_session_id,can_stop:true});
+  await expectRecovered();
   await expect.poll(async()=>posts(await local('/__fixture/result'),'/confirm-geometry').length).toBe(1);
-  await local('/__fixture/change/fail-next-status',{});await page.evaluate(()=>window.preparation.refresh(true));
+  const [failedRead]=await Promise.all([page.waitForResponse(response=>isPreparation(response,503)),(async()=>{await local('/__fixture/change/fail-next-status',{});await page.evaluate(()=>window.preparation.refresh(true));})()]);
+  recordResponse('injected_503_consumed_before_reload',failedRead);assert.equal((await failedRead.json()).detail,'SYNTHETIC_STATUS_READ_FAILURE');
+  await expect.poll(async()=>{const d=await readDetails();return {error:d.preparation_inputs_error,inputs:d.preparation_inputs};}).toEqual({error:'SYNTHETIC_STATUS_READ_FAILURE',inputs:null});
   await expect(page.locator('[data-prep="confirm-handoff"]')).toBeDisabled();const r=await local('/__fixture/result');assert.equal(posts(r,'/confirm-geometry').length,1);assert.equal(posts(r,'/fastlio/stop').length,0);assert.deepEqual(await page.evaluate(()=>window.actions),[]);
-  assert.equal(r.state.selected.seed_geometry.source,'proposal_confirmed');await page.reload();await page.waitForFunction(()=>window.mounted===true);
-  await expect(page.locator('[data-prep="geometry-applied"]')).toContainText('서버 확인 적용값');assert.equal(posts(await local('/__fixture/result'),'/confirm-geometry').length,1);
+  assert.equal(r.state.selected.seed_geometry.source,'proposal_confirmed');
+  const [reloadedRead]=await Promise.all([page.waitForResponse(appliedPreparation),page.reload()]);recordResponse('fresh_readback_after_reload',reloadedRead);await page.waitForFunction(()=>window.mounted===true);
+  await expectRecovered();await expect(page.locator('[data-prep="geometry-applied"]')).toContainText('② 서버 확인 적용값 (지도 기준 base_link · 제안 출처):');assert.equal(posts(await local('/__fixture/result'),'/confirm-geometry').length,1);
   await page.locator('[data-prep="observe-stop"]').click();await expect.poll(async()=>(await local('/__fixture/result')).state.initialization_handoff?.state).toBe('OBSERVATION_STOPPED');assertExactStopReceipt(await local('/__fixture/result'),'a'.repeat(32));
  });
  for(const variant of ['zero','multiple','bad-quality','truncated','unknown-quality','missing-metadata','tampered-metadata']) await runCase(`ambiguous_${variant}_does_not_confirm`,async page=>{

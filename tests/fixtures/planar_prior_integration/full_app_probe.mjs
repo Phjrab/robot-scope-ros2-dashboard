@@ -11,6 +11,7 @@ const base='http://127.0.0.1:4397',steps=[],errors=[],responses=[];
 async function local(path,body){const r=await fetch(base+path,body===undefined?{signal:AbortSignal.timeout(10000)}:{signal:AbortSignal.timeout(10000),method:'POST',headers:{'Content-Type':'application/json','Origin':base},body:JSON.stringify(body)});const j=await r.json();if(!r.ok)throw Error(`${r.status} ${JSON.stringify(j)}`);return j;}
 const browser=await chromium.launch({headless:true,executablePath:process.env.PRIOR_CHROMIUM});
 const page=await browser.newPage({viewport:{width:1440,height:1100}});page.setDefaultTimeout(8000);let backend,stage='mount',state='FAIL',failure;
+let confirmationDomObservation={status:'NOT_STARTED'};
 async function step(name,fn){stage=name;await fn();steps.push({name,state:'PASS'});console.log(JSON.stringify(steps.at(-1)));}
 const posts=(r,suffix)=>r.events.filter(e=>e.method==='POST'&&e.path.endsWith(suffix));
 try{
@@ -47,8 +48,46 @@ try{
  });
  await step('explicit_confirm_then_stop_real_receipt',async()=>{
   await expect.poll(async()=>{const d=JSON.parse(await page.locator('[data-prep="details"]').textContent());return d.proposal_cleanup?.state==='SETTLED'&&d.proposal_display_valid===true;}).toBe(true);
-  await page.locator('[data-prep="supervision"]').check();await page.locator('[data-prep="conditional-ack"]').check();await page.locator('[data-prep="confirm-handoff"]').click();await expect(page.locator('[data-prep="geometry-applied"]')).toContainText('서버 확인 적용값');
+  // Read only the rendered controls from the first check; do not infer product gates.
+  let domObserver;const markerErrors=[];
+  try{
+   domObserver=await page.evaluateHandle(()=>{
+    const samples=[],intervalMs=100,maxSamples=200,maxPreviewChars=512;
+    let timer,capped=false,readError=null,action='supervision_check';
+    const sample=(phase,final=false)=>{
+     if(samples.length>=maxSamples-(final?0:1)){capped=true;clearInterval(timer);return;}
+     try{
+      const find=name=>document.querySelector(`[data-prep="${name}"]`),button=find('confirm-handoff');
+      const rect=button?.getBoundingClientRect(),visibility=button?getComputedStyle(button).visibility:null;
+      const preview=find('geometry-preview')?.textContent??null;
+      samples.push({phase,action,browser_performance_ms:performance.now(),supervision_checked:find('supervision')?.checked??null,
+       conditional_ack_checked:find('conditional-ack')?.checked??null,conditional_label_hidden:find('conditional-label')?.hidden??null,
+       confirm_button_disabled:button?.disabled??null,confirm_button_visible:button?Boolean(rect.width>0&&rect.height>0&&visibility!=='hidden'&&visibility!=='collapse'):null,
+       preview_text:preview?.slice(0,maxPreviewChars)??null,preview_text_truncated:preview!==null&&preview.length>maxPreviewChars});
+     }catch(error){readError=String(error).slice(0,512);clearInterval(timer);}
+    };
+    sample('before_action');if(!readError)timer=setInterval(()=>sample('during_action'),intervalMs);
+    return {mark(nextAction){sample('after_action');action=nextAction;sample('before_action');},stop(result){clearInterval(timer);action=result.action;sample(result.outcome,true);return {status:readError?'READ_ERROR':'COLLECTED',...result,interval_ms:intervalMs,max_samples:maxSamples,max_preview_chars:maxPreviewChars,capped,read_error:readError,
+     visibility_definition:'nonzero bounding rectangle and CSS visibility; not hit-testing or Playwright actionability',samples};}};
+   });
+  }catch(error){confirmationDomObservation={status:'START_ERROR',error:String(error).slice(0,512)};}
+  const markAction=async action=>{if(domObserver)try{await domObserver.evaluate((observer,value)=>observer.mark(value),action);}catch(error){if(markerErrors.length<3)markerErrors.push(String(error).slice(0,512));}};
+  let observedAction='supervision_check',actionOutcome='CHECK_FAILED';
+  try{
+   await page.locator('[data-prep="supervision"]').check();
+   observedAction='conditional_ack_check';await markAction(observedAction);await page.locator('[data-prep="conditional-ack"]').check();
+   observedAction='confirm_click';actionOutcome='CLICK_FAILED';await markAction(observedAction);await page.locator('[data-prep="confirm-handoff"]').click();actionOutcome='CLICK_RESOLVED';
+  }finally{
+   if(domObserver){
+    try{confirmationDomObservation=await domObserver.evaluate((observer,result)=>observer.stop(result),{action:observedAction,outcome:actionOutcome});confirmationDomObservation.marker_errors=markerErrors;}
+    catch(error){confirmationDomObservation={status:'COLLECTION_ERROR',error:String(error).slice(0,512)};}
+    finally{await domObserver.dispose().catch(()=>{});}
+   }
+  }
+  await expect(page.locator('[data-prep="geometry-applied"]')).toContainText('② 서버 확인 적용값 (지도 기준 base_link · 제안 출처):');
   let r=await local('/__fixture/result');assert.equal(posts(r,'/confirm-geometry').length,1);assertConditionalConfirmation(posts(r,'/confirm-geometry')[0].body);assert.equal(posts(r,'/fastlio/stop').length,0);assert.deepEqual(backend.state.requests,[]);
+  const confirmed=r.state.selected.seed_geometry,handoff=r.state.initialization_handoff;
+  assert.equal(confirmed.source,'proposal_confirmed');assert.equal(handoff.state,'CONFIRMED_OBSERVATION_ACTIVE');assert.equal(handoff.handoff_id,confirmed.handoff.handoff_id);assert.equal(handoff.proposal_id,proposal.proposal_id);assert.equal(handoff.bundle_generation,original.bundle_generation);assert.equal(handoff.observation_session_id,original.observation_session_id);
   await page.locator('[data-prep="observe-stop"]').click();await expect.poll(async()=>(await local('/__fixture/result')).state.initialization_handoff?.state).toBe('OBSERVATION_STOPPED');assertExactStopReceipt(await local('/__fixture/result'),original.observation_session_id);
  });
  await step('mock_nav2_start_no_old_draft_auto_send',async()=>{
@@ -85,7 +124,7 @@ try{
  assert.deepEqual(errors,[]);state='PASS';
 }catch(e){failure=e.stack;steps.push({name:stage,state:'FAIL',error:failure});console.log(JSON.stringify({name:stage,state:'FAIL',error:e.message}));}
 finally{
- const report={state,steps,failure,errors,requests:backend?.state.requests,responses,preparation:await local('/api/v1/navigation/operational-3d/preparation-inputs').catch(e=>({error:String(e)})),server:await local('/__fixture/result').catch(e=>({error:String(e)})),dom:await page.locator('body').innerText().catch(()=>null),synthetic_boundaries:['dashboard HTTP/ws','map pixels','solver candidates/execution','Nav2 launch','ROS receipt transport'],real:['index/app.js canvas draft','operational ASGI routers','proposal/global owner','manager','localizer reseed/start_matching','receipt waiters'],not_run:['ROS callbacks','external solver subprocess','Nav2 nodes/TF','actual registration convergence','device']};
+ const report={state,steps,failure,errors,confirmation_dom_observation:confirmationDomObservation,requests:backend?.state.requests,responses,preparation:await local('/api/v1/navigation/operational-3d/preparation-inputs').catch(e=>({error:String(e)})),server:await local('/__fixture/result').catch(e=>({error:String(e)})),dom:await page.locator('body').innerText().catch(()=>null),synthetic_boundaries:['dashboard HTTP/ws','map pixels','solver candidates/execution','Nav2 launch','ROS receipt transport'],real:['index/app.js canvas draft','operational ASGI routers','proposal/global owner','manager','localizer reseed/start_matching','receipt waiters'],not_run:['ROS callbacks','external solver subprocess','Nav2 nodes/TF','actual registration convergence','device']};
  await writeFile(`${output}/full-app-${run}.json`,JSON.stringify(report,null,2));await page.screenshot({path:`${output}/full-app-${run}.png`,fullPage:true}).catch(()=>{});await browser.close();
 }
 process.exitCode=state==='PASS'?0:1;
