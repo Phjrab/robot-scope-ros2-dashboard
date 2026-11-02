@@ -21,7 +21,7 @@ from .operational_navigation import _navigation_map_body_pose
 from .planar_prior_selection import select_candidates, validate_prior, PriorRejected
 from ..observation_service import inputs_ready
 from ..relocalization.experimental_se3 import _rpy, from_translation_rpy, validate_transform, inverse
-from ..relocalization.handoff_policy import MAX_XY_M, MAX_YAW_RAD
+from ..relocalization.handoff_policy import MAX_XY_M, MAX_YAW_RAD, resolution_bounds
 from ..relocalization.external_global_observation import ExternalGlobalObservationError
 from ..relocalization.operational import display_pose
 from ..relocalization.v031_observation_compat import supports_pin
@@ -536,7 +536,7 @@ class NavigationInitializationProposals:
                     result['operator_prior_resolution'] = resolution
                     result['classification'] = 'CONDITIONAL_ON_OPERATOR_PRIOR'
                     prior_pose = record['operator_prior']['pose']
-                    prior_bounds = record['operator_prior']['bounds']
+                    prior_bounds = resolution_bounds(resolution)
                     dx, dy = navigation_pose['x'] - prior_pose['x'], navigation_pose['y'] - prior_pose['y']
                     yaw_delta = math.atan2(math.sin(navigation_pose['yaw'] - prior_pose['yaw']),
                                            math.cos(navigation_pose['yaw'] - prior_pose['yaw']))

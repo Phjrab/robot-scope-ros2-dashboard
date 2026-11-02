@@ -9,6 +9,30 @@ GROUPING_POLICY = 'PINNED_V031_SE3_FIRST_REPRESENTATIVE_V1'
 TTL_S, MAX_XY_M, MAX_YAW_RAD = 120., .25, .20
 
 
+def prior_bounds_policy(prior):
+    """Return acceptance bounds without adding uncertainty to the user's draft."""
+    if 'bounds' in prior:
+        return 'operator_prior', dict(prior['bounds'])
+    return 'server_policy', {'xy_m': MAX_XY_M, 'yaw_rad': MAX_YAW_RAD}
+
+
+def resolution_bounds(resolution):
+    source, expected = prior_bounds_policy(resolution['operator_prior'])
+    # Existing explicit-bounds proofs predate this provenance field. An
+    # omitted-bounds proof must never fall back to that legacy branch.
+    if 'bounds_source' not in resolution and 'effective_bounds' not in resolution:
+        if source == 'operator_prior':
+            return expected
+    else:
+        supplied = resolution.get('effective_bounds')
+        if (resolution.get('bounds_source') == source and type(supplied) is dict
+                and set(supplied) == {'xy_m', 'yaw_rad'}
+                and all(type(v) in (int, float) and math.isfinite(v) for v in supplied.values())
+                and supplied == expected):
+            return expected
+    raise ValueError('INITIAL_GEOMETRY_PROVENANCE_REQUIRED')
+
+
 def process_identity(pid):
     # Linux start ticks distinguish a restarted process even if its PID is reused.
     with open(f'/proc/{pid}/stat', encoding='ascii') as stream:
@@ -57,7 +81,7 @@ def _valid_prior_group(resolution, current_members):
     if (not isinstance(stamp, str) or not stamp.isdecimal() or int(stamp) <= 0
             or not isinstance(checks, list) or len(checks) != raw_count):
         return False
-    bounds = resolution['operator_prior']['bounds']
+    bounds = resolution_bounds(resolution)
     for i, check in zip(indices, checks):
         if (not isinstance(check, dict) or set(check) != {'candidate_index','xy_distance_m','absolute_wrapped_yaw_rad','within_prior_bounds'}
                 or type(check['candidate_index']) is not int or check['candidate_index'] != i
@@ -134,8 +158,9 @@ def validate_handoff(geometry, bundle=None):
                 or not accepted < prior_expiry <= accepted + TTL_S or accepted > time.monotonic() or deadline > prior_expiry):
             raise ValueError('INITIAL_GEOMETRY_PROVENANCE_REQUIRED')
         prior = resolution.get('operator_prior')
-        if (not isinstance(prior, dict) or set(prior) != {'frame','pose_reference','units','pose','bounds','source',
+        prior_keys = {'frame','pose_reference','units','pose','source',
                 'stationary_current_pose_confirmed','navigation_map_id','navigation_map_revision','calibration_sha256'}
+        if (not isinstance(prior, dict) or set(prior) not in (prior_keys, prior_keys | {'bounds'})
                 or prior.get('frame') != 'map' or prior.get('pose_reference') != 'base_link'
                 or prior.get('units') != 'metres_radians' or prior.get('source') != 'OPERATOR_CURRENT_MAP_DRAFT'
                 or prior.get('stationary_current_pose_confirmed') is not True
@@ -143,13 +168,18 @@ def validate_handoff(geometry, bundle=None):
                 or prior.get('navigation_map_revision') != proof['navigation_map_revision']
                 or prior.get('calibration_sha256') != proof['calibration_sha256']):
             raise ValueError('INITIAL_GEOMETRY_PROVENANCE_REQUIRED')
-        prior_pose, prior_bounds = prior.get('pose'), prior.get('bounds')
+        prior_pose = prior.get('pose')
         if (not isinstance(prior_pose, dict) or set(prior_pose) != {'x','y','yaw'}
-                or not isinstance(prior_bounds, dict) or set(prior_bounds) != {'xy_m','yaw_rad'}
-                or any(type(v) not in (int,float) or not math.isfinite(v) for v in list(prior_pose.values())+list(prior_bounds.values()))
-                or abs(prior_pose['x']) > 1000 or abs(prior_pose['y']) > 1000 or abs(prior_pose['yaw']) > math.pi
-                or not .1 <= prior_bounds['xy_m'] <= 3. or not math.pi/180 <= prior_bounds['yaw_rad'] <= math.pi/2):
+                or any(type(v) not in (int,float) or not math.isfinite(v) for v in prior_pose.values())
+                or abs(prior_pose['x']) > 1000 or abs(prior_pose['y']) > 1000 or abs(prior_pose['yaw']) > math.pi):
             raise ValueError('INITIAL_GEOMETRY_PROVENANCE_REQUIRED')
+        if 'bounds' in prior:
+            prior_bounds = prior['bounds']
+            if (not isinstance(prior_bounds, dict) or set(prior_bounds) != {'xy_m','yaw_rad'}
+                    or any(type(v) not in (int,float) or not math.isfinite(v) for v in prior_bounds.values())
+                    or not .1 <= prior_bounds['xy_m'] <= 3. or not math.pi/180 <= prior_bounds['yaw_rad'] <= math.pi/2):
+                raise ValueError('INITIAL_GEOMETRY_PROVENANCE_REQUIRED')
+        resolution_bounds(resolution)
         if not _valid_prior_group(resolution, proof.get('operator_prior_current_members')):
             raise ValueError('INITIAL_GEOMETRY_PROVENANCE_REQUIRED')
         anchor_stamp = resolution.get('prior_anchor_stamp_ns')
@@ -186,8 +216,8 @@ def validate_candidate(geometry, x, y, yaw, bundle=None):
     if math.hypot(x-ref['x'], y-ref['y']) > MAX_XY_M or abs(angle) > MAX_YAW_RAD:
         raise ValueError('INITIAL_POSE_CANDIDATE_MISMATCH')
     if geometry['handoff']['policy_id'] == CONDITIONAL_POLICY_ID:
-        prior = geometry['handoff']['operator_prior_resolution']['operator_prior']
-        p, bounds = prior['pose'], prior['bounds']
+        resolution = geometry['handoff']['operator_prior_resolution']
+        p, bounds = resolution['operator_prior']['pose'], resolution_bounds(resolution)
         prior_angle = math.atan2(math.sin(yaw-p['yaw']), math.cos(yaw-p['yaw']))
         if math.hypot(x-p['x'], y-p['y']) > bounds['xy_m'] or abs(prior_angle) > bounds['yaw_rad']:
             raise ValueError('INITIAL_POSE_PRIOR_MISMATCH')

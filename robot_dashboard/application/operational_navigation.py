@@ -14,7 +14,7 @@ import time
 
 from ..relocalization.experimental_se3 import from_translation_rpy, validate_transform
 from ..relocalization.operational import SCHEMA, digest, validate_bundle, display_pose
-from ..relocalization.handoff_policy import POLICY_ID, CONDITIONAL_POLICY_ID, TTL_S, MAX_XY_M, MAX_YAW_RAD, process_identity, validate_handoff, validate_candidate
+from ..relocalization.handoff_policy import POLICY_ID, CONDITIONAL_POLICY_ID, TTL_S, MAX_XY_M, MAX_YAW_RAD, process_identity, validate_handoff, validate_candidate, resolution_bounds
 from ..saved_maps import SavedMapError
 from .runtime_health_sample import RuntimeHealthSample
 
@@ -235,11 +235,12 @@ class OperationalNavigation:
                 pose = _navigation_map_body_pose(bundle['calibration'], body)
                 if conditional:
                     prior = resolution['operator_prior']
+                    bounds = resolution_bounds(resolution)
                     angle = math.atan2(math.sin(pose['yaw']-prior['pose']['yaw']), math.cos(pose['yaw']-prior['pose']['yaw']))
                     if (math.hypot(pose['x']-prior['pose']['x'], pose['y']-prior['pose']['y']) > MAX_XY_M
                             or abs(angle) > MAX_YAW_RAD
-                            or math.hypot(pose['x']-prior['pose']['x'], pose['y']-prior['pose']['y']) > prior['bounds']['xy_m']
-                            or abs(angle) > prior['bounds']['yaw_rad']
+                            or math.hypot(pose['x']-prior['pose']['x'], pose['y']-prior['pose']['y']) > bounds['xy_m']
+                            or abs(angle) > bounds['yaw_rad']
                             or time.monotonic() >= resolution['expires_monotonic_s']):
                         raise ValueError('PRIOR_HANDOFF_MISMATCH')
                 identifier = uuid.uuid4().hex
@@ -274,10 +275,11 @@ class OperationalNavigation:
                     body = fresh['body_candidate']['pose']
                     pose = _navigation_map_body_pose(bundle['calibration'], body)
                     prior = resolution['operator_prior']
+                    bounds = resolution_bounds(resolution)
                     angle = math.atan2(math.sin(pose['yaw']-prior['pose']['yaw']), math.cos(pose['yaw']-prior['pose']['yaw']))
                     distance = math.hypot(pose['x']-prior['pose']['x'], pose['y']-prior['pose']['y'])
                     if (distance > MAX_XY_M or abs(angle) > MAX_YAW_RAD
-                            or distance > prior['bounds']['xy_m'] or abs(angle) > prior['bounds']['yaw_rad']):
+                            or distance > bounds['xy_m'] or abs(angle) > bounds['yaw_rad']):
                         raise ValueError('PRIOR_HANDOFF_MISMATCH')
                     stamp = current_members.get('pose_stamp_ns')
                     age = provenance.get('pose_age_s')

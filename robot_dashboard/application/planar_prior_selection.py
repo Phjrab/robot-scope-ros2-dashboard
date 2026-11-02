@@ -15,7 +15,7 @@ import numpy as np
 
 from ..relocalization.experimental_se3 import inverse, validate_transform
 from ..relocalization.external_global_observation import ExternalGlobalObservationRunner
-from ..relocalization.handoff_policy import GROUPING_POLICY, MAX_XY_M, MAX_YAW_RAD
+from ..relocalization.handoff_policy import GROUPING_POLICY, MAX_XY_M, MAX_YAW_RAD, prior_bounds_policy
 from ..relocalization.operational import display_pose
 from ..relocalization.v031_observation_compat import SELECTION_POLICY, _ambiguity_eligible
 
@@ -38,26 +38,32 @@ def _pinned_duplicate(first, other):
 
 
 def validate_prior(prior):
-    if type(prior) is not dict or set(prior) != {'frame', 'pose_reference', 'units', 'pose', 'bounds', 'source',
-            'stationary_current_pose_confirmed', 'navigation_map_id', 'navigation_map_revision', 'calibration_sha256'}:
+    required = {'frame', 'pose_reference', 'units', 'pose', 'source',
+            'stationary_current_pose_confirmed', 'navigation_map_id', 'navigation_map_revision', 'calibration_sha256'}
+    if type(prior) is not dict or set(prior) not in (required, required | {'bounds'}):
         raise PriorRejected('PRIOR_INVALID')
     if ((prior['frame'], prior['pose_reference'], prior['units'], prior['source']) !=
             ('map', 'base_link', 'metres_radians', 'OPERATOR_CURRENT_MAP_DRAFT')
             or prior['stationary_current_pose_confirmed'] is not True):
         raise PriorRejected('PRIOR_INVALID')
-    pose, bounds = prior['pose'], prior['bounds']
-    if type(pose) is not dict or set(pose) != {'x', 'y', 'yaw'} or type(bounds) is not dict or set(bounds) != {'xy_m', 'yaw_rad'}:
+    pose, bounds = prior['pose'], prior.get('bounds')
+    if (type(pose) is not dict or set(pose) != {'x', 'y', 'yaw'}
+            or (bounds is not None and (type(bounds) is not dict or set(bounds) != {'xy_m', 'yaw_rad'}))):
         raise PriorRejected('PRIOR_INVALID')
-    for value in list(pose.values()) + list(bounds.values()):
+    for value in list(pose.values()) + (list(bounds.values()) if bounds is not None else []):
         if type(value) not in (int, float) or not math.isfinite(value):
             raise PriorRejected('PRIOR_INVALID')
     if (abs(pose['x']) > 1000 or abs(pose['y']) > 1000 or abs(pose['yaw']) > math.pi
-            or not .1 <= bounds['xy_m'] <= 3. or not math.pi / 180 <= bounds['yaw_rad'] <= math.pi / 2):
+            or (bounds is not None and (not .1 <= bounds['xy_m'] <= 3.
+                                       or not math.pi / 180 <= bounds['yaw_rad'] <= math.pi / 2))):
         raise PriorRejected('PRIOR_INVALID')
     for key, length in (('navigation_map_id', 24), ('navigation_map_revision', 64), ('calibration_sha256', 64)):
         if type(prior[key]) is not str or not re.fullmatch('[a-f0-9]{%d}' % length, prior[key]):
             raise PriorRejected('PRIOR_INVALID')
-    return deepcopy(prior)
+    normalized = deepcopy(prior)
+    if bounds is None:
+        normalized.pop('bounds', None)
+    return normalized
 
 
 def retained_candidate_digest(observation):
@@ -80,6 +86,7 @@ def retained_candidate_digest(observation):
 def select_candidates(observation, context, prior, *, nav_from_localization, odom_from_imu_at_prior,
                       imu_from_base, allow_ambiguous):
     prior = validate_prior(prior)
+    bounds_source, bounds = prior_bounds_policy(prior)
     ExternalGlobalObservationRunner._validate_result(observation, context, allow_ambiguous=allow_ambiguous)
     top_gates = observation.get('gate_reasons')
     if (observation.get('selection_policy') != SELECTION_POLICY
@@ -118,7 +125,7 @@ def select_candidates(observation, context, prior, *, nav_from_localization, odo
             raise PriorRejected('CANDIDATE_QUALITY_UNAVAILABLE')
         matrix = validate_transform(candidate['map_from_scan'])
         p = display_pose(nav @ matrix @ capture_inverse @ prior_imu @ body)
-        q, bounds = prior['pose'], prior['bounds']
+        q = prior['pose']
         angle = abs(math.atan2(math.sin(p['yaw'] - q['yaw']), math.cos(p['yaw'] - q['yaw'])))
         distance = math.hypot(p['x'] - q['x'], p['y'] - q['y'])
         eligible_candidates.append((index, candidate['duplicate_of'], matrix, distance, angle,
@@ -155,6 +162,7 @@ def select_candidates(observation, context, prior, *, nav_from_localization, odo
                  'pitch_delta_rad': delta(p['pitch'],representative_pose['pitch'])}
                 for i, p in matching_members]
     return {'candidate_index': index, 'classification': 'CONDITIONAL_ON_OPERATOR_PRIOR',
+            'bounds_source': bounds_source, 'effective_bounds': bounds,
             'retained_candidate_count': retention['count'], 'eligible_candidate_count': len(eligible_candidates),
             'grouping_policy': GROUPING_POLICY, 'matching_candidate_count': matched_retained,
             'matching_hypothesis_count': 1, 'matching_retained_candidate_count': matched_retained,

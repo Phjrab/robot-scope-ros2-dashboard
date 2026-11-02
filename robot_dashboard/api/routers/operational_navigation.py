@@ -67,7 +67,7 @@ class OperatorPrior(BaseModel):
     pose_reference: Literal['base_link']
     units: Literal['metres_radians']
     pose: OperatorPriorPose
-    bounds: OperatorPriorBounds
+    bounds: OperatorPriorBounds | None = None
     source: Literal['OPERATOR_CURRENT_MAP_DRAFT']
     stationary_current_pose_confirmed: bool
 
@@ -148,7 +148,7 @@ async def start_initialization_proposal(body: InitializationProposalRequest, req
             args = (body.request_id, body.bundle_generation, body.observation_session_id)
             if body.operator_prior is not None:
                 return await asyncio.to_thread(_proposal_owner(runtime).start, *args,
-                                               operator_prior=body.operator_prior.model_dump())
+                                               operator_prior=body.operator_prior.model_dump(exclude_none=True))
             return await asyncio.to_thread(_proposal_owner(runtime).start, *args)
         except ProposalConflict as exc:
             raise HTTPException(409, str(exc)) from exc
