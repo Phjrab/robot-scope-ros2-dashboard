@@ -74,15 +74,15 @@ const INPUT_REASONS = {
   GLOBAL_BACKEND_UNAVAILABLE: '전역 위치 제안 기능을 사용할 수 없습니다 → 서버 구성을 확인하세요.',
   GLOBAL_JOB_NOT_READY: '위치 제안 계산이 아직 준비되지 않았습니다 → 현재 상태를 확인하세요.',
   GLOBAL_AMBIGUOUS: '서로 구분되지 않는 위치 후보가 있습니다 → 관측과 지도 단서를 확인하세요.',
-  PRIOR_NO_MATCH: '초안 범위 안에 조건을 충족하는 후보가 없습니다 → 초안과 관측을 다시 확인하세요.',
-  PRIOR_MULTIPLE_MATCHES: '초안 범위 안에 여러 후보가 있습니다 → 모호성이 남아 있습니다.',
+  PRIOR_NO_MATCH: '서버 검증 한도 안에 조건을 충족하는 후보가 없습니다 → 초안과 관측을 다시 확인하세요.',
+  PRIOR_MULTIPLE_MATCHES: '서버 검증 한도 안에 여러 후보가 있습니다 → 모호성이 남아 있습니다.',
   CANDIDATE_RETENTION_UNCONFIRMED: '비교할 후보 집합의 완전성을 확인하지 못했습니다.',
   CANDIDATE_QUALITY_UNAVAILABLE: '후보 품질을 모두 확인하지 못했습니다.',
   OPERATOR_PRIOR_EXPIRED: '사용자 초안의 사용 시간이 지났습니다 → 현재 위치를 다시 확인하세요.',
   PRIOR_HANDOFF_MISMATCH: '초안과 후보가 기존 초기 위치 허용 범위를 벗어났습니다 → 다시 확인하세요.',
   CONDITIONAL_PRIOR_CONFIRMATION_REQUIRED: '조건부 후보의 명시적 확인이 필요합니다.',
   OPERATOR_PRIOR_PROOF_CHANGED: '초안 또는 후보 근거가 변경됐습니다 → 다시 확인하세요.',
-  INITIAL_POSE_PRIOR_MISMATCH: '초기 위치가 사용자 초안 범위를 벗어났습니다 → 다시 확인하세요.',
+  INITIAL_POSE_PRIOR_MISMATCH: '초기 위치가 초안 기준 검증 한도를 벗어났습니다 → 다시 확인하세요.',
   GLOBAL_CANDIDATE_REJECTED: '위치 제안이 품질 검사를 통과하지 못했습니다 → 현재 관측을 확인하세요.',
   CALIBRATION_CHANGED: '교정이 변경됐습니다 → 지도와 교정 상태를 다시 확인하세요.',
   OWNERSHIP_BUSY_OR_UNKNOWN: '다른 작업이 점유 중이거나 점유 상태를 확인하지 못했습니다 → 현재 작업 상태를 확인하세요.',
@@ -175,9 +175,23 @@ const CONDITIONAL_POLICY = 'robot-scope.proposal-handoff.operator-prior-v1';
 const originalAmbiguityLabel = unresolved => unresolved ? '원본 판정: 모호성 미해결 · 원래 모호성은 유지됩니다.' : '원본 판정: 비모호 · 원본 판정은 유지됩니다.';
 function sameOperatorPrior(a, b) {
   const keys = (value, expected) => value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === expected.length && expected.every(key => Object.hasOwn(value, key));
-  const shape = value => keys(value, ['frame','pose_reference','units','pose','bounds','source','stationary_current_pose_confirmed','navigation_map_id','navigation_map_revision','calibration_sha256']) && keys(value.pose, ['x','y','yaw']) && keys(value.bounds, ['xy_m','yaw_rad']);
-  return Boolean(shape(a) && shape(b) && ['frame', 'pose_reference', 'units', 'source', 'stationary_current_pose_confirmed', 'navigation_map_id', 'navigation_map_revision', 'calibration_sha256'].every(key => a[key] === b[key])
-    && ['x', 'y', 'yaw'].every(key => a.pose?.[key] === b.pose?.[key]) && ['xy_m', 'yaw_rad'].every(key => a.bounds?.[key] === b.bounds?.[key]));
+  const base = ['frame','pose_reference','units','pose','source','stationary_current_pose_confirmed','navigation_map_id','navigation_map_revision','calibration_sha256'];
+  const shape = value => value && keys(value, Object.hasOwn(value, 'bounds') ? [...base, 'bounds'] : base) && keys(value.pose, ['x','y','yaw']) && (!Object.hasOwn(value, 'bounds') || keys(value.bounds, ['xy_m','yaw_rad']));
+  return Boolean(shape(a) && shape(b) && Object.hasOwn(a, 'bounds') === Object.hasOwn(b, 'bounds')
+    && ['frame', 'pose_reference', 'units', 'source', 'stationary_current_pose_confirmed', 'navigation_map_id', 'navigation_map_revision', 'calibration_sha256'].every(key => a[key] === b[key])
+    && ['x', 'y', 'yaw'].every(key => a.pose?.[key] === b.pose?.[key]) && (!Object.hasOwn(a, 'bounds') || ['xy_m', 'yaw_rad'].every(key => a.bounds?.[key] === b.bounds?.[key])));
+}
+function priorResolutionBounds(proof) {
+  if (!proof || !proof.operator_prior || typeof proof.operator_prior !== 'object') return null;
+  const prior = proof.operator_prior, explicit = Object.hasOwn(prior, 'bounds');
+  const sourcePresent = Object.hasOwn(proof, 'bounds_source'), effectivePresent = Object.hasOwn(proof, 'effective_bounds');
+  if (sourcePresent !== effectivePresent) return null;
+  if (!sourcePresent) return explicit ? prior.bounds : null;
+  const bounds = proof.effective_bounds;
+  if (!bounds || typeof bounds !== 'object' || Array.isArray(bounds) || Object.keys(bounds).length !== 2 || !Object.hasOwn(bounds, 'xy_m') || !Object.hasOwn(bounds, 'yaw_rad')) return null;
+  if (proof.bounds_source === 'server_policy' && !explicit && bounds.xy_m === .25 && bounds.yaw_rad === .20) return bounds;
+  if (proof.bounds_source === 'operator_prior' && explicit && bounds.xy_m === prior.bounds?.xy_m && bounds.yaw_rad === prior.bounds?.yaw_rad) return bounds;
+  return null;
 }
 const GROUPING_FIELDS = ['grouping_policy', 'matching_hypothesis_count', 'matching_retained_candidate_count', 'matching_member_indices', 'matching_member_geometry', 'verified_duplicate_count'];
 function validPriorCandidateGrouping(proof) {
@@ -197,7 +211,7 @@ function validPriorCandidateGrouping(proof) {
 }
 function validPriorCurrentMembers(proof, current, stored = false) {
   if (!proof?.grouping_policy) return true;
-  const checks = current?.member_checks, indices = proof.matching_member_indices, bounds = proof.operator_prior?.bounds;
+  const checks = current?.member_checks, indices = proof.matching_member_indices, bounds = priorResolutionBounds(proof);
   if (!Array.isArray(indices) || !Array.isArray(checks) || checks.length !== indices.length || !checks.length
       || !/^[1-9][0-9]{0,19}$/.test(current?.pose_stamp_ns || '') || !finite(bounds?.xy_m) || !finite(bounds?.yaw_rad)) return false;
   const valid = checks.every((item, i) => item && item.candidate_index === indices[i]
@@ -216,7 +230,7 @@ function validPriorCurrentMembers(proof, current, stored = false) {
     && current.within_existing_handoff_reference === (first.xy_distance_m <= .25 && first.absolute_wrapped_yaw_rad <= .20);
 }
 function validConditionalResolution(proof, ctx) {
-  const prior = proof?.operator_prior, diagnostic = proof?.candidate_vs_prior;
+  const prior = proof?.operator_prior, bounds = priorResolutionBounds(proof), diagnostic = proof?.candidate_vs_prior;
   const distanceOk = finite(diagnostic?.xy_distance_m) && diagnostic.xy_distance_m >= 0 && finite(diagnostic?.absolute_wrapped_yaw_rad) && diagnostic.absolute_wrapped_yaw_rad >= 0;
   return Boolean(proof?.schema === 'robot-scope.operator-prior-resolution.v1' && proof.classification === 'CONDITIONAL_ON_OPERATOR_PRIOR'
     && proof.original_ambiguity_preserved === true && typeof proof.original_ambiguity_unresolved === 'boolean' && proof.global_uniqueness_verified === false && proof.absolute_accuracy_m === null
@@ -228,13 +242,13 @@ function validConditionalResolution(proof, ctx) {
     && prior?.frame === 'map' && prior.pose_reference === 'base_link' && prior.units === 'metres_radians' && prior.source === 'OPERATOR_CURRENT_MAP_DRAFT'
     && prior.stationary_current_pose_confirmed === true && prior.navigation_map_id === ctx.navigation_2d?.map_id && prior.navigation_map_revision === ctx.navigation_2d?.revision
     && prior.calibration_sha256 === ctx.calibration_sha256 && sameOperatorPrior(prior, prior) && ['x','y','yaw'].every(key => finite(prior.pose?.[key])) && Math.abs(prior.pose.x) <= 1000 && Math.abs(prior.pose.y) <= 1000 && Math.abs(prior.pose.yaw) <= Math.PI
-    && finite(prior.bounds?.xy_m) && prior.bounds.xy_m >= .1 && prior.bounds.xy_m <= 3 && finite(prior.bounds?.yaw_rad) && prior.bounds.yaw_rad >= Math.PI / 180 && prior.bounds.yaw_rad <= Math.PI / 2
+    && finite(bounds?.xy_m) && bounds.xy_m >= .1 && bounds.xy_m <= 3 && finite(bounds?.yaw_rad) && bounds.yaw_rad >= Math.PI / 180 && bounds.yaw_rad <= Math.PI / 2
     && (!ctx.operatorPrior || sameOperatorPrior(prior, ctx.operatorPrior))
     && Number.isInteger(proof.candidate_index) && Number.isInteger(proof.retained_candidate_count) && Number.isInteger(proof.eligible_candidate_count)
     && proof.candidate_index >= 0 && proof.candidate_index < proof.retained_candidate_count && proof.retained_candidate_count <= 18
     && proof.eligible_candidate_count >= 1 && proof.eligible_candidate_count <= proof.retained_candidate_count && validPriorCandidateGrouping(proof)
     && proof.projection_basis === 'NAV_LOCALIZATION_CAPTURE_TO_PRIOR_ODOM_IMU_BASE' && distanceOk
-    && diagnostic.xy_distance_m <= prior.bounds.xy_m && diagnostic.absolute_wrapped_yaw_rad <= prior.bounds.yaw_rad
+    && diagnostic.xy_distance_m <= bounds.xy_m && diagnostic.absolute_wrapped_yaw_rad <= bounds.yaw_rad
     && typeof diagnostic.within_existing_handoff_reference === 'boolean'
     && diagnostic.within_existing_handoff_reference === (diagnostic.xy_distance_m <= .25 && diagnostic.absolute_wrapped_yaw_rad <= .20));
 }
@@ -344,14 +358,14 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     <p data-prep="current"></p><p data-prep="selected"></p><p data-prep="applied"></p><p data-prep="invalidation" role="status"></p>
     <div class="navigation-preparation-actions"><button type="button" data-prep="pair">① 지도 연결 확인·적용</button><button type="button" data-prep="clear">기존 2D 모드로 복구</button></div>
     <section aria-label="① 사용자 위치 초안"><h3>① 사용자 위치 초안</h3><p>아래 지도 조작부의 기존 INITIAL POSE 도구로 현재 위치와 방향을 그리세요. 미전송 사용자 가정이며 센서 측정이나 실제 위치 정확도가 아닙니다.</p>
-    <p data-prep="prior-status" role="status"></p><label>위치 불확실 반경 (m)<input type="number" data-prep="prior-xy" min="0.1" max="3" step="any" placeholder="미지정"></label><label>방향 불확실 ± (도)<input type="number" data-prep="prior-yaw" min="1" max="90" step="any" placeholder="미지정"></label>
+    <p data-prep="prior-status" role="status"></p><p>후보 선택에는 서버가 관리하는 검증 한도가 적용됩니다. 이 한도는 위치 불확실성 측정이나 실제 정확도의 보증이 아닙니다.</p>
     <label><input type="checkbox" data-prep="prior-stationary"> 이 초안이 현재 지도에서 정지 중인 로봇의 위치·방향에 대한 제 가정임을 확인합니다. 실제 정지나 정확도를 측정한 증거는 아닙니다.</label></section>
     <section class="navigation-preparation-observation" aria-label="② 센서 관측과 초기값"><h3>② 센서 관측과 초기값</h3><p>관측은 정지 상태의 센서 입력 확인 전용입니다. 시작 조건은 서버가 다시 검사하며, 지도 선택이나 후보 확인만으로 정합·주행을 시작하지 않습니다.</p>
     <div class="navigation-preparation-actions"><button type="button" data-prep="observe-start">센서 관측 시작</button><button type="button" data-prep="observe-stop">센서 관측 종료</button></div>
     <p data-prep="observation-status" role="status"></p><p data-prep="observation-error" role="alert"></p><div data-prep="evidence"></div><div data-prep="candidates"></div>
     <button type="button" data-prep="proposal">초기 위치 제안 계산</button><div data-prep="proposal-result" role="status"></div><p data-prep="geometry-preview" role="status"></p><p data-prep="geometry-applied" role="status"></p>
     <label class="navigation-handoff-supervision"><input type="checkbox" data-prep="supervision"> 현장 정지 상태를 직접 감독하며 관측 종료와 다음 절차를 진행하겠습니다. 이 확인은 정지 측정이 아닙니다.</label>
-    <label data-prep="conditional-label" hidden><input type="checkbox" data-prep="conditional-ack"> 사용자 초안 범위에 조건부로 한 후보가 선택되었고 전역 유일성·실제 위치 정확도는 확인되지 않았음을 이해합니다.</label><button type="button" data-prep="confirm-handoff">제안값 확인·②에 적용</button><div data-prep="handoff-result" role="status"></div></section>
+    <label data-prep="conditional-label" hidden><input type="checkbox" data-prep="conditional-ack"> 사용자 초안과 서버 검증 한도에 조건부로 한 후보가 선택되었고 전역 유일성·실제 위치 정확도는 확인되지 않았음을 이해합니다.</label><button type="button" data-prep="confirm-handoff">제안값 확인·②에 적용</button><div data-prep="handoff-result" role="status"></div></section>
     <details class="navigation-seed-geometry"><summary>② 초기 높이·기울기 입력</summary><p>현재 로봇 본체 원점(base_link)의 지도 좌표 높이(m), roll·pitch(rad)를 확인해 입력하세요. 바닥 높이와 본체 원점의 높이는 다릅니다. 임의의 0이나 이전 실행값을 사용하지 않습니다. 제안값은 위에 별도 표시되며 아래 수동 입력칸에 복사되지 않습니다. 빈 칸은 수동 입력이 없다는 뜻이며 위의 서버 확인값과 별개입니다.</p>
     <div><label>높이 z (m)<input data-geometry="z" type="number" step="0.001" placeholder="미지정"></label><label>roll (rad)<input data-geometry="roll" type="number" step="0.001" placeholder="미지정"></label><label>pitch (rad)<input data-geometry="pitch" type="number" step="0.001" placeholder="미지정"></label><button type="button" data-prep="geometry">초기 높이·기울기 저장</button></div><p data-prep="geometry-source"></p></details>
     <ol class="navigation-preparation-steps" data-prep="steps"></ol>
@@ -491,14 +505,12 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     const draft = getOperatorDraft() || { status: 'none' };
     if (draft.status === 'none') return { status: state?.selected?.workflow === 'staged_navigation_pair' ? 'required' : 'none' };
     if (draft.status !== 'ready' || !draft.pose || ![draft.pose.x, draft.pose.y, draft.pose.yaw].every(finite) || Math.abs(draft.pose.x) > 1000 || Math.abs(draft.pose.y) > 1000 || Math.abs(draft.pose.yaw) > Math.PI || !Number.isSafeInteger(draft.revision)) return { status: 'unavailable' };
-    const xyText = el('prior-xy').value.trim(), yawText = el('prior-yaw').value.trim();
-    const xy = Number(xyText), degrees = Number(yawText), pair = inputs?.pair;
-    if (!xyText || !yawText || !finite(xy) || xy < .1 || xy > 3 || !finite(degrees) || degrees < 1 || degrees > 90
-        || !el('prior-stationary').checked || priorAckRevision !== draft.revision || !pair?.calibration_sha256
+    const pair = inputs?.pair;
+    if (!el('prior-stationary').checked || priorAckRevision !== draft.revision || !pair?.calibration_sha256
         || draft.bundle_generation !== pair.generation || draft.navigation_map?.id !== pair.navigation_2d?.map_id
         || draft.navigation_map?.revision !== pair.navigation_2d?.revision || draft.localization_map?.id !== pair.localization_3d?.map_id || draft.localization_map?.revision !== pair.localization_3d?.revision) return { status: 'incomplete' };
     return { status: 'ready', revision: draft.revision, prior: { frame: 'map', pose_reference: 'base_link', units: 'metres_radians',
-      pose: { ...draft.pose }, bounds: { xy_m: xy, yaw_rad: degrees * Math.PI / 180 }, source: 'OPERATOR_CURRENT_MAP_DRAFT',
+      pose: { ...draft.pose }, source: 'OPERATOR_CURRENT_MAP_DRAFT',
       stationary_current_pose_confirmed: true, navigation_map_id: draft.navigation_map.id,
       navigation_map_revision: draft.navigation_map.revision, calibration_sha256: pair.calibration_sha256 } };
   }
@@ -598,7 +610,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     const mapName = pinValue => (context().maps || []).find(entry => samePin(entry, pinValue))?.name || pinValue?.map_id || '없음';
     const stageOnePrior = operatorPriorInput();
     const stageOneReady = stageOnePrior.status === 'ready' || selected?.seed_geometry?.source === 'operator' || (selected?.seed_geometry?.source === 'proposal_confirmed' && handoffInfo.active);
-    const stageOne = { ...model.steps[0], title: '지도 연결·사용자 위치 초안', condition: '지도 연결 후 미전송 위치·방향 초안과 범위·현재 정지 가정 확인; 수동 geometry는 별도 경로', status: model.matched && selected?.workflow === 'staged_navigation_pair' && !stageOneReady ? '사용자 입력 필요' : model.steps[0].status };
+    const stageOne = { ...model.steps[0], title: '지도 연결·사용자 위치 초안', condition: '지도 연결 후 미전송 위치·방향 초안과 현재 정지 가정 확인; 후보는 서버 검증 한도 적용', status: model.matched && selected?.workflow === 'staged_navigation_pair' && !stageOneReady ? '사용자 입력 필요' : model.steps[0].status };
     const viewSteps = [stageOne, ...model.steps.slice(1, 3), { ...model.steps[4], number: 4, title: 'INITIAL POSE 접수·지도 정합',
       condition: '사용자 위치 접수 후 명시적으로 정합 시작·품질 확인', status: model.marker ? model.steps[4].status : model.steps[3].status,
       result: `${model.steps[3].result} · ${model.steps[4].result}`, issues: [...model.steps[3].issues, ...model.steps[4].issues] },
@@ -662,7 +674,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     const draft = getOperatorDraft() || { status: 'none' };
     if (priorAckRevision !== null && draft.revision !== priorAckRevision) { priorAckRevision = null; el('prior-stationary').checked = false; }
     const priorInput = operatorPriorInput();
-    el('prior-status').textContent = draft.status === 'ready' && draft.pose && [draft.pose.x, draft.pose.y, draft.pose.yaw].every(finite) ? `미전송 사용자 초안 · X ${draft.pose.x.toFixed(3)} m · Y ${draft.pose.y.toFixed(3)} m · yaw ${draft.pose.yaw.toFixed(3)} rad · 불확실 범위와 현재 정지 가정을 직접 확인하세요.` : draft.status === 'none' ? '초안 없음 · 아래 지도에서 현재 위치와 방향을 지정하세요.' : draft.status === 'pending' ? '초안의 현재 문맥 확인 중입니다.' : '이전 초안은 미확인 또는 미완성입니다 · 아래 지도에서 다시 지정하세요.';
+    el('prior-status').textContent = draft.status === 'ready' && draft.pose && [draft.pose.x, draft.pose.y, draft.pose.yaw].every(finite) ? `미전송 사용자 초안 · X ${draft.pose.x.toFixed(3)} m · Y ${draft.pose.y.toFixed(3)} m · yaw ${draft.pose.yaw.toFixed(3)} rad · 현재 정지 가정을 직접 확인하세요.` : draft.status === 'none' ? '초안 없음 · 아래 지도에서 현재 위치와 방향을 지정하세요.' : draft.status === 'pending' ? '초안의 현재 문맥 확인 중입니다.' : '이전 초안은 미확인 또는 미완성입니다 · 아래 지도에서 다시 지정하세요.';
     const proposalReadyToRequest = Boolean(['none', 'ready'].includes(priorInput.status) && inputsCurrent && !busy && !navigationBusy && !model.active && !observationBusy
       && observation?.active === true && observation.state === 'READY' && /^[a-f0-9]{32}$/.test(observation.session_id || '')
       && /^[a-f0-9]{32}$/.test(pair?.generation || '') && proposalSource(inputs?.evidence) && pair.calibration_sha256
@@ -698,8 +710,9 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     el('supervision').disabled = handoffBusy || handoffInfo.active;
     el('confirm-handoff').disabled = (conditional && (!el('conditional-ack').checked || !withinHandoff)) || handoffBusy || handoffAwaitingStatus || !el('supervision').checked || !validPoses || !proposalReadyToRequest || !cleanupSettled() || handoffInfo.active;
     const proposalNodes = [node('p', '정보성 제안은 저장 3D 지도 기준이며 운영 보정 위치·Nav2 준비·TF 적용 결과가 아닙니다. 자동 입력·전송하지 않습니다.')];
-    if (conditional) { const status = withinHandoff ? '사용자 초안 범위에 조건부로 한 후보가 선택되었습니다.' : proposal.operator_prior_resolution.grouping_policy && !proposal.current_vs_prior?.all_members_within_prior_bounds ? '현재 시점에 그룹의 모든 후보가 사용자 초안 범위 안에 있지 않아 확인할 수 없습니다.' : '조건부 후보가 기존 초기 위치 허용 범위(0.25m / 0.20rad)를 벗어나 확인할 수 없습니다. 사용자 초안과 관측을 다시 확인하세요.'; proposalNodes.push(node('p', `${status} ${originalAmbiguityLabel(proposal.operator_prior_resolution.original_ambiguity_unresolved)} 보존된 후보 집합과 사용자 초안에 조건부이며 전역 유일성·실제 위치 정확도는 확인되지 않았습니다.`)); }
-    if (conditional && proposal.operator_prior_resolution.grouping_policy) { const proof = proposal.operator_prior_resolution; proposalNodes.push(node('p', `서버가 검증한 원본 후보 ${proof.matching_retained_candidate_count}개가 초안 범위 안의 한 그룹을 이룹니다. 대표 후보 ${proof.candidate_index} 기준 높이·기울기 차이: ${proof.matching_member_geometry.map(member => `#${member.candidate_index} Δz ${member.z_delta_m.toFixed(3)}m · Δroll ${member.roll_delta_rad.toFixed(3)}rad · Δpitch ${member.pitch_delta_rad.toFixed(3)}rad`).join(' / ')}. 지도·정지·실제 정확도의 검증 결과가 아닙니다.`)); }
+    if (conditional) { const status = withinHandoff ? '사용자 초안과 서버 검증 한도에 조건부로 한 후보가 선택되었습니다.' : proposal.operator_prior_resolution.grouping_policy && !proposal.current_vs_prior?.all_members_within_prior_bounds ? '현재 시점에 그룹의 모든 후보가 초안 기준 검증 한도 안에 있지 않아 확인할 수 없습니다.' : '조건부 후보가 기존 초기 위치 허용 범위(0.25m / 0.20rad)를 벗어나 확인할 수 없습니다. 사용자 초안과 관측을 다시 확인하세요.'; proposalNodes.push(node('p', `${status} ${originalAmbiguityLabel(proposal.operator_prior_resolution.original_ambiguity_unresolved)} 보존된 후보 집합과 사용자 초안에 조건부이며 전역 유일성·실제 위치 정확도는 확인되지 않았습니다.`)); }
+    if (conditional && proposal.operator_prior_resolution.bounds_source === 'server_policy') { const bounds = proposal.operator_prior_resolution.effective_bounds; proposalNodes.push(node('p', `서버가 적용한 검증 한도: 위치 ${bounds.xy_m} m · 방향 ±${bounds.yaw_rad} rad. 사용자 불확실성 측정이나 실제 정확도가 아닙니다.`)); }
+    if (conditional && proposal.operator_prior_resolution.grouping_policy) { const proof = proposal.operator_prior_resolution; proposalNodes.push(node('p', `서버가 검증한 원본 후보 ${proof.matching_retained_candidate_count}개가 초안 기준 검증 한도 안의 한 그룹을 이룹니다. 대표 후보 ${proof.candidate_index} 기준 높이·기울기 차이: ${proof.matching_member_geometry.map(member => `#${member.candidate_index} Δz ${member.z_delta_m.toFixed(3)}m · Δroll ${member.roll_delta_rad.toFixed(3)}rad · Δpitch ${member.pitch_delta_rad.toFixed(3)}rad`).join(' / ')}. 지도·정지·실제 정확도의 검증 결과가 아닙니다.`)); }
     if (proposalBusy && !proposal) proposalNodes.push(node('p', '제안 계산 요청 중 · 자동 재전송하지 않습니다.'));
     else if (proposalError) proposalNodes.push(node('p', `제안 사용 불가: ${proposalError}`));
     else if (!proposal) proposalNodes.push(node('p', '제안 없음 · 관측 준비 후 명시적으로 계산하세요.'));
@@ -916,7 +929,6 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
   el('refresh').onclick = () => { error = ''; void refresh(true); void actions.refresh(); };
   el('observe-start').onclick = () => { void observe('start'); };
   el('observe-stop').onclick = () => { void observe('stop'); };
-  for (const key of ['prior-xy', 'prior-yaw']) el(key).addEventListener('input', () => { priorAckRevision = null; el('prior-stationary').checked = false; invalidateProposal('초안 범위가 바뀌어 이전 제안을 사용할 수 없습니다.'); render(); });
   el('prior-stationary').onchange = () => { const draft = getOperatorDraft(); priorAckRevision = el('prior-stationary').checked && draft?.status === 'ready' ? draft.revision : null; invalidateProposal('초안 확인이 바뀌어 이전 제안을 사용할 수 없습니다.'); render(); };
   el('proposal').onclick = () => { void calculateProposal(); };
   el('supervision').onchange = () => { render(); };

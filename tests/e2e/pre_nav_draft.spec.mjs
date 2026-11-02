@@ -188,7 +188,7 @@ test('stage one displays the draft and expected observation startup does not dis
   Object.assign(evidence,{valid:true,reason:null,cloud:{observer_id:'1'.repeat(32),publisher_epoch:'2'.repeat(32),source_stamp_ns:'123'},pose:{observer_id:'1'.repeat(32),publisher_epoch:'3'.repeat(32),source_stamp_ns:'123'}});return json(session);});
  await page.locator('[data-prep="refresh"]').click();await expect(page.getByRole('button',{name:'센서 관측 시작'})).toBeEnabled();
  await stage(page);await expect(page.locator('[data-prep="prior-status"]')).toContainText('미전송 사용자 초안');
- await page.getByLabel('위치 불확실 반경 (m)').fill('.75');await page.getByLabel('방향 불확실 ± (도)').fill('25');await page.getByLabel(/이 초안이 현재 지도에서 정지/).check();
+ await page.getByLabel(/이 초안이 현재 지도에서 정지/).check();
  await page.getByRole('button',{name:'센서 관측 시작'}).click();await expect.poll(()=>entered).toBe(true);
  await page.evaluate(()=>new Promise(resolve=>setTimeout(resolve,1500)));
  await expect(page.locator('#navigationPoseMode')).toContainText('미전송 로컬 초안');release();

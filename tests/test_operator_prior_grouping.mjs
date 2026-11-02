@@ -116,3 +116,36 @@ test('proof TTL accepts the generated absolute deadline and rejects the next rep
     assert.equal(valid(proof,ctx),false,'equal times remain invalid even if addition rounds');
   }
 });
+
+function serverPolicyFixture() {
+  const value=groupedFixture();
+  delete value.proof.operator_prior.bounds;
+  value.ctx.operatorPrior=structuredClone(value.proof.operator_prior);
+  value.proof.bounds_source='server_policy';value.proof.effective_bounds={xy_m:.25,yaw_rad:.20};
+  return value;
+}
+test('server-owned effective bounds are explicit, pinned, and do not become operator input', () => {
+  const {ctx,proof}=serverPolicyFixture();assert.equal(valid(proof,ctx),true);
+  assert.equal(Object.hasOwn(proof.operator_prior,'bounds'),false);
+  const current={pose_stamp_ns:'1234',pose_age_s:.1,xy_distance_m:.1,yaw_delta_rad:.1,within_prior_bounds:true,within_existing_handoff_reference:true,all_members_within_prior_bounds:true,
+    member_checks:[{candidate_index:0,xy_distance_m:.1,absolute_wrapped_yaw_rad:.1,within_prior_bounds:true},{candidate_index:1,xy_distance_m:.11,absolute_wrapped_yaw_rad:.09,within_prior_bounds:true}]};
+  assert.equal(validCurrent(proof,current),true);assert.equal(validCurrent(proof,current,true),true);
+  current.member_checks[1].xy_distance_m=.26;current.member_checks[1].within_prior_bounds=false;current.all_members_within_prior_bounds=false;
+  assert.equal(validCurrent(proof,current),true);assert.equal(validCurrent(proof,current,true),false);
+});
+test('server policy proof fails closed on missing, forged, mismatched or malformed bound provenance', () => {
+  const changes=[
+    p=>delete p.bounds_source,p=>delete p.effective_bounds,p=>delete p.operator_prior.pose.x,
+    p=>p.bounds_source='operator_prior',p=>p.bounds_source='unknown',p=>p.effective_bounds.xy_m=.251,
+    p=>p.effective_bounds.yaw_rad=.201,p=>p.effective_bounds.xy_m=NaN,p=>p.effective_bounds.yaw_rad=null,
+    p=>p.effective_bounds.extra=1,p=>p.operator_prior.bounds={xy_m:.25,yaw_rad:.20},
+    p=>p.candidate_vs_prior.xy_distance_m=.251,p=>p.candidate_vs_prior.absolute_wrapped_yaw_rad=.201,
+  ];
+  for(const change of changes){const {ctx,proof}=serverPolicyFixture();change(proof);assert.equal(valid(proof,ctx),false,change.toString());}
+});
+test('legacy explicit bounds and explicitly attributed operator bounds remain validated', () => {
+  const {ctx,proof}=groupedFixture();assert.equal(valid(proof,ctx),true);
+  proof.bounds_source='operator_prior';proof.effective_bounds=structuredClone(proof.operator_prior.bounds);assert.equal(valid(proof,ctx),true);
+  proof.effective_bounds.xy_m+=.01;assert.equal(valid(proof,ctx),false);
+  proof.effective_bounds=structuredClone(proof.operator_prior.bounds);proof.bounds_source='server_policy';assert.equal(valid(proof,ctx),false);
+});

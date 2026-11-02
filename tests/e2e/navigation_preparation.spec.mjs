@@ -84,6 +84,7 @@ async function fixture(page) {
       retained_candidate_count:2, eligible_candidate_count:2, matching_candidate_count:1, projection_basis:'NAV_LOCALIZATION_CAPTURE_TO_PRIOR_ODOM_IMU_BASE',
       classification:'CONDITIONAL_ON_OPERATOR_PRIOR', original_ambiguity_preserved:true, original_ambiguity_unresolved:proofMode !== 'original-unambiguous', global_uniqueness_verified:false, absolute_accuracy_m:null,
       candidate_vs_prior:{xy_distance_m:.1,absolute_wrapped_yaw_rad:.1,within_existing_handoff_reference:true} };
+      if (!Object.hasOwn(prior, 'bounds')) Object.assign(proof, { bounds_source:'server_policy', effective_bounds:{xy_m:.25,yaw_rad:.20} });
       if (proofMode.startsWith('group-')) Object.assign(proof, {grouping_policy:'PINNED_V031_SE3_FIRST_REPRESENTATIVE_V1',matching_candidate_count:2,matching_hypothesis_count:proofMode === 'group-two' ? 2 : 1,matching_retained_candidate_count:2,matching_member_indices:[0,1],verified_duplicate_count:1,matching_member_geometry:[{candidate_index:0,z_m:.84,roll_rad:.11,pitch_rad:.12,z_delta_m:0,roll_delta_rad:0,pitch_delta_rad:0},{candidate_index:1,z_m:.85,roll_rad:.12,pitch_rad:.11,z_delta_m:.01,roll_delta_rad:.01,pitch_delta_rad:-.01}]});
       if (proofMode === 'group-ttl-exact' || proofMode === 'group-ttl-next') {
         proof.accepted_monotonic_s = 8.000000000000016;
@@ -103,6 +104,9 @@ async function fixture(page) {
       if (method === 'GET' && proposalReads) { heldProposalReadCount++; await proposalReads; }
       const pose = { x: 1, y: 2, z: .4, roll: .1, pitch: .2, yaw: .3 };
       const proof = currentPrior ? makeProof(currentPrior) : null;
+      if (proof && proofMode === 'policy-missing') delete proof.bounds_source;
+      if (proof && proofMode === 'policy-changed') proof.effective_bounds.xy_m = .3;
+      if (proof && proofMode === 'policy-forged') proof.bounds_source = 'operator_prior';
       if (proof && proofMode === 'multiple') proof.matching_candidate_count = 2;
       if (proof && proofMode === 'original-unambiguous') proof.original_ambiguity_unresolved = false;
       if (proof && proofMode === 'original-mismatch') proof.original_ambiguity_unresolved = false;
@@ -251,8 +255,6 @@ async function completeOperatorDraftForStageOne(page, fixture) {
       localization_map: { id: cloud.id, revision: cloud.revision }, navigation_map: { id: grid.id, revision: grid.revision } };
     window.preparation.draftChanged();
   }, { cloud, grid });
-  await page.getByLabel('위치 불확실 반경 (m)').fill('.75');
-  await page.getByLabel('방향 불확실 ± (도)').fill('25');
   await page.getByLabel(/이 초안이 현재 지도에서 정지/).check();
 }
 
@@ -563,7 +565,6 @@ async function proposalFixture(page, { expectReady = true } = {}) {
   await page.evaluate(() => window.preparation.refresh(true));
   if (expectReady) {
     await page.evaluate(({cloud,grid}) => { window.fakeOperatorDraft={status:'ready',revision:1,pose:{x:1.2,y:2.3,yaw:.4},bundle_generation:'b'.repeat(32),localization_map:{id:cloud.id,revision:cloud.revision},navigation_map:{id:grid.id,revision:grid.revision}};window.preparation.draftChanged(); }, {cloud,grid});
-    await page.getByLabel('위치 불확실 반경 (m)').fill('.75'); await page.getByLabel('방향 불확실 ± (도)').fill('25');
     await page.getByLabel(/이 초안이 현재 지도에서 정지/).check();
     await expect(page.getByRole('button', { name: '초기 위치 제안 계산' })).toBeEnabled();
   } else await expect(page.getByRole('button', { name: '초기 위치 제안 계산' })).toBeDisabled();
@@ -1089,21 +1090,19 @@ test('expired or late proposal cannot repopulate geometry or trigger confirmatio
 });
 
 
-test('operator draft requires explicit bounds and stationary confirmation before proposal request', async ({page}) => {
+test('operator draft requires stationary confirmation before proposal request', async ({page}) => {
  const f=await proposalFixture(page, { expectReady:false });f.proposalStatus('rejected','GLOBAL_AMBIGUOUS');
  await expect(page.locator('[data-prep="steps"] > li').first()).toHaveAttribute('data-state','사용자 입력 필요');
  await expect(page.locator('[data-prep="steps"] > li').first()).toContainText('지도 연결·사용자 위치 초안');
  await page.evaluate(({cloud,grid})=>{window.fakeOperatorDraft={status:'ready',revision:1,pose:{x:1.2,y:2.3,yaw:.4},bundle_generation:'b'.repeat(32),localization_map:{id:cloud.id,revision:cloud.revision},navigation_map:{id:grid.id,revision:grid.revision}};window.preparation.draftChanged();},{cloud,grid});
  await expect(page.locator('[data-prep="prior-status"]')).toContainText('미전송 사용자 초안');
  await expect(page.getByRole('button',{name:'초기 위치 제안 계산'})).toBeDisabled();
- await page.getByLabel('위치 불확실 반경 (m)').fill('.75'); await page.getByLabel('방향 불확실 ± (도)').fill('25');
- await expect(page.getByRole('button',{name:'초기 위치 제안 계산'})).toBeDisabled();
  await page.getByLabel(/이 초안이 현재 지도에서 정지/).check();
  await expect(page.getByRole('button',{name:'초기 위치 제안 계산'})).toBeEnabled();
  await expect(page.locator('[data-prep="steps"] > li').first()).toHaveAttribute('data-state','완료');
  await page.getByRole('button',{name:'초기 위치 제안 계산'}).click();
  const body=f.writes.find(v=>v.path.endsWith('/initialization-proposals')).body;
- expect(body.operator_prior).toEqual({frame:'map',pose_reference:'base_link',units:'metres_radians',pose:{x:1.2,y:2.3,yaw:.4},bounds:{xy_m:.75,yaw_rad:25*Math.PI/180},source:'OPERATOR_CURRENT_MAP_DRAFT',stationary_current_pose_confirmed:true,navigation_map_id:grid.id,navigation_map_revision:grid.revision,calibration_sha256:'c'.repeat(64)});
+ expect(body.operator_prior).toEqual({frame:'map',pose_reference:'base_link',units:'metres_radians',pose:{x:1.2,y:2.3,yaw:.4},source:'OPERATOR_CURRENT_MAP_DRAFT',stationary_current_pose_confirmed:true,navigation_map_id:grid.id,navigation_map_revision:grid.revision,calibration_sha256:'c'.repeat(64)});
  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('구분되지 않는 위치 후보');
  expect(f.writes.filter(v=>/confirm-geometry|seed-geometry|\/navigation\/start|initial-pose|\/match|\/goal/.test(v.path))).toHaveLength(0);
  expect(await page.locator('[data-prep="steps"] > li').count()).toBe(6);
@@ -1113,7 +1112,7 @@ test('operator draft requires explicit bounds and stationary confirmation before
 test('changing operator draft while response is delayed invalidates it without retry or automatic confirmation', async ({page})=>{
  const f=await proposalFixture(page, { expectReady:false });
  await page.evaluate(({cloud,grid})=>{window.fakeOperatorDraft={status:'ready',revision:1,pose:{x:1.2,y:2.3,yaw:.4},bundle_generation:'b'.repeat(32),localization_map:{id:cloud.id,revision:cloud.revision},navigation_map:{id:grid.id,revision:grid.revision}};window.preparation.draftChanged();},{cloud,grid});
- await page.getByLabel('위치 불확실 반경 (m)').fill('.75');await page.getByLabel('방향 불확실 ± (도)').fill('25');await page.getByLabel(/이 초안이 현재 지도에서 정지/).check();
+ await page.getByLabel(/이 초안이 현재 지도에서 정지/).check();
  f.holdProposalReads();await page.getByRole('button',{name:'초기 위치 제안 계산'}).click();
  await expect.poll(()=>f.reads.filter(p=>p.includes('/initialization-proposals/')).length).toBeGreaterThan(0);
  await page.evaluate(()=>{window.fakeOperatorDraft.revision++;window.fakeOperatorDraft.pose.x=2;window.preparation.draftChanged();});f.releaseProposalReads();
@@ -1144,12 +1143,10 @@ for (const mode of ['multiple','different-prior','original-mismatch']) {
   expect(f.writes.filter(v=>v.path.endsWith('/confirm-geometry'))).toHaveLength(0);
  });
 }
-test('conditional candidate outside handoff limit remains informational and cannot confirm', async ({page})=>{
+test('candidate outside the server policy limit cannot be previewed or confirmed', async ({page})=>{
  const f=await proposalFixture(page);f.proofMode('beyond-handoff');
  await page.getByRole('button',{name:'초기 위치 제안 계산'}).click();
- await expect(page.locator('[data-prep="geometry-preview"]')).toContainText('미적용');
- await expect(page.locator('[data-prep="proposal-result"]')).toContainText('기존 초기 위치 허용 범위');
- await page.getByLabel(/현장 정지 상태를 직접 감독/).check();await page.getByLabel(/전역 유일성·실제 위치 정확도는 확인되지 않았음/).check();
+ await expect(page.locator('[data-prep="geometry-preview"]')).toContainText('미확인 또는 만료');
  await expect(page.getByRole('button',{name:'제안값 확인·②에 적용'})).toBeDisabled();
  expect(f.writes.filter(v=>v.path.endsWith('/confirm-geometry'))).toHaveLength(0);
 });
@@ -1173,7 +1170,7 @@ for (const reason of ['PRIOR_NO_MATCH', 'PRIOR_MULTIPLE_MATCHES']) {
  test(`conditional ${reason} rejects without preview or confirmation`, async ({page})=>{
   const f=await proposalFixture(page);f.proposalStatus('rejected',reason);
   await page.getByRole('button',{name:'초기 위치 제안 계산'}).click();
-  await expect(page.locator('[data-prep="proposal-result"]')).toContainText(reason==='PRIOR_NO_MATCH'?'초안 범위 안에 조건을 충족하는 후보가 없습니다':'초안 범위 안에 여러 후보가 있습니다');
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText(reason==='PRIOR_NO_MATCH'?'서버 검증 한도 안에 조건을 충족하는 후보가 없습니다':'서버 검증 한도 안에 여러 후보가 있습니다');
   await expect(page.getByRole('button',{name:'제안값 확인·②에 적용'})).toBeDisabled();
   expect(f.writes.filter(v=>v.path.endsWith('/confirm-geometry'))).toHaveLength(0);
  });
@@ -1344,7 +1341,7 @@ test('conditional acknowledgements are never recreated after an explicit uncheck
 for (const contextChange of ['prior', 'calibration', 'map']) {
   test(`conditional acknowledgements clear when the ${contextChange} binding changes`, async ({page}) => {
     const f=await consentedConditionalProposal(page);
-    if (contextChange === 'prior') await page.getByLabel('위치 불확실 반경 (m)').fill('.5');
+    if (contextChange === 'prior') await page.evaluate(() => { window.fakeOperatorDraft.pose.x += .1; window.fakeOperatorDraft.revision++; window.preparation.draftChanged(); });
     if (contextChange === 'calibration') { f.inputs.pair.calibration_sha256='d'.repeat(64);await page.evaluate(()=>window.preparation.refresh(true)); }
     if (contextChange === 'map') { f.state.selected.navigation_2d.revision='2'.repeat(64);await page.evaluate(()=>window.preparation.refresh(true)); }
     await expect(page.getByLabel(/현장 정지 상태를 직접 감독/)).not.toBeChecked();
@@ -1477,5 +1474,45 @@ test('conditional acknowledgement entered while stale is cleared on later calibr
   f.inputs.pair.calibration_sha256='d'.repeat(64);await page.evaluate(()=>window.preparation.refresh(true));
   await expect(ack).not.toBeChecked();await expect(supervision).not.toBeChecked();f.releaseProposalReads();
   await expect(page.getByRole('button',{name:'제안값 확인·②에 적용'})).toBeDisabled();
+  expect(f.writes.filter(v=>v.path.endsWith('/confirm-geometry'))).toHaveLength(0);
+});
+
+test('operator prior requests use the X Y yaw draft without user-entered uncertainty', async ({page}) => {
+  const f=await proposalFixture(page,{expectReady:false});
+  await page.evaluate(({cloud,grid})=>{window.fakeOperatorDraft={status:'ready',revision:1,pose:{x:1.2,y:2.3,yaw:.4},bundle_generation:'b'.repeat(32),localization_map:{id:cloud.id,revision:cloud.revision},navigation_map:{id:grid.id,revision:grid.revision}};window.preparation.draftChanged();},{cloud,grid});
+  await expect(page.getByLabel('위치 불확실 반경 (m)')).toHaveCount(0);
+  await expect(page.getByLabel('방향 불확실 ± (도)')).toHaveCount(0);
+  await expect(page.locator('[data-prep="prior-status"]')).toContainText('미전송 사용자 초안');
+  await expect(page.getByRole('button',{name:'초기 위치 제안 계산'})).toBeDisabled();
+  await page.getByLabel(/이 초안이 현재 지도에서 정지/).check();
+  await expect(page.getByRole('button',{name:'초기 위치 제안 계산'})).toBeEnabled();
+  await page.getByRole('button',{name:'초기 위치 제안 계산'}).click();
+  const writes=f.writes.filter(v=>v.path.endsWith('/initialization-proposals'));
+  expect(writes).toHaveLength(1);
+  expect(writes[0].body.operator_prior.pose).toEqual({x:1.2,y:2.3,yaw:.4});
+  expect(writes[0].body.operator_prior).not.toHaveProperty('bounds');
+  expect(writes[0].body.operator_prior).not.toHaveProperty('bounds_source');
+  expect(writes[0].body.operator_prior).not.toHaveProperty('effective_bounds');
+  expect(writes[0].body.operator_prior.stationary_current_pose_confirmed).toBe(true);
+  expect(f.writes.filter(v=>/confirm-geometry|seed-geometry|\/navigation\/start|initial-pose|\/match|\/goal/.test(v.path))).toHaveLength(0);
+});
+
+
+for (const mode of ['policy-missing','policy-changed','policy-forged']) {
+  test(`server bound provenance ${mode} cannot enable confirmation`, async ({page})=>{
+    const f=await proposalFixture(page);f.proofMode(mode);
+    await page.getByRole('button',{name:'초기 위치 제안 계산'}).click();
+    await expect(page.locator('[data-prep="geometry-preview"]')).toContainText('미확인 또는 만료');
+    await expect(page.getByRole('button',{name:'제안값 확인·②에 적용'})).toBeDisabled();
+    expect(f.writes.filter(v=>v.path.endsWith('/confirm-geometry'))).toHaveLength(0);
+  });
+}
+
+test('server-owned bounds are displayed as a policy, not a user uncertainty measurement', async ({page})=>{
+  const f=await proposalFixture(page);f.proofMode('group-valid');
+  await page.getByRole('button',{name:'초기 위치 제안 계산'}).click();
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('서버가 적용한 검증 한도: 위치 0.25 m · 방향 ±0.2 rad');
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('사용자 불확실성 측정이나 실제 정확도가 아닙니다');
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('전역 유일성·실제 위치 정확도는 확인되지 않았습니다');
   expect(f.writes.filter(v=>v.path.endsWith('/confirm-geometry'))).toHaveLength(0);
 });
