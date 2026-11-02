@@ -1,14 +1,17 @@
 """Fail closed until C0 supplies the exact integrated checkout and hashes."""
 import hashlib,json,os,pathlib,subprocess,sys
-REQUIRED={'robot_dashboard/api/routers/operational_navigation.py','robot_dashboard/api/routers/fastlio_observation.py','robot_dashboard/application/navigation_initialization_proposal.py','robot_dashboard/application/global_observation.py','robot_dashboard/application/operational_navigation.py','robot_dashboard/application/fastlio_observation.py','robot_dashboard/relocalization/handoff_policy.py','robot_dashboard/static/features/navigation/preparation.js','robot_dashboard/static/features/navigation/pose_draft.js','robot_dashboard/static/app.js','tests/test_anchor_proposal.py','tests/test_navigation_initialization_proposal.py','tests/test_navigation_proposal_handoff.py','tests/test_operational_navigation_bundle.py','tests/test_observation_subscription_evidence.py'}
+REQUIRED={'robot_dashboard/application/planar_prior_selection.py','robot_dashboard/relocalization/global_observation_worker.py','robot_dashboard/relocalization/v031_observation_compat.py','robot_dashboard/api/routers/operational_navigation.py','robot_dashboard/api/routers/fastlio_observation.py','robot_dashboard/application/navigation_initialization_proposal.py','robot_dashboard/application/global_observation.py','robot_dashboard/application/operational_navigation.py','robot_dashboard/application/fastlio_observation.py','robot_dashboard/relocalization/handoff_policy.py','robot_dashboard/static/features/navigation/preparation.js','robot_dashboard/static/features/navigation/pose_draft.js','robot_dashboard/static/app.js','tests/test_anchor_proposal.py','tests/test_navigation_initialization_proposal.py','tests/test_navigation_proposal_handoff.py','tests/test_operational_navigation_bundle.py','tests/test_observation_subscription_evidence.py'}
 def checked_root():
  root=os.environ.get('PRIOR_SOURCE_ROOT');name=os.environ.get('PRIOR_HASH_MANIFEST')
  if not root or not name:raise RuntimeError('EXACT_INTEGRATED_SOURCE_AND_HASH_MANIFEST_REQUIRED')
  root=pathlib.Path(root).resolve(strict=True);manifest=json.loads(pathlib.Path(name).read_text());files=manifest.get('files')
  if not isinstance(files,dict) or not REQUIRED.issubset(files) or not isinstance(manifest.get('snapshot_id'),str) or not manifest['snapshot_id']:raise RuntimeError('INCOMPLETE_SOURCE_PIN_MANIFEST')
  if manifest.get('complete_source_snapshot') is not True:raise RuntimeError('FULL_SOURCE_PIN_REQUIRED')
- tracked=subprocess.check_output(['git','-C',str(root),'ls-files','--cached','--others','--exclude-standard','-z']).split(b'\0')
- names={p.decode() for p in tracked if p}
+ if manifest.get('snapshot_kind') == 'git-archive':
+  names={str(p.relative_to(root)) for p in root.rglob('*') if p.is_file()}
+ else:
+  tracked=subprocess.check_output(['git','-C',str(root),'ls-files','--cached','--others','--exclude-standard','-z']).split(b'\0')
+  names={p.decode() for p in tracked if p}
  if set(files)!=names:raise RuntimeError('SOURCE_SNAPSHOT_SET_MISMATCH')
  for rel,digest in files.items():
   p=pathlib.PurePosixPath(rel)
