@@ -329,3 +329,42 @@ test('parameter revision conflicts reload only after the busy guard is released'
     /finally \{[\s\S]{0,180}navigationParameterBusy = false;[\s\S]{0,180}if \(reloadAfterConflict\) \{[\s\S]{0,120}await refreshNavigationParameters\(true\);/,
   );
 });
+
+test('navigation health metrics show unknown values without inventing zero and retain measured zero', () => {
+  const start = appSource.indexOf('function formatNavigationMetric(');
+  const end = appSource.indexOf('\nfunction renderNavigationStatus(', start);
+  assert.ok(start >= 0 && end > start);
+  const element = () => ({ children: [], textContent: '', className: '',
+    append(...nodes) { this.children.push(...nodes); }, replaceChildren(...nodes) { this.children = nodes; } });
+  const ui = { navigationHealthState: element(), navigationHealthReason: element(), navigationHealthMetrics: element(), navigationCalibrationList: element() };
+  const context = { ui, document: { createElement: element }, setStatePill: (node, tone, state) => { node.textContent = state; } };
+  vm.runInNewContext(`${appSource.slice(start, end)}\nthis.format = formatNavigationMetric; this.render = renderNavigationHealth;`, context);
+  for (const value of [null, undefined, '', ' ', '0', '1.2', false, true, [], {}, NaN, Infinity, -Infinity, Symbol('missing')]) {
+    assert.equal(context.format(value, ' Hz'), '—', `invalid metric ${String(value)}`);
+  }
+  assert.equal(context.format(0, ' Hz'), '0.00 Hz');
+  assert.equal(context.format(1.25, ' Hz'), '1.25 Hz');
+  const rows = () => Object.fromEntries(ui.navigationHealthMetrics.children.map(row => [row.children[0].textContent, { value: row.children[1].textContent, note: row.children[2].textContent }]));
+  const zeros = { cloud_frequency_hz: 0, cloud_jitter_s: 0, cloud_age_s: 0, runtime_health_age_s: 0,
+    odometry_frequency_hz: 0, odometry_jitter_s: 0, odometry_age_s: 0, tf_age_s: 0, map_to_odom_age_s: 0, odom_to_base_age_s: 0,
+    translation_jump_count: 0, heading_jump_count: 0, accepted_points: 0, input_points: 0, goal_progress_rate_mps: 0,
+    goal_remaining_distance_m: 0, controller_stall_duration_s: 0, costmap_clear_count: 0, fresh_sequence_count: 0 };
+  context.render({ pipeline: { state: 'idle' }, localization_health: { state: 'UNAVAILABLE', reason_code: 'NAVIGATION_INACTIVE', metrics: zeros } });
+  assert.equal(ui.navigationHealthState.textContent, 'UNAVAILABLE');
+  assert.match(ui.navigationHealthReason.textContent, /NAVIGATION_INACTIVE/);
+  assert.equal(rows().POINTCLOUD.value, '—'); assert.match(rows().POINTCLOUD.note, /age —/);
+  assert.equal(rows()['TF AGE'].value, '—'); assert.equal(rows()['FAST-LIO JUMPS'].value, '— / —');
+  assert.equal(rows()['SCAN POINTS'].value, '— / —'); assert.equal(rows()['COSTMAP CLEARS'].value, '—');
+  assert.equal(rows()['COSTMAP CLEARS'].note, 'fresh sequence —');
+  context.render({ pipeline: { state: 'running' }, localization_health: { state: 'READY', reason_code: 'HEALTHY', metrics: zeros } });
+  assert.equal(rows().POINTCLOUD.value, '0.00 Hz'); assert.match(rows().POINTCLOUD.note, /age 0\.000 s/);
+  assert.equal(rows()['TF AGE'].value, '0.000 s'); assert.equal(rows()['FAST-LIO JUMPS'].value, '0 / 0');
+  assert.equal(rows()['SCAN POINTS'].value, '0 / 0'); assert.equal(rows()['COSTMAP CLEARS'].value, '0');
+  assert.equal(rows()['COSTMAP CLEARS'].note, 'fresh sequence 0');
+  context.render({ localization_health: { state: 'READY', metrics: { cloud_frequency_hz: null, cloud_age_s: '', tf_age_s: false,
+    translation_jump_count: '0', heading_jump_count: -1, accepted_points: 1.5, input_points: 12,
+    costmap_clear_count: {}, fresh_sequence_count: Infinity } } });
+  assert.equal(rows().POINTCLOUD.value, '—'); assert.match(rows().POINTCLOUD.note, /age —/); assert.equal(rows()['TF AGE'].value, '—');
+  assert.equal(rows()['FAST-LIO JUMPS'].value, '— / —'); assert.equal(rows()['SCAN POINTS'].value, '— / 12');
+  assert.equal(rows()['COSTMAP CLEARS'].value, '—'); assert.equal(rows()['COSTMAP CLEARS'].note, 'fresh sequence —');
+});

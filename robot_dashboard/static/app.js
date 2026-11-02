@@ -3804,13 +3804,13 @@ function navigationBlockerMessage(blocker) {
 }
 
 function formatNavigationMetric(value, suffix = '', digits = 2) {
-  const number = Number(value);
-  return Number.isFinite(number) ? `${number.toFixed(digits)}${suffix}` : '—';
+  return typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(digits)}${suffix}` : '—';
 }
+function formatNavigationCount(value) { return Number.isSafeInteger(value) && value >= 0 ? String(value) : '—'; }
 
 function renderNavigationHealth(snapshot) {
   const health = snapshot?.localization_health;
-  const metrics = health?.metrics;
+  const metrics = health?.reason_code === 'NAVIGATION_INACTIVE' ? null : health?.metrics;
   const state = String(health?.state || 'UNAVAILABLE').toUpperCase();
   const tone = state === 'READY' ? 'ok' : ['STALE', 'DISCONTINUITY', 'FRAME_MISMATCH', 'CALIBRATION_SUSPECTED'].includes(state) ? 'error' : 'waiting';
   setStatePill(ui.navigationHealthState, tone, state);
@@ -3822,10 +3822,10 @@ function renderNavigationHealth(snapshot) {
     ['POINTCLOUD', formatNavigationMetric(metrics?.cloud_frequency_hz, ' Hz'), `jitter ${formatNavigationMetric(metrics?.cloud_jitter_s, ' s', 3)} · age ${formatNavigationMetric(metrics?.cloud_age_s, ' s', 3)} · health ${formatNavigationMetric(metrics?.runtime_health_age_s, ' s', 3)}`],
     ['ODOMETRY', formatNavigationMetric(metrics?.odometry_frequency_hz, ' Hz'), `jitter ${formatNavigationMetric(metrics?.odometry_jitter_s, ' s', 3)} · age ${formatNavigationMetric(metrics?.odometry_age_s, ' s', 3)}`],
     ['TF AGE', formatNavigationMetric(metrics?.tf_age_s, ' s', 3), `map→odom ${formatNavigationMetric(metrics?.map_to_odom_age_s, ' s', 3)} · odom→base ${formatNavigationMetric(metrics?.odom_to_base_age_s, ' s', 3)}`],
-    ['FAST-LIO JUMPS', `${Number(metrics?.translation_jump_count) || 0} / ${Number(metrics?.heading_jump_count) || 0}`, 'translation / heading'],
-    ['SCAN POINTS', `${Number(metrics?.accepted_points) || 0} / ${Number(metrics?.input_points) || 0}`, 'accepted / input'],
+    ['FAST-LIO JUMPS', `${formatNavigationCount(metrics?.translation_jump_count)} / ${formatNavigationCount(metrics?.heading_jump_count)}`, 'translation / heading'],
+    ['SCAN POINTS', `${formatNavigationCount(metrics?.accepted_points)} / ${formatNavigationCount(metrics?.input_points)}`, 'accepted / input'],
     ['GOAL PROGRESS', formatNavigationMetric(metrics?.goal_progress_rate_mps, ' m/s', 3), `remaining ${formatNavigationMetric(metrics?.goal_remaining_distance_m, ' m')} · stall ${formatNavigationMetric(metrics?.controller_stall_duration_s, ' s')}`],
-    ['COSTMAP CLEARS', String(Number(metrics?.costmap_clear_count) || 0), `fresh sequence ${Number(metrics?.fresh_sequence_count) || 0}`],
+    ['COSTMAP CLEARS', formatNavigationCount(metrics?.costmap_clear_count), `fresh sequence ${formatNavigationCount(metrics?.fresh_sequence_count)}`],
   ];
   ui.navigationHealthMetrics.replaceChildren(...rows.map(([label, value, note]) => {
     const row = document.createElement('div');
