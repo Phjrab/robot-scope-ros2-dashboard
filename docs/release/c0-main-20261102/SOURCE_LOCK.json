@@ -512,11 +512,12 @@
   "local_pre_ci_snapshot_tree": "340b0394d07f93176e1fa6e3aac8f92d8c429063",
   "local_pre_ci_manifest_sha256": "f07d4f65a1eb14ae34754d645108cb31960c1e9e9e6e00f59d88a952518756fa",
   "schema": "robot-scope.c0-main-source-lock.v1",
-  "state": "CANDIDATE_LINUX_CI_PENDING",
+  "state": "SOFTWARE_VALIDATED_MAIN_PUBLICATION_RECEIPT_SEPARATE",
   "source_branch": "review/20261030-c0-3d-field-sweep",
   "archives": {
     "main": "archive/20261102/pre-c0-main-31ebb43ef719",
-    "c0": "archive/20261102/c0-merge-source-cc7e0fc526eb"
+    "c0": "archive/20261102/c0-merge-source-cc7e0fc526eb",
+    "validated_candidate": "archive/20261102/c0-main-candidate-aaf5216a16e3"
   },
   "archives_remote_peeled_verified": true,
   "i0_already_ancestor": "ae41a9b6cf5cf5c7c133e818e3fad4693eb2053e",
@@ -538,8 +539,8 @@
   },
   "code_trees": {
     "robot_dashboard": "01feb1a5cde9e1aba400d5d7de701d54c2ccf0ce",
-    "scripts": "bd265e0b9a46cc4fd7b51aa7defdf761f05926f2",
-    "tests": "838221776679ec43461aaf3f15233ec9d6b9d64b",
+    "scripts": "707bd6c9bfbb7dc16f040304ae5b6b2d6b7827f8",
+    "tests": "99dba4d5a62efe67fe842c1c2bd12e2a2c9e95e5",
     ".github": "a1c1f03e94aca93263aad4ed7fa384aeacf79a16",
     "config": "f6dc52cc4da7d7dbcf31777b9b3001edc0d63f85",
     "experiments": "77d43931bb0ecdaa7776c26b1b2e62654b963a98"
@@ -645,7 +646,515 @@
     "c0_standard": 41395926811,
     "conclusion": "success (source-only; not merged CI)"
   },
-  "candidate_ci": null,
+  "candidate_ci": {
+    "sha": "aaf5216a16e3cfb164dc04db8f7f5ca3128ccd0c",
+    "standard": {
+      "run_id": 41415849320,
+      "event": "push (candidate tag)",
+      "attempt": 1,
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 125179373770,
+          "name": "hardware-free-tests (ubuntu-22.04, 3.10)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 41415849320,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Check out repository",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Fetch exact historical dependencies for C2 comparative tests",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Set up Python",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Set up Node.js",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Install Python dependencies",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Install JavaScript dependencies",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Audit JavaScript dependency resolution",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Run Python static checks",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            },
+            {
+              "name": "Scan tracked source for credentials",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Audit Python dependency resolution",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11
+            },
+            {
+              "name": "Run Python tests with coverage",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12
+            },
+            {
+              "name": "Run JavaScript tests",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13
+            },
+            {
+              "name": "Check JavaScript syntax",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14
+            },
+            {
+              "name": "Install Chromium for browser tests",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15
+            },
+            {
+              "name": "Run hardware-free browser E2E",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 16
+            },
+            {
+              "name": "Run mission real-API fixture E2E",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 17
+            },
+            {
+              "name": "Preserve browser evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 18
+            },
+            {
+              "name": "Post Set up Node.js",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 34
+            },
+            {
+              "name": "Post Set up Python",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 35
+            },
+            {
+              "name": "Post Check out repository",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 36
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 37
+            }
+          ]
+        },
+        {
+          "id": 125179374257,
+          "name": "hardware-free-tests (ubuntu-24.04, 3.12)",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 41415849320,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Check out repository",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Fetch exact historical dependencies for C2 comparative tests",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Set up Python",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Set up Node.js",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Install Python dependencies",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Install JavaScript dependencies",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Audit JavaScript dependency resolution",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Run Python static checks",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            },
+            {
+              "name": "Scan tracked source for credentials",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Audit Python dependency resolution",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11
+            },
+            {
+              "name": "Run Python tests with coverage",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12
+            },
+            {
+              "name": "Run JavaScript tests",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13
+            },
+            {
+              "name": "Check JavaScript syntax",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14
+            },
+            {
+              "name": "Install Chromium for browser tests",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15
+            },
+            {
+              "name": "Run hardware-free browser E2E",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 16
+            },
+            {
+              "name": "Run mission real-API fixture E2E",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 17
+            },
+            {
+              "name": "Preserve browser evidence",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 18
+            },
+            {
+              "name": "Post Set up Node.js",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 34
+            },
+            {
+              "name": "Post Set up Python",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 35
+            },
+            {
+              "name": "Post Check out repository",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 36
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 37
+            }
+          ]
+        },
+        {
+          "id": 125179374334,
+          "name": "competition-offline-integration",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 41415849320,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Install hardware-free competition dependencies",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Require optional libraries (no silent dependency skips)",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "Fetch exact historical dependencies for C2 comparative tests",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Run C2, C4 and actual package integration",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Run D0 subtrees in separate interpreters",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Run C3 offline tests (not native matrix)",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 17
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 18
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 19
+            }
+          ]
+        }
+      ]
+    },
+    "i0": {
+      "run_id": 41415850314,
+      "event": "workflow_dispatch (candidate tag)",
+      "attempt": 1,
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 125179383362,
+          "name": "product-and-capacity",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 41415850314,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 1
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 2
+            },
+            {
+              "name": "Run actions/setup-python@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 3
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 4
+            },
+            {
+              "name": "Install offline dependencies",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 5
+            },
+            {
+              "name": "C0 exact-source ASGI preparation and full application flow",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 6
+            },
+            {
+              "name": "Installed core, authorization, replay and default-OFF boundaries",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 7
+            },
+            {
+              "name": "Deny undeclared optional HTTP clients",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 8
+            },
+            {
+              "name": "Expansion JavaScript contracts",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 9
+            },
+            {
+              "name": "Actual product host, generated inputs, responsive UI and replay",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 10
+            },
+            {
+              "name": "Cone display, isolated C1 source, expiry and lifecycle",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 11
+            },
+            {
+              "name": "Verify shared fixture timer cleanup",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 12
+            },
+            {
+              "name": "Exact pinned offline diagnostic sources",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 13
+            },
+            {
+              "name": "Baseline and bounded diagnostics without changing any limits",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 14
+            },
+            {
+              "name": "Preserve synthetic product screenshots and traces",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 15
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 28
+            },
+            {
+              "name": "Post Run actions/setup-python@v5",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 29
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 30
+            },
+            {
+              "name": "Complete job",
+              "status": "completed",
+              "conclusion": "success",
+              "number": 31
+            }
+          ]
+        }
+      ]
+    }
+  },
   "local_merge_modified": {
     "main": [
       "tests/e2e/dashboard_backend.mjs",
@@ -677,6 +1186,74 @@
     "standard_run": 41415083777,
     "i0_run": 41415084487,
     "i0_result": "failure",
-    "failure": "Runner incorrectly enabled grouped proof validation on historical helper unit fixtures; 5pass5fail; actual API/probes and later I0 checks skipped"
-  }
+    "failure": "Runner incorrectly enabled grouped proof validation on historical helper unit fixtures; 5pass5fail; actual API/probes and later I0 checks skipped",
+    "standard_result": "failure",
+    "standard_failure": {
+      "job_id": 125176861886,
+      "environment": "Ubuntu22.04 Python3.10",
+      "step": "Run hardware-free browser E2E",
+      "browser_pass": 332,
+      "browser_fail": 1,
+      "test": "global_observation_history.spec.mjs:90",
+      "assertion_line": 102,
+      "expected": "synthetic job not found",
+      "actual": "IDLE · HISTORICAL_ONLY",
+      "mission": "SKIPPED",
+      "other_jobs": "SUCCESS",
+      "cause": "Exact cause unconfirmed; unchanged history test/product; existing Maps history poll/open race remains backlog"
+    }
+  },
+  "validation_confirmed_date_kst": "2026-11-03",
+  "validated_candidate": "aaf5216a16e3cfb164dc04db8f7f5ca3128ccd0c",
+  "validated_candidate_tree": "82acce2f3ce2cf0d8ed66783a572c31c030369a1",
+  "linux_validation": {
+    "each_supported_python_job": {
+      "environments": [
+        "Ubuntu22.04 Python3.10",
+        "Ubuntu24.04 Python3.12"
+      ],
+      "python_run": 3685,
+      "python_skip": 35,
+      "python_fail": 0,
+      "python_error": 0,
+      "root_js_pass": 750,
+      "frontend_syntax_modules": 133,
+      "browser_pass": 333,
+      "mission_browser_pass": 10,
+      "ruff_mypy_secret_dependency_audits": "PASS"
+    },
+    "competition_offline": "PASS all existing C2/C4/package/D0/C3 offline steps",
+    "i0": {
+      "installed_core_python_pass": 45,
+      "optional_http_clients_denied_pass": 4,
+      "expansion_js_pass": 82,
+      "expansion_js_skip": 2,
+      "product_browser_pass": 9,
+      "cone_browser_pass": 11,
+      "scene_transport_pass": 5,
+      "timer_rounds": 3,
+      "timer_uncleared": 0,
+      "c7_baseline_and_bounded": "PASS"
+    },
+    "c0": {
+      "helper_pass": 10,
+      "component_pass": 37,
+      "full_app_assertions_pass": 8,
+      "source_files": 2655,
+      "source_manifest_sha256": "88c0aca60d7f6580fdc0d742ae2f428491735939ba4017feb2c10d82db7836ee",
+      "source_unchanged_after_each_probe": true,
+      "owned_servers_terminated": true,
+      "proposal_posts": 1,
+      "confirmation_posts": 1,
+      "observation_stop_posts": 1,
+      "mock_nav2_start": 1,
+      "explicit_initial_pose": 1,
+      "match_posts": 1,
+      "goal_posts": 0,
+      "preparation_handoff": "MATCH_ARMED",
+      "later_diagnostic_handoff": "OUTCOME_UNKNOWN / HANDOFF_MATCH_CURRENT_UNCONFIRMED",
+      "device": "NOT_RUN"
+    }
+  },
+  "final_main_receipt": "Final main SHA and its push-triggered standard/I0 CI are recorded after publication in the final delivery receipt; not substituted by candidate CI."
 }

@@ -1,6 +1,6 @@
 # C0 → main 통합 보고 — 2026-11-02
 
-현재 단계: **CANDIDATE_LINUX_CI_PENDING**. 독립 clone의 로컬 main에서 부모 관계를 보존한 통합 후보를 준비했다. 원격 main 반영과 exact-main CI는 아직 미완료이며, 아래 소스별 과거 성공을 통합 성공으로 대체하지 않는다.
+검증 확정: **2026-11-03 KST, 통합 소스 소프트웨어 검증 PASS**. 부모 관계를 보존한 merge와 실행기 최소 보완을 완료했다. 검증 후보는 `aaf5216a16e3cfb164dc04db8f7f5ca3128ccd0c`이며 아래 두 exact-candidate CI가 성공했다. 이후 게시 commit은 이 인계 문서만 확정하며, 최종 main SHA와 그 push CI는 마지막 전달 receipt에서 별도로 확정한다.
 
 ## 소스와 보존
 
@@ -28,7 +28,7 @@ C0 지도 조합/계보·복사형 변환·선택/교정, X/Y/yaw 미전송 초�
 
 | 검사 | 결과·범위 |
 |---|---|
-| `python3 -m unittest discover -s tests -v` | 3,683 run; 8 failure entries / 59 errors / 37 SKIP. macOS 전체 PASS로 표시하지 않음. Linux CI 필요 |
+| `python3 -m unittest discover -s tests -v` | 3,683 run; 8 failure entries / 59 errors / 37 SKIP. macOS 전체 PASS로 표시하지 않음. 지원 Linux 결과는 아래 별도 표 참조 |
 | `node --test tests/*.mjs` | 750 PASS |
 | expansion C2/C3/C6 JS (I0 workflow와 동일 glob) | 82 PASS / 2 기존 historical SKIP |
 | C0 helper `test_contract_assertions.mjs` | 10 PASS |
@@ -39,21 +39,37 @@ C0 지도 조합/계보·복사형 변환·선택/교정, X/Y/yaw 미전송 초�
 | 실제 app import + loopback HTTP | OFF 4 GET / ON 6 GET PASS. 기존 ROS import stub, production lifespan OFF. 루트/자산 no-store, OFF 404·ON BLOCKED_AUTH, C0 미설정503와 optional bounds/exact-stop/STOP/Cancel OpenAPI 확인. POST/센서/제어 실행0 |
 | shared fixture timer / runner 경계 | 실제 browser context3회 잔여0·늦은 callback0; runner 경계11 PASS |
 
-전수 Python의 오류59개와 실패5개는 Linux `/proc/<pid>/stat` 부재에 연결된다. 제품 identity를 임의 값으로 대체하지 않았다. Hesai 실패2개는 fake ros2 shebang에 공백 포함 Python 경로가 들어간 환경 문제이며 동일 소스·공백 없는 interpreter의 두 검사에서 PASS했다. SLAM overlay 실패1개는 관련 제품/테스트가 양쪽 부모와 동일하고 과거 I0에서도 관측됐다. 분리 실행도 실패했고 진단 실행만 통과했으므로 원인은 미확정이며 수정 완료/단순 flaky로 표시하지 않는다. Linux exact-candidate CI로 지원 환경의 결과를 별도 확인한다.
+전수 Python의 오류59개와 실패5개는 Linux `/proc/<pid>/stat` 부재에 연결된다. 제품 identity를 임의 값으로 대체하지 않았다. Hesai 실패2개는 fake ros2 shebang에 공백 포함 Python 경로가 들어간 환경 문제이며 동일 소스·공백 없는 interpreter의 두 검사에서 PASS했다. SLAM overlay 실패1개는 관련 제품/테스트가 양쪽 부모와 동일하고 과거 I0에서도 관측됐다. 분리 실행도 실패했고 진단 실행만 통과했으므로 원인은 미확정이며 수정 완료/단순 flaky로 표시하지 않는다. 같은 제품 코드의 Linux exact-candidate 두 환경은 전수 통과했다. macOS 실패를 소급해서 PASS로 바꾸지는 않는다.
 
 초기 소규모 Python 호출의 잘못된 test 이름/import 경로, 확장 JS의 `python` PATH 부재, 첫 Chromium 권한 오류와 private app-smoke의 FastAPI 내부 router 열거 문제도 환경/검사 도구 실패로 보존했다. 소스 assertion·timeout·TTL·안전 조건을 낮추지 않았다. source manifest 2,650경로가 로컬 검사 전후 같았고 이후 변경은 CI runner/fixture identity/workflow 및 인계 문서뿐이다.
 
-추가 mission browser 10개와 콘 browser 11개는 PASS했다. I0 제품 첫 실행과 startup 진단 실행은 server startup 10초 timeout으로 각각 테스트0개 실행이며, 원인 진단을 별도로 진행한다. 시간/검사 조건을 늘리지 않았다. Linux 후보 CI 결과는 완료 후 이 보고서에 확정한다. Linux C0 하니스는 실제 준비/proposal/confirmation/stop/match API와 UI를 사용하지만 센서·solver·Nav2/ROS는 합성이다. MATCH_ARMED는 요청 경로 성공이지 연속 정합·실장비 위치 정확도·주행 준비가 아니다.
+추가 mission browser 10개와 콘 browser 11개는 PASS했다. I0 제품 첫 실행과 startup 진단 실행은 server startup 10초 timeout으로 각각 테스트0개 실행이며, 별도 소유 서버 진단은 6.688초에 HTTP200으로 준비됐다. 최초 두 timeout의 정확한 원인은 미확정이다. 시간/검사 조건을 늘리지 않았으며 같은 제품 코드의 Linux I0 제품9개는 통과했다. Linux C0 하니스는 실제 준비/proposal/confirmation/stop/match API와 UI를 사용하지만 센서·solver·Nav2/ROS는 합성이다. MATCH_ARMED는 요청 경로 성공이지 연속 정합·실장비 위치 정확도·주행 준비가 아니다.
 
 ## 첫 Linux 후보와 실행기 보완
 
 첫 부모보존 merge 후보는 `0947497db7f004ce0c2b47e2848cbaecdd6ef674`, 보존 태그는 `archive/20261102/c0-main-candidate-0947497db7f0`다. 첫 [I0 CI 41415084487](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41415084487)는 새 C0 helper 단계에서 5 PASS/5 FAIL로 종료됐다. helper의 과거 ungrouped proof fixture에 실행기가 `PRIOR_REQUIRE_GROUPING=1`을 잘못 주입한 원인이 확인됐다. 실제 ASGI/전체 앱 및 후속 I0 검사는 이 실행에서 SKIP이며 성공으로 표시하지 않는다. 실패 run/artifact는 보존하고 자동 재실행하지 않았다.
 
-실행기만 보완하여 legacy unit fixture는 기존 모드로 실행하고, 실제 component/full-app에는 그룹 검증을 계속 필수 적용한다. 별도 중단 반례에서 최상위 명령은 실패하지만 개별 receipt가 PASS로 남는 문제도 발견해, probe 완료 전 중단은 receipt에도 FAIL로 기록한다. 해당 회귀 2개(중단 위치/예외 종류 4개 조합 포함)와 helper10개가 통과했다. 제품 및 원래 검증 assertion/한도는 변경하지 않았다. 수정 후보는 별도 commit/tag로 검증한다.
+실행기만 보완하여 legacy unit fixture는 기존 모드로 실행하고, 실제 component/full-app에는 그룹 검증을 계속 필수 적용한다. 별도 중단 반례에서 최상위 명령은 실패하지만 개별 receipt가 PASS로 남는 문제도 발견해, probe 완료 전 중단은 receipt에도 FAIL로 기록한다. 해당 회귀 2개(중단 위치/예외 종류 4개 조합 포함)와 helper10개가 통과했다. 제품 및 원래 검증 assertion/한도는 변경하지 않았다. 수정 후보는 별도 commit/tag로 검증했고 아래 두 CI가 모두 통과했다. 추가 회귀 작성 중 한 mock 응답 형식 오류는 게시 전에 바로잡고 2개 검사가 실제 통과한 결과만 기록했다.
+
+첫 [표준 CI 41415083777](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41415083777)는 Ubuntu22.04 browser에서 332 PASS/1 FAIL이었다. `global_observation_history.spec.mjs:90`의 :102 기대 문자열 `synthetic job not found` 대신 `IDLE · HISTORICAL_ONLY`가 관측됐고 그 job의 mission은 SKIP됐다. 다른 두 job은 성공했다. 이후 후보의 제품/browser/workflow 코드는 이 첫 후보와 같으며, 후속 성공이 기존 history 경합 수리를 증명하지 않는다. 최초 로그와 기존 Maps history poll/open backlog를 보존한다.
+
+## 검증된 Linux 통합 후보
+
+고정 후보 `aaf5216a16e3cfb164dc04db8f7f5ca3128ccd0c` / `archive/20261102/c0-main-candidate-aaf5216a16e3`:
+
+| exact-candidate CI | 최종 결과와 범위 |
+|---|---|
+| [표준 CI 41415849320](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41415849320), attempt1 | **SUCCESS**, required 작업3개 전부 성공. Ubuntu22.04/Python3.10과 Ubuntu24.04/Python3.12 각각 전수 Python3,685 run/35 기존 SKIP/실패0, root JS750 PASS, syntax133, Ruff/mypy·credential/dependency audit, 전체 browser333 PASS, 별도 mission10 PASS. competition C2/C4/package·D0·C3 offline도 성공 |
+| [I0 통합 CI 41415850314](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41415850314), attempt1 | **SUCCESS**, product-and-capacity의 모든 검사 단계 성공. core/API45, optional HTTP client 차단4, expansion JS82 PASS/2 historical SKIP, 실제 제품9, 콘11, scene transport5, 타이머3회 누수0, C7 baseline/bounded 통과 |
+| 위 I0 CI 안의 C0 actual ASGI/full-app | helper10, 준비 패널37, 전체 앱8 assertions **PASS**. source2,655경로의 동일 manifest를 각 probe 전후 대조, 소유 서버2개 종료 확인. 그룹/all-member, 서버 bounds/proof, source/map/generation/TTL 부정 사례 포함 |
+
+C0 full-app은 proposal1, geometry confirm1, exact observation stop1, mock Nav2 start1, 명시 INITIAL POSE1, match1, goal0을 기록했다. 준비 API는 MATCH_ARMED, 별도 후속 진단은 OUTCOME_UNKNOWN/HANDOFF_MATCH_CURRENT_UNCONFIRMED였다. 실제 센서/ROS/TF·연속 정합·주행 완료로 해석하지 않는다. manifest SHA-256은 `88c0aca60d7f6580fdc0d742ae2f428491735939ba4017feb2c10d82db7836ee`이며 이 검증 후보의 snapshot에만 적용한다.
+
+표준 35 SKIP은 기존 historical export/선택 의존성 검사이며 새 skip을 추가하지 않았다. I0 실제 제품 검사는 현재 merged tree를 사용하고 C7 과거 고정 진단은 별도 단계로 구분한다. 수치와 과거 source 결과를 합산하지 않는다. 위 두 run은 후보 태그의 push/dispatch 결과이며 main push 결과로 표기하지 않는다.
 
 ## 게시·인계 경계
 
-후보의 Linux 표준 CI와 I0 통합 CI를 확인한 뒤 main에 정상 forward push한다. push 직전 원격 ref를 다시 대조하며 force push하지 않는다. 최종 main SHA와 그 exact-SHA 두 CI의 run/job/step 결과는 게시 후 최종 receipt로 확정한다. 자신의 최종 SHA를 문서에 넣기 위한 commit 반복은 하지 않는다.
+검증된 후보 이후에는 세 release 문서만 확정했다. 코드·tests·workflow subtree는 SOURCE_LOCK의 후보와 동일하다. main에는 부모 관계를 보존한 정상 forward push를 사용한다. push 직전 원격 ref를 다시 대조하며 force push하지 않는다. 최종 main SHA와 그 exact-SHA 두 CI의 run/job/step 결과는 게시 후 최종 receipt로 확정한다. 자신의 최종 SHA를 문서에 넣기 위한 commit 반복은 하지 않는다.
 
 단일 최신 현장 인계는 [A0_HANDOFF](A0_HANDOFF.md)다. 기존 I0 인계는 이 문서로 안내하되 과거 기록을 보존했다. A0는 C0/I0를 다시 병합하지 않고 통합 main에서 검증을 시작한다. 현재 장비 readback/배포·복구, 정지 관측·초기값, exact stop/인계·Nav2·INITIAL POSE·정합, 지속 TF/odom, 별도 승인 P1/P2·stop-and-go·경사로와 독립 I0 의존 항목은 NOT_RUN이다. 기존 Maps history poll/open 경합은 미수리 backlog로 남는다.
 

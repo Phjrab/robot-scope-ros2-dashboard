@@ -15,7 +15,7 @@
 
 통합 검증 대상과 실제 검사 결과는 [SOURCE_LOCK](SOURCE_LOCK.json), [MERGE_REPORT](MERGE_REPORT.md)를 따른다. 최종 main SHA와 그 SHA의 표준 CI·I0 통합 CI는 게시 후 최종 전달 receipt로 확정한다. 이전 main 또는 C0 단독 CI 성공을 통합본 성공으로 대신하지 않는다.
 
-후보 단계: Linux 통합 CI와 원격 main 게시를 진행 중이다. 최종 전달 receipt 전에는 게시 완료로 해석하지 않는다.
+검증 기준 후보 `aaf5216a16e3cfb164dc04db8f7f5ca3128ccd0c`는 표준 CI3개 작업과 I0 통합 CI 모두 SUCCESS다. C0 ASGI37/전체 앱8, I0 제품9/콘11, Linux 두 환경의 전체 browser333/mission10을 확인했다. 이 문서를 확정하는 후속 commit은 제품 코드를 바꾸지 않는다. A0는 최종 전달 receipt의 main SHA와 현재 실행 장비 SHA를 별도로 대조한다.
 
 **DEVICE_NOT_RUN**: 이 소스 통합에서는 로봇/Jetson 접속, 배포, 서비스 재시작, 센서 실행, 실제 ROS graph·INITIAL POSE·goal·TF·속도/자세 명령과 주행을 수행하지 않았다.
 
@@ -49,7 +49,7 @@ I0의 `/extensions`, 지도 job·전체 사본 저장·재조회, C1/C3 관측/r
 ## 독립적으로 이어갈 I0 항목과 알려진 결함
 
 - **미검증 의존 조건:** 운영 auth/mutation/source qualification owner, opaque asset codec/등록 정책, C4 genuine per-message/native identity와 costmap marking·근거 있는 clearing·재계획·actuator 경로, 실제 cone payload/model 전체 hash·측정 XYZ/자세·sensor-to-map/ground 교정·clock/receipt/TTL, C6 실제 기록과 C7 Jetson 지표. 필요한 입력 없이 `BLOCKED_AUTH`, `BLOCKED_NATIVE_IDENTITY`, `PAIRED_REAL_PRODUCER_INPUT_REQUIRED`, `UNALIGNED`, `HEIGHT_UNVERIFIED`를 해제하지 않는다.
-- **알려진 기존 결함:** Maps history poll/open 경합은 결정적인 delayed-status 회귀와 최소 수리가 필요하다. 전체 browser 성공만으로 수리됐다고 판단하지 않는다.
+- **알려진 기존 결함:** Maps history poll/open 경합은 결정적인 delayed-status 회귀와 최소 수리가 필요하다. 첫 통합 후보의 Ubuntu22.04 CI에서도 `global_observation_history.spec.mjs:102`의 기대 오류 대신 `IDLE · HISTORICAL_ONLY`가 관측됐다. 후속 동일 제품/browser 코드의 전체 CI 성공만으로 수리됐다고 판단하지 않는다.
 - **과거 실패 기록:** I0 macOS의 관측 cancel 후 `savedLiveCenter` disabled 실패와 C4 native의 accepted/published 0 기록은 원인과 수정이 입증되지 않은 이력이다. C0 과거 2개 Node 실패·`INITIAL_GEOMETRY_PROVENANCE_REQUIRED` 실패는 최신 수정/검증과 구분해 보존한다. 과거 실패를 현재도 재현되는 통합 결함이라고 단정하지 않는다. 이번 통합의 실제 실패·수정·미해결은 MERGE_REPORT가 우선한다.
 
 전체 기능을 단계별로 먼저 한 번씩 확인한다. 실패에는 시각·정확한 소스·증거·의존성을 기록하고 독립 항목을 계속한다. 실제 안전 문제가 있으면 그 경로를 즉시 중단하되 독립적인 비이동 검사까지 막지 않는다. 첫 결과표를 완성한 뒤 원인 분석·최소 수정·2차 비교를 수행한다. 첫 시험 중 yaw tolerance·속도·progress checker·후방 가중치를 연속 변경하지 않는다. 사용 가능한 지도/교정을 보존하고 HIGH_RESIDUAL·지도 원점·구/신 지도 정확도 연구를 다시 시작하지 않는다. A0의 모델/하위 에이전트 운영은 별도 A0 지시서를 따른다.
