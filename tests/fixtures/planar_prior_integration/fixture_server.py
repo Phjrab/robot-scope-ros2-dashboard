@@ -20,6 +20,8 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
+import numpy as np
+from robot_dashboard.application.anchor_proposal import imu_matrix
 from robot_dashboard.api.routers.operational_navigation import router
 from robot_dashboard.api.routers.fastlio_observation import router as observation_router
 from robot_dashboard.application.global_observation import GlobalObservationCoordinator
@@ -175,6 +177,14 @@ def apply_change(mode):
     if mode=='lose-confirm-response':fixture.drop=True
     elif mode=='odom-drift':
         fixture.original_pose['position']['x']+=.04;fixture.emit()
+    elif mode=='odom-drift-server-policy':
+        # Synthetic input only: align .18 m drift with the .08 m duplicate
+        # separation in localization-map X. Projection preserves the duplicate
+        # group while placing only its second member outside the .25 m policy.
+        delta=imu_matrix(fixture.original_pose)[:3,:3] @ fixture.source.runner.pose[:3,:3].T @ np.array([.18,0.,0.])
+        for axis,value in zip(('x','y','z'),delta):fixture.original_pose['position'][axis]+=float(value)
+        log_event({'fixture_input':mode,'localization_delta_m':[.18,0.,0.],'odom_delta_m':delta.tolist()})
+        fixture.emit()
     elif mode=='source-epoch':fixture.pose_identity=ObservationIdentity();fixture.emit()
     elif mode=='freeze-source':fixture.freeze=True
     elif mode=='reject-candidate':fixture.source.runner.override=True

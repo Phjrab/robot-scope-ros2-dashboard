@@ -42,9 +42,11 @@ try{
  });
  let original,proposal;
  await step('actual_draft_to_real_asgi_conditional_proof',async()=>{
-  await page.locator('[data-prep="prior-xy"]').fill('.5');await page.locator('[data-prep="prior-yaw"]').fill('30');await page.locator('[data-prep="prior-stationary"]').check();
+  await expect(page.locator('[data-prep="prior-xy"]')).toHaveCount(0);await expect(page.locator('[data-prep="prior-yaw"]')).toHaveCount(0);await page.locator('[data-prep="prior-stationary"]').check();
   await page.locator('[data-prep="proposal"]').click();await expect(page.locator('[data-prep="geometry-preview"]')).toContainText('미적용');
-  const r=await local('/__fixture/result');original=posts(r,'/initialization-proposals')[0].body;proposal=Object.values(r.proposals)[0];assertConditionalProof(proposal,original,true);assertExecutorEvidence(r);assert.equal(r.solver_calls,1);assert.equal(r.state.selected.seed_geometry,null);assert.deepEqual(backend.state.requests,[]);
+  const r=await local('/__fixture/result');original=posts(r,'/initialization-proposals')[0].body;
+  for(const key of ['bounds','bounds_source','effective_bounds'])assert.equal(Object.hasOwn(original.operator_prior,key),false);
+  proposal=Object.values(r.proposals)[0];const proof=assertConditionalProof(proposal,original,true);assert.equal(proof.bounds_source,'server_policy');assert.deepEqual(proof.effective_bounds,{xy_m:.25,yaw_rad:.20});assertExecutorEvidence(r);assert.equal(r.solver_calls,1);assert.equal(r.state.selected.seed_geometry,null);assert.deepEqual(backend.state.requests,[]);
  });
  await step('explicit_confirm_then_stop_real_receipt',async()=>{
   await expect.poll(async()=>{const d=JSON.parse(await page.locator('[data-prep="details"]').textContent());return d.proposal_cleanup?.state==='SETTLED'&&d.proposal_display_valid===true;}).toBe(true);

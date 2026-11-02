@@ -22,6 +22,14 @@ Start `fixture_server.py` on `127.0.0.1:4397` and run either probe. Runs must be
 
 HTTP overrides validate the allowed origin, including late ASGI passthrough and response-mutation routes. The full app also installs a final origin-checking fallback before execution. The Python connect/subprocess wrappers are partial guards, not an operating-system network sandbox; browser internal traffic and every possible socket API are not certified blocked by this code. No fixture handler contacts a device. Use the separately authorized execution environment and do not interpret these guardrails as a general security boundary.
 
+## Optional-bounds candidate — validation pending
+
+The current probes target a UI draft with X/Y/yaw and explicit stationarity acknowledgement, without uncertainty inputs. They require `bounds`, `bounds_source` and `effective_bounds` to be absent from the UI request. The actual server proof must preserve that original prior and separately bind `server_policy` to effective limits of 0.25 m / 0.20 rad. `bounds_assertions.mjs` validates this provenance before current/group/handoff comparisons; an unchecked fallback to raw prior bounds is not accepted. Legacy proof without the new fields is supported only when the original prior explicitly contains valid bounds.
+
+The component matrix adds missing/forged policy-proof cases and distinguishes two paths for a candidate about 0.3 m from the draft: the new bounds-free request is rejected by selection, while an explicit wide legacy API prior may produce an informational proposal but confirmation must still return 409. A dedicated synthetic `odom-drift-server-policy` input aligns a 0.18 m drift with the existing 0.08 m duplicate spacing, preserving the representative-inside/member-outside test under the 0.25 m server limit. No product limit, grouping threshold or source gate changes.
+
+These adaptations have **not yet been executed** against the final backend/UI snapshot. C0 owns the final freeze and start signal; the historical passing results below apply only to their named earlier manifest. C1.3 will run the component matrix and full-app scenario once each on the same approved exact snapshot, preserving first failures. C0 owns broad Python/Node/static validation, including the helper assertions.
+
 ## Recorded frozen validation
 
 On 2026-11-02, snapshot `C0-ACK-ENTRY-20261102-01` passed both probes with `PRIOR_REQUIRE_GROUPING=1`. Each probe ran once, sequentially, without source changes or retries:

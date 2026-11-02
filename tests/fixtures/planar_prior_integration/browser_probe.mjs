@@ -14,7 +14,14 @@ async function local(path,body){const r=await fetch(base+path,body===undefined?{
 async function fresh(page){await local('/__fixture/reset',{});await page.goto(base+'/exercise');await page.waitForFunction(()=>window.mounted===true);}
 function posts(result,suffix){return result.events.filter(x=>x.method==='POST'&&x.path.endsWith(suffix));}
 async function noAuto(page){const r=await local('/__fixture/result');assert.equal(posts(r,'/initialization-proposals').length,0);assert.deepEqual(await page.evaluate(()=>window.actions),[]);}
-async function setupPrior(page){await page.locator('[data-prep="prior-xy"]').fill('0.5');await page.locator('[data-prep="prior-yaw"]').fill('30');await page.locator('[data-prep="prior-stationary"]').check();}
+async function setupPrior(page){await expect(page.locator('[data-prep="prior-xy"]')).toHaveCount(0);await expect(page.locator('[data-prep="prior-yaw"]')).toHaveCount(0);await page.locator('[data-prep="prior-stationary"]').check();}
+async function explicitPrior(bounds){
+ const ctx=await local('/__fixture/context'),r=await local('/__fixture/result'),draft=ctx.fixture_draft,pair=r.state.pair;
+ const body={request_id:'legacy-explicit-bounds',bundle_generation:pair.generation,observation_session_id:'a'.repeat(32),operator_prior:{frame:'map',pose_reference:'base_link',units:'metres_radians',pose:structuredClone(draft.pose),bounds,source:'OPERATOR_CURRENT_MAP_DRAFT',stationary_current_pose_confirmed:true,navigation_map_id:draft.navigation_map.id,navigation_map_revision:draft.navigation_map.revision,calibration_sha256:pair.calibration_sha256}};
+ const started=await local('/api/v1/navigation/operational-3d/initialization-proposals',body);let response;
+ await expect.poll(async()=>{response=await local(`/api/v1/navigation/operational-3d/initialization-proposals/${started.proposal_id}`);return `${response.state}:${response.cleanup?.state}`;}).toBe('ready:SETTLED');
+ return {body,response};
+}
 async function settledPreview(page){
  await expect.poll(async()=>{const d=JSON.parse(await page.locator('[data-prep="details"]').textContent());return d.proposal_cleanup?.state==='SETTLED' && d.proposal_display_valid===true && Date.now()-(page.lastReadyReceivedAt||0)<300;},{intervals:[50,50,100],timeout:8000}).toBe(true);
 }
@@ -28,21 +35,20 @@ async function runCase(name,fn){
  finally{result.errors=errors;if(page.recoveryEvidence)result.recovery_evidence=page.recoveryEvidence;result.server=await local('/__fixture/result').catch(e=>({unavailable:String(e)}));result.details=await page.locator('[data-prep="details"]').textContent().then(JSON.parse).catch(()=>null);result.dom=await page.locator('#host').innerText().catch(()=>null);await page.close();results.push(result);await writeFile(`${output}/cases-${run}.json`,JSON.stringify(results,null,2));console.log(JSON.stringify({case:name,state:result.state,error:result.error?.split('\n')[0]}));}
 }
 try{
- await runCase('missing_prior_draft_or_bounds_never_posts',async page=>{
+ await runCase('missing_prior_draft_or_stationarity_never_posts',async page=>{
   await page.evaluate(()=>window.changeFixtureDraft({status:'none'}));await expect(page.locator('[data-prep="proposal"]')).toBeDisabled();await noAuto(page);
   await page.evaluate(()=>window.changeFixtureDraft({status:'ready'}));await expect(page.locator('[data-prep="proposal"]')).toBeDisabled();await noAuto(page);
-  await page.locator('[data-prep="prior-xy"]').fill('0.5');await expect(page.locator('[data-prep="proposal"]')).toBeDisabled();await noAuto(page);
-  await page.locator('[data-prep="prior-yaw"]').fill('30');await expect(page.locator('[data-prep="proposal"]')).toBeDisabled();await noAuto(page);
+  await setupPrior(page);await expect(page.locator('[data-prep="proposal"]')).toBeEnabled();await noAuto(page);
  });
  await runCase('prior_wire_exact_and_one_conditional',async page=>{
   await setupPrior(page);const draft=await page.evaluate(()=>structuredClone(window.fixtureDraft));await expect(page.locator('[data-prep="proposal"]')).toBeEnabled();
   await page.locator('[data-prep="proposal"]').click();
   await expect.poll(async()=>posts(await local('/__fixture/result'),'/initialization-proposals').length).toBe(1);
-  let r=await local('/__fixture/result');const body=posts(r,'/initialization-proposals')[0].body;assert.deepEqual(body.operator_prior.pose,draft.pose);assert.equal(body.operator_prior.navigation_map_id,draft.navigation_map.id);assert.equal(body.operator_prior.navigation_map_revision,draft.navigation_map.revision);assert.equal(body.operator_prior.bounds.xy_m,.5);assert.ok(Math.abs(body.operator_prior.bounds.yaw_rad-Math.PI/6)<1e-12);assert.equal(body.operator_prior.stationary_current_pose_confirmed,true);
+  let r=await local('/__fixture/result');const body=posts(r,'/initialization-proposals')[0].body;assert.deepEqual(body.operator_prior.pose,draft.pose);assert.equal(body.operator_prior.navigation_map_id,draft.navigation_map.id);assert.equal(body.operator_prior.navigation_map_revision,draft.navigation_map.revision);for(const key of ['bounds','bounds_source','effective_bounds'])assert.equal(Object.hasOwn(body.operator_prior,key),false);assert.equal(body.operator_prior.stationary_current_pose_confirmed,true);
   await expect(page.locator('[data-prep="geometry-preview"]')).toContainText('미적용');r=await local('/__fixture/result');assert.equal(r.state.selected.seed_geometry,null);assert.deepEqual(await page.evaluate(()=>window.actions),[]);
   // Server proof must be read from the real proposal GET, never fabricated by this harness.
   const gets=r.events.filter(e=>e.method==='GET'&&/initialization-proposals\/[a-f0-9]+$/.test(e.path));assert.ok(gets.length>0,'proposal polling expected');
-  const response=await local(gets.at(-1).path);const proof=assertConditionalProof(response,body,true);if(process.env.PRIOR_REQUIRE_GROUPING==='1')await expect(page.locator('[data-prep="proposal-result"]')).toContainText('원본 판정: 모호성 미해결');assert.equal(proof.candidate_index,0);assert.equal(proof.retained_candidate_count,6);assert.equal(proof.eligible_candidate_count,2);assert.equal(proof.candidate_vs_prior.within_existing_handoff_reference,true);
+  const response=await local(gets.at(-1).path);const proof=assertConditionalProof(response,body,true);assert.equal(proof.bounds_source,'server_policy');assert.deepEqual(proof.effective_bounds,{xy_m:.25,yaw_rad:.20});if(process.env.PRIOR_REQUIRE_GROUPING==='1')await expect(page.locator('[data-prep="proposal-result"]')).toContainText('원본 판정: 모호성 미해결');assert.equal(proof.candidate_index,0);assert.equal(proof.retained_candidate_count,6);assert.equal(proof.eligible_candidate_count,2);assert.equal(proof.candidate_vs_prior.within_existing_handoff_reference,true);
   for(const input of await page.locator('[data-geometry]').all())await expect(input).toHaveValue('');assert.deepEqual(await page.evaluate(()=>window.fixtureDraft.pose),draft.pose);
   assertExecutorEvidence(r);
   const duplicate=await local('/api/v1/navigation/operational-3d/initialization-proposals',body);assert.equal(duplicate.proposal_id,response.proposal_id);r=await local('/__fixture/result');assert.equal(r.solver_calls,1);
@@ -60,8 +66,18 @@ try{
   await expect.poll(async()=>{const r=await local('/__fixture/result');const g=r.events.filter(e=>e.method==='GET'&&/initialization-proposals\/[a-f0-9]+$/.test(e.path));if(!g.length)return 'pending';response=await local(g.at(-1).path);return response.state;}).toBe('rejected');
   const r=await local('/__fixture/result');assert.deepEqual(r.synthetic_observation.gate_reasons,[]);assert.equal(r.synthetic_observation.candidate_count,1);assert.equal(response.reason,'PRIOR_NO_MATCH');assert.equal(r.state.selected.seed_geometry,null);assert.equal(posts(r,'/confirm-geometry').length,0);assert.deepEqual(await page.evaluate(()=>window.actions),[]);
  });
- for(const variant of ['missing-proof','missing-original-ambiguity']) await runCase(`${variant}_cannot_show_conditional_ready`,async page=>{
-  let stripped=0;await page.route('**/api/v1/navigation/operational-3d/initialization-proposals/*',async route=>{if(new URL(route.request().url()).origin!==base)return route.abort('blockedbyclient');if(route.request().method()!=='GET')return route.fallback();const response=await route.fetch();const payload=await response.json();if(payload.state==='ready'){if(variant==='missing-proof')delete payload.operator_prior_resolution;else if(payload.operator_prior_resolution)delete payload.operator_prior_resolution.original_ambiguity_unresolved;stripped++;}return route.fulfill({response,json:payload});});
+ for(const variant of ['missing-proof','missing-original-ambiguity','missing-server-bounds-source','missing-server-effective-bounds','missing-server-provenance','forged-server-bounds-source','changed-server-bounds']) await runCase(`${variant}_cannot_show_conditional_ready`,async page=>{
+  let stripped=0;await page.route('**/api/v1/navigation/operational-3d/initialization-proposals/*',async route=>{if(new URL(route.request().url()).origin!==base)return route.abort('blockedbyclient');if(route.request().method()!=='GET')return route.fallback();const response=await route.fetch();const payload=await response.json();if(payload.state==='ready'){
+   const proof=payload.operator_prior_resolution;
+   if(variant==='missing-proof')delete payload.operator_prior_resolution;
+   else if(variant==='missing-original-ambiguity')delete proof.original_ambiguity_unresolved;
+   else if(variant==='missing-server-bounds-source')delete proof.bounds_source;
+   else if(variant==='missing-server-effective-bounds')delete proof.effective_bounds;
+   else if(variant==='missing-server-provenance'){delete proof.bounds_source;delete proof.effective_bounds;}
+   else if(variant==='forged-server-bounds-source')proof.bounds_source='operator_prior';
+   else if(variant==='changed-server-bounds')proof.effective_bounds.xy_m=.3;
+   stripped++;
+  }return route.fulfill({response,json:payload});});
   await setupPrior(page);await page.locator('[data-prep="proposal"]').click();await expect.poll(()=>stripped).toBeGreaterThan(0);await expect(page.locator('[data-prep="geometry-preview"]')).not.toContainText('미리 본 제안값');await expect(page.locator('[data-prep="confirm-handoff"]')).toBeDisabled();const r=await local('/__fixture/result');assert.equal(posts(r,'/confirm-geometry').length,0);assert.equal(r.state.selected.seed_geometry,null);assert.deepEqual(await page.evaluate(()=>window.actions),[]);
  });
  await runCase('confirm_rejects_missing_ack_and_client_proof',async page=>{
@@ -115,6 +131,7 @@ try{
  await runCase('duplicate_id_changed_prior_rejected',async page=>{
   await setupPrior(page);await page.locator('[data-prep="proposal"]').click();await expect(page.locator('[data-prep="geometry-preview"]')).toContainText('미적용');let r=await local('/__fixture/result');const body=posts(r,'/initialization-proposals')[0].body;
   const altered=structuredClone(body);altered.operator_prior.pose.x+=.1;const conflict=await fetch(base+'/api/v1/navigation/operational-3d/initialization-proposals',{method:'POST',headers:{'Content-Type':'application/json','Origin':base},body:JSON.stringify(altered)});assert.equal(conflict.status,409);r=await local('/__fixture/result');assert.equal(r.solver_calls,1);
+  const explicit=structuredClone(body);explicit.operator_prior.bounds={xy_m:.25,yaw_rad:.20};const boundsConflict=await fetch(base+'/api/v1/navigation/operational-3d/initialization-proposals',{method:'POST',headers:{'Content-Type':'application/json','Origin':base},body:JSON.stringify(explicit)});assert.equal(boundsConflict.status,409);assert.match(JSON.stringify(await boundsConflict.json()),/REQUEST_ID_CONTEXT_CHANGED/);assert.equal((await local('/__fixture/result')).solver_calls,1);
   assert.equal(r.state.selected.seed_geometry,null);assert.equal(posts(r,'/confirm-geometry').length,0);
  });
  for(const mode of ['source-epoch','session','generation','map-revision','calibration','expire-prior']) await runCase(`invalidate_${mode}`,async page=>{
@@ -124,9 +141,9 @@ try{
   await expect.poll(async()=> (await local(`/api/v1/navigation/operational-3d/initialization-proposals/${id}`)).state).toBe('stale');
   await expect(page.locator('[data-prep="confirm-handoff"]')).toBeDisabled();const r=await local('/__fixture/result');assert.equal(r.state.selected.seed_geometry,null);assert.equal(posts(r,'/confirm-geometry').length,0);assert.deepEqual(await page.evaluate(()=>window.actions),[]);
  });
- await runCase('prior_bounds_change_invalidates_confirmation',async page=>{
+ await runCase('draft_revision_change_invalidates_confirmation',async page=>{
   await setupPrior(page);await page.locator('[data-prep="proposal"]').click();await expect(page.locator('[data-prep="geometry-preview"]')).toContainText('미적용');
-  await page.locator('[data-prep="prior-xy"]').fill('.6');await expect(page.locator('[data-prep="prior-stationary"]')).not.toBeChecked();await expect(page.locator('[data-prep="confirm-handoff"]')).toBeDisabled();const r=await local('/__fixture/result');assert.equal(posts(r,'/initialization-proposals').length,1);assert.equal(posts(r,'/confirm-geometry').length,0);
+  await page.evaluate(()=>window.changeFixtureDraft({revision:window.fixtureDraft.revision+1,pose:{...window.fixtureDraft.pose,x:window.fixtureDraft.pose.x+.1}}));await expect(page.locator('[data-prep="prior-stationary"]')).not.toBeChecked();await expect(page.locator('[data-prep="confirm-handoff"]')).toBeDisabled();const r=await local('/__fixture/result');assert.equal(posts(r,'/initialization-proposals').length,1);assert.equal(posts(r,'/confirm-geometry').length,0);
  });
  await runCase('legacy_no_prior_backend_preserved',async page=>{
   await local('/__fixture/change/legacy',{});const r=await local('/__fixture/result');const started=await local('/api/v1/navigation/operational-3d/initialization-proposals',{request_id:'legacy-no-prior',bundle_generation:r.state.pair.generation,observation_session_id:'a'.repeat(32)});
@@ -134,9 +151,15 @@ try{
  });
 
  await runCase('wide_prior_does_not_relax_existing_handoff',async page=>{
-  await local('/__fixture/change/handoff-out',{});await setupPrior(page);await page.locator('[data-prep="proposal"]').click();await expect(page.locator('[data-prep="geometry-preview"]')).toContainText('미적용');
-  const r=await local('/__fixture/result'),body=posts(r,'/initialization-proposals')[0].body,response=Object.values(r.proposals)[0];const proof=assertConditionalProof(response,body,true);assert.equal(proof.candidate_vs_prior.within_existing_handoff_reference,false);
-  await page.locator('[data-prep="supervision"]').check();await page.locator('[data-prep="conditional-ack"]').check();await expect(page.locator('[data-prep="confirm-handoff"]')).toBeDisabled();assert.equal(posts(await local('/__fixture/result'),'/confirm-geometry').length,0);
+  await local('/__fixture/change/handoff-out',{});const {body,response}=await explicitPrior({xy_m:.5,yaw_rad:Math.PI/6});
+  const proof=assertConditionalProof(response,body,true);assert.equal(proof.bounds_source,'operator_prior');assert.deepEqual(proof.effective_bounds,body.operator_prior.bounds);assert.equal(proof.candidate_vs_prior.within_existing_handoff_reference,false);
+  const rejected=await fetch(`${base}/api/v1/navigation/operational-3d/initialization-proposals/${response.proposal_id}/confirm-geometry`,{method:'POST',headers:{'Content-Type':'application/json','Origin':base},body:JSON.stringify({request_id:'wide-prior-confirm',bundle_generation:body.bundle_generation,observation_session_id:body.observation_session_id,confirmed:true,stationary_supervision_acknowledged:true,conditional_prior_acknowledged:true})});assert.equal(rejected.status,409);assert.match(JSON.stringify(await rejected.json()),/PRIOR_HANDOFF_MISMATCH/);
+  await expect(page.locator('[data-prep="confirm-handoff"]')).toBeDisabled();const r=await local('/__fixture/result');assert.equal(r.state.selected.seed_geometry,null);assert.equal(posts(r,'/confirm-geometry').length,1);assert.equal(posts(r,'/fastlio/stop').length,0);assert.deepEqual(await page.evaluate(()=>window.actions),[]);
+ });
+ await runCase('server_policy_rejects_candidate_outside_fixed_handoff_limit',async page=>{
+  await local('/__fixture/change/handoff-out',{});await setupPrior(page);await page.locator('[data-prep="proposal"]').click();let response;
+  await expect.poll(async()=>{response=Object.values((await local('/__fixture/result')).proposals)[0];return response?.state;}).toBe('rejected');assert.equal(response.reason,'PRIOR_NO_MATCH');
+  const r=await local('/__fixture/result');assert.equal(r.state.selected.seed_geometry,null);assert.equal(posts(r,'/confirm-geometry').length,0);await expect(page.locator('[data-prep="confirm-handoff"]')).toBeDisabled();assert.deepEqual(await page.evaluate(()=>window.actions),[]);
  });
  if(process.env.PRIOR_REQUIRE_GROUPING==='1'){
   await runCase('grouped_two_members_one_hypothesis_real_confirmation',async page=>{
@@ -148,10 +171,10 @@ try{
    await local(`/__fixture/change/${variant}`,{});await setupPrior(page);await page.locator('[data-prep="proposal"]').click();await expect.poll(async()=>Object.values((await local('/__fixture/result')).proposals)[0]?.state).toBe('rejected');assert.equal((await local('/__fixture/result')).state.selected.seed_geometry,null);
   });
   await runCase('grouped_current_member_drift_blocks_confirm',async page=>{
-   await local('/__fixture/change/duplicate-current-drift',{});await setupPrior(page);await page.locator('[data-prep="prior-xy"]').fill('.1');await page.locator('[data-prep="prior-stationary"]').check();await page.locator('[data-prep="proposal"]').click();await expect(page.locator('[data-prep="geometry-preview"]')).toContainText('미적용');
+   await local('/__fixture/change/duplicate-current-drift',{});await setupPrior(page);await page.locator('[data-prep="proposal"]').click();await expect(page.locator('[data-prep="geometry-preview"]')).toContainText('미적용');
    const before=await local('/__fixture/result'),id=Object.keys(before.proposals)[0],body=posts(before,'/initialization-proposals')[0].body;
-   await local('/__fixture/change/odom-drift',{});let response;await expect.poll(async()=>{response=await local(`/api/v1/navigation/operational-3d/initialization-proposals/${id}`);return response.current_vs_prior?.all_members_within_prior_bounds;}).toBe(false);
-   assertConditionalProof(response,body,true,{requireCurrentMembersInBounds:false});assert.equal(response.current_vs_prior.within_prior_bounds,true);assert.equal(response.current_vs_prior.member_checks[1].within_prior_bounds,false);
+   await local('/__fixture/change/odom-drift-server-policy',{});let response;await expect.poll(async()=>{response=await local(`/api/v1/navigation/operational-3d/initialization-proposals/${id}`);return response.current_vs_prior?.all_members_within_prior_bounds;}).toBe(false);
+   const proof=assertConditionalProof(response,body,true,{requireCurrentMembersInBounds:false});assert.equal(proof.bounds_source,'server_policy');assert.equal(response.current_vs_prior.within_prior_bounds,true);assert.ok(response.current_vs_prior.xy_distance_m>.17&&response.current_vs_prior.xy_distance_m<.19);assert.equal(response.current_vs_prior.member_checks[1].within_prior_bounds,false);assert.ok(response.current_vs_prior.member_checks[1].xy_distance_m>.25);
    const r=await fetch(`${base}/api/v1/navigation/operational-3d/initialization-proposals/${id}/confirm-geometry`,{method:'POST',headers:{'Content-Type':'application/json','Origin':base},body:JSON.stringify({request_id:'member-drift',bundle_generation:body.bundle_generation,observation_session_id:body.observation_session_id,confirmed:true,stationary_supervision_acknowledged:true,conditional_prior_acknowledged:true})});assert.equal(r.status,409);
    await expect(page.locator('[data-prep="confirm-handoff"]')).toBeDisabled();assert.equal((await local('/__fixture/result')).state.selected.seed_geometry,null);
   });

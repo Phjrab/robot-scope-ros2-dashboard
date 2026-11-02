@@ -1,12 +1,13 @@
 // Strict independent assertions for the explicit grouped-member discriminator.
 // No proof is produced here: callers supply actual server response JSON.
 import assert from 'node:assert/strict';
+import {assertEffectiveBounds} from './bounds_assertions.mjs';
 export const GROUPING_POLICY='PINNED_V031_SE3_FIRST_REPRESENTATIVE_V1';
 const finite=x=>assert.equal(Number.isFinite(x),true);
 const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-9,`${a} != ${b}`);
 const wrapped=x=>Math.atan2(Math.sin(x),Math.cos(x));
 export function assertGroupProof(response,{requireCurrentMembersInBounds=true}={}){
- const p=response.operator_prior_resolution,c=response.current_vs_prior,b=p.operator_prior.bounds;
+ const p=response.operator_prior_resolution,c=response.current_vs_prior,b=assertEffectiveBounds(p);
  assert.equal(p.grouping_policy,GROUPING_POLICY);assert.equal(p.matching_hypothesis_count,1);
  const n=p.matching_candidate_count;assert.ok(Number.isInteger(n)&&n>=1&&n<=p.eligible_candidate_count);assert.equal(p.matching_retained_candidate_count,n);
  assert.ok(Number.isInteger(p.verified_duplicate_count)&&p.verified_duplicate_count>=n-1&&p.verified_duplicate_count<=p.eligible_candidate_count-1);
@@ -19,6 +20,6 @@ export function assertGroupProof(response,{requireCurrentMembersInBounds=true}={
  return p;
 }
 export function assertHandoffMembers(handoff,response){
- const p=response.operator_prior_resolution,m=handoff.operator_prior_current_members;assert.ok(m);assert.match(m.pose_stamp_ns,/^[1-9][0-9]*$/);assert.equal(m.member_checks.length,p.matching_member_indices.length);
- m.member_checks.forEach((v,i)=>{assert.equal(v.candidate_index,p.matching_member_indices[i]);assert.equal(v.within_prior_bounds,true);assert.ok(v.xy_distance_m>=0&&v.xy_distance_m<=p.operator_prior.bounds.xy_m);assert.ok(v.absolute_wrapped_yaw_rad>=0&&v.absolute_wrapped_yaw_rad<=p.operator_prior.bounds.yaw_rad);});
+ const p=response.operator_prior_resolution,b=assertEffectiveBounds(p),m=handoff.operator_prior_current_members;assert.ok(m);assert.match(m.pose_stamp_ns,/^[1-9][0-9]*$/);assert.equal(m.member_checks.length,p.matching_member_indices.length);
+ m.member_checks.forEach((v,i)=>{assert.equal(v.candidate_index,p.matching_member_indices[i]);assert.equal(v.within_prior_bounds,true);assert.ok(v.xy_distance_m>=0&&v.xy_distance_m<=b.xy_m);assert.ok(v.absolute_wrapped_yaw_rad>=0&&v.absolute_wrapped_yaw_rad<=b.yaw_rad);});
 }

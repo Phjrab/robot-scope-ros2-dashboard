@@ -4,6 +4,24 @@ Validated on 2026-11-02 against frozen snapshot `C0-ACK-ENTRY-20261102-01` with 
 
 All inputs are synthetic. “Actual backend” means product ASGI/coordinator/manager execution, not hardware or an external solver process. The component injects a synthetic draft getter; the full app uses actual canvas pointer handling.
 
+## Optional-bounds candidate: NOT RUN
+
+The current source has been adapted for the pending backend/UI integration. The historical 31-case table below is preserved as earlier evidence; it does not describe a completed run of this candidate. The new grouped matrix has 37 planned cases: the existing coverage is retained or explicitly translated below, with five policy-proof mutation cases and one fixed-server-limit selection case added. Helper assertions have ten planned tests, including the earlier seven; C0 owns their execution.
+
+| Revised or added case | Candidate expectation |
+|---|---|
+| `missing_prior_draft_or_stationarity_never_posts` | Missing draft or explicit stationarity blocks POST; acknowledging a ready draft enables calculation without creating a POST automatically |
+| `prior_wire_exact_and_one_conditional` | Exact original pose/map/session/calibration; no client bounds/policy fields; real server `server_policy` with exact effective limits; existing confirmation/stop/executor checks retained |
+| Five `*-server-*` proof mutation cases | Missing source, missing effective limits, both removed, forged source, or changed limits cannot enable confirmation |
+| `duplicate_id_changed_prior_rejected` | Changed pose or adding explicit bounds with identical effective numbers conflicts without a second solver call |
+| `draft_revision_change_invalidates_confirmation` | Replaces the removed bounds-input event with draft/revision change after a proposal; acknowledgement clears and confirmation stays blocked |
+| `wide_prior_does_not_relax_existing_handoff` | Explicit wide prior through actual ASGI retains informational proof; one explicit confirmation attempt returns 409, with no geometry or stop |
+| `server_policy_rejects_candidate_outside_fixed_handoff_limit` | Same synthetic outside candidate is rejected by the bounds-free selection policy, without confirm |
+| `grouped_current_member_drift_blocks_confirm` | Bounds-free proof with representative about 0.18 m inside and another member beyond 0.25 m; actual confirmation remains 409 |
+| Full-app scenario | Actual canvas draft with no bounds → real server proof → explicit geometry/stop → mock Nav2 → explicit current-pose transport → real ASGI `MATCH_ARMED`; existing no-auto-action and receipt assertions preserved |
+
+All other source/pin/quality/ambiguity, grouped-member, expiry, response-loss/reload and no-prior cases remain. Execute only after C0 freezes and approves the final source. Record actual counts, manifest and first results separately from this planned matrix.
+
 ## Component: 31 PASS / 0 FAIL
 
 | Case identifier | Verified behavior | Result |

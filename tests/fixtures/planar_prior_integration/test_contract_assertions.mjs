@@ -27,3 +27,31 @@ test('confirmation without explicit acknowledgement or with client-provided prio
 
 test('nonambiguous original stays conditional with false ambiguity and complete proof',()=>{const {body,response}=make();response.quality.ambiguity_unresolved=false;response.operator_prior_resolution.original_ambiguity_unresolved=false;response.operator_prior_resolution.retained_candidate_count=1;response.operator_prior_resolution.eligible_candidate_count=1;assertConditionalProof(response,body,false);});
 test('missing proof, missing original ambiguity, or inconsistent ambiguity fail closed',()=>{for(const mutate of [r=>delete r.operator_prior_resolution,r=>delete r.operator_prior_resolution.original_ambiguity_unresolved,r=>r.operator_prior_resolution.original_ambiguity_unresolved=false]){const {body,response}=make();mutate(response);assert.throws(()=>assertConditionalProof(response,body,true));}});
+
+function serverPolicy(){
+ const value=make();delete value.body.operator_prior.bounds;delete value.response.operator_prior_resolution.operator_prior.bounds;
+ Object.assign(value.response.operator_prior_resolution,{bounds_source:'server_policy',effective_bounds:{xy_m:.25,yaw_rad:.20}});return value;
+}
+test('bounds-free original prior stays unchanged while server policy is checked separately',()=>{
+ const {body,response}=serverPolicy();assertConditionalProof(response,body,true);
+ assert.equal(Object.hasOwn(body.operator_prior,'bounds'),false);assert.deepEqual(response.operator_prior_resolution.operator_prior,body.operator_prior);
+});
+test('bounds-free proof rejects missing, forged, mismatched and malformed provenance',()=>{
+ const mutations=[
+  p=>delete p.bounds_source,p=>delete p.effective_bounds,p=>{delete p.bounds_source;delete p.effective_bounds;},
+  p=>p.bounds_source='operator_prior',p=>p.bounds_source='unknown',
+  p=>p.effective_bounds.xy_m=.251,p=>p.effective_bounds.yaw_rad=.201,
+  p=>p.effective_bounds.xy_m=NaN,p=>p.effective_bounds.yaw_rad=null,p=>p.effective_bounds.extra=1,
+  p=>p.operator_prior.bounds={xy_m:.25,yaw_rad:.20},
+  p=>{p.candidate_vs_prior.xy_distance_m=.251;p.candidate_vs_prior.within_existing_handoff_reference=false;},
+  p=>{p.candidate_vs_prior.absolute_wrapped_yaw_rad=.201;p.candidate_vs_prior.within_existing_handoff_reference=false;},
+ ];
+ for(const mutate of mutations){const {body,response}=serverPolicy();mutate(response.operator_prior_resolution);assert.throws(()=>assertConditionalProof(response,body,true));}
+});
+test('explicit original bounds support both old proof and exact new provenance',()=>{
+ const {body,response}=make(),p=response.operator_prior_resolution;assertConditionalProof(response,body,true);
+ Object.assign(p,{bounds_source:'operator_prior',effective_bounds:structuredClone(body.operator_prior.bounds)});assertConditionalProof(response,body,true);
+ for(const mutate of [p=>delete p.bounds_source,p=>delete p.effective_bounds,p=>p.bounds_source='server_policy',p=>p.effective_bounds.xy_m=.25]){
+  const candidate=structuredClone(response);mutate(candidate.operator_prior_resolution);assert.throws(()=>assertConditionalProof(candidate,body,true));
+ }
+});
