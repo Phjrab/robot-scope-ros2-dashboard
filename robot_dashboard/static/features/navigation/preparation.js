@@ -193,6 +193,11 @@ function priorResolutionBounds(proof) {
   if (proof.bounds_source === 'operator_prior' && explicit && bounds.xy_m === prior.bounds?.xy_m && bounds.yaw_rad === prior.bounds?.yaw_rad) return bounds;
   return null;
 }
+function priorBoundsText(proof) {
+  const bounds = priorResolutionBounds(proof);
+  const source = proof.bounds_source === 'server_policy' ? '서버 정책' : '사용자 입력 범위';
+  return `후보 선택에 적용된 범위 (${source}): 위치 ${bounds.xy_m} m · 방향 ±${bounds.yaw_rad} rad. 사용자 불확실성 측정이나 실제 정확도가 아닙니다.`;
+}
 const GROUPING_FIELDS = ['grouping_policy', 'matching_hypothesis_count', 'matching_retained_candidate_count', 'matching_member_indices', 'matching_member_geometry', 'verified_duplicate_count'];
 function validPriorCandidateGrouping(proof) {
   if (!GROUPING_FIELDS.some(key => Object.hasOwn(proof, key))) return proof.matching_candidate_count === 1;
@@ -358,7 +363,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     <p data-prep="current"></p><p data-prep="selected"></p><p data-prep="applied"></p><p data-prep="invalidation" role="status"></p>
     <div class="navigation-preparation-actions"><button type="button" data-prep="pair">① 지도 연결 확인·적용</button><button type="button" data-prep="clear">기존 2D 모드로 복구</button></div>
     <section aria-label="① 사용자 위치 초안"><h3>① 사용자 위치 초안</h3><p>아래 지도 조작부의 기존 INITIAL POSE 도구로 현재 위치와 방향을 그리세요. 미전송 사용자 가정이며 센서 측정이나 실제 위치 정확도가 아닙니다.</p>
-    <p data-prep="prior-status" role="status"></p><p>후보 선택에는 서버가 관리하는 검증 한도가 적용됩니다. 이 한도는 위치 불확실성 측정이나 실제 정확도의 보증이 아닙니다.</p>
+    <p data-prep="prior-status" role="status"></p><p>새 초안의 후보 선택에는 서버 기본 검증 한도 위치 0.25 m · 방향 ±0.20 rad (약 ±11.5°)가 적용됩니다. 이 한도는 사용자 위치 불확실성 측정이나 실제 정확도의 보증이 아닙니다.</p>
     <label><input type="checkbox" data-prep="prior-stationary"> 이 초안이 현재 지도에서 정지 중인 로봇의 위치·방향에 대한 제 가정임을 확인합니다. 실제 정지나 정확도를 측정한 증거는 아닙니다.</label></section>
     <section class="navigation-preparation-observation" aria-label="② 센서 관측과 초기값"><h3>② 센서 관측과 초기값</h3><p>관측은 정지 상태의 센서 입력 확인 전용입니다. 시작 조건은 서버가 다시 검사하며, 지도 선택이나 후보 확인만으로 정합·주행을 시작하지 않습니다.</p>
     <div class="navigation-preparation-actions"><button type="button" data-prep="observe-start">센서 관측 시작</button><button type="button" data-prep="observe-stop">센서 관측 종료</button></div>
@@ -711,7 +716,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     el('confirm-handoff').disabled = (conditional && (!el('conditional-ack').checked || !withinHandoff)) || handoffBusy || handoffAwaitingStatus || !el('supervision').checked || !validPoses || !proposalReadyToRequest || !cleanupSettled() || handoffInfo.active;
     const proposalNodes = [node('p', '정보성 제안은 저장 3D 지도 기준이며 운영 보정 위치·Nav2 준비·TF 적용 결과가 아닙니다. 자동 입력·전송하지 않습니다.')];
     if (conditional) { const status = withinHandoff ? '사용자 초안과 서버 검증 한도에 조건부로 한 후보가 선택되었습니다.' : proposal.operator_prior_resolution.grouping_policy && !proposal.current_vs_prior?.all_members_within_prior_bounds ? '현재 시점에 그룹의 모든 후보가 초안 기준 검증 한도 안에 있지 않아 확인할 수 없습니다.' : '조건부 후보가 기존 초기 위치 허용 범위(0.25m / 0.20rad)를 벗어나 확인할 수 없습니다. 사용자 초안과 관측을 다시 확인하세요.'; proposalNodes.push(node('p', `${status} ${originalAmbiguityLabel(proposal.operator_prior_resolution.original_ambiguity_unresolved)} 보존된 후보 집합과 사용자 초안에 조건부이며 전역 유일성·실제 위치 정확도는 확인되지 않았습니다.`)); }
-    if (conditional && proposal.operator_prior_resolution.bounds_source === 'server_policy') { const bounds = proposal.operator_prior_resolution.effective_bounds; proposalNodes.push(node('p', `서버가 적용한 검증 한도: 위치 ${bounds.xy_m} m · 방향 ±${bounds.yaw_rad} rad. 사용자 불확실성 측정이나 실제 정확도가 아닙니다.`)); }
+    if (conditional) proposalNodes.push(node('p', priorBoundsText(proposal.operator_prior_resolution)));
     if (conditional && proposal.operator_prior_resolution.grouping_policy) { const proof = proposal.operator_prior_resolution; proposalNodes.push(node('p', `서버가 검증한 원본 후보 ${proof.matching_retained_candidate_count}개가 초안 기준 검증 한도 안의 한 그룹을 이룹니다. 대표 후보 ${proof.candidate_index} 기준 높이·기울기 차이: ${proof.matching_member_geometry.map(member => `#${member.candidate_index} Δz ${member.z_delta_m.toFixed(3)}m · Δroll ${member.roll_delta_rad.toFixed(3)}rad · Δpitch ${member.pitch_delta_rad.toFixed(3)}rad`).join(' / ')}. 지도·정지·실제 정확도의 검증 결과가 아닙니다.`)); }
     if (proposalBusy && !proposal) proposalNodes.push(node('p', '제안 계산 요청 중 · 자동 재전송하지 않습니다.'));
     else if (proposalError) proposalNodes.push(node('p', `제안 사용 불가: ${proposalError}`));
@@ -744,7 +749,8 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
       handoffNodes.push(node('p', `관측 종료: ${receiptStates[h.stop_receipt?.state] || '상태 미확인'}${h.reason ? ` · ${inputReason(h.reason)}` : ''}`));
       if (h.match_history) handoffNodes.push(node('p', '이전 정합 요청 수락 이력이 있습니다. 현재 실행의 정합 상태는 별도로 확인합니다.'));
       if (h.geometry && h.initial_pose_reference && handoffInfo.active) handoffNodes.push(node('p', `서버 보관 가설 (지도 좌표): 높이 ${h.geometry.z} m · roll ${h.geometry.roll} · pitch ${h.geometry.pitch} rad · 초기 XY/yaw 기준 ${h.initial_pose_reference.x}, ${h.initial_pose_reference.y}, ${h.initial_pose_reference.yaw}`));
-      handoffNodes.push(node('p', `로컬 후보 사용 범위: ${h.policy.ttl_s}초 · XY ${h.policy.max_xy_m} m · yaw ${h.policy.max_yaw_rad} rad. 주행 설정이나 실제 위치 정확도가 아닙니다.`));
+      if (h.policy?.id === CONDITIONAL_POLICY) handoffNodes.push(node('p', priorBoundsText(state.selected.seed_geometry.handoff.operator_prior_resolution)));
+      handoffNodes.push(node('p', `별도 handoff 로컬 후보 사용 범위: ${h.policy.ttl_s}초 · XY ${h.policy.max_xy_m} m · yaw ${h.policy.max_yaw_rad} rad. 주행 설정이나 실제 위치 정확도가 아닙니다.`));
       handoffNodes.push(node('p', '다음 조작은 각각 별도입니다: 관측 종료 확인 → 아래 START NAV2 → INITIAL POSE 지정·전송 → ④ 정합 시작.'));
     } else if (state?.selected?.seed_geometry?.source === 'proposal_confirmed') handoffNodes.push(node('p', '확인된 가설의 현재 서버 상태가 불확실합니다 → 상태를 다시 확인하세요.'));
     else if (!handoffBusy && !handoffAwaitingStatus) handoffNodes.push(node('p', '확인된 초기 geometry 가설이 없습니다.'));

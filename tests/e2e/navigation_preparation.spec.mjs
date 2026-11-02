@@ -1170,6 +1170,7 @@ for (const reason of ['PRIOR_NO_MATCH', 'PRIOR_MULTIPLE_MATCHES']) {
  test(`conditional ${reason} rejects without preview or confirmation`, async ({page})=>{
   const f=await proposalFixture(page);f.proposalStatus('rejected',reason);
   await page.getByRole('button',{name:'초기 위치 제안 계산'}).click();
+  await expect(page.locator('#host')).toContainText('서버 기본 검증 한도 위치 0.25 m · 방향 ±0.20 rad (약 ±11.5°)');
   await expect(page.locator('[data-prep="proposal-result"]')).toContainText(reason==='PRIOR_NO_MATCH'?'서버 검증 한도 안에 조건을 충족하는 후보가 없습니다':'서버 검증 한도 안에 여러 후보가 있습니다');
   await expect(page.getByRole('button',{name:'제안값 확인·②에 적용'})).toBeDisabled();
   expect(f.writes.filter(v=>v.path.endsWith('/confirm-geometry'))).toHaveLength(0);
@@ -1480,6 +1481,8 @@ test('conditional acknowledgement entered while stale is cleared on later calibr
 test('operator prior requests use the X Y yaw draft without user-entered uncertainty', async ({page}) => {
   const f=await proposalFixture(page,{expectReady:false});
   await page.evaluate(({cloud,grid})=>{window.fakeOperatorDraft={status:'ready',revision:1,pose:{x:1.2,y:2.3,yaw:.4},bundle_generation:'b'.repeat(32),localization_map:{id:cloud.id,revision:cloud.revision},navigation_map:{id:grid.id,revision:grid.revision}};window.preparation.draftChanged();},{cloud,grid});
+  await expect(page.locator('#host')).toContainText('서버 기본 검증 한도 위치 0.25 m · 방향 ±0.20 rad (약 ±11.5°)');
+  await expect(page.locator('#host')).toContainText('사용자 위치 불확실성 측정이나 실제 정확도의 보증이 아닙니다');
   await expect(page.getByLabel('위치 불확실 반경 (m)')).toHaveCount(0);
   await expect(page.getByLabel('방향 불확실 ± (도)')).toHaveCount(0);
   await expect(page.locator('[data-prep="prior-status"]')).toContainText('미전송 사용자 초안');
@@ -1511,8 +1514,24 @@ for (const mode of ['policy-missing','policy-changed','policy-forged']) {
 test('server-owned bounds are displayed as a policy, not a user uncertainty measurement', async ({page})=>{
   const f=await proposalFixture(page);f.proofMode('group-valid');
   await page.getByRole('button',{name:'초기 위치 제안 계산'}).click();
-  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('서버가 적용한 검증 한도: 위치 0.25 m · 방향 ±0.2 rad');
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('후보 선택에 적용된 범위 (서버 정책): 위치 0.25 m · 방향 ±0.2 rad');
   await expect(page.locator('[data-prep="proposal-result"]')).toContainText('사용자 불확실성 측정이나 실제 정확도가 아닙니다');
   await expect(page.locator('[data-prep="proposal-result"]')).toContainText('전역 유일성·실제 위치 정확도는 확인되지 않았습니다');
   expect(f.writes.filter(v=>v.path.endsWith('/confirm-geometry'))).toHaveLength(0);
 });
+
+for (const provenance of ['explicit','legacy']) {
+ test(`restored ${provenance} prior shows its verified selection bounds separately from handoff bounds`, async ({page})=>{
+  const f=await proposalFixture(page);await page.getByRole('button',{name:'초기 위치 제안 계산'}).click();
+  await expect(page.locator('[data-prep="geometry-preview"]')).toContainText('미적용');
+  await page.getByLabel(/현장 정지 상태를 직접 감독/).check();await page.getByLabel(/전역 유일성·실제 위치 정확도는 확인되지 않았음/).check();
+  await page.getByRole('button',{name:'제안값 확인·②에 적용'}).click();
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('후보 선택에 적용된 범위 (서버 정책): 위치 0.25 m · 방향 ±0.2 rad');
+  const proof=f.state.selected.seed_geometry.handoff.operator_prior_resolution;proof.operator_prior.bounds={xy_m:.1,yaw_rad:.15};
+  if(provenance==='explicit'){proof.bounds_source='operator_prior';proof.effective_bounds={xy_m:.1,yaw_rad:.15};}
+  else {delete proof.bounds_source;delete proof.effective_bounds;}
+  await f.reload();
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('후보 선택에 적용된 범위 (사용자 입력 범위): 위치 0.1 m · 방향 ±0.15 rad');
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('별도 handoff 로컬 후보 사용 범위: 120초 · XY 0.25 m · yaw 0.2 rad');
+ });
+}
