@@ -303,6 +303,12 @@
       "sha": "fa8e26e02194d3c99ccc7b8e45eb3177a6fce19d",
       "commit_and_tree_available": true,
       "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/i0-main-candidate-2c9bdd1",
+      "sha": "2c9bdd15bcfe49886716bd78975886a89bfd218a",
+      "commit_and_tree_available": true,
+      "submodules": 0
     }
   ],
   "bundle_verified": true,

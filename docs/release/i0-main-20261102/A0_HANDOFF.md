@@ -1,6 +1,6 @@
 # A0 인계 — I0 main 소스 통합, 장비 미실행
 
-이번 인수는 검증된 I0 `ae41a9b6cf5cf5c7c133e818e3fad4693eb2053e` 전체와 main CI trigger 보완이다. C0는 병합하지 않았다. 모든 확장 기능은 기본 OFF이며 `BLOCKED_AUTH`, `BLOCKED_NATIVE_IDENTITY`, `ADVISORY_ONLY`, `DEVICE_NOT_RUN`을 유지한다. 최종 main/CI는 [MERGE_REPORT](MERGE_REPORT.md), [CI_COVERAGE](CI_COVERAGE.md) 및 최종 전달 receipt를 함께 확인한다.
+이번 인수는 검증된 I0 `ae41a9b6cf5cf5c7c133e818e3fad4693eb2053e` 전체와 main CI trigger 보완이다. C0는 병합하지 않았다. 모든 확장 기능은 기본 OFF이며 `BLOCKED_AUTH`, `BLOCKED_NATIVE_IDENTITY`, `ADVISORY_ONLY`, `DEVICE_NOT_RUN`을 유지한다. 게시 전 코드/workflow 후보 `2c9bdd15bcfe49886716bd78975886a89bfd218a`의 hosted CI 4개 job은 모두 성공했다. 최종 main/CI는 [MERGE_REPORT](MERGE_REPORT.md), [CI_COVERAGE](CI_COVERAGE.md) 및 최종 전달 receipt를 함께 확인한다.
 
 ## 인수한 기능과 기존 동작
 
@@ -44,6 +44,7 @@ I0 [SOURCE_LOCK](../../integration/i0/SOURCE_LOCK.json)의 258개 인수 파일�
 4. C4 원본 실패 기록: archive `archive/20261102/x-c4-b7242fca7c1b`의 `docs/parallel-expansion-20261029/C4/ROS_ADAPTER.md`, `ROS_EVIDENCE.json`. [native 41035596751](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41035596751)는 62 callbacks/accepted 0/published 0으로 실패했다. [표준 CI 41035596779](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41035596779)의 Ubuntu 24.04 browser download timeout도 별도 미해결 기록이다. 원래 D3 native 5개 기록 재생을 C4 end-to-end 성공으로 바꾸지 않는다.
 5. opaque asset codec/등록 정책, 실제 cone payload·model full hash·측정 XYZ/자세·sensor-to-map/ground 교정·clock/receipt/TTL·Jetson 부하를 확보한다. 현재 `PAIRED_REAL_PRODUCER_INPUT_REQUIRED`, `UNALIGNED`, `HEIGHT_UNVERIFIED`는 해결되지 않았다.
 6. 기존 Maps history poll/open 경합을 결정적 delayed-status 회귀로 수리한다. 전체 browser 성공만으로 기존 결함이 해결됐다고 판단하지 않는다.
+7. 이번 macOS 회귀의 `tests/e2e/live_observation.spec.mjs:788`(cancel 후 `savedLiveCenter`, assertion :809) 실패도 보존한다. I0와 동일한 코드/테스트에서 관찰했으며 원인·재현 조건을 확정하지 않았다. hosted CI 결과와 별도로 추적하고 timeout/assertion을 완화하지 않는다.
 
 ## 보존과 복구
 

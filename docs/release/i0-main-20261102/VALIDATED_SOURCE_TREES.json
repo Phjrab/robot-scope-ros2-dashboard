@@ -1,0 +1,17 @@
+{
+  "candidate_sha": "2c9bdd15bcfe49886716bd78975886a89bfd218a",
+  "verified_trees_or_blobs": {
+    ".github": "4e485c8608b92abdda858d473ef58dc97f6994bf",
+    "robot_dashboard": "f783e04f0e1187a99578ed111acc7b7c9ab739f0",
+    "tests": "2aa0b1aad5c0375eea1f408611bfc49f4db96be2",
+    "scripts": "fc62efce0a0a3d595b9007fb347fd4b89fff1813",
+    "experiments": "77d43931bb0ecdaa7776c26b1b2e62654b963a98",
+    "config": "f6dc52cc4da7d7dbcf31777b9b3001edc0d63f85",
+    "requirements.txt": "8ef40df9d0b66fa22984f5e97df7cabc766dcbd8",
+    "requirements-competition-offline.txt": "4d3e8e6d88d442307ab16b00f9ca354dc8937e3f",
+    "requirements-quality.txt": "0f3bf829f031eb805470d9e9fbdd6c101bcbf2ee",
+    "package.json": "e8b80097d836510a7909ac4e3522c4b9cd5ce85b",
+    "package-lock.json": "fc0ae24ce5a86a186176cd1681f0f9ebcd9612ab"
+  },
+  "release_documentation_only_followup_required": true
+}

@@ -516,6 +516,14 @@
         "tests/expansion_c6/prepare_native.py"
       ],
       "remote_peeled_sha": "fa8e26e02194d3c99ccc7b8e45eb3177a6fce19d"
+    },
+    {
+      "tag": "archive/20261102/i0-main-candidate-2c9bdd1",
+      "sha": "2c9bdd15bcfe49886716bd78975886a89bfd218a",
+      "object": "561ecaafaa9be366db874e1564ec4be9ddc538e3",
+      "remote_peeled_sha": "2c9bdd15bcfe49886716bd78975886a89bfd218a",
+      "purpose": "Exact code/workflow candidate checked before main publication",
+      "historical_references": []
     }
   ],
   "remote_verified": true

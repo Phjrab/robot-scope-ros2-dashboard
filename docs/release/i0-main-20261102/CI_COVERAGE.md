@@ -17,7 +17,7 @@
 
 ## 고정 객체 복구
 
-[ARCHIVE_MANIFEST](ARCHIVE_MANIFEST.json)의 50개 annotated tag를 main 원격 변경 **전에** push했다. tag object와 peeled commit을 원격 재조회했다. main만 clone한 새 원격 clone에 archive tag를 추가 fetch해 모든 50개 HEAD/tree와 historical repository commit 46개를 확인했다. `git fsck --full` 통과, 모든 tagged tree에서 .gitattributes/.gitmodules 및 gitlink 없음(선언된 LFS/submodule 의존성 없음)이다. 전체 로컬 Git bundle도 `git bundle verify`를 통과했다. 결과·bundle SHA256는 [RECOVERY_VERIFICATION](RECOVERY_VERIFICATION.json)에 있다.
+[ARCHIVE_MANIFEST](ARCHIVE_MANIFEST.json)의 50개 annotated tag를 main 원격 변경 **전에** push했다. tag object와 peeled commit을 원격 재조회했다. main만 clone한 새 원격 clone에 archive tag를 추가 fetch해 최초 50개 HEAD/tree와 historical repository commit 46개를 확인했다. `git fsck --full` 통과, 모든 tagged tree에서 .gitattributes/.gitmodules 및 gitlink 없음(선언된 LFS/submodule 의존성 없음)이다. 전체 로컬 Git bundle도 `git bundle verify`를 통과했다. 추가 코드/workflow 후보 태그 `archive/20261102/i0-main-candidate-2c9bdd1`도 원격 push/peeled SHA와 새 clone fetch를 확인했다(총 51개). 결과·bundle SHA256는 [RECOVERY_VERIFICATION](RECOVERY_VERIFICATION.json)에 있다.
 
 | 소비자 | exact historical SHA |
 |---|---|
@@ -34,6 +34,8 @@ workflow의 fetch는 branch 이름이 아닌 exact SHA를 사용한다. read-onl
 인수 전 I0 exact head `ae41a9b6cf5cf5c7c133e818e3fad4693eb2053e`에서 [CI 41276984997](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41276984997)의 3개 job, [I0 41276984979](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41276984979)의 product-and-capacity가 성공했다. 이는 과거 기준이며 최종 main 성공을 대신하지 않는다.
 
 이번 후보는 해당 I0와 production/test/dependency tree가 같다. 변경은 workflow branch 목록과 release 문서뿐이다. `app.py` 1,597줄/상한 1,600, `app.js` 6,873줄/상한 6,900이며 guard는 변경하지 않았다. 새 환경 설치의 PyPI 연결 실패로 기존 C7 Python 환경을 전용 디렉터리에 복사했다. 로컬은 Python 3.13.2/Node 26.13.0/Playwright 1.62.1이며 CI의 Python 3.10/3.12·Node 20과 구분한다. 실제 로컬 검사 수·실패·skip 및 최종 main run/job은 [MERGE_REPORT](MERGE_REPORT.md), [LOCAL_VALIDATION](LOCAL_VALIDATION.json), 후속 CI receipt에 기록한다.
+
+게시 전 후보 `2c9bdd15bcfe49886716bd78975886a89bfd218a`의 실제 hosted 결과: [표준 CI 41370956440](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41370956440) job `125041125639`(competition), `125041125979`(Ubuntu 22.04/Python 3.10), `125041125898`(Ubuntu 24.04/Python 3.12) 모두 success; [I0 41371021026](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41371021026) job `125041319999` success. 이 I0 run은 candidate tag 대상 workflow_dispatch이며 main push run과 구분한다. main 게시 commit의 변경은 release 문서뿐이고, 동일 코드/workflow tree 검사 결과를 재사용한다. 최종 main event의 SHA·job 결과는 게시 후 FINAL_RECEIPT에 별도 보존한다.
 
 새 native 실행은 0이다. 원래 C4 identity 실패, native marking/clearing/planner/actuator 미실행, C0 실패는 [PRESERVED_FAILURES](PRESERVED_FAILURES.json)와 [A0_HANDOFF](A0_HANDOFF.md)에 남긴다. optional ROS/plotting/rosbags 및 historical export skip을 native 통과로 합산하지 않는다.
 

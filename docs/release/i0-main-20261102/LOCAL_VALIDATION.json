@@ -1,18 +1,133 @@
 {
-  "stage": "candidate validation in progress; final results follow in release receipt",
+  "stage": "Local validation complete; exact candidate hosted CI all four jobs successful",
   "source": "ae41a9b6cf5cf5c7c133e818e3fad4693eb2053e; only workflow branch filter and release documentation changed",
-  "environment": {"platform": "macOS arm64", "python": "3.13.2", "node": "26.13.0", "playwright": "1.62.1"},
-  "javascript": {"tests": 789, "pass": 787, "skip": 2, "fail": 0, "first_attempt": "python command absent from PATH; preserved separately, corrected environment only"},
-  "frontend_syntax": {"modules": 131, "result": "PASS"},
+  "environment": {
+    "platform": "macOS arm64",
+    "python": "3.13.2",
+    "node": "26.13.0",
+    "playwright": "1.62.1"
+  },
+  "javascript": {
+    "tests": 789,
+    "pass": 787,
+    "skip": 2,
+    "fail": 0,
+    "first_attempt": "python command absent from PATH; preserved separately, corrected environment only"
+  },
+  "frontend_syntax": {
+    "modules": 131,
+    "result": "PASS"
+  },
   "ruff": "PASS; robot_dashboard/scripts; 0.6.9",
   "mypy": "PASS; configured 4 files only",
   "secret_scan": "PASS",
-  "full_browser": {"tests": 227, "pass": 226, "fail": 1, "failure": "live_observation.spec.mjs:788, assertion at :809; savedLiveCenter disabled after cancel", "root_cause": "UNRESOLVED; unchanged I0 application/test sources"},
+  "full_browser": {
+    "tests": 227,
+    "pass": 226,
+    "fail": 1,
+    "failure": "live_observation.spec.mjs:788, assertion at :809; savedLiveCenter disabled after cancel",
+    "root_cause": "UNRESOLVED; unchanged I0 application/test sources",
+    "hosted_comparison": "Same application/tests passed in both candidate Ubuntu CI jobs; original macOS failure retained, root cause not established"
+  },
   "optional_http_clients_denied": "PASS: 4 actual I0 API/default-OFF tests plus C7 actual HTTP",
-  "python_initial": {"tests": 3397, "failures": 2, "errors": 152, "skip": 37, "scope": "macOS /var symlink temp root; failures preserved"},
-  "python_canonical_temp": {"tests": 3397, "failures": 7, "errors": 2, "skip": 37, "scope": "symlink fixed; temp group inherited wheel rather than process staff, causing ownership guards"},
-  "python_final": "RUNNING with canonical path and matching ownership",
-  "mission_and_i0_browser": "RUNNING sequentially",
+  "python_initial": {
+    "tests": 3397,
+    "failures": 2,
+    "errors": 152,
+    "skip": 37,
+    "scope": "macOS /var symlink temp root; failures preserved",
+    "additional_failure": "SLAM callback overlay unavailable in initial run; no product change; subsequent full runs including final passed. Root cause not established."
+  },
+  "python_canonical_temp": {
+    "tests": 3397,
+    "failures": 7,
+    "errors": 2,
+    "skip": 37,
+    "scope": "symlink fixed; temp group inherited wheel rather than process staff, causing ownership guards"
+  },
+  "python_final": {
+    "tests": 3397,
+    "pass": 3360,
+    "skip": 37,
+    "failures": 0,
+    "errors": 0,
+    "seconds": 123.346,
+    "temp": "ASCII canonical path with current process ownership"
+  },
+  "mission_and_i0_browser": {
+    "mission": {
+      "pass": 10,
+      "fail": 0
+    },
+    "i0_product": {
+      "pass": 9,
+      "fail": 0
+    },
+    "i0_cones": {
+      "pass": 11,
+      "fail": 0
+    },
+    "timeout_assertion_skip_changes": false
+  },
   "native_execution": "NOT_RUN",
-  "device_execution": "NOT_RUN"
+  "device_execution": "NOT_RUN",
+  "python_non_ascii_temp": {
+    "tests": 3397,
+    "failures": 1,
+    "errors": 2,
+    "skip": 37,
+    "cause": "two installer shell-output UnicodeDecodeError cases and one shell-escaped path expectation; temporary directory contained non-ASCII characters"
+  },
+  "timer_cleanup": {
+    "result": "NO_LEAK_OBSERVED",
+    "sha": "2c9bdd15bcfe49886716bd78975886a89bfd218a",
+    "playwright": "1.62.1",
+    "browser": "151.0.7922.34",
+    "rounds": [
+      {
+        "round": 1,
+        "contextClosed": true,
+        "socketCloseCallbacks": 0,
+        "unclearedIntervals": 0,
+        "callbacksAfterContextClose": 0
+      },
+      {
+        "round": 2,
+        "contextClosed": true,
+        "socketCloseCallbacks": 0,
+        "unclearedIntervals": 0,
+        "callbacksAfterContextClose": 0
+      },
+      {
+        "round": 3,
+        "contextClosed": true,
+        "socketCloseCallbacks": 0,
+        "unclearedIntervals": 0,
+        "callbacksAfterContextClose": 0
+      }
+    ],
+    "cleanup": "All intervals captured by this probe are cleared in finally."
+  },
+  "log_digests": {
+    "browser-full.log": "1ef5f67559df8f7a31bc7cb8684d99335d0fd98f1cee354449e67f4a42f8f44b",
+    "i0-product.log": "21877c6ac62be2e3d7a8b6f58a74a9651f5747bbed0ff1cd731a58793c9143f5",
+    "i0-cones.log": "9171229f8d02aa2f89c41ad3554b7ef9010322de2850e4f18e7bb16cba1b563b",
+    "python-canonical-temp.log": "4e52b9e2c5cc1d89763313715c1bdd35a969f3019c0e393fcc3072e7dda8b034",
+    "c0-ci-41304523565-job-124842082483.log": "94029c6fa1a867811ca5fbb3fc45ca64aef941e24d5f4d83666bcd00fba619d3",
+    "optional-clients.log": "a469e53124195563a6431f833928cac4b67359d72925d9ecf43a242ce69cc1e8",
+    "javascript.log": "a577230bb4e9394cefac99ec6d8865b15d6903a29238374b47f3a341a43d88f3",
+    "mission.log": "4368617318b219bcaef5a73fb94413e777e3f5acc633342e4bac4bece5f173a1",
+    "python-final.log": "ab0a7a6e98f15903df09d02ebb6d308c4b9b45513203120ae36acd3aa11e9ce8",
+    "optional-clients-canonical-temp.log": "d9b31e7934e01aee4798025dc4a6e9fe723f3d36834caf7119dec4846828591c",
+    "javascript-with-python.log": "cff29fd53737e90ad170e5338679f93010432771f1f5058ba74bddd9c0378681",
+    "c4-native-41035596751-job-123995526795.log": "2518d80c276236feb0f118073baec3077029fb011fcc90c5a1c83bc01589931f",
+    "python-full.log": "bd0541fa26776f176797e421a90416f5c1a690efabdc64bc85b0dfbd4f1b2afe",
+    "python-final-ascii.log": "b5620266c3f98bf0c6eafe3eef7324d611e1e4d86452f532bf3fc19e0650f088"
+  },
+  "local_skip_delta": "2 pre-existing Linux-only /proc/fd tests additionally skip on macOS (37 instead of 35); no skip decorators changed",
+  "hosted_candidate_sha": "2c9bdd15bcfe49886716bd78975886a89bfd218a",
+  "hosted_candidate_runs": [
+    41370956440,
+    41371021026
+  ]
 }

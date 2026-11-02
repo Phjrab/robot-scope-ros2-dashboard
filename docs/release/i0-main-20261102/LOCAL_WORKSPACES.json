@@ -1,0 +1,56 @@
+{
+  "observed_at": "2026-11-02T01:16:35.154717+00:00",
+  "other_device_workspaces": "UNKNOWN; user explicitly requested uncertain refs remain",
+  "release_clone": "robot-scope-i0-main-20261102; independent ordinary clone, main only",
+  "recovery_clone": "separate remote clone under local evidence, tags fetched from GitHub",
+  "existing_clones": [
+    {
+      "clone": "robot-scope-c4-teammate",
+      "head": "ed8ce496928c7ba61f33b5d02e839bbce59d6687",
+      "status": "## review/20261024-c4-traffic-replay...origin/review/20261024-c4-traffic-replay",
+      "action": "PRESERVED_NO_RESET_NO_CLEAN_NO_LOCAL_BRANCH_DELETION"
+    },
+    {
+      "clone": "robot-scope-c5-ui-usability-20261030",
+      "head": "2a51d9906c39bd332191ce4c570b4152f13c2676",
+      "status": "## review/20261030-x-c5-ui-usability...origin/review/20261030-x-c5-ui-usability",
+      "action": "PRESERVED_NO_RESET_NO_CLEAN_NO_LOCAL_BRANCH_DELETION"
+    },
+    {
+      "clone": "robot-scope-c6-run-review-20261030",
+      "head": "23da4f7360dbc0336496a6cd4c8b2e664062af74",
+      "status": "## review/20261030-x-c6-run-review...origin/review/20261030-x-c6-run-review",
+      "action": "PRESERVED_NO_RESET_NO_CLEAN_NO_LOCAL_BRANCH_DELETION"
+    },
+    {
+      "clone": "robot-scope-c7-capacity-20261030",
+      "head": "3d77ac29e34205d8173085dae950bb999cfdf816",
+      "status": "## review/20261030-x-c7-capacity-diagnostics...origin/review/20261030-x-c7-capacity-diagnostics",
+      "action": "PRESERVED_NO_RESET_NO_CLEAN_NO_LOCAL_BRANCH_DELETION"
+    },
+    {
+      "clone": "robot-scope-isaac-vslam-lab-20261013",
+      "head": "b48dc4554941d4812a62a6207d995b14c98f97d7",
+      "status": "## main...origin/main",
+      "action": "PRESERVED_NO_RESET_NO_CLEAN_NO_LOCAL_BRANCH_DELETION"
+    },
+    {
+      "clone": "robot-scope-l1-lidar-stale",
+      "head": "d8c3be6553910dda2bf0e87b22545ff5a59b0be5",
+      "status": "## review/20261024-l1-lidar-stale...origin/review/20261024-l1-lidar-stale",
+      "action": "PRESERVED_NO_RESET_NO_CLEAN_NO_LOCAL_BRANCH_DELETION"
+    },
+    {
+      "clone": "robot-scope-ros2-dashboard",
+      "head": "846121b4988ed2932d329020857925558f8f2c79",
+      "status": "## main...origin/main\n M robot_dashboard/static/dashboard-polish.css\n M robot_dashboard/static/features/map_editor3d/editor.css",
+      "action": "PRESERVED_NO_RESET_NO_CLEAN_NO_LOCAL_BRANCH_DELETION"
+    },
+    {
+      "clone": "robot-scope-route-planner",
+      "head": "ab1010be1ec11e343e04b38fed7e3b11cd3f7a48",
+      "status": "## feature/competition-route-planner",
+      "action": "PRESERVED_NO_RESET_NO_CLEAN_NO_LOCAL_BRANCH_DELETION"
+    }
+  ]
+}
