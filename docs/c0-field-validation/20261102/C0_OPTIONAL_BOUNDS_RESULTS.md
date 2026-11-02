@@ -2,6 +2,8 @@
 
 Result ID: `C0-OPTIONAL-BOUNDS-INTEGRATION-20261102-01`
 
+Current work order and completion criteria: [C0 remaining-work checklist](../C0_REMAINING_WORK.md). This report retains its original validation snapshot and limits.
+
 The navigation preparation flow no longer requires an operator to estimate a position uncertainty radius or yaw uncertainty. A current map draft supplies X, Y and yaw, with the existing explicit stationary-current-pose acknowledgement. The API omits `operator_prior.bounds`; it never fills missing user uncertainty with fabricated values.
 
 The server separately reports `bounds_source=server_policy` and `effective_bounds={xy_m:0.25,yaw_rad:0.20}`. These are the existing server acceptance limits, not measured uncertainty or position accuracy. The UI explains the default before calculation and after rejection. Valid restored explicit/legacy proofs show their original selection bounds separately from the handoff limit. Existing explicit-bounds API clients remain supported; new UI requests use the bounds-free path.

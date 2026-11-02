@@ -2,6 +2,8 @@
 
 Result ID: `C0-ACK-ENTRY-20261102-01`
 
+Current work order and completion criteria: [C0 remaining-work checklist](../C0_REMAINING_WORK.md). Device versions and statuses below are historical observations from this report's own checkpoint.
+
 This follow-up preserves the first published CI failure and the later full-app failure, then validates a separate repaired snapshot. Hardware, deployment and physical-navigation readiness are outside this result.
 
 ## First published CI
