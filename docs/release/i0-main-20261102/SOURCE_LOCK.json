@@ -1,0 +1,75 @@
+{
+  "schema": "robot-scope.i0-main-source-lock.v1",
+  "observed_at": "2026-11-02T00:54:21.202069+00:00",
+  "repository": "https://github.com/Phjrab/robot-scope-ros2-dashboard",
+  "pre_main": "846121b4988ed2932d329020857925558f8f2c79",
+  "i0": "ae41a9b6cf5cf5c7c133e818e3fad4693eb2053e",
+  "c0": "06bd98ba279e149bfecfd91007d65002d83e30b0",
+  "roles": {
+    "D1": {
+      "ref": "review/20261029-x-d1-multimap",
+      "sha": "203c144f6b4a90966839c34b603ae12ee676cb12"
+    },
+    "C1": {
+      "ref": "review/20261029-x-c1-services",
+      "sha": "8fd42bdd5a1cdf2b5bf26eeab830e071988ac7d3"
+    },
+    "C2": {
+      "ref": "review/20261029-x-c2-map-ui",
+      "sha": "7625c87ede2489143c44862d883e10fc1791df28"
+    },
+    "C3": {
+      "ref": "review/20261029-x-c3-scene-ui",
+      "sha": "e394b090221c555cf0649021d132163596c19fe2"
+    },
+    "D2": {
+      "ref": "review/20261029-x-d2-perception",
+      "sha": "7313f0a31c00ae87ae216b84ca41a23804e91917"
+    },
+    "D3": {
+      "ref": "review/20261029-x-d3-collision-sim",
+      "sha": "0bb91b70b4ffd3801a5a5562637309eb595813c9"
+    },
+    "C4": {
+      "ref": "review/20261029-x-c4-runtime",
+      "sha": "b7242fca7c1b863ef111978debe444b2a74cc3d3"
+    },
+    "C5": {
+      "ref": "review/20261030-x-c5-ui-usability",
+      "sha": "2a51d9906c39bd332191ce4c570b4152f13c2676"
+    },
+    "C6": {
+      "ref": "review/20261030-x-c6-run-review",
+      "sha": "23da4f7360dbc0336496a6cd4c8b2e664062af74"
+    },
+    "C7": {
+      "ref": "review/20261030-x-c7-capacity-diagnostics",
+      "sha": "ec724dafd33db92ecb27db17e0bdd2eee5a30455"
+    }
+  },
+  "remote_heads": {
+    "refs/heads/integration/20261101-expansion": "ae41a9b6cf5cf5c7c133e818e3fad4693eb2053e",
+    "refs/heads/main": "846121b4988ed2932d329020857925558f8f2c79",
+    "refs/heads/review/20261024-c1-ci-integration": "2034cc72842ebda1e73f39d12021fb898e75e0b8",
+    "refs/heads/review/20261024-c1-integration-r2": "7777f471654d6da0afd3580a870d80b7b0b3eb4d",
+    "refs/heads/review/20261024-c2-mission-adapter": "2f85adbb19da9c0ace02e561e54474cbf57b7c9b",
+    "refs/heads/review/20261024-c3-nav2-benchmark": "8aef2fb972af1358929774b85b642b6fc5f6c06b",
+    "refs/heads/review/20261024-c4-traffic-replay": "ed8ce496928c7ba61f33b5d02e839bbce59d6687",
+    "refs/heads/review/20261024-d0-vm-offline": "83d30385dfe311b5559cb61b8efefee7eed82cea",
+    "refs/heads/review/20261024-l1-lidar-stale": "d8c3be6553910dda2bf0e87b22545ff5a59b0be5",
+    "refs/heads/review/20261026-i1-map-seed": "ca6e999639ad0f7d267f62b44a366de4975be3f7",
+    "refs/heads/review/20261029-x-c1-services": "8fd42bdd5a1cdf2b5bf26eeab830e071988ac7d3",
+    "refs/heads/review/20261029-x-c2-map-ui": "7625c87ede2489143c44862d883e10fc1791df28",
+    "refs/heads/review/20261029-x-c3-scene-ui": "e394b090221c555cf0649021d132163596c19fe2",
+    "refs/heads/review/20261029-x-c4-runtime": "b7242fca7c1b863ef111978debe444b2a74cc3d3",
+    "refs/heads/review/20261029-x-d1-multimap": "203c144f6b4a90966839c34b603ae12ee676cb12",
+    "refs/heads/review/20261029-x-d2-perception": "7313f0a31c00ae87ae216b84ca41a23804e91917",
+    "refs/heads/review/20261029-x-d3-collision-sim": "0bb91b70b4ffd3801a5a5562637309eb595813c9",
+    "refs/heads/review/20261030-c0-3d-field-sweep": "06bd98ba279e149bfecfd91007d65002d83e30b0",
+    "refs/heads/review/20261030-x-c5-ui-usability": "2a51d9906c39bd332191ce4c570b4152f13c2676",
+    "refs/heads/review/20261030-x-c6-run-review": "23da4f7360dbc0336496a6cd4c8b2e664062af74",
+    "refs/heads/review/20261030-x-c7-capacity-diagnostics": "ec724dafd33db92ecb27db17e0bdd2eee5a30455"
+  },
+  "upstream_source_lock_sha256": "2f070da34db519fbb0f599ed9d26216bb0872a4d8856eb85f03087534c36f151",
+  "workspaces": "Existing local clones/worktrees preserved; original main has two dirty CSS files. Other-device unpushed/dirty state UNKNOWN. No workspace deletion authorized."
+}

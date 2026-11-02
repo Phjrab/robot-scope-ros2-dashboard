@@ -1,0 +1,314 @@
+{
+  "source": "fresh remote clone + explicitly fetched archive tags",
+  "remote_branches_fetched": [
+    "main"
+  ],
+  "results": [
+    {
+      "tag": "archive/20261102/pre-i0-main-846121b4988e",
+      "sha": "846121b4988ed2932d329020857925558f8f2c79",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/i0-ae41a9b6cf5c",
+      "sha": "ae41a9b6cf5cf5c7c133e818e3fad4693eb2053e",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/c0-paused-06bd98ba279e",
+      "sha": "06bd98ba279e149bfecfd91007d65002d83e30b0",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/x-d1-203c144f6b4a",
+      "sha": "203c144f6b4a90966839c34b603ae12ee676cb12",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/x-c1-8fd42bdd5a1c",
+      "sha": "8fd42bdd5a1cdf2b5bf26eeab830e071988ac7d3",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/x-c2-7625c87ede24",
+      "sha": "7625c87ede2489143c44862d883e10fc1791df28",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/x-c3-e394b090221c",
+      "sha": "e394b090221c555cf0649021d132163596c19fe2",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/x-d2-7313f0a31c00",
+      "sha": "7313f0a31c00ae87ae216b84ca41a23804e91917",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/x-d3-0bb91b70b4ff",
+      "sha": "0bb91b70b4ffd3801a5a5562637309eb595813c9",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/x-c4-b7242fca7c1b",
+      "sha": "b7242fca7c1b863ef111978debe444b2a74cc3d3",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/x-c5-2a51d9906c39",
+      "sha": "2a51d9906c39bd332191ce4c570b4152f13c2676",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/x-c6-23da4f7360db",
+      "sha": "23da4f7360dbc0336496a6cd4c8b2e664062af74",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/x-c7-ec724dafd33d",
+      "sha": "ec724dafd33db92ecb27db17e0bdd2eee5a30455",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-073d05b24c73",
+      "sha": "073d05b24c73b4de08c754833d4c05e537a23727",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-093600fc0020",
+      "sha": "093600fc002006fba3ba520c7c58f2f202c85111",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-09b68b692fa4",
+      "sha": "09b68b692fa4b7ccdea39b1a16e3ff150794e12d",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-104692fa0070",
+      "sha": "104692fa0070ef085eee918913ea05fdb2d88c05",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-2402c02c6f91",
+      "sha": "2402c02c6f91ba54064894b21735e01b98610acd",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-356d0a036eb6",
+      "sha": "356d0a036eb62d546e159e12a0691d7f5ea278f6",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-380800ca9e21",
+      "sha": "380800ca9e211495769fe60ee8221e3f4fb40f16",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-47a1d031d797",
+      "sha": "47a1d031d797c098c38a0147894523d07d30db8f",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-47ae383fff5b",
+      "sha": "47ae383fff5bfa12c20d523d2851a952dbb60f4b",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-4e1dd519a707",
+      "sha": "4e1dd519a707169da5f88cf2a92a20ed3e701cc7",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-50600c7bce6f",
+      "sha": "50600c7bce6f5fae743cd836ca1d8ee68d91b05a",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-5154761bba6f",
+      "sha": "5154761bba6fa4f171881e61f986901e2b415ed9",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-54629c793ad4",
+      "sha": "54629c793ad4ae0ea88127f00ed1b7f8805fc4e2",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-5bf58097f4a6",
+      "sha": "5bf58097f4a67806f5515b931a3b8013d65bf01e",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-5d78fcb7c758",
+      "sha": "5d78fcb7c7589134a533d6dc0ddd09995f9163f9",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-5eed1a9959ca",
+      "sha": "5eed1a9959ca25a4f30bd5b5712806a5ad660c51",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-6403aab3afef",
+      "sha": "6403aab3afef96efa778b5265afd7ce5b351265c",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-765622ecbe20",
+      "sha": "765622ecbe20dd29b40296dd2ad24fa508ac9443",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-7ac0d55b07ab",
+      "sha": "7ac0d55b07abd20902d6d756c6b225733613fea7",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-7f2a7070a179",
+      "sha": "7f2a7070a17975d2a5f123cbf6aab0f99f04bf8a",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-83f4ee8d6971",
+      "sha": "83f4ee8d6971d00ab31b2de0eeebf329542dd5d6",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-92658bccc253",
+      "sha": "92658bccc253f31552415f9c9d667bbd28957a06",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-9e9ebcc0cbc6",
+      "sha": "9e9ebcc0cbc613d5b0a7f50a27a7b256c3f829bd",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-a2b6d37f61ac",
+      "sha": "a2b6d37f61ac426ac8a21e941750099b28318fd8",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-afe02f38d839",
+      "sha": "afe02f38d8396d11d786d39452ac572f27d72c22",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-b1077e39e4ee",
+      "sha": "b1077e39e4ee456621c47eada49b1f0c85453661",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-b9d700d754f0",
+      "sha": "b9d700d754f0d3d43b9afdcffcb86e9deb7b1020",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-c0d266e290a2",
+      "sha": "c0d266e290a2d29c173d3b83520f8c96efea9447",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-cb8ccc68be8d",
+      "sha": "cb8ccc68be8d96a44b0d38adcff8186893ba2b08",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-cbedd05ba6f9",
+      "sha": "cbedd05ba6f97dad5506e8003302f689ed8fcb4c",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-dd715db33617",
+      "sha": "dd715db33617df00f69f944a6398ebe1d63bcbbd",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-dfeabb36e16a",
+      "sha": "dfeabb36e16a80f14c65f23361fd29d36504ac6b",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-e0bc9cf8ba8b",
+      "sha": "e0bc9cf8ba8bd22b406a287e1a9ef867a0cd367b",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-e2e9c5087767",
+      "sha": "e2e9c5087767f3953d715c61e76388e4769d34b4",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-ebce05ca7e10",
+      "sha": "ebce05ca7e1063b136953f10a6a960ce0d65ffa1",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-f469155c2b0c",
+      "sha": "f469155c2b0c505f3e472e878f75029d7b8d39df",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    },
+    {
+      "tag": "archive/20261102/historical-fa8e26e02194",
+      "sha": "fa8e26e02194d3c99ccc7b8e45eb3177a6fce19d",
+      "commit_and_tree_available": true,
+      "submodules": 0
+    }
+  ],
+  "bundle_verified": true,
+  "bundle_sha256": "479e9fb2596efab6b4929bd65d01fa096d0f80cb02ffc99772691cc7842fadca",
+  "full_object_connectivity_fsck": "PASS",
+  "declared_lfs_or_submodule_dependencies": "NONE: no .gitattributes/.gitmodules or gitlink in all 50 tagged trees",
+  "fsck_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "c0_role_and_last_reported_device_shas_reachable": true
+}

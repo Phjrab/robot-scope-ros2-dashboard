@@ -1,0 +1,17 @@
+{
+  "i0_sha": "ae41a9b6cf5cf5c7c133e818e3fad4693eb2053e",
+  "i0_tree": "7cc6e0cc6ced37633166b59cdf7b95a425240738",
+  "changed_tracked_paths": [
+    ".github/workflows/i0-offline.yml"
+  ],
+  "additional_paths": [
+    "docs/release/i0-main-20261102/"
+  ],
+  "application_test_dependency_tree": "EXACT_I0_SOURCE",
+  "c0_included": false,
+  "device_run": false,
+  "app_py_lines": 1597,
+  "app_py_limit_exclusive": 1600,
+  "app_js_lines": 6873,
+  "app_js_limit_exclusive": 6900
+}

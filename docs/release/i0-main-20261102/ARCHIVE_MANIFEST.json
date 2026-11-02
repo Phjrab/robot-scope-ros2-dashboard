@@ -1,0 +1,522 @@
+{
+  "tags": [
+    {
+      "tag": "archive/20261102/pre-i0-main-846121b4988e",
+      "sha": "846121b4988ed2932d329020857925558f8f2c79",
+      "object": "03caa9b1d7ee856604dcb1eb938b1d5a5f8a1912",
+      "historical_references": [
+        "robot_dashboard/expansion_diagnostics/dependencies.py"
+      ],
+      "remote_peeled_sha": "846121b4988ed2932d329020857925558f8f2c79"
+    },
+    {
+      "tag": "archive/20261102/i0-ae41a9b6cf5c",
+      "sha": "ae41a9b6cf5cf5c7c133e818e3fad4693eb2053e",
+      "object": "aa2eb6cfe0869b58782fa069052a9033ac78fc40",
+      "historical_references": [],
+      "remote_peeled_sha": "ae41a9b6cf5cf5c7c133e818e3fad4693eb2053e"
+    },
+    {
+      "tag": "archive/20261102/c0-paused-06bd98ba279e",
+      "sha": "06bd98ba279e149bfecfd91007d65002d83e30b0",
+      "object": "7cb0f72f591e90b5fe08f03d15b1909829de9274",
+      "historical_references": [],
+      "remote_peeled_sha": "06bd98ba279e149bfecfd91007d65002d83e30b0"
+    },
+    {
+      "tag": "archive/20261102/x-d1-203c144f6b4a",
+      "sha": "203c144f6b4a90966839c34b603ae12ee676cb12",
+      "object": "b796a05a6c242a45b2f4ea5e94711069e8a8472b",
+      "historical_references": [
+        "experiments/expansion_20261029/c3_scene_ui/prepare_dependencies.py",
+        "robot_dashboard/expansion_diagnostics/dependencies.py",
+        "tests/expansion_c7/report_fixture.json",
+        "tests/expansion_services/current_pins.json",
+        "tests/expansion_services/followup_pins.json"
+      ],
+      "remote_peeled_sha": "203c144f6b4a90966839c34b603ae12ee676cb12"
+    },
+    {
+      "tag": "archive/20261102/x-c1-8fd42bdd5a1c",
+      "sha": "8fd42bdd5a1cdf2b5bf26eeab830e071988ac7d3",
+      "object": "faa9cda64b3253ce145e9fb734e1296d25cace9d",
+      "historical_references": [
+        "robot_dashboard/expansion_diagnostics/dependencies.py"
+      ],
+      "remote_peeled_sha": "8fd42bdd5a1cdf2b5bf26eeab830e071988ac7d3"
+    },
+    {
+      "tag": "archive/20261102/x-c2-7625c87ede24",
+      "sha": "7625c87ede2489143c44862d883e10fc1791df28",
+      "object": "607d8fd4ecfebcefdc798eaf1f5dce60464b6cf8",
+      "historical_references": [
+        "robot_dashboard/expansion_diagnostics/dependencies.py",
+        "tests/expansion_c7/report_fixture.json",
+        "tests/expansion_services/current_pins.json"
+      ],
+      "remote_peeled_sha": "7625c87ede2489143c44862d883e10fc1791df28"
+    },
+    {
+      "tag": "archive/20261102/x-c3-e394b090221c",
+      "sha": "e394b090221c555cf0649021d132163596c19fe2",
+      "object": "c5f696f9c6fe01bd212450d8312940a289f9104f",
+      "historical_references": [
+        "experiments/expansion_20261029/c4_runtime/ros_bridge/dependencies.py",
+        "robot_dashboard/expansion_diagnostics/dependencies.py",
+        "tests/expansion_services/current_pins.json"
+      ],
+      "remote_peeled_sha": "e394b090221c555cf0649021d132163596c19fe2"
+    },
+    {
+      "tag": "archive/20261102/x-d2-7313f0a31c00",
+      "sha": "7313f0a31c00ae87ae216b84ca41a23804e91917",
+      "object": "63b01956429215a01192b5f060d03c089f97a0e8",
+      "historical_references": [
+        "experiments/expansion_20261029/c3_scene_ui/prepare_dependencies.py",
+        "experiments/expansion_20261029/c4_runtime/followup/dependencies.py",
+        "experiments/expansion_20261029/c4_runtime/ros_bridge/dependencies.py",
+        "experiments/expansion_20261029/d3_collision_sim/c4_readiness.py",
+        "experiments/expansion_20261029/d3_collision_sim/round2_compatibility.py",
+        "robot_dashboard/expansion_diagnostics/dependencies.py",
+        "tests/expansion_c7/report_fixture.json",
+        "tests/expansion_services/current_pins.json",
+        "tests/expansion_services/followup_pins.json"
+      ],
+      "remote_peeled_sha": "7313f0a31c00ae87ae216b84ca41a23804e91917"
+    },
+    {
+      "tag": "archive/20261102/x-d3-0bb91b70b4ff",
+      "sha": "0bb91b70b4ffd3801a5a5562637309eb595813c9",
+      "object": "1c25746fdb17f6789079394f06ae7df6513b680c",
+      "historical_references": [
+        "robot_dashboard/expansion_diagnostics/dependencies.py"
+      ],
+      "remote_peeled_sha": "0bb91b70b4ffd3801a5a5562637309eb595813c9"
+    },
+    {
+      "tag": "archive/20261102/x-c4-b7242fca7c1b",
+      "sha": "b7242fca7c1b863ef111978debe444b2a74cc3d3",
+      "object": "f71d39fffd5b53599069810a6593c06c89331544",
+      "historical_references": [
+        "robot_dashboard/expansion_diagnostics/dependencies.py"
+      ],
+      "remote_peeled_sha": "b7242fca7c1b863ef111978debe444b2a74cc3d3"
+    },
+    {
+      "tag": "archive/20261102/x-c5-2a51d9906c39",
+      "sha": "2a51d9906c39bd332191ce4c570b4152f13c2676",
+      "object": "1bea60d59489dc2068d8d41d23d26071ba3ed2ad",
+      "historical_references": [],
+      "remote_peeled_sha": "2a51d9906c39bd332191ce4c570b4152f13c2676"
+    },
+    {
+      "tag": "archive/20261102/x-c6-23da4f7360db",
+      "sha": "23da4f7360dbc0336496a6cd4c8b2e664062af74",
+      "object": "9ff6cd8fc2ca597baab262ded3eb75ec60c077aa",
+      "historical_references": [],
+      "remote_peeled_sha": "23da4f7360dbc0336496a6cd4c8b2e664062af74"
+    },
+    {
+      "tag": "archive/20261102/x-c7-ec724dafd33d",
+      "sha": "ec724dafd33db92ecb27db17e0bdd2eee5a30455",
+      "object": "07908c03dd1e278a43d4a9f1dd4f9cbd32ce5385",
+      "historical_references": [
+        "tests/expansion_services/current_pins.json"
+      ],
+      "remote_peeled_sha": "ec724dafd33db92ecb27db17e0bdd2eee5a30455"
+    },
+    {
+      "tag": "archive/20261102/historical-073d05b24c73",
+      "sha": "073d05b24c73b4de08c754833d4c05e537a23727",
+      "object": "040ceb6f41e1622357753f879185b117adba93a8",
+      "historical_references": [
+        "tests/expansion_services/followup_pins.json"
+      ],
+      "remote_peeled_sha": "073d05b24c73b4de08c754833d4c05e537a23727"
+    },
+    {
+      "tag": "archive/20261102/historical-093600fc0020",
+      "sha": "093600fc002006fba3ba520c7c58f2f202c85111",
+      "object": "183f6326de7b4085dd11330dc3d5cca540fdd635",
+      "historical_references": [
+        "experiments/isaac_vslam/versions.runtime.json"
+      ],
+      "remote_peeled_sha": "093600fc002006fba3ba520c7c58f2f202c85111"
+    },
+    {
+      "tag": "archive/20261102/historical-09b68b692fa4",
+      "sha": "09b68b692fa4b7ccdea39b1a16e3ff150794e12d",
+      "object": "b5ec9689605385ca6669d79c171775214ffe2685",
+      "historical_references": [
+        "experiments/expansion_20261029/c4_runtime/round2/dependencies.py",
+        "robot_dashboard/expansion_runtime/binding.py",
+        "tests/expansion_services/pins.json"
+      ],
+      "remote_peeled_sha": "09b68b692fa4b7ccdea39b1a16e3ff150794e12d"
+    },
+    {
+      "tag": "archive/20261102/historical-104692fa0070",
+      "sha": "104692fa0070ef085eee918913ea05fdb2d88c05",
+      "object": "aba924aab470027b154075c42d813d9bfc15da5d",
+      "historical_references": [
+        "experiments/competition_nav2/results/minimum_native_summary.json"
+      ],
+      "remote_peeled_sha": "104692fa0070ef085eee918913ea05fdb2d88c05"
+    },
+    {
+      "tag": "archive/20261102/historical-2402c02c6f91",
+      "sha": "2402c02c6f91ba54064894b21735e01b98610acd",
+      "object": "47a83cc00f8ed19458ca1b3b0387cf54bb56c8f0",
+      "historical_references": [
+        "experiments/expansion_20261029/c4_runtime/compat_c1.py",
+        "experiments/expansion_20261029/d2_perception/check_c1.py",
+        "experiments/expansion_20261029/d3_collision_sim/compatibility.py"
+      ],
+      "remote_peeled_sha": "2402c02c6f91ba54064894b21735e01b98610acd"
+    },
+    {
+      "tag": "archive/20261102/historical-356d0a036eb6",
+      "sha": "356d0a036eb62d546e159e12a0691d7f5ea278f6",
+      "object": "5d02083ed099726d89c53c5a22aa28ab63431bcb",
+      "historical_references": [
+        "experiments/expansion_20261029/c3_scene_ui/prepare_dependencies.py",
+        "experiments/expansion_20261029/c4_runtime/followup/dependencies.py",
+        "experiments/expansion_20261029/c4_runtime/ros_bridge/dependencies.py",
+        "experiments/expansion_20261029/d3_collision_sim/c4_readiness.py",
+        "robot_dashboard/expansion_runtime/canonical_ports.py",
+        "tests/expansion_c6/pins.json",
+        "tests/expansion_c7/report_fixture.json",
+        "tests/expansion_services/current_pins.json",
+        "tests/expansion_services/followup_pins.json"
+      ],
+      "remote_peeled_sha": "356d0a036eb62d546e159e12a0691d7f5ea278f6"
+    },
+    {
+      "tag": "archive/20261102/historical-380800ca9e21",
+      "sha": "380800ca9e211495769fe60ee8221e3f4fb40f16",
+      "object": "bfbe2b1bc90749d3d59d20a50dad7c04d98b0151",
+      "historical_references": [
+        ".github/workflows/ci.yml",
+        "tests/competition_native/dependency_overlay.py"
+      ],
+      "remote_peeled_sha": "380800ca9e211495769fe60ee8221e3f4fb40f16"
+    },
+    {
+      "tag": "archive/20261102/historical-47a1d031d797",
+      "sha": "47a1d031d797c098c38a0147894523d07d30db8f",
+      "object": "0f8620116a4b0bb629066d113f96fe4d30a90ff6",
+      "historical_references": [
+        "experiments/expansion_20261029/c3_scene_ui/prepare_dependencies.py",
+        "tests/expansion_services/followup_pins.json"
+      ],
+      "remote_peeled_sha": "47a1d031d797c098c38a0147894523d07d30db8f"
+    },
+    {
+      "tag": "archive/20261102/historical-47ae383fff5b",
+      "sha": "47ae383fff5bfa12c20d523d2851a952dbb60f4b",
+      "object": "ea12c1e9e75ea225abbe65c646e10f6d55cc316b",
+      "historical_references": [
+        "experiments/expansion_20261029/d3_collision_sim/native_ci.py"
+      ],
+      "remote_peeled_sha": "47ae383fff5bfa12c20d523d2851a952dbb60f4b"
+    },
+    {
+      "tag": "archive/20261102/historical-4e1dd519a707",
+      "sha": "4e1dd519a707169da5f88cf2a92a20ed3e701cc7",
+      "object": "bd9821d262021135e103b81c7004360b688b8854",
+      "historical_references": [
+        "experiments/expansion_20261029/c4_runtime/followup/dependencies.py",
+        "robot_dashboard/static/features/multimap_fusion/c1_contract.js"
+      ],
+      "remote_peeled_sha": "4e1dd519a707169da5f88cf2a92a20ed3e701cc7"
+    },
+    {
+      "tag": "archive/20261102/historical-50600c7bce6f",
+      "sha": "50600c7bce6f5fae743cd836ca1d8ee68d91b05a",
+      "object": "dd431398846d9da4fada295c0fb40cd5871340d7",
+      "historical_references": [
+        "experiments/expansion_20261029/c3_scene_ui/prepare_dependencies.py",
+        "robot_dashboard/run_review/dependencies.py",
+        "tests/expansion_c6/fixtures.py",
+        "tests/expansion_c6/pins.json",
+        "tests/expansion_c7/report_fixture.json"
+      ],
+      "remote_peeled_sha": "50600c7bce6f5fae743cd836ca1d8ee68d91b05a"
+    },
+    {
+      "tag": "archive/20261102/historical-5154761bba6f",
+      "sha": "5154761bba6fa4f171881e61f986901e2b415ed9",
+      "object": "af1d9aadafa5db874e6d5ba02207f369b0d29753",
+      "historical_references": [
+        "tests/expansion_c6/fixtures.py",
+        "tests/expansion_c6/pins.json",
+        "tests/expansion_c7/report_fixture.json"
+      ],
+      "remote_peeled_sha": "5154761bba6fa4f171881e61f986901e2b415ed9"
+    },
+    {
+      "tag": "archive/20261102/historical-54629c793ad4",
+      "sha": "54629c793ad4ae0ea88127f00ed1b7f8805fc4e2",
+      "object": "afe6b05c6fec0c870fae3c8c5525e36447ec3696",
+      "historical_references": [
+        "experiments/expansion_20261029/c4_runtime/round2/dependencies.py",
+        "experiments/expansion_20261029/d2_perception/round2_check.py",
+        "robot_dashboard/expansion_runtime/binding.py",
+        "robot_dashboard/multimap_core/contract_adapter.py",
+        "tests/expansion_d1/test_round2_connection.py",
+        "tests/expansion_services/reproduce_ci_import.py"
+      ],
+      "remote_peeled_sha": "54629c793ad4ae0ea88127f00ed1b7f8805fc4e2"
+    },
+    {
+      "tag": "archive/20261102/historical-5bf58097f4a6",
+      "sha": "5bf58097f4a67806f5515b931a3b8013d65bf01e",
+      "object": "0bd10ba3ae761ae5803b012f17cbb0576e630486",
+      "historical_references": [
+        "robot_dashboard/run_review/dependencies.py",
+        "tests/expansion_c6/pins.json",
+        "tests/expansion_c7/report_fixture.json"
+      ],
+      "remote_peeled_sha": "5bf58097f4a67806f5515b931a3b8013d65bf01e"
+    },
+    {
+      "tag": "archive/20261102/historical-5d78fcb7c758",
+      "sha": "5d78fcb7c7589134a533d6dc0ddd09995f9163f9",
+      "object": "27633267827104896a0fb70c4f4fd0d1a0e7a119",
+      "historical_references": [
+        "experiments/competition_nav2/results/offline_validation.json"
+      ],
+      "remote_peeled_sha": "5d78fcb7c7589134a533d6dc0ddd09995f9163f9"
+    },
+    {
+      "tag": "archive/20261102/historical-5eed1a9959ca",
+      "sha": "5eed1a9959ca25a4f30bd5b5712806a5ad660c51",
+      "object": "68607d2e031d59671dc706c5144f4b81bc8663bb",
+      "historical_references": [
+        "tests/expansion_d1/test_round2_connection.py",
+        "tests/expansion_services/pins.json"
+      ],
+      "remote_peeled_sha": "5eed1a9959ca25a4f30bd5b5712806a5ad660c51"
+    },
+    {
+      "tag": "archive/20261102/historical-6403aab3afef",
+      "sha": "6403aab3afef96efa778b5265afd7ce5b351265c",
+      "object": "eef53508631696b3201a5d9cfc89d93cdb2dc252",
+      "historical_references": [
+        "tests/competition_native/fixtures/runtime_contract.json"
+      ],
+      "remote_peeled_sha": "6403aab3afef96efa778b5265afd7ce5b351265c"
+    },
+    {
+      "tag": "archive/20261102/historical-765622ecbe20",
+      "sha": "765622ecbe20dd29b40296dd2ad24fa508ac9443",
+      "object": "4ffb0eddc067f304616ae9493e9b7c6028be6801",
+      "historical_references": [
+        ".github/workflows/ci.yml",
+        "tests/competition_native/dependency_overlay.py"
+      ],
+      "remote_peeled_sha": "765622ecbe20dd29b40296dd2ad24fa508ac9443"
+    },
+    {
+      "tag": "archive/20261102/historical-7ac0d55b07ab",
+      "sha": "7ac0d55b07abd20902d6d756c6b225733613fea7",
+      "object": "ba04b33880edbceab4759df6c16cdf4774da2d01",
+      "historical_references": [
+        "experiments/expansion_20261029/d3_collision_sim/c4_readiness.py",
+        "tests/expansion_c6/pins.json",
+        "tests/expansion_c7/report_fixture.json",
+        "tests/expansion_services/current_pins.json"
+      ],
+      "remote_peeled_sha": "7ac0d55b07abd20902d6d756c6b225733613fea7"
+    },
+    {
+      "tag": "archive/20261102/historical-7f2a7070a179",
+      "sha": "7f2a7070a17975d2a5f123cbf6aab0f99f04bf8a",
+      "object": "bb3ef2b20db4cf87db95255589ad9783334e6c2c",
+      "historical_references": [
+        "experiments/competition_nav2/docs/input_manifest.json",
+        "experiments/competition_nav2/results/offline_validation.json",
+        "experiments/competition_vm/arena_robot_sim/revisions/d0_20261024/VALIDATION.json",
+        "experiments/competition_vm/arena_robot_sim/revisions/d0_20261024/regression.py",
+        "experiments/competition_vm/arena_robot_sim/revisions/d0_20261024/results/summary.json",
+        "experiments/competition_vm/integration/before_after.py",
+        "experiments/competition_vm/integration/revisions/d0_20261024/D0_SOURCE_EVIDENCE.json",
+        "experiments/competition_vm/integration/revisions/d0_20261024/REPOSITORY_VALIDATION.json",
+        "experiments/competition_vm/integration/revisions/d0_20261024/VALIDATION.json",
+        "experiments/competition_vm/integration/revisions/d0_20261024/before_after.json",
+        "experiments/competition_vm/integration/revisions/d0_20261024/independent_review/scope_check.json",
+        "experiments/competition_vm/traffic_signals/revisions/d0-20261024/VALIDATION.json",
+        "experiments/competition_vm/traffic_signals/revisions/d0-20261024/reproduce_before_after.py",
+        "experiments/competition_vm/traffic_signals/revisions/d0-20261024/results/before_after.json"
+      ],
+      "remote_peeled_sha": "7f2a7070a17975d2a5f123cbf6aab0f99f04bf8a"
+    },
+    {
+      "tag": "archive/20261102/historical-83f4ee8d6971",
+      "sha": "83f4ee8d6971d00ab31b2de0eeebf329542dd5d6",
+      "object": "75b2da00948d29bdb5cd368fbb611cd60ad01e49",
+      "historical_references": [
+        ".github/workflows/ci.yml",
+        ".github/workflows/competition-nav2-review.yml",
+        "experiments/competition_nav2/repro/d0-source.json",
+        "experiments/competition_nav2/tests/test_d0_adapter.py"
+      ],
+      "remote_peeled_sha": "83f4ee8d6971d00ab31b2de0eeebf329542dd5d6"
+    },
+    {
+      "tag": "archive/20261102/historical-92658bccc253",
+      "sha": "92658bccc253f31552415f9c9d667bbd28957a06",
+      "object": "ca5b5126d049bfa8aaf31852ac882547e3bcaeaa",
+      "historical_references": [
+        "experiments/expansion_20261029/c4_runtime/round2/dependencies.py",
+        "tests/expansion_services/pins.json"
+      ],
+      "remote_peeled_sha": "92658bccc253f31552415f9c9d667bbd28957a06"
+    },
+    {
+      "tag": "archive/20261102/historical-9e9ebcc0cbc6",
+      "sha": "9e9ebcc0cbc613d5b0a7f50a27a7b256c3f829bd",
+      "object": "0bd104d72f7abb7b1f0b6612204d86179b292c4b",
+      "historical_references": [
+        ".github/workflows/ci.yml",
+        "tests/competition_native/dependency_overlay.py"
+      ],
+      "remote_peeled_sha": "9e9ebcc0cbc613d5b0a7f50a27a7b256c3f829bd"
+    },
+    {
+      "tag": "archive/20261102/historical-a2b6d37f61ac",
+      "sha": "a2b6d37f61ac426ac8a21e941750099b28318fd8",
+      "object": "858c7baf50e4d00bd2a37fd56b21cf20afb5019b",
+      "historical_references": [
+        "experiments/expansion_20261029/c4_runtime/followup/dependencies.py",
+        "tests/expansion_services/followup_pins.json"
+      ],
+      "remote_peeled_sha": "a2b6d37f61ac426ac8a21e941750099b28318fd8"
+    },
+    {
+      "tag": "archive/20261102/historical-afe02f38d839",
+      "sha": "afe02f38d8396d11d786d39452ac572f27d72c22",
+      "object": "2f2bd8fdda1a192e13e5aa9767288b919754a1f4",
+      "historical_references": [
+        "experiments/competition_nav2/repro/provenance.json",
+        "experiments/competition_nav2/results/minimum_native_summary.json"
+      ],
+      "remote_peeled_sha": "afe02f38d8396d11d786d39452ac572f27d72c22"
+    },
+    {
+      "tag": "archive/20261102/historical-b1077e39e4ee",
+      "sha": "b1077e39e4ee456621c47eada49b1f0c85453661",
+      "object": "731c9d39820c85a00a08fdf80bfb10a93ebafbe8",
+      "historical_references": [
+        "experiments/competition_vm/traffic_signals/VALIDATION_RESULTS.json"
+      ],
+      "remote_peeled_sha": "b1077e39e4ee456621c47eada49b1f0c85453661"
+    },
+    {
+      "tag": "archive/20261102/historical-b9d700d754f0",
+      "sha": "b9d700d754f0d3d43b9afdcffcb86e9deb7b1020",
+      "object": "0e2c58edcac9d701e478a4128c8e654848a4c0d8",
+      "historical_references": [
+        "experiments/expansion_20261029/d2_perception/round2_check.py",
+        "experiments/expansion_20261029/d3_collision_sim/round2_compatibility.py",
+        "tests/expansion_services/pins.json"
+      ],
+      "remote_peeled_sha": "b9d700d754f0d3d43b9afdcffcb86e9deb7b1020"
+    },
+    {
+      "tag": "archive/20261102/historical-c0d266e290a2",
+      "sha": "c0d266e290a2d29c173d3b83520f8c96efea9447",
+      "object": "4b49e7196c0d99e9c3c5b47b3d652381893b9133",
+      "historical_references": [
+        "experiments/expansion_20261029/c4_runtime/round2/dependencies.py",
+        "experiments/expansion_20261029/d3_collision_sim/compatibility.py",
+        "tests/expansion_services/pins.json"
+      ],
+      "remote_peeled_sha": "c0d266e290a2d29c173d3b83520f8c96efea9447"
+    },
+    {
+      "tag": "archive/20261102/historical-cb8ccc68be8d",
+      "sha": "cb8ccc68be8d96a44b0d38adcff8186893ba2b08",
+      "object": "bf4c6a9b20d6ea49375ca5f48eaed107804a7e89",
+      "historical_references": [
+        "experiments/expansion_20261029/d3_collision_sim/round2_compatibility.py"
+      ],
+      "remote_peeled_sha": "cb8ccc68be8d96a44b0d38adcff8186893ba2b08"
+    },
+    {
+      "tag": "archive/20261102/historical-cbedd05ba6f9",
+      "sha": "cbedd05ba6f97dad5506e8003302f689ed8fcb4c",
+      "object": "cabbc1f7e9e56120f8e33c2957e81a513db789a0",
+      "historical_references": [
+        "tests/expansion_services/pins.json"
+      ],
+      "remote_peeled_sha": "cbedd05ba6f97dad5506e8003302f689ed8fcb4c"
+    },
+    {
+      "tag": "archive/20261102/historical-dd715db33617",
+      "sha": "dd715db33617df00f69f944a6398ebe1d63bcbbd",
+      "object": "aae6b917a4be48aec59e6334af9643401644d4a3",
+      "historical_references": [
+        "experiments/competition_nav2/results/minimum_attempt_40098944552.json"
+      ],
+      "remote_peeled_sha": "dd715db33617df00f69f944a6398ebe1d63bcbbd"
+    },
+    {
+      "tag": "archive/20261102/historical-dfeabb36e16a",
+      "sha": "dfeabb36e16a80f14c65f23361fd29d36504ac6b",
+      "object": "b2d6e0162d7e26150f299c5fc3642253625667e8",
+      "historical_references": [
+        "experiments/competition_nav2/results/offline_validation.json"
+      ],
+      "remote_peeled_sha": "dfeabb36e16a80f14c65f23361fd29d36504ac6b"
+    },
+    {
+      "tag": "archive/20261102/historical-e0bc9cf8ba8b",
+      "sha": "e0bc9cf8ba8bd22b406a287e1a9ef867a0cd367b",
+      "object": "b4da93b3e16a6d68fc79e12a4929d679cd5ba810",
+      "historical_references": [
+        "experiments/expansion_20261029/c4_runtime/ros_bridge/dependencies.py",
+        "experiments/expansion_20261029/d3_collision_sim/c4_readiness.py"
+      ],
+      "remote_peeled_sha": "e0bc9cf8ba8bd22b406a287e1a9ef867a0cd367b"
+    },
+    {
+      "tag": "archive/20261102/historical-e2e9c5087767",
+      "sha": "e2e9c5087767f3953d715c61e76388e4769d34b4",
+      "object": "859a71970d509d0da0390859db0d7977227030c2",
+      "historical_references": [
+        "tests/competition_native/fixtures/runtime_contract.json"
+      ],
+      "remote_peeled_sha": "e2e9c5087767f3953d715c61e76388e4769d34b4"
+    },
+    {
+      "tag": "archive/20261102/historical-ebce05ca7e10",
+      "sha": "ebce05ca7e1063b136953f10a6a960ce0d65ffa1",
+      "object": "83a2b60cf14d8684626546edafb6e6f0a8583bbd",
+      "historical_references": [
+        "experiments/competition_vm/VALIDATION_PUBLICATION.json"
+      ],
+      "remote_peeled_sha": "ebce05ca7e1063b136953f10a6a960ce0d65ffa1"
+    },
+    {
+      "tag": "archive/20261102/historical-f469155c2b0c",
+      "sha": "f469155c2b0c505f3e472e878f75029d7b8d39df",
+      "object": "155f16348733b857dabb3e153fc4a9f4b86a60c8",
+      "historical_references": [
+        "tests/expansion_services/reproduce_ci_import.py"
+      ],
+      "remote_peeled_sha": "f469155c2b0c505f3e472e878f75029d7b8d39df"
+    },
+    {
+      "tag": "archive/20261102/historical-fa8e26e02194",
+      "sha": "fa8e26e02194d3c99ccc7b8e45eb3177a6fce19d",
+      "object": "0e1db9f0e2c546a08d9a69414710e27a5a674768",
+      "historical_references": [
+        "experiments/expansion_20261029/c3_scene_ui/native_replay.py",
+        "tests/expansion_c6/prepare_native.py"
+      ],
+      "remote_peeled_sha": "fa8e26e02194d3c99ccc7b8e45eb3177a6fce19d"
+    }
+  ],
+  "remote_verified": true
+}

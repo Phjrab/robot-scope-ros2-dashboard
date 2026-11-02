@@ -3,7 +3,7 @@ name: I0 offline product integration
 on:
   workflow_dispatch:
   push:
-    branches: [integration/20261101-expansion]
+    branches: [main, integration/20261101-expansion]
 
 permissions:
   contents: read

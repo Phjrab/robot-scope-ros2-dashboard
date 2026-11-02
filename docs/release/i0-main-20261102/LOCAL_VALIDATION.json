@@ -1,0 +1,18 @@
+{
+  "stage": "candidate validation in progress; final results follow in release receipt",
+  "source": "ae41a9b6cf5cf5c7c133e818e3fad4693eb2053e; only workflow branch filter and release documentation changed",
+  "environment": {"platform": "macOS arm64", "python": "3.13.2", "node": "26.13.0", "playwright": "1.62.1"},
+  "javascript": {"tests": 789, "pass": 787, "skip": 2, "fail": 0, "first_attempt": "python command absent from PATH; preserved separately, corrected environment only"},
+  "frontend_syntax": {"modules": 131, "result": "PASS"},
+  "ruff": "PASS; robot_dashboard/scripts; 0.6.9",
+  "mypy": "PASS; configured 4 files only",
+  "secret_scan": "PASS",
+  "full_browser": {"tests": 227, "pass": 226, "fail": 1, "failure": "live_observation.spec.mjs:788, assertion at :809; savedLiveCenter disabled after cancel", "root_cause": "UNRESOLVED; unchanged I0 application/test sources"},
+  "optional_http_clients_denied": "PASS: 4 actual I0 API/default-OFF tests plus C7 actual HTTP",
+  "python_initial": {"tests": 3397, "failures": 2, "errors": 152, "skip": 37, "scope": "macOS /var symlink temp root; failures preserved"},
+  "python_canonical_temp": {"tests": 3397, "failures": 7, "errors": 2, "skip": 37, "scope": "symlink fixed; temp group inherited wheel rather than process staff, causing ownership guards"},
+  "python_final": "RUNNING with canonical path and matching ownership",
+  "mission_and_i0_browser": "RUNNING sequentially",
+  "native_execution": "NOT_RUN",
+  "device_execution": "NOT_RUN"
+}

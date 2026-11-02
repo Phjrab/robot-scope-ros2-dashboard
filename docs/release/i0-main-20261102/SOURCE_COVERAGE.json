@@ -1,0 +1,239 @@
+{
+  "D1": {
+    "files": 14,
+    "missing": [],
+    "hash_mismatches": [],
+    "source_sha": "203c144f6b4a90966839c34b603ae12ee676cb12",
+    "adapted_paths": []
+  },
+  "C1": {
+    "files": 35,
+    "missing": [],
+    "hash_mismatches": [],
+    "source_sha": "8fd42bdd5a1cdf2b5bf26eeab830e071988ac7d3",
+    "adapted_paths": [
+      "robot_dashboard/expansion_services/router.py",
+      "robot_dashboard/expansion_services/scene.py",
+      "tests/expansion_services/test_scene.py"
+    ]
+  },
+  "C2": {
+    "files": 22,
+    "missing": [],
+    "hash_mismatches": [],
+    "source_sha": "7625c87ede2489143c44862d883e10fc1791df28",
+    "adapted_paths": [
+      "robot_dashboard/static/features/multimap_fusion/c1_ports.js",
+      "robot_dashboard/static/features/multimap_fusion/contract.js",
+      "tests/expansion_c2/contract.test.mjs"
+    ]
+  },
+  "C3": {
+    "files": 24,
+    "missing": [],
+    "hash_mismatches": [],
+    "source_sha": "e394b090221c555cf0649021d132163596c19fe2",
+    "adapted_paths": [
+      "robot_dashboard/static/features/obstacle_scene/c1_adapter.js",
+      "robot_dashboard/static/features/obstacle_scene/consumer.js",
+      "robot_dashboard/static/features/obstacle_scene/draw.js",
+      "robot_dashboard/static/features/obstacle_scene/index.js"
+    ]
+  },
+  "D2": {
+    "files": 12,
+    "missing": [],
+    "hash_mismatches": [],
+    "source_sha": "7313f0a31c00ae87ae216b84ca41a23804e91917",
+    "adapted_paths": []
+  },
+  "D3": {
+    "files": 21,
+    "missing": [],
+    "hash_mismatches": [],
+    "source_sha": "0bb91b70b4ffd3801a5a5562637309eb595813c9",
+    "adapted_paths": []
+  },
+  "C4": {
+    "files": 60,
+    "missing": [],
+    "hash_mismatches": [],
+    "source_sha": "b7242fca7c1b863ef111978debe444b2a74cc3d3",
+    "adapted_paths": []
+  },
+  "C5": {
+    "files": 8,
+    "missing": [],
+    "hash_mismatches": [],
+    "source_sha": "2a51d9906c39bd332191ce4c570b4152f13c2676",
+    "adapted_paths": []
+  },
+  "C6": {
+    "files": 23,
+    "missing": [],
+    "hash_mismatches": [],
+    "source_sha": "23da4f7360dbc0336496a6cd4c8b2e664062af74",
+    "adapted_paths": [
+      "robot_dashboard/run_review/__main__.py",
+      "robot_dashboard/static/features/run_review/index.js"
+    ]
+  },
+  "C7": {
+    "files": 19,
+    "missing": [],
+    "hash_mismatches": [],
+    "source_sha": "ec724dafd33db92ecb27db17e0bdd2eee5a30455",
+    "adapted_paths": [
+      "robot_dashboard/expansion_diagnostics/dependencies.py",
+      "robot_dashboard/expansion_diagnostics/runner.py",
+      "robot_dashboard/expansion_diagnostics/workloads.py",
+      "tests/expansion_c7/test_diagnostics.py"
+    ]
+  },
+  "teammate_obstacle_followup": [
+    {
+      "path": ".github/workflows/i0-offline.yml",
+      "expected_sha256": "69d6a130ba53c1d950e1125cad769ff94430f3c5e181d3be736a1d76065a480b",
+      "actual_sha256": "33ae51c0e1c758ee5b338d22849625b16eb415b5291e2a28fd478217ef6eb8f8",
+      "status": "MAIN_PUSH_TRIGGER_ADDED"
+    },
+    {
+      "path": "experiments/expansion_20261101/cone_display/demo.py",
+      "expected_sha256": "97a874e5dfc0ebd685fb46d6c15e7d49c3cb94923b8150e85ce1b3f8d1ba1153",
+      "actual_sha256": "97a874e5dfc0ebd685fb46d6c15e7d49c3cb94923b8150e85ce1b3f8d1ba1153",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "path": "playwright.i0-cones.config.mjs",
+      "expected_sha256": "be31c381cafbe5ae76bf3adba6afccb87aa51ba62880d32a6fe5e76d7dd5f433",
+      "actual_sha256": "be31c381cafbe5ae76bf3adba6afccb87aa51ba62880d32a6fe5e76d7dd5f433",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "path": "robot_dashboard/expansion_integration/cone_demo.py",
+      "expected_sha256": "c5dd91354085b5a6dc10767f49c22efb55f5a9dedfe13cc2c1d2d59e9803ee67",
+      "actual_sha256": "c5dd91354085b5a6dc10767f49c22efb55f5a9dedfe13cc2c1d2d59e9803ee67",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "path": "robot_dashboard/expansion_integration/cone_input.py",
+      "expected_sha256": "e65cc4a28e94deaba811ca226d6e13f0f4d342e6c09033613f35bde0522afedd",
+      "actual_sha256": "e65cc4a28e94deaba811ca226d6e13f0f4d342e6c09033613f35bde0522afedd",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "path": "robot_dashboard/expansion_services/router.py",
+      "expected_sha256": "3f7662ca545e8e7169c427a5198fe07e184de98478cad64819836dd476278e5c",
+      "actual_sha256": "3f7662ca545e8e7169c427a5198fe07e184de98478cad64819836dd476278e5c",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "path": "robot_dashboard/expansion_services/scene.py",
+      "expected_sha256": "f918735df41d7eae1dc9476b0f658b380914516d0ae8cf071df4671b95ee4e23",
+      "actual_sha256": "f918735df41d7eae1dc9476b0f658b380914516d0ae8cf071df4671b95ee4e23",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "path": "robot_dashboard/static/features/expansion/scene.js",
+      "expected_sha256": "17cf5b9a8b8c373a3c100f63b7e74c765477bb3a67d44feb6675cf78805f979a",
+      "actual_sha256": "17cf5b9a8b8c373a3c100f63b7e74c765477bb3a67d44feb6675cf78805f979a",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "path": "robot_dashboard/static/features/expansion/scene_poll.js",
+      "expected_sha256": "4035db073c854a8f270e9de69c552352ea971a30a3d4483d1b711a8de238da91",
+      "actual_sha256": "4035db073c854a8f270e9de69c552352ea971a30a3d4483d1b711a8de238da91",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "path": "robot_dashboard/static/features/expansion/style.css",
+      "expected_sha256": "1b8ff955f727af91636b88c13002d550ac3646ab3cb722a9ff46a92e50658a21",
+      "actual_sha256": "1b8ff955f727af91636b88c13002d550ac3646ab3cb722a9ff46a92e50658a21",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "path": "robot_dashboard/static/features/expansion/transport.js",
+      "expected_sha256": "b5acb87be3e25912132e1449d065cf5231c8ed941cbd836cff3e8f7bb0bda511",
+      "actual_sha256": "b5acb87be3e25912132e1449d065cf5231c8ed941cbd836cff3e8f7bb0bda511",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "path": "robot_dashboard/static/features/obstacle_scene/c1_adapter.js",
+      "expected_sha256": "e05aadaba36418e1fcebab3f02c5f81b8a2355b6a159941b72436a606e3aa67c",
+      "actual_sha256": "e05aadaba36418e1fcebab3f02c5f81b8a2355b6a159941b72436a606e3aa67c",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "path": "robot_dashboard/static/features/obstacle_scene/cone_display.js",
+      "expected_sha256": "080604112e0958c20baf2aec065cfca1589c3e9f8100f87bf63bf762778a2738",
+      "actual_sha256": "080604112e0958c20baf2aec065cfca1589c3e9f8100f87bf63bf762778a2738",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "path": "robot_dashboard/static/features/obstacle_scene/consumer.js",
+      "expected_sha256": "7e1d40426d9ab011831493590f821320e857a71c14445d1f430ed7d5b1db2db9",
+      "actual_sha256": "7e1d40426d9ab011831493590f821320e857a71c14445d1f430ed7d5b1db2db9",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "path": "robot_dashboard/static/features/obstacle_scene/draw.js",
+      "expected_sha256": "336ac42ccb873814c127b04119d25f1152d5e6d9ce6d390e9b566dfed3f02ba3",
+      "actual_sha256": "336ac42ccb873814c127b04119d25f1152d5e6d9ce6d390e9b566dfed3f02ba3",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "path": "robot_dashboard/static/features/obstacle_scene/index.js",
+      "expected_sha256": "c3375a2ff7323e8e43d0fe75471a64df2fa7ef340134a454af60f57deb6487d7",
+      "actual_sha256": "c3375a2ff7323e8e43d0fe75471a64df2fa7ef340134a454af60f57deb6487d7",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "path": "tests/expansion_c3/test_cones.mjs",
+      "expected_sha256": "d725562e1a82c3db2855dfac75847361623e3d16093f1cfe8603461bd39517d6",
+      "actual_sha256": "d725562e1a82c3db2855dfac75847361623e3d16093f1cfe8603461bd39517d6",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "path": "tests/expansion_services/test_scene.py",
+      "expected_sha256": "47f4add0a62c515c5f4456e1ae76296a467c7d77bfff646873e914ab5541d09c",
+      "actual_sha256": "47f4add0a62c515c5f4456e1ae76296a467c7d77bfff646873e914ab5541d09c",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "path": "tests/integration_i0/cone.product.mjs",
+      "expected_sha256": "9638380641fde8b4d72978932dd2668a99f481d4a22bcd21d2cd35b48d7f25a8",
+      "actual_sha256": "9638380641fde8b4d72978932dd2668a99f481d4a22bcd21d2cd35b48d7f25a8",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "path": "tests/integration_i0/cone_fixture.py",
+      "expected_sha256": "208f611430418c2908966f1736002cdcebd4a50836527d832e8bfc3c0e8c0e98",
+      "actual_sha256": "208f611430418c2908966f1736002cdcebd4a50836527d832e8bfc3c0e8c0e98",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "path": "tests/integration_i0/cone_wire.py",
+      "expected_sha256": "2ecadd281edcda18c286c147cb3b51ed04fd10e8b7f3854d1bb16130b8cf1fe3",
+      "actual_sha256": "2ecadd281edcda18c286c147cb3b51ed04fd10e8b7f3854d1bb16130b8cf1fe3",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "path": "tests/integration_i0/test_cone_integration.py",
+      "expected_sha256": "f78ec2e70f0ad862ce4fd674db83e6ae14270931a63ed52019c11a7497310ae5",
+      "actual_sha256": "f78ec2e70f0ad862ce4fd674db83e6ae14270931a63ed52019c11a7497310ae5",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "path": "tests/integration_i0/test_cone_validation.py",
+      "expected_sha256": "d95fc44140b6f5ca0a2ba1e91a623704b1de3ae12fd136ea43e0af98b5ec883c",
+      "actual_sha256": "d95fc44140b6f5ca0a2ba1e91a623704b1de3ae12fd136ea43e0af98b5ec883c",
+      "status": "EXACT_MATCH"
+    },
+    {
+      "path": "tests/test_i0_scene_transport.mjs",
+      "expected_sha256": "5af25df76bd7de7200e5a1066945b6b537c4837bf3ccf7628ff2ad0b2cb7049f",
+      "actual_sha256": "5af25df76bd7de7200e5a1066945b6b537c4837bf3ccf7628ff2ad0b2cb7049f",
+      "status": "EXACT_MATCH"
+    }
+  ]
+}
