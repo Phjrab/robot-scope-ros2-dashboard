@@ -3810,7 +3810,7 @@ function formatNavigationCount(value) { return Number.isSafeInteger(value) && va
 
 function renderNavigationHealth(snapshot) {
   const health = snapshot?.localization_health;
-  const metrics = health?.reason_code === 'NAVIGATION_INACTIVE' ? null : health?.metrics;
+  const metrics = snapshot?.session_mode === 'idle' || health?.reason_code === 'NAVIGATION_INACTIVE' ? null : health?.metrics;
   const state = String(health?.state || 'UNAVAILABLE').toUpperCase();
   const tone = state === 'READY' ? 'ok' : ['STALE', 'DISCONTINUITY', 'FRAME_MISMATCH', 'CALIBRATION_SUSPECTED'].includes(state) ? 'error' : 'waiting';
   setStatePill(ui.navigationHealthState, tone, state);

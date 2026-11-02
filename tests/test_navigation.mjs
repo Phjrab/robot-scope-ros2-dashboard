@@ -356,6 +356,15 @@ test('navigation health metrics show unknown values without inventing zero and r
   assert.equal(rows()['TF AGE'].value, '—'); assert.equal(rows()['FAST-LIO JUMPS'].value, '— / —');
   assert.equal(rows()['SCAN POINTS'].value, '— / —'); assert.equal(rows()['COSTMAP CLEARS'].value, '—');
   assert.equal(rows()['COSTMAP CLEARS'].note, 'fresh sequence —');
+  for (const [state, reason] of [['FRAME_MISMATCH', 'FRAME_CONTRACT_MISMATCH'], ['DISCONTINUITY', 'ODOMETRY_DISCONTINUITY'], ['UNAVAILABLE', 'SOURCE_PUBLISHER_CONFLICT']]) {
+    context.render({ session_mode: 'idle', pipeline: { state: 'idle' }, localization_health: { state, reason_code: reason, metrics: zeros } });
+    assert.equal(ui.navigationHealthState.textContent, state); assert.match(ui.navigationHealthReason.textContent, new RegExp(reason));
+    assert.equal(rows().POINTCLOUD.value, '—', `${reason} while inactive`); assert.match(rows().POINTCLOUD.note, /age —/);
+    assert.equal(rows()['TF AGE'].value, '—'); assert.equal(rows()['FAST-LIO JUMPS'].value, '— / —');
+    assert.equal(rows()['SCAN POINTS'].value, '— / —'); assert.equal(rows()['COSTMAP CLEARS'].value, '—');
+  }
+  context.render({ session_mode: 'localization_only', localization_health: { state: 'FRAME_MISMATCH', reason_code: 'FRAME_CONTRACT_MISMATCH', metrics: zeros } });
+  assert.equal(rows().POINTCLOUD.value, '0.00 Hz'); assert.equal(ui.navigationHealthState.textContent, 'FRAME_MISMATCH');
   context.render({ pipeline: { state: 'running' }, localization_health: { state: 'READY', reason_code: 'HEALTHY', metrics: zeros } });
   assert.equal(rows().POINTCLOUD.value, '0.00 Hz'); assert.match(rows().POINTCLOUD.note, /age 0\.000 s/);
   assert.equal(rows()['TF AGE'].value, '0.000 s'); assert.equal(rows()['FAST-LIO JUMPS'].value, '0 / 0');
