@@ -14,7 +14,7 @@ export function preNavigationDraftBinding({ selected, pair, mapMeta, mapData, ma
       || !maps?.some(item => item.id === loc.map_id && item.revision === loc.revision && item.kind === 'pointcloud3d')) return null;
   return JSON.stringify([selected.generation, loc.map_id, loc.revision, nav.map_id, nav.revision,
     pipeline.state, pipeline.job_id ?? null, source?.bundle_generation ?? null,
-    source?.localization_generation ?? null, source?.runtime_instance_generation ?? null, epoch ?? null]);
+    source?.localization_generation ?? null, source?.runtime_instance_generation ?? null, epoch ?? null, pair.calibration_sha256 ?? null]);
 }
 export function createPreNavigationDraftController({ inputs, binding, clear, suspend = clear, archive = clear }) {
   return {
@@ -28,7 +28,7 @@ export function createPreNavigationDraftController({ inputs, binding, clear, sus
       if (current === previous) return;
       let old;
       try { old = JSON.parse(previous); } catch { clear(); return; }
-      const [generation, locId, locRev, mapId, mapRev, pipeline, job, bundle, localization, runtime, epoch] = old;
+      const [generation, locId, locRev, mapId, mapRev, pipeline, job, bundle, localization, runtime, epoch, calibration] = old;
       const knownMapChanged = value.selected2d !== mapId || value.selected3d !== locId
         || (value.mapMeta && (value.mapMeta.id !== mapId || value.mapMeta.revision !== mapRev))
         || (value.mapData && ((value.mapData.map_id || value.mapData.id) !== mapId || value.mapData.revision !== mapRev));
@@ -38,13 +38,17 @@ export function createPreNavigationDraftController({ inputs, binding, clear, sus
         || (value.navigation?.operational_localization?.localization_generation ?? null) !== localization
         || (value.navigation?.operational_localization?.runtime_instance_generation ?? null) !== runtime);
       const selected = value.selected, pair = value.pair;
+      const stopPending = pair?.valid === false && Array.isArray(pair.checks) && pair.checks.length === 1
+        && ['HANDOFF_OBSERVATION_STOP_REQUIRED', 'HANDOFF_MONITOR_PENDING'].includes(pair.checks[0]?.code);
       const knownPairChanged = value.preparationAvailable && (selected?.generation !== generation
         || selected?.localization_3d?.map_id !== locId || selected?.localization_3d?.revision !== locRev
         || selected?.navigation_2d?.map_id !== mapId || selected?.navigation_2d?.revision !== mapRev
-        || pair?.generation !== generation || pair?.valid !== true
+        || pair?.generation !== generation || (pair?.calibration_sha256 ?? null) !== (calibration ?? null)
+        || (pair?.valid !== true && !stopPending)
         || pair?.localization_3d?.map_id !== locId || pair?.localization_3d?.revision !== locRev
         || pair?.navigation_2d?.map_id !== mapId || pair?.navigation_2d?.revision !== mapRev);
       if ((value.epoch ?? null) !== epoch || knownMapChanged || knownPairChanged) clear();
+      else if (stopPending && value.preparationAvailable) suspend();
       else if (knownRuntimeChanged) archive();
       else if (value.observing && value.observationAction === 'start') return;
       else if (value.available) clear();
@@ -90,11 +94,11 @@ export function operatorDraftSnapshot({ staged, pointer, toolBinding, currentBin
 export function historicalRuntimeBinding(staged, value) {
   if (!staged?.historical || !staged.preBinding || !value.available || !value.navigationAvailable || !value.preparationAvailable) return null;
   let old; try { old = JSON.parse(staged.preBinding); } catch { return null; }
-  const [generation, locId, locRev, mapId, mapRev, , , , , , epoch] = old;
+  const [generation, locId, locRev, mapId, mapRev, , , , , , epoch, calibration] = old;
   const nav = value.navigation, source = nav?.operational_localization, selected = value.selected, pair = value.pair;
   if (value.epoch !== epoch || value.selected2d !== mapId || value.selected3d !== locId
       || selected?.generation !== generation || selected?.localization_3d?.map_id !== locId || selected?.localization_3d?.revision !== locRev
-      || selected?.navigation_2d?.map_id !== mapId || selected?.navigation_2d?.revision !== mapRev || pair?.valid !== true || pair?.generation !== generation
+      || selected?.navigation_2d?.map_id !== mapId || selected?.navigation_2d?.revision !== mapRev || pair?.valid !== true || pair?.generation !== generation || (pair?.calibration_sha256 ?? null) !== (calibration ?? null)
       || pair?.localization_3d?.map_id !== locId || pair?.localization_3d?.revision !== locRev
       || pair?.navigation_2d?.map_id !== mapId || pair?.navigation_2d?.revision !== mapRev
       || nav?.pipeline?.state !== 'running' || !nav.pipeline.job_id || nav.map?.id !== mapId || nav.map?.revision !== mapRev

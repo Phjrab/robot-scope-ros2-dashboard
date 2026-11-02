@@ -172,11 +172,48 @@ function preparationDiagnostics(value) {
 }
 const pin = map => map && `${map.map_id || map.id}:${map.revision}`;
 const CONDITIONAL_POLICY = 'robot-scope.proposal-handoff.operator-prior-v1';
+const originalAmbiguityLabel = unresolved => unresolved ? '원본 판정: 모호성 미해결 · 원래 모호성은 유지됩니다.' : '원본 판정: 비모호 · 원본 판정은 유지됩니다.';
 function sameOperatorPrior(a, b) {
   const keys = (value, expected) => value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === expected.length && expected.every(key => Object.hasOwn(value, key));
   const shape = value => keys(value, ['frame','pose_reference','units','pose','bounds','source','stationary_current_pose_confirmed','navigation_map_id','navigation_map_revision','calibration_sha256']) && keys(value.pose, ['x','y','yaw']) && keys(value.bounds, ['xy_m','yaw_rad']);
   return Boolean(shape(a) && shape(b) && ['frame', 'pose_reference', 'units', 'source', 'stationary_current_pose_confirmed', 'navigation_map_id', 'navigation_map_revision', 'calibration_sha256'].every(key => a[key] === b[key])
     && ['x', 'y', 'yaw'].every(key => a.pose?.[key] === b.pose?.[key]) && ['xy_m', 'yaw_rad'].every(key => a.bounds?.[key] === b.bounds?.[key]));
+}
+const GROUPING_FIELDS = ['grouping_policy', 'matching_hypothesis_count', 'matching_retained_candidate_count', 'matching_member_indices', 'matching_member_geometry', 'verified_duplicate_count'];
+function validPriorCandidateGrouping(proof) {
+  if (!GROUPING_FIELDS.some(key => Object.hasOwn(proof, key))) return proof.matching_candidate_count === 1;
+  const indices = proof.matching_member_indices, geometry = proof.matching_member_geometry, count = proof.matching_retained_candidate_count;
+  if (proof.grouping_policy !== 'PINNED_V031_SE3_FIRST_REPRESENTATIVE_V1' || proof.matching_hypothesis_count !== 1
+      || !Number.isInteger(count) || count < 1 || count > proof.eligible_candidate_count || proof.matching_candidate_count !== count
+      || !Number.isInteger(proof.verified_duplicate_count) || proof.verified_duplicate_count < count - 1 || proof.verified_duplicate_count >= proof.eligible_candidate_count
+      || !Array.isArray(indices) || indices.length !== count || !Array.isArray(geometry) || geometry.length !== count
+      || indices[0] !== proof.candidate_index || !indices.every((value, i) => Number.isInteger(value) && value >= 0 && value < proof.retained_candidate_count && (!i || value > indices[i - 1]))) return false;
+  const representative = geometry[0], wrap = value => Math.atan2(Math.sin(value), Math.cos(value));
+  return geometry.every((member, i) => member && member.candidate_index === indices[i]
+    && ['z_m', 'roll_rad', 'pitch_rad', 'z_delta_m', 'roll_delta_rad', 'pitch_delta_rad'].every(key => finite(member[key]))
+    && Math.abs(member.z_delta_m - (member.z_m - representative.z_m)) < 1e-8
+    && Math.abs(wrap(member.roll_delta_rad - wrap(member.roll_rad - representative.roll_rad))) < 1e-8
+    && Math.abs(wrap(member.pitch_delta_rad - wrap(member.pitch_rad - representative.pitch_rad))) < 1e-8);
+}
+function validPriorCurrentMembers(proof, current, stored = false) {
+  if (!proof?.grouping_policy) return true;
+  const checks = current?.member_checks, indices = proof.matching_member_indices, bounds = proof.operator_prior?.bounds;
+  if (!Array.isArray(indices) || !Array.isArray(checks) || checks.length !== indices.length || !checks.length
+      || !/^[1-9][0-9]{0,19}$/.test(current?.pose_stamp_ns || '') || !finite(bounds?.xy_m) || !finite(bounds?.yaw_rad)) return false;
+  const valid = checks.every((item, i) => item && item.candidate_index === indices[i]
+    && finite(item.xy_distance_m) && item.xy_distance_m >= 0 && finite(item.absolute_wrapped_yaw_rad) && item.absolute_wrapped_yaw_rad >= 0 && item.absolute_wrapped_yaw_rad <= Math.PI
+    && typeof item.within_prior_bounds === 'boolean' && item.within_prior_bounds === (item.xy_distance_m <= bounds.xy_m && item.absolute_wrapped_yaw_rad <= bounds.yaw_rad));
+  if (!valid) return false;
+  const all = checks.every(item => item.within_prior_bounds);
+  if (stored) return all;
+  const first = checks[0];
+  return typeof current.all_members_within_prior_bounds === 'boolean' && current.all_members_within_prior_bounds === all
+    && finite(current.pose_age_s) && current.pose_age_s >= 0 && current.pose_age_s <= 1
+    && finite(current.xy_distance_m) && Math.abs(current.xy_distance_m - first.xy_distance_m) < 1e-8
+    && finite(current.yaw_delta_rad) && Math.abs(Math.abs(current.yaw_delta_rad) - first.absolute_wrapped_yaw_rad) < 1e-8
+    && current.within_prior_bounds === first.within_prior_bounds
+    && typeof current.within_existing_handoff_reference === 'boolean'
+    && current.within_existing_handoff_reference === (first.xy_distance_m <= .25 && first.absolute_wrapped_yaw_rad <= .20);
 }
 function validConditionalResolution(proof, ctx) {
   const prior = proof?.operator_prior, diagnostic = proof?.candidate_vs_prior;
@@ -195,7 +232,7 @@ function validConditionalResolution(proof, ctx) {
     && (!ctx.operatorPrior || sameOperatorPrior(prior, ctx.operatorPrior))
     && Number.isInteger(proof.candidate_index) && Number.isInteger(proof.retained_candidate_count) && Number.isInteger(proof.eligible_candidate_count)
     && proof.candidate_index >= 0 && proof.candidate_index < proof.retained_candidate_count && proof.retained_candidate_count <= 18
-    && proof.eligible_candidate_count >= 1 && proof.eligible_candidate_count <= proof.retained_candidate_count && proof.matching_candidate_count === 1
+    && proof.eligible_candidate_count >= 1 && proof.eligible_candidate_count <= proof.retained_candidate_count && validPriorCandidateGrouping(proof)
     && proof.projection_basis === 'NAV_LOCALIZATION_CAPTURE_TO_PRIOR_ODOM_IMU_BASE' && distanceOk
     && diagnostic.xy_distance_m <= prior.bounds.xy_m && diagnostic.absolute_wrapped_yaw_rad <= prior.bounds.yaw_rad
     && typeof diagnostic.within_existing_handoff_reference === 'boolean'
@@ -346,7 +383,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
       && handoff.observation_session_id === proof?.observation_session_id && selected?.seed_geometry?.source === 'proposal_confirmed'
       && handoff.proposal_id === proof?.proposal_id && handoff.bundle_generation === proof?.bundle_generation
       && proof?.calibration_sha256 && proof.calibration_sha256 === state?.pair?.calibration_sha256
-      && ((handoff.policy?.id === 'robot-scope.proposal-handoff.local-v1' && !conditionalProof) || (handoff.policy?.id === CONDITIONAL_POLICY && proof?.policy_id === CONDITIONAL_POLICY && validConditionalResolution(conditionalProof, conditionalContext) && conditionalProof.source_contract_sha256 === proof.source_contract_sha256 && conditionalProof.candidate_vs_prior.within_existing_handoff_reference === true)) && handoff.policy?.ttl_s === 120
+      && ((handoff.policy?.id === 'robot-scope.proposal-handoff.local-v1' && !conditionalProof) || (handoff.policy?.id === CONDITIONAL_POLICY && proof?.policy_id === CONDITIONAL_POLICY && validConditionalResolution(conditionalProof, conditionalContext) && validPriorCurrentMembers(conditionalProof, proof.operator_prior_current_members, true) && conditionalProof.source_contract_sha256 === proof.source_contract_sha256 && conditionalProof.candidate_vs_prior.within_existing_handoff_reference === true)) && handoff.policy?.ttl_s === 120
       && handoff.policy?.max_xy_m === 0.25 && handoff.policy?.max_yaw_rad === 0.20
       && samePin(selected?.localization_3d, draft3d) && samePin(selected?.navigation_2d, draft2d) && handoffRuntimeCompatible(handoff, selected, navigation));
     const remaining = finite(handoff?.expires_in_s) ? Math.max(0, handoff.expires_in_s - Math.max(0, performance.now() - handoffReadAt) / 1000) : null;
@@ -520,7 +557,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     const age = proposal?.provenance?.pose_age_s;
     const fresh = finite(age) && age >= 0 && age + (performance.now() - proposalCheckedAt) / 1000 <= 1;
     const cleanupUnsafe = cleanup && (['CANCELLING', 'CANCEL_PENDING', 'CANCEL_FAILED', 'CLEANUP_UNCONFIRMED', 'JOB_UNAVAILABLE'].includes(cleanup.state) || cleanup.cancellation_requested === true);
-    const conditional = proposalContext?.operatorPrior ? proposal?.classification === 'CONDITIONAL_ON_OPERATOR_PRIOR' && typeof proposal?.quality?.ambiguity_unresolved === 'boolean' && proposal.quality.ambiguity_unresolved === proposal.operator_prior_resolution?.original_ambiguity_unresolved && validConditionalResolution(proposal.operator_prior_resolution, proposalContext) : proposal?.quality?.ambiguity_unresolved === false && !proposal?.operator_prior_resolution && !proposal?.classification;
+    const conditional = proposalContext?.operatorPrior ? proposal?.classification === 'CONDITIONAL_ON_OPERATOR_PRIOR' && typeof proposal?.quality?.ambiguity_unresolved === 'boolean' && proposal.quality.ambiguity_unresolved === proposal.operator_prior_resolution?.original_ambiguity_unresolved && validConditionalResolution(proposal.operator_prior_resolution, proposalContext) && validPriorCurrentMembers(proposal.operator_prior_resolution, proposal.current_vs_prior) && (!proposal.operator_prior_resolution.grouping_policy || proposal.current_vs_prior.pose_age_s + (performance.now() - proposalCheckedAt) / 1000 <= 1) : proposal?.quality?.ambiguity_unresolved === false && !proposal?.operator_prior_resolution && !proposal?.classification;
     return Boolean(conditional && proposalVerified && proposal?.state === 'ready' && proposalContextMatches() && fresh && !cleanupUnsafe
       && proposal.imu_hypothesis?.pose_reference === 'FASTLIO_IMU' && proposal.imu_hypothesis?.units === 'metres_degrees'
       && proposal.imu_hypothesis?.approximate_only === true && proposal.imu_hypothesis?.requires_reanchor === true
@@ -645,13 +682,14 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
       : available && model.matched && geometry?.source === 'operator' && geometry?.frame === 'map' && validGeometry(geometry) ? `② 서버 저장 수동 입력값 (지도 기준 base_link): ${geometryText(geometry)}`
       : '② 서버 확인 적용값 없음';
     const conditional = Boolean(proposalContext?.operatorPrior && validPoses);
-    const withinHandoff = !conditional || proposal.operator_prior_resolution.candidate_vs_prior.within_existing_handoff_reference === true;
+    const withinHandoff = !conditional || (proposal.operator_prior_resolution.candidate_vs_prior.within_existing_handoff_reference === true && (!proposal.operator_prior_resolution.grouping_policy || (proposal.current_vs_prior?.all_members_within_prior_bounds === true && proposal.current_vs_prior?.within_existing_handoff_reference === true)));
     el('conditional-label').hidden = !conditional;
     if (!conditional) el('conditional-ack').checked = false;
     el('supervision').disabled = handoffBusy || handoffInfo.active;
     el('confirm-handoff').disabled = (conditional && (!el('conditional-ack').checked || !withinHandoff)) || handoffBusy || handoffAwaitingStatus || !el('supervision').checked || !validPoses || !proposalReadyToRequest || !cleanupSettled() || handoffInfo.active;
     const proposalNodes = [node('p', '정보성 제안은 저장 3D 지도 기준이며 운영 보정 위치·Nav2 준비·TF 적용 결과가 아닙니다. 자동 입력·전송하지 않습니다.')];
-    if (conditional) proposalNodes.push(node('p', withinHandoff ? '사용자 초안 범위에 조건부로 한 후보가 선택되었습니다. 원래 모호성은 유지되며 전역 유일성·실제 위치 정확도는 확인되지 않았습니다.' : '조건부 후보가 기존 초기 위치 허용 범위(0.25m / 0.20rad)를 벗어나 확인할 수 없습니다. 사용자 초안과 관측을 다시 확인하세요.'));
+    if (conditional) { const status = withinHandoff ? '사용자 초안 범위에 조건부로 한 후보가 선택되었습니다.' : proposal.operator_prior_resolution.grouping_policy && !proposal.current_vs_prior?.all_members_within_prior_bounds ? '현재 시점에 그룹의 모든 후보가 사용자 초안 범위 안에 있지 않아 확인할 수 없습니다.' : '조건부 후보가 기존 초기 위치 허용 범위(0.25m / 0.20rad)를 벗어나 확인할 수 없습니다. 사용자 초안과 관측을 다시 확인하세요.'; proposalNodes.push(node('p', `${status} ${originalAmbiguityLabel(proposal.operator_prior_resolution.original_ambiguity_unresolved)} 보존된 후보 집합과 사용자 초안에 조건부이며 전역 유일성·실제 위치 정확도는 확인되지 않았습니다.`)); }
+    if (conditional && proposal.operator_prior_resolution.grouping_policy) { const proof = proposal.operator_prior_resolution; proposalNodes.push(node('p', `서버가 검증한 원본 후보 ${proof.matching_retained_candidate_count}개가 초안 범위 안의 한 그룹을 이룹니다. 대표 후보 ${proof.candidate_index} 기준 높이·기울기 차이: ${proof.matching_member_geometry.map(member => `#${member.candidate_index} Δz ${member.z_delta_m.toFixed(3)}m · Δroll ${member.roll_delta_rad.toFixed(3)}rad · Δpitch ${member.pitch_delta_rad.toFixed(3)}rad`).join(' / ')}. 지도·정지·실제 정확도의 검증 결과가 아닙니다.`)); }
     if (proposalBusy && !proposal) proposalNodes.push(node('p', '제안 계산 요청 중 · 자동 재전송하지 않습니다.'));
     else if (proposalError) proposalNodes.push(node('p', `제안 사용 불가: ${proposalError}`));
     else if (!proposal) proposalNodes.push(node('p', '제안 없음 · 관측 준비 후 명시적으로 계산하세요.'));
@@ -678,7 +716,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
       const h = handoff;
       const expired = !handoffInfo.armed && !handoffInfo.unexpired && !['INVALID', 'OUTCOME_UNKNOWN'].includes(h.state);
       const currentMatchUnknown = h.state === 'MATCH_ARMED' && !handoffInfo.armed;
-      if (h.policy?.id === CONDITIONAL_POLICY) handoffNodes.push(node('p', '사용자 초안에 조건부인 확인값입니다. 원래 모호성은 유지되며 전역 유일성과 실제 위치 정확도는 확인되지 않았습니다.'));
+      if (h.policy?.id === CONDITIONAL_POLICY) handoffNodes.push(node('p', `사용자 초안에 조건부인 확인값입니다. ${originalAmbiguityLabel(state.selected.seed_geometry.handoff.operator_prior_resolution.original_ambiguity_unresolved)} 보존된 후보 집합과 사용자 초안에 조건부이며 전역 유일성과 실제 위치 정확도는 확인되지 않았습니다.`));
       handoffNodes.push(node('p', `출처: 명시 확인된 proposal_confirmed · 상태: ${currentMatchUnknown ? '정합 수락 이력 · 현재 실행의 수락은 미확인' : expired ? '사용 시간 만료' : handoffStates[h.state] || '확인 불가'} · ${handoffInfo.armed ? '초기화 사용 시간은 정합 접수 전까지 적용' : `남은 초기화 시간 ${handoffInfo.remaining === null ? '미확인' : Math.ceil(handoffInfo.remaining) + '초'}`}`));
       handoffNodes.push(node('p', `관측 종료: ${receiptStates[h.stop_receipt?.state] || '상태 미확인'}${h.reason ? ` · ${inputReason(h.reason)}` : ''}`));
       if (h.match_history) handoffNodes.push(node('p', '이전 정합 요청 수락 이력이 있습니다. 현재 실행의 정합 상태는 별도로 확인합니다.'));
@@ -827,7 +865,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
   }
   async function confirmHandoff() {
     const { model, handoffInfo, busy: navigationBusy } = current(), pair = inputs?.pair, session = inputs?.observation, blockers = inputs?.start_blockers?.items;
-    if (el('confirm-handoff').disabled || (proposalContext?.operatorPrior && (!el('conditional-ack').checked || proposal?.operator_prior_resolution?.candidate_vs_prior?.within_existing_handoff_reference !== true)) || handoffBusy || handoffAwaitingStatus || !el('supervision').checked || !proposalPoseValid()
+    if (el('confirm-handoff').disabled || (proposalContext?.operatorPrior && (!el('conditional-ack').checked || proposal?.operator_prior_resolution?.candidate_vs_prior?.within_existing_handoff_reference !== true || (proposal?.operator_prior_resolution?.grouping_policy && (proposal?.current_vs_prior?.all_members_within_prior_bounds !== true || proposal?.current_vs_prior?.within_existing_handoff_reference !== true)))) || handoffBusy || handoffAwaitingStatus || !el('supervision').checked || !proposalPoseValid()
         || !proposalContextMatches() || !cleanupSettled() || !available || busy || navigationBusy || model.active || observationBusy || handoffInfo.active
         || !Array.isArray(blockers) || blockers.some(code => (['START_BLOCKERS_UNAVAILABLE', 'OBSERVATION_STATUS_UNAVAILABLE'].includes(code) || code.startsWith('CONTROL_') || code.startsWith('OWNER_UNKNOWN:') || (code.startsWith('OWNER_BUSY:') && !['OWNER_BUSY:fastlio_observation', 'OWNER_BUSY:legacy_alignment'].includes(code))))
         || inputsRequestedAt < advisoryAfter || !pair || !session || !globalThis.crypto?.getRandomValues) return;

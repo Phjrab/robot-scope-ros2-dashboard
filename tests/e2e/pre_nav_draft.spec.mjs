@@ -1,12 +1,13 @@
 import { expect, test } from '@playwright/test';
 import { installDashboardBackend } from './dashboard_backend.mjs';
 
-async function fixture(page, fill = 0) {
+async function fixture(page, fill = 0, calibration = null) {
   const b = await installDashboardBackend(page);
   const id3='f'.repeat(24), rev3='e'.repeat(64);
   const loc={map_id:id3,revision:rev3}, nav={map_id:b.mapId,revision:b.mapRevision};
   const selected={workflow:'staged_navigation_pair',generation:'a'.repeat(32),localization_3d:loc,navigation_2d:nav,calibration:{verified:true},seed_geometry:null};
   const pair={valid:true,can_start:false,generation:selected.generation,localization_3d:loc,navigation_2d:nav,checks:[{code:'INITIAL_HEIGHT_TILT_REQUIRED'}]};
+  if (calibration) pair.calibration_sha256 = calibration;
   const status={selected,pair,activation:'NEXT_NAVIGATION_START',initialization_handoff:null};
   const cells=Buffer.alloc(64*48, fill);
   b.on('/api/v1/saved-maps',({json})=>json({total_size_bytes:4096,maps:[
@@ -207,5 +208,26 @@ test('blur keeps the old point visibly unconfirmed without send or implicit reac
  await expect(page.locator('#navigationPoseMode')).toContainText('미확인');await expect(page.locator('#navigationPoseCoordinates')).toContainText(before);
  await expect(page.locator('#navigationPoseSend')).toBeDisabled();await page.locator('#navigationPoseSend').dispatchEvent('click');
  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await expect(page.locator('#navigationPoseMode')).toContainText('미확인');
+ expect(b.state.requests.filter(r=>/\/navigation\/(initial-pose|goal|start)$/.test(r.path))).toEqual([]);
+});
+
+test('confirmed handoff pending stop preserves a stale draft for explicit running-context reconfirmation', async ({page}) => {
+ const {b,pair}=await fixture(page,0,'c'.repeat(64));await stage(page);
+ const before=(await page.locator('#navigationPoseCoordinates').textContent()).split(' · ').slice(0,3).join(' · ');
+ pair.valid=false;pair.checks=[{code:'HANDOFF_OBSERVATION_STOP_REQUIRED'}];await page.locator('[data-prep="refresh"]').click();
+ await expect(page.locator('#navigationPoseMode')).toContainText('이전 미전송 초안 · 미확인');
+ await expect(page.locator('#navigationPoseSend')).toBeDisabled();
+ pair.checks=[{code:'HANDOFF_MONITOR_PENDING'}];await page.locator('[data-prep="refresh"]').click();
+ await expect(page.locator('#navigationPoseMode')).toContainText('이전 미전송 초안 · 미확인');
+ pair.valid=true;pair.checks=[];b.state.navigation.pipeline={state:'running',job_id:'2'.repeat(32)};
+ b.state.navigation.map={id:b.mapId,revision:b.mapRevision};b.state.navigation.safety.can_set_initial_pose=true;
+ b.state.navigation.operational_localization={fresh:true,bundle_generation:'a'.repeat(32),localization_map_id:'f'.repeat(24),localization_map_revision:'e'.repeat(64),localization_generation:1,runtime_instance_generation:'runtime-one'};
+ await expect(page.locator('#navigationPipelineState')).toHaveText('RUNNING');
+ await page.locator('[data-prep="refresh"]').click();await expect.poll(async()=>JSON.parse(await page.locator('[data-prep="details"]').textContent()).pair?.valid).toBe(true);
+ await expect(page.locator('#navigationPoseMode')).toContainText('이전 미전송 초안 · 미확인');await expect(page.locator('#navigationPoseCoordinates')).toContainText(before);
+ await expect(page.locator('#navigationPoseSend')).toBeDisabled();
+ expect(b.state.requests.filter(r=>/\/navigation\/(initial-pose|goal|start)$/.test(r.path))).toEqual([]);
+ page.once('dialog',dialog=>dialog.accept());await page.locator('#navigationInitialPoseTool').click();
+ await expect(page.locator('#navigationPoseMode')).toContainText('이전 초안 재확인 · 미전송');await expect(page.locator('#navigationPoseSend')).toBeEnabled();
  expect(b.state.requests.filter(r=>/\/navigation\/(initial-pose|goal|start)$/.test(r.path))).toEqual([]);
 });

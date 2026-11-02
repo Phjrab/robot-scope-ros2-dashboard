@@ -6759,14 +6759,12 @@ controlUi.clear.addEventListener('click', clearEmergencyStop);
 window.addEventListener('gamepadconnected', refreshControlGamepads);
 window.addEventListener('gamepaddisconnected', refreshControlGamepads);
 window.addEventListener('blur', () => {
-  if (navigationPointer?.preBinding || navigationStagedPose?.preBinding || navigationPreDraftToolBinding) { preNavigationDraft.suspend(); renderNavigationPoseSelection(); scheduleNavigationMapDraw(); }
   if (controlArmBusy) invalidatePendingArm();
   if (controlLeaseId) failSafeDisarm('window_blurred');
 });
 document.addEventListener('visibilitychange', () => {
   syncPointcloudTransport();
   if (document.hidden) {
-    if (navigationPointer?.preBinding || navigationStagedPose?.preBinding || navigationPreDraftToolBinding) { preNavigationDraft.suspend(); renderNavigationPoseSelection(); scheduleNavigationMapDraw(); }
     if (controlArmBusy) invalidatePendingArm();
     if (controlLeaseId) failSafeDisarm('document_hidden');
     if (cameraRecording) stopCameraRecording(cameraRecordingCleanupPolicy('visibility_hidden'));
@@ -6778,6 +6776,8 @@ document.addEventListener('visibilitychange', () => {
   }
   syncCameraTransport();
 });
+window.addEventListener('blur', () => { if (navigationPointer?.preBinding || navigationStagedPose?.preBinding || navigationPreDraftToolBinding) { preNavigationDraft.suspend(); renderNavigationPoseSelection(); scheduleNavigationMapDraw(); } });
+document.addEventListener('visibilitychange', () => { if (document.hidden && (navigationPointer?.preBinding || navigationStagedPose?.preBinding || navigationPreDraftToolBinding)) { preNavigationDraft.suspend(); renderNavigationPoseSelection(); scheduleNavigationMapDraw(); } });
 window.addEventListener('pagehide', () => {
   if (controlArmBusy) invalidatePendingArm();
   if (controlLeaseId) failSafeDisarm('page_hidden');

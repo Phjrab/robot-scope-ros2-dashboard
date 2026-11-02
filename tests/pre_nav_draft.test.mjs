@@ -58,3 +58,34 @@ test('operator input and historical reconfirmation remain bound to exact map and
   const history={...staged,stale:true,historical:true};assert.ok(module.historicalRuntimeBinding(history,value));
   value.navigation.operational_localization.localization_map_revision='other';assert.equal(module.historicalRuntimeBinding(history,value),null);
 });
+
+test('confirmed handoff waiting for observation stop preserves the draft only as stale', async () => {
+  const module=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+  const value=input(); value.epoch=1; value.navigationAvailable=true; value.preparationAvailable=true;
+  value.pair.calibration_sha256='c'.repeat(64);
+  let stored=bind(value), cleared=0, suspended=0, archived=0;
+  const staged={mode:'initial',x:1,y:2,yaw:.4,preBinding:stored};
+  const controller=module.createPreNavigationDraftController({inputs:()=>value,binding:()=>stored,clear:()=>{cleared++;stored=null;},suspend:()=>{suspended++;staged.stale=true;},archive:()=>{archived++;staged.stale=true;staged.historical=true;}});
+  value.pair.valid=false;value.pair.checks=[{code:'HANDOFF_OBSERVATION_STOP_REQUIRED'}];controller.invalidate();
+  assert.equal(cleared,0);assert.equal(suspended,1);assert.equal(module.operatorDraftSnapshot({staged,currentBinding:controller.current()}).status,'stale');
+  value.pair.checks=[{code:'HANDOFF_MONITOR_PENDING'}];controller.invalidate();assert.equal(cleared,0);assert.equal(suspended,2);
+  value.pair.valid=true;value.pair.checks=[];controller.invalidate();
+  value.navigation={pipeline:{state:'running',job_id:'job'},map:{id:'2d',revision:'2rev'},operational_localization:{fresh:true,bundle_generation:'g1',localization_map_id:'3d',localization_map_revision:'3rev',localization_generation:3,runtime_instance_generation:'runtime'}};
+  controller.invalidate();assert.equal(cleared,0);assert.equal(archived,1);assert.ok(controller.runtime(staged));
+  value.pair.calibration_sha256='d'.repeat(64);assert.equal(controller.runtime(staged),null);controller.invalidate();assert.equal(cleared,1);
+});
+
+test('other pair errors or changed map or calibration still discard the draft', async () => {
+  const module=await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+  for (const mutate of [
+    v=>{v.pair.valid=false;v.pair.checks=[];},
+    v=>{v.pair.valid=false;v.pair.checks=[{code:'OTHER'}];},
+    v=>{v.pair.valid=false;v.pair.checks=[{code:'HANDOFF_OBSERVATION_STOP_REQUIRED'},{code:'CALIBRATION_CHANGED'}];},
+    v=>{v.pair.calibration_sha256='d'.repeat(64);},
+    v=>{v.pair.valid=false;v.pair.checks=[{code:'HANDOFF_OBSERVATION_STOP_REQUIRED'}];v.selected.navigation_2d.revision='changed';},
+  ]) {
+    const value=input();value.epoch=1;value.navigationAvailable=true;value.preparationAvailable=true;value.pair.calibration_sha256='c'.repeat(64);
+    let key=bind(value),cleared=0;const controller=module.createPreNavigationDraftController({inputs:()=>value,binding:()=>key,clear:()=>{key=null;cleared++;},suspend:()=>{}});
+    mutate(value);controller.invalidate();assert.equal(cleared,1,mutate.toString());
+  }
+});

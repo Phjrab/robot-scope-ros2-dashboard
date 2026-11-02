@@ -67,7 +67,7 @@ async function fixture(page) {
         policy: { id: currentPrior ? 'robot-scope.proposal-handoff.operator-prior-v1' : 'robot-scope.proposal-handoff.local-v1', ttl_s: 120, max_xy_m: .25, max_yaw_rad: .20 },
         continuity: 'SUPERVISED_GAP_UNMEASURED', stop_receipt: { state: 'NOT_REQUESTED' },
         geometry: { ...confirmedGeometry }, initial_pose_reference: { x: 1, y: 2, yaw: .3 }, operational_application: 'NOT_RUN' };
-      state.selected.seed_geometry = { ...handoff.geometry, source: 'proposal_confirmed', handoff: { handoff_id: id, proposal_id: 'f'.repeat(24), bundle_generation: state.selected.generation, calibration_sha256: inputs.pair.calibration_sha256, observation_session_id: session, ...(resolution ? { policy_id: 'robot-scope.proposal-handoff.operator-prior-v1', source_contract_sha256: '8'.repeat(64), operator_prior_resolution: resolution } : {}) } };
+      state.selected.seed_geometry = { ...handoff.geometry, source: 'proposal_confirmed', handoff: { handoff_id: id, proposal_id: 'f'.repeat(24), bundle_generation: state.selected.generation, calibration_sha256: inputs.pair.calibration_sha256, observation_session_id: session, ...(resolution ? { policy_id: 'robot-scope.proposal-handoff.operator-prior-v1', source_contract_sha256: '8'.repeat(64), operator_prior_resolution: resolution, ...(resolution.grouping_policy ? { operator_prior_current_members: {pose_stamp_ns:'1234',member_checks:currentMembers().member_checks} } : {}) } : {}) } };
       state.initialization_handoff = handoff; state.pair.can_start = false;
       if (heldConfirm) await heldConfirm;
       return confirmMode === 'lost' ? json({ detail: 'SYNTHETIC_RESPONSE_LOST' }, 503) : json(handoff);
@@ -77,13 +77,17 @@ async function fixture(page) {
       if (heldHandoffRead) await heldHandoffRead;
       return snapshot ? json(snapshot) : json({ detail: 'HANDOFF_NOT_FOUND' }, 404);
     }
-    function makeProof(prior) { return { schema:'robot-scope.operator-prior-resolution.v1', prior_id:'9'.repeat(32), operator_prior:structuredClone(prior),
+    function makeProof(prior) { const proof = { schema:'robot-scope.operator-prior-resolution.v1', prior_id:'9'.repeat(32), operator_prior:structuredClone(prior),
       accepted_monotonic_s:100, expires_monotonic_s:220, prior_anchor_stamp_ns:'123', bundle_generation:inputs.pair.generation,
       observation_session_id:observation.session_id, calibration_sha256:inputs.pair.calibration_sha256, localization_3d:inputs.pair.localization_3d,
       navigation_2d:inputs.pair.navigation_2d, source_contract_sha256:'8'.repeat(64), original_observation_sha256:'7'.repeat(64), candidate_index:0,
       retained_candidate_count:2, eligible_candidate_count:2, matching_candidate_count:1, projection_basis:'NAV_LOCALIZATION_CAPTURE_TO_PRIOR_ODOM_IMU_BASE',
-      classification:'CONDITIONAL_ON_OPERATOR_PRIOR', original_ambiguity_preserved:true, original_ambiguity_unresolved:true, global_uniqueness_verified:false, absolute_accuracy_m:null,
-      candidate_vs_prior:{xy_distance_m:.1,absolute_wrapped_yaw_rad:.1,within_existing_handoff_reference:true} }; }
+      classification:'CONDITIONAL_ON_OPERATOR_PRIOR', original_ambiguity_preserved:true, original_ambiguity_unresolved:proofMode !== 'original-unambiguous', global_uniqueness_verified:false, absolute_accuracy_m:null,
+      candidate_vs_prior:{xy_distance_m:.1,absolute_wrapped_yaw_rad:.1,within_existing_handoff_reference:true} };
+      if (proofMode.startsWith('group-')) Object.assign(proof, {grouping_policy:'PINNED_V031_SE3_FIRST_REPRESENTATIVE_V1',matching_candidate_count:2,matching_hypothesis_count:proofMode === 'group-two' ? 2 : 1,matching_retained_candidate_count:2,matching_member_indices:[0,1],verified_duplicate_count:1,matching_member_geometry:[{candidate_index:0,z_m:.84,roll_rad:.11,pitch_rad:.12,z_delta_m:0,roll_delta_rad:0,pitch_delta_rad:0},{candidate_index:1,z_m:.85,roll_rad:.12,pitch_rad:.11,z_delta_m:.01,roll_delta_rad:.01,pitch_delta_rad:-.01}]});
+      return proof; }
+    function currentMembers() { const outside = proofMode === 'group-outside'; return {pose_stamp_ns:'1234',pose_age_s:proofMode === 'group-aged' ? 1 : 0,xy_distance_m:.1,yaw_delta_rad:.1,within_prior_bounds:true,within_existing_handoff_reference:true,all_members_within_prior_bounds:!outside,member_checks:[{candidate_index:0,xy_distance_m:.1,absolute_wrapped_yaw_rad:.1,within_prior_bounds:true},{candidate_index:1,xy_distance_m:outside ? 1 : .11,absolute_wrapped_yaw_rad:.09,within_prior_bounds:!outside}]}; }
+
     if (path.includes('/initialization-proposals')) {
       if (method === 'POST') currentPrior = body?.operator_prior || null;
       if (method === 'POST' && proposalRejected) return json({ detail: 'GLOBAL_BACKEND_UNAVAILABLE' }, 503);
@@ -101,7 +105,7 @@ async function fixture(page) {
         imu_hypothesis: method === 'GET' && proposalState === 'ready' ? { frame: 'camera_init', pose_reference: 'FASTLIO_IMU', units: 'metres_degrees', pose, approximate_only: true, requires_reanchor: true } : null,
         body_candidate: method === 'GET' && proposalState === 'ready' ? { frame: 'camera_init', pose_reference: 'base_link', units: 'metres_radians', pose, qualification: 'INFORMATIONAL_LOCALIZATION_MAP_ONLY' } : null,
         navigation_geometry_candidate: method === 'GET' && proposalState === 'ready' && geometryPreview !== 'missing' ? { frame: geometryPreview === 'bad-frame' ? 'camera_init' : 'map', pose_reference: 'base_link', units: 'metres_radians', pose: { z: .84, roll: .11, pitch: .12 } } : null,
-        ...(method === 'GET' && proposalState === 'ready' && currentPrior ? { classification:'CONDITIONAL_ON_OPERATOR_PRIOR', operator_prior_resolution: ambiguousProposal ? null : proof } : {}),
+        ...(method === 'GET' && proposalState === 'ready' && currentPrior ? { classification:'CONDITIONAL_ON_OPERATOR_PRIOR', operator_prior_resolution: ambiguousProposal ? null : proof, ...(proof?.grouping_policy && proofMode !== 'group-missing-current' ? { current_vs_prior:currentMembers() } : {}) } : {}),
         quality: method === 'GET' && proposalState === 'ready' ? { overlap: .7, rmse_m: .1, hypothesis_overlap_min: .6, operational_initial_overlap_min: .85, ambiguity_unresolved: currentPrior ? proofMode !== 'original-unambiguous' : ambiguousProposal, residual_selection_gate_enabled: false, qualification: 'GLOBAL_HYPOTHESIS_ONLY_NOT_OPERATIONAL_QUALITY' } : null,
         provenance: method === 'GET' && proposalState === 'ready' ? { pose_age_s: 0, capture_age_s: 15, source_contract: { observer_id: '1'.repeat(32), cloud_epoch: (wrongProposalSource ? '4' : '2').repeat(32), pose_epoch: '3'.repeat(32) } } : null,
         cleanup: method === 'POST' ? { state: 'MONITORING', cancellation_requested: false } : proposalCleanup };
@@ -222,6 +226,20 @@ test('initial receipt requires explicit match and ready receipt never sends a go
   expect(f.writes.filter(write => write.path.endsWith('/goal'))).toHaveLength(0);
 });
 
+async function completeOperatorDraftForStageOne(page, fixture) {
+  fixture.inputs.pair.calibration_sha256 = 'c'.repeat(64);
+  await page.evaluate(() => window.preparation.refresh(true));
+  await page.evaluate(({ cloud, grid }) => {
+    window.fakeOperatorDraft = { status: 'ready', revision: 1, pose: { x: 1, y: 2, yaw: .1 },
+      bundle_generation: window.preparation.state().selected.generation,
+      localization_map: { id: cloud.id, revision: cloud.revision }, navigation_map: { id: grid.id, revision: grid.revision } };
+    window.preparation.draftChanged();
+  }, { cloud, grid });
+  await page.getByLabel('위치 불확실 반경 (m)').fill('.75');
+  await page.getByLabel('방향 불확실 ± (도)').fill('25');
+  await page.getByLabel(/이 초안이 현재 지도에서 정지/).check();
+}
+
 test('server checks invalidate only their dependent stages and current execution ignores a previous success', async ({ page }) => {
   const f = await fixture(page);
   await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
@@ -235,9 +253,13 @@ test('server checks invalidate only their dependent stages and current execution
   f.state.pair = { valid: true, can_start: false, restart_from_step: 2,
     checks: [{ code: 'INITIAL_GEOMETRY_RECONFIRM_REQUIRED', current: '이전 실행에서 사용한 높이', required: '현재 값', remedy: '②에서 재확인' }] };
   await page.evaluate(() => window.preparation.refresh(true));
+  await expect(page.locator('[data-prep="steps"] > li').nth(0)).toHaveAttribute('data-state', '사용자 입력 필요');
+  await expect(page.locator('[data-prep="current"]')).toContainText('현재 단계: 1.');
+  await expect(page.locator('[data-prep="issues"]')).toContainText('이전 실행에서 사용한 높이');
+  await completeOperatorDraftForStageOne(page, f);
   await expect(page.locator('[data-prep="steps"] > li').nth(0)).toHaveAttribute('data-state', '완료');
   await expect(page.locator('[data-prep="steps"] > li').nth(1)).toHaveAttribute('data-state', '사용자 입력 필요');
-  await expect(page.locator('[data-prep="issues"]')).toContainText('이전 실행에서 사용한 높이');
+  await expect(page.locator('[data-prep="current"]')).toContainText('현재 단계: 2.');
   await page.evaluate(({ grid }) => {
     const nav = window.fixtureContext.navigation;
     nav.pipeline = { state: 'running', job_id: 'new-job' }; nav.map = grid;
@@ -252,6 +274,10 @@ test('automatic fresh status clears a recovered read failure without losing the 
   const f = await fixture(page);
   await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
   await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
+  await expect(page.locator('[data-prep="steps"] > li').nth(0)).toHaveAttribute('data-state', '사용자 입력 필요');
+  await expect(page.locator('[data-prep="current"]')).toContainText('현재 단계: 1.');
+  await completeOperatorDraftForStageOne(page, f);
+  await expect(page.locator('[data-prep="steps"] > li').nth(0)).toHaveAttribute('data-state', '완료');
   await expect(page.locator('[data-prep="current"]')).toContainText('현재 단계: 2.');
   f.failReads(1);
   await page.evaluate(() => window.preparation.refresh(true));
@@ -275,7 +301,7 @@ test('pending apply visibly checks its step and later fresh reads retain action 
   await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
   f.holdWrites();
   await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
-  await expect(page.locator('[data-prep="current"]')).toHaveText('현재 단계: 1. 지도 선택·연결 확인 · 확인 중');
+  await expect(page.locator('[data-prep="current"]')).toHaveText('현재 단계: 1. 지도 연결·사용자 위치 초안 · 확인 중');
   await expect(page.getByRole('button', { name: '① 지도 연결 확인·적용' })).toBeDisabled();
   expect(await page.evaluate(() => window.preparation.canStart())).toBe(false);
   expect(await page.evaluate(() => window.preparation.canStart())).toBe(false);
@@ -1083,14 +1109,14 @@ test('changing operator draft while response is delayed invalidates it without r
 
 test('conditional prior remains ambiguous and requires separate explicit acknowledgement', async ({page}) => {
  const f=await proposalFixture(page);await page.getByRole('button',{name:'초기 위치 제안 계산'}).click();
- await expect(page.locator('[data-prep="proposal-result"]')).toContainText('원래 모호성은 유지');
+ await expect(page.locator('[data-prep="proposal-result"]')).toContainText('원본 판정: 모호성 미해결');
  await expect(page.locator('[data-prep="geometry-preview"]')).toContainText('미적용');
  await page.getByLabel(/현장 정지 상태를 직접 감독/).check();
  const confirm=page.getByRole('button',{name:'제안값 확인·②에 적용'});await expect(confirm).toBeDisabled();
  await page.getByLabel(/전역 유일성·실제 위치 정확도는 확인되지 않았음/).check();await expect(confirm).toBeEnabled();await confirm.click();
  const write=f.writes.find(v=>v.path.endsWith('/confirm-geometry'));
  expect(write.body.conditional_prior_acknowledged).toBe(true);expect(write.body.operator_prior).toBeUndefined();expect(write.body.operator_prior_resolution).toBeUndefined();
- await expect(page.locator('[data-prep="handoff-result"]')).toContainText('원래 모호성은 유지');
+ await expect(page.locator('[data-prep="handoff-result"]')).toContainText('원본 판정: 모호성 미해결');
  expect(f.writes.filter(v=>/seed-geometry|\/navigation\/start|initial-pose|\/match|\/goal/.test(v.path))).toHaveLength(0);
 });
 for (const mode of ['multiple','different-prior','original-mismatch']) {
@@ -1119,7 +1145,12 @@ test('nonambiguous original result remains conditional with its original flag un
  expect(detail.initialization_proposal.quality.ambiguity_unresolved).toBe(false);
  expect(detail.initialization_proposal.operator_prior_resolution.original_ambiguity_unresolved).toBe(false);
  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('조건부로 한 후보');
- expect(f.writes.filter(v=>v.path.endsWith('/confirm-geometry'))).toHaveLength(0);
+ await expect(page.locator('[data-prep="proposal-result"]')).toContainText('원본 판정: 비모호');
+ await page.getByLabel(/현장 정지 상태를 직접 감독/).check();await page.getByLabel(/전역 유일성·실제 위치 정확도는 확인되지 않았음/).check();
+ await page.getByRole('button',{name:'제안값 확인·②에 적용'}).click();
+ await expect(page.locator('[data-prep="handoff-result"]')).toContainText('원본 판정: 비모호');
+ await expect(page.locator('[data-prep="handoff-result"]')).toContainText('전역 유일성');
+ expect(f.writes.filter(v=>v.path.endsWith('/confirm-geometry'))).toHaveLength(1);
 });
 
 for (const reason of ['PRIOR_NO_MATCH', 'PRIOR_MULTIPLE_MATCHES']) {
@@ -1187,3 +1218,28 @@ for (const [state, reason, guardState, message] of [
   await expect(page.locator('[data-prep="observation-status"]')).toContainText(message);
   expect(f.writes).toEqual(writesBefore);
 });
+
+
+test('grouped proof displays actual member differences and confirms only with explicit acknowledgement', async ({page}) => {
+  const f=await proposalFixture(page); f.proofMode('group-valid');
+  await page.getByRole('button',{name:'초기 위치 제안 계산'}).click();
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('원본 후보 2개');
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('#1 Δz 0.010m');
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('전역 유일성·실제 위치 정확도는 확인되지 않았습니다');
+  await page.getByLabel(/현장 정지 상태를 직접 감독/).check();
+  const confirm=page.getByRole('button',{name:'제안값 확인·②에 적용'});await expect(confirm).toBeDisabled();
+  await page.getByLabel(/전역 유일성·실제 위치 정확도는 확인되지 않았음/).check();await expect(confirm).toBeEnabled();await confirm.click();
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('원래 모호성은 유지');
+  expect(f.writes.filter(v=>v.path.endsWith('/confirm-geometry'))).toHaveLength(1);
+  expect(f.writes.filter(v=>/seed-geometry|\/navigation\/start|initial-pose|\/match|\/goal/.test(v.path))).toHaveLength(0);
+});
+for (const mode of ['group-two','group-missing-current','group-outside','group-aged']) {
+  test(`grouped proof ${mode} never confirms`, async ({page}) => {
+    const f=await proposalFixture(page);f.proofMode(mode);
+    await page.getByLabel(/현장 정지 상태를 직접 감독/).check();await page.getByRole('button',{name:'초기 위치 제안 계산'}).click();
+    if (mode === 'group-outside') { await expect(page.locator('[data-prep="proposal-result"]')).toContainText('그룹의 모든 후보가'); await page.getByLabel(/전역 유일성·실제 위치 정확도는 확인되지 않았음/).check(); }
+    else await expect(page.locator('[data-prep="geometry-preview"]')).toContainText('미확인 또는 만료');
+    await expect(page.getByRole('button',{name:'제안값 확인·②에 적용'})).toBeDisabled();
+    expect(f.writes.filter(v=>v.path.endsWith('/confirm-geometry'))).toHaveLength(0);
+  });
+}
