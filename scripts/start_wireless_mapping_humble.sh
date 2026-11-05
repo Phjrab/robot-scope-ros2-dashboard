@@ -168,9 +168,13 @@ start_local "IMU receiver" "$LOG_DIR/wireless_imu_receiver.log" \
   --timeout "${ROBOT_SCOPE_WIRELESS_IMU_READY_TIMEOUT_SECONDS:-15}" || \
   fail 64 "WIRELESS IMU UNAUTHENTICATED"
 
+FASTLIO_READY_STAGE=fastlio
+if [[ "${ROBOT_SCOPE_NAVIGATION_RELATIVE_ODOM:-0}" == "1" ]]; then
+  FASTLIO_READY_STAGE=fastlio_odometry
+fi
 start_local "FAST-LIO" "$LOG_DIR/wireless_fastlio.log" \
   "$PROJECT_DIR/scripts/run_hesai_fastlio_wireless_humble.sh"
-/usr/bin/python3 "$PROJECT_DIR/scripts/check_xt16_lidar_ready.py" --stage fastlio \
+/usr/bin/python3 "$PROJECT_DIR/scripts/check_xt16_lidar_ready.py" --stage "$FASTLIO_READY_STAGE" \
   --timeout "${ROBOT_SCOPE_WIRELESS_FASTLIO_READY_TIMEOUT_SECONDS:-45}" || \
   fail 68 "FAST-LIO NOT READY"
 

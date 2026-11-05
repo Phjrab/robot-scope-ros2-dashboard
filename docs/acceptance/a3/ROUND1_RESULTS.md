@@ -24,10 +24,14 @@
 - Python 첫 전체 검사에서 `app.py` 크기 기준을 초과해, 실험의 소유자 검사를 ApplicationRuntime으로 이동하고 기존 API 모델 전달을 재사용했다. 최초 환경의 임시 경로 및 루프백 제한은 같은 시작 SHA에서도 실패를 재현했다.
 - 실험에 job 및 map revision 외에 seed 세대와 source epoch를 결속했다. 기존 seed와 다른 발행자나 작업에서 온 초기값, 수락 직후 재전송된 동일 요청은 거부한다.
 
+- 게시 후 실행기 점검에서 실험의 상대 odometry 전용 FAST-LIO가 비활성화한 `/Laser_map`을 기존 매핑 준비 단계가 기다리는 결함을 찾았다. 유선과 무선 실행기에서 실험만 기존 `/Odometry` 준비 검사를 쓰는 단계를 선택한다. 일반 매핑은 기존 `/Laser_map` 조건을 함께 유지한다.
+
 ## 로컬 재검증
 
 - Navigation, API, ROS 콜백, 공용 인터페이스와 아키텍처 관련 Python 115개 통과. 일반 `RosAgent`의 메서드 시그니처는 보존했고 수동 작업은 동일 gateway의 별도 포트를 사용한다.
 - 전체 JavaScript 765개와 문법 검사 통과. 실제 대시보드 + FastAPI 합성 Playwright 1개 통과.
+- 전체 로컬 브라우저 337개 중 첫 실행 328개가 통과했다. Python 환경을 지정한 재검사에서 A0 프리셋, C0 준비 API 및 모바일 미션 화면이 통과했다. 간헐적인 준비 화면 시험은 단독 반복 4회에서 모두 통과했다.
+- 상대 odometry 전용 준비 단계 수정 후 XT16, 작업 관리, 무선 profile 회귀 65개 통과.
 - 전체 Python은 로컬 macOS에서 실행했다. 기존 Linux `/proc`와 파일 소유권에 의존하는 검사에 로컬 제약이 남는다. 지원 Linux의 전체 시험은 게시된 SHA의 CI에서 확인한다.
 - Ruff, mypy, 변경 shell 구문, Git 변경 검사 통과.
 

@@ -513,19 +513,20 @@ class StageState:
                     minimum_rate_hz=10.0,
                 ),
             }
-        elif stage == "fastlio":
+        elif stage in {"fastlio", "fastlio_odometry"}:
             self.gates = {
                 "/Odometry": FreshSequenceGate(
                     required_frames=3,
                     max_gap_seconds=0.75,
                     minimum_rate_hz=2.0,
                 ),
-                "/Laser_map": FreshSequenceGate(
+            }
+            if stage == "fastlio":
+                self.gates["/Laser_map"] = FreshSequenceGate(
                     required_frames=1,
                     max_gap_seconds=5.0,
                     minimum_rate_hz=0.0,
-                ),
-            }
+                )
         else:
             raise ValueError(f"unsupported readiness stage: {stage}")
 
@@ -551,7 +552,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--stage",
-        choices=("raw", "imu", "preview", "bridge", "fastlio"),
+        choices=("raw", "imu", "preview", "bridge", "fastlio", "fastlio_odometry"),
         default="raw",
     )
     parser.add_argument("--timeout", type=float, default=15.0)
@@ -622,14 +623,13 @@ def wait_for_ros_stage(
                         self.create_subscription(Imu, "/imu/body", self.on_imu, qos)
                     )
             else:
-                self._readiness_subscriptions.extend(
-                    (
-                        self.create_subscription(Odometry, "/Odometry", self.on_odometry, qos),
-                        self.create_subscription(
-                            PointCloud2, "/Laser_map", self.on_laser_map, qos
-                        ),
-                    )
+                self._readiness_subscriptions.append(
+                    self.create_subscription(Odometry, "/Odometry", self.on_odometry, qos)
                 )
+                if "/Laser_map" in state.gates:
+                    self._readiness_subscriptions.append(
+                        self.create_subscription(PointCloud2, "/Laser_map", self.on_laser_map, qos)
+                    )
 
         def identity(self, topic: str, expected_type: str) -> Hashable:
             return publisher_identity(

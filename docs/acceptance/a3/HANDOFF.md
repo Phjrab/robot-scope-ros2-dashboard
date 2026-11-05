@@ -15,7 +15,7 @@
 - 준비 요청은 2D 지도와 파라미터 revision을 고정한다. job별 `manual-navigation.json`에 모드, job ID, 지도 ID/revision을 기록한다. 설정·프리셋·PCD 원본은 기존 저장 위치에 둔다.
 - 기존 `/initialpose` 경로의 수동 SE(2) 계산을 재사용한다. 실험은 해당 계산에 job, 지도, runtime instance, odometry epoch 및 seed 세대가 묶인 요청만 받는다. 브라우저와 ROS 수신 사이에 현재 세대가 바뀌면 요청을 거부한다. runtime receipt와 새 TF 발행의 ROS 토픽 echo가 확인되어야 목표가 열린다. A1은 현장에서 Nav2의 TF 조회와 실제 장착 기준을 별도로 확인한다.
 - 실제 입력은 FAST-LIO `/Odometry`, LiDAR `/velodyne_points`에서 만든 `/scan`, profile의 controller 속도 odometry다. 컨트롤러 입력과 상대 위치 입력의 실제 토픽은 화면에 표시된다. Nav2, 원시 속도 토픽, signed bridge, watchdog, 취소, recovery 출력 차단은 기존 구성을 사용한다.
-- 실험은 `/tf`와 `/tf_static`에 다른 발행자가 없는 ROS 그래프를 요구한다. Humble의 관측 근거로 공유 TF 토픽의 발행자를 프레임별로 확정하기 어렵기 때문에 적용한 보수적 제한이다. FAST-LIO를 새로 시작할 때는 기존 TF 격리 경로를 쓴다. 기존 주행·관측 소유자는 운영자가 정상 종료한 뒤 준비한다.
+- 실험은 `/tf`와 `/tf_static`에 다른 발행자가 없는 ROS 그래프를 요구한다. Humble의 관측 근거로 공유 TF 토픽의 발행자를 프레임별로 확정하기 어렵기 때문에 적용한 보수적 제한이다. FAST-LIO를 새로 시작할 때는 기존 TF 격리 경로와 상대 odometry 전용 준비 검사를 쓴다. 기존 주행·관측 소유자는 운영자가 정상 종료한 뒤 준비한다.
 - scan, odometry, TF, source, 제어권 상태가 바뀌면 현재 seed를 무효화한다. 작업이 교체되거나 지도가 바뀌면 새 준비와 seed가 필요하다. 대시보드 지도 수정은 기존 작업 상호 배제로 막는다. 관리 지도 파일이 외부에서 바뀐 경우 명령 경계에서 감지해 기존 실험을 닫는다. 주행 중에는 job의 고정 지도 스냅샷을 사용한다.
 - 정상 주행은 기존 3D 사전검사, bundle, geometry와 match 조건을 사용한다. 구성된 3D job의 bundle이 사라지면 실행이 실패한다. 실험 job에는 이 bundle과 PCD가 생성되지 않는다.
 - 합성 검증은 오프라인 UI/API와 ROS 콜백 동작을 확인한다. 네이티브 Nav2와 실제 장비 판정은 [검증 기록](ROUND1_RESULTS.md)에 구분했다.

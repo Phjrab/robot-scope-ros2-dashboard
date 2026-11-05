@@ -11,6 +11,7 @@ from types import SimpleNamespace
 ROOT = Path(__file__).resolve().parents[1]
 HELPER = ROOT / "scripts" / "check_xt16_lidar_ready.py"
 START_SCRIPT = ROOT / "scripts" / "start_hesai_mapping_humble.sh"
+WIRELESS_START_SCRIPT = ROOT / "scripts" / "start_wireless_mapping_humble.sh"
 PREVIEW_SCRIPT = ROOT / "scripts" / "start_xt16_preview_humble.sh"
 SPEC = importlib.util.spec_from_file_location("check_xt16_lidar_ready", HELPER)
 readiness = importlib.util.module_from_spec(SPEC)
@@ -324,6 +325,21 @@ class Xt16ReadinessCoreTests(unittest.TestCase):
         self.assertEqual(set(fastlio.gates), {"/Odometry", "/Laser_map"})
         self.assertFalse(fastlio.ready)
 
+    def test_fastlio_odometry_is_ready_without_a_laser_map(self):
+        mapping = readiness.StageState("fastlio")
+        relative = readiness.StageState("fastlio_odometry")
+        self.assertEqual(set(relative.gates), {"/Odometry"})
+        self.assertFalse(relative.ready)
+        for state in (mapping, relative):
+            gate = state.gates["/Odometry"]
+            for index in range(gate.required_frames):
+                observed_at = 1.0 + index * .1
+                gate.observe(stamp=observed_at, received_at=observed_at, publisher=(1,))
+            self.assertTrue(gate.ready_at(1.25))
+        self.assertFalse(mapping.ready_at(1.25))
+        self.assertTrue(relative.ready_at(1.25))
+        self.assertFalse(relative.ready_at(3.0))
+
     def test_preview_readiness_does_not_weaken_mapping_bridge_gate(self):
         preview = readiness.StageState("preview")
         bridge = readiness.StageState("bridge")
@@ -397,6 +413,7 @@ class Xt16ReadinessLauncherContractTests(unittest.TestCase):
         self.assertIn("raw", result.stdout)
         self.assertIn("bridge", result.stdout)
         self.assertIn("fastlio", result.stdout)
+        self.assertIn("fastlio_odometry", result.stdout)
 
     def test_ros_node_does_not_assign_the_read_only_subscriptions_property(self):
         self.assertNotIn("self.subscriptions =", self.helper_source)
@@ -425,7 +442,7 @@ class Xt16ReadinessLauncherContractTests(unittest.TestCase):
         )
         bridge_gate = self.script.index("--stage bridge")
         fastlio_process = self.script.index('start_once "fastlio_mapping"')
-        fastlio_gate = self.script.index("--stage fastlio")
+        fastlio_gate = self.script.index('--stage "$FASTLIO_READY_STAGE"')
         committed = self.script.index("PIPELINE_COMMITTED=1")
         self.assertLess(driver, bridge_process)
         self.assertLess(bridge_process, preview_ready)
@@ -435,6 +452,28 @@ class Xt16ReadinessLauncherContractTests(unittest.TestCase):
         self.assertNotIn("run_hesai_driver_humble.sh", self.script)
         self.assertNotIn("run_xt16_bridge_humble.sh", self.script)
         self.assertNotIn("run_hesai_fastlio_humble.sh", self.preview_script)
+
+    def test_wired_and_wireless_select_odometry_readiness_only_for_manual_mode(self):
+        default = "FASTLIO_READY_STAGE=fastlio\n"
+        for launcher in (START_SCRIPT, WIRELESS_START_SCRIPT):
+            script = launcher.read_text()
+            selection = script[script.index(default):]
+            selection = selection[:selection.index("\nfi") + len("\nfi")]
+            self.assertIn('--stage "$FASTLIO_READY_STAGE"', script)
+            for flag, expected in (("", "fastlio"), ("0", "fastlio"), ("1", "fastlio_odometry")):
+                with self.subTest(launcher=launcher.name, flag=flag):
+                    shell = (
+                        'ROBOT_SCOPE_NAVIGATION_RELATIVE_ODOM="$1"\n'
+                        "has_live_match() { return 1; }\n"
+                        "stop_existing() { :; }\n"
+                        + selection
+                        + '\nprintf "%s" "$FASTLIO_READY_STAGE"'
+                    )
+                    result = subprocess.run(
+                        ["bash", "-e", "-c", shell, "stage-selection", flag],
+                        check=True, text=True, capture_output=True,
+                    )
+                    self.assertEqual(result.stdout, expected)
 
     def test_failure_cleanup_targets_only_processes_started_by_this_launch(self):
         self.assertIn('STARTED_PIDS+=("$pid")', self.script)

@@ -199,7 +199,9 @@ start_once() {
 # "새 맵 시작" is an explicit accumulator reset.  The dashboard-owned Hesai
 # driver and XT16 bridge remain alive as the persistent raw preview; only the
 # fixed FAST-LIO process group belongs to this mapping launch.
+FASTLIO_READY_STAGE=fastlio
 if [[ "${ROBOT_SCOPE_NAVIGATION_RELATIVE_ODOM:-0}" == "1" ]]; then
+  FASTLIO_READY_STAGE=fastlio_odometry
   if has_live_match "fastlio_mapping|ros2 launch fast_lio"; then
     echo "[Robot Scope] manual 2D experiment found an existing FAST-LIO owner" >&2
     exit 1
@@ -215,7 +217,7 @@ python3 "$PROJECT_DIR/scripts/check_xt16_lidar_ready.py" \
   --timeout "${ROBOT_SCOPE_XT16_BRIDGE_READY_TIMEOUT_SECONDS:-15}"
 start_once "fastlio_mapping" "FAST-LIO" "$LOG_DIR/fastlio_dashboard.log" "$PROJECT_DIR/scripts/run_hesai_fastlio_humble.sh"
 python3 "$PROJECT_DIR/scripts/check_xt16_lidar_ready.py" \
-  --stage fastlio \
+  --stage "$FASTLIO_READY_STAGE" \
   --timeout "${ROBOT_SCOPE_FASTLIO_READY_TIMEOUT_SECONDS:-45}"
 if [[ "${ROBOT_SCOPE_START_STATIC_MAP:-0}" == "1" &&
       "${ROBOT_SCOPE_NAVIGATION_RELATIVE_ODOM:-0}" != "1" ]]; then

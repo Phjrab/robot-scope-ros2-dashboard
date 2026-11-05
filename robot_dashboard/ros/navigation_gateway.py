@@ -3309,7 +3309,7 @@ class NavigationRosGateway:
         localized = bool(
             runtime_health.get("localized")
             and str((self._navigation.get("localization") or {}).get("state", ""))
-            == "localized"
+            in {"localized", "manual_seeded"}
         )
         instantaneous = classify_localization_health(
             metrics,
