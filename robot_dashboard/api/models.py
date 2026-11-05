@@ -16,6 +16,11 @@ class NavigationPresetCreateRequest(StrictRequest):
     values: Dict[str, Any] = Field(min_length=27, max_length=27)
 
 
+class NavigationPresetUpdateRequest(StrictRequest):
+    base_revision: str = Field(pattern=r"^[0-9a-f]{32}$")
+    values: Dict[str, Any] = Field(min_length=27, max_length=27)
+
+
 class SourceSelection(StrictRequest):
     camera: str | None = Field(default=None, max_length=255)
     pointcloud: str | None = Field(default=None, max_length=255)

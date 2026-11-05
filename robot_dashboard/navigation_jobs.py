@@ -589,6 +589,11 @@ class NavigationJobManager:
 
         return NavigationPresetStore(self.runtime_dir, self._validate_parameter_set).create(name, values)
 
+    def update_preset(self, identifier: str, base_revision: str, values: Mapping[str, Any]) -> dict[str, Any]:
+        from .navigation_presets import NavigationPresetStore
+
+        return NavigationPresetStore(self.runtime_dir, self._validate_parameter_set).update(identifier, base_revision, values)
+
     def parameters_snapshot(self) -> dict[str, Any]:
         with self._lock:
             values = {key: self._parameters[key] for key in PARAMETER_FIELDS}

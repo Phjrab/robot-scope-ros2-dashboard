@@ -321,13 +321,23 @@ test('active navigation map is pinned to its exact catalog revision', async () =
   assert.match(appSource, /navigationSelectedMapMeta\?\.revision \|\| ''\) !== serverMapRevision/);
 });
 
-test('parameter revision conflicts reload only after the busy guard is released', () => {
-  assert.match(appSource, /let reloadAfterConflict = false;/);
-  assert.match(appSource, /reloadAfterConflict = error\.status === 409 \|\| String\(error\.message\)\.includes\('409'\);/);
-  assert.match(
-    appSource,
-    /finally \{[\s\S]{0,180}navigationParameterBusy = false;[\s\S]{0,180}if \(reloadAfterConflict\) \{[\s\S]{0,120}await refreshNavigationParameters\(true\);/,
-  );
+test('parameter conflicts preserve the draft and wait for an explicit refresh', async () => {
+  const start = appSource.indexOf('async function applyNavigationParameters()');
+  const end = appSource.indexOf('function redrawActiveMap()', start);
+  const draft = { ...navigation.TUNED_VALUES, desired_linear_vel: .5 };
+  const context = {
+    navigationParameterSnapshot: { revision: 'revision', values: navigation.TUNED_VALUES },
+    navigationParameterDraft: draft, navigationParameterBusy: false,
+    navigationEngine: navigation, navigationSnapshot: { pipeline: { state: 'idle' } },
+    api: async () => { const error = new Error('409 conflict'); error.status = 409; throw error; },
+    showToast() {}, syncNavigationParameterControls() {}, renderNavigationStatus() {},
+    refreshNavigationParameters() { assert.fail('must preserve edited values'); },
+  };
+  vm.createContext(context);
+  vm.runInContext(appSource.slice(start, end), context);
+  assert.match(await context.applyNavigationParameters(), /현재 적용 실패/);
+  assert.equal(context.navigationParameterDraft, draft);
+  assert.equal(context.navigationParameterBusy, false);
 });
 
 test('navigation health metrics show unknown values without inventing zero and retain measured zero', () => {

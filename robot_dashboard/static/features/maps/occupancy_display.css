@@ -1,0 +1,12 @@
+.saved-occupancy-details { margin: 12px 16px; font-size: 12px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); }
+.occupancy-legend { display: flex; flex-wrap: wrap; gap: 10px; padding: 8px 16px; color: var(--text); font-size: 12px; }
+.occupancy-legend[hidden] { display: none; }
+.occupancy-legend span { display: inline-flex; gap: 5px; align-items: center; }
+.occupancy-legend i { width: 13px; height: 13px; border: 1px solid #64748b; }
+.occupancy-legend .occupied { background: rgb(20,25,28); }
+.occupancy-legend .free { background: rgb(245,248,250); }
+.occupancy-legend .unknown { background: rgb(125,136,148); }
+.saved-map-panel:has(#savedMapCanvas:not(.is-hidden)) .map-legend > span,
+.saved-map-panel:has(#savedMapCanvas:not(.is-hidden)) .map-legend .overlay-toggle,
+.saved-map-panel:has(#savedMapCanvas:not(.is-hidden)) .map-view-select:has(#savedPointBudget) { display: none; }
+#navigationPresetDifference { overflow-wrap: anywhere; font-size: 12px; color: var(--text-muted); }

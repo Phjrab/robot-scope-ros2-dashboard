@@ -85,3 +85,50 @@ test('dashboard wires escaped preset options and separate creation controls', ()
   assert.ok(source.includes("navigationPresetSave.addEventListener('click', save)"));
   assert.ok(app.includes('navigationParameterBusy || pipelineActive || !dirty'));
 });
+
+test('same-ID update uses a pinned revision and verifies persisted readback', async () => {
+  let stored = { ...entry(), revision: '1'.repeat(32) };
+  const calls = [];
+  const catalog = createNavigationPresetCatalog({ validate, api: async (path, options) => {
+    calls.push([path, options]);
+    if (options) {
+      const body = JSON.parse(options.body);
+      assert.equal(body.base_revision, stored.revision);
+      stored = { ...stored, revision: '2'.repeat(32), values: body.values };
+      return { preset: stored, presets: [stored] };
+    }
+    return { presets: [stored] };
+  } });
+  await catalog.refresh();
+  const draft = { ...values(), desired_linear_vel: .5 };
+  const saved = await catalog.update(catalog.presets[0], draft);
+  assert.equal(saved.id, entry().id);
+  assert.equal(saved.values.desired_linear_vel, .5);
+  assert.equal(calls[1][1].method, 'PATCH');
+  assert.equal(calls[2][1], undefined);
+  assert.equal(catalog.presets.length, 1);
+  assert.equal(draft.desired_linear_vel, .5);
+});
+
+test('409, HTTP failure and failed readback retain draft and catalog', async () => {
+  const stored = { ...entry(), revision: '1'.repeat(32) };
+  for (const failure of ['conflict', 'http', 'readback']) {
+    let updating = false;
+    const catalog = createNavigationPresetCatalog({ validate, api: async (path, options) => {
+      if (options) {
+        updating = true;
+        if (failure !== 'readback') throw new Error(failure);
+        return { preset: { ...stored, revision: '2'.repeat(32) } };
+      }
+      if (updating) throw new Error('readback');
+      return { presets: [stored] };
+    } });
+    await catalog.refresh();
+    const target = catalog.presets[0];
+    const draft = { ...values(), desired_linear_vel: .5 };
+    await assert.rejects(catalog.update(target, draft));
+    assert.equal(catalog.presets[0], target);
+    assert.equal(draft.desired_linear_vel, .5);
+    assert.equal(catalog.busy, false);
+  }
+});

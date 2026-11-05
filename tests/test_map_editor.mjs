@@ -102,13 +102,13 @@ test('Saved Maps exposes PDF 09 conversion parameters, progress and safe backgro
     'mapConvertResolution', 'mapConvertRadius', 'mapConvertNeighbors',
     'mapConvertBackground', 'mapConvertStart', 'mapConvertProgress', 'mapConvertMessage',
   ]) assert.match(indexSource, new RegExp(`id="${id}"`));
-  assert.match(indexSource, /z=0은 XT16 LiDAR 높이 기준/);
+  assert.match(indexSource, /높이는 저장 PCD 좌표계 기준/);
   assert.match(indexSource, /id="mapConvertZMin"[^>]+min="-20"[^>]+max="20"/);
   assert.match(indexSource, /id="mapConvertZMax"[^>]+min="-20"[^>]+max="20"/);
   assert.match(indexSource, /value="unknown" selected/);
-  assert.match(indexSource, /value="free">FREE · 경계 전체 자유공간/);
+  assert.doesNotMatch(indexSource, /value="free">FREE · 경계 전체 자유공간/);
   assert.match(indexSource, /자동 점 노이즈 필터 \(2D 투영\)/);
-  assert.match(indexSource, /PCL 3D RadiusOutlierRemoval와 동일한 알고리즘이 아닙니다/);
+  assert.match(indexSource, /XY bin의 3×3 근방 점 수를 세며 자기 점을 포함/);
   assert.match(appSource, /주의: FREE는 PCD 경계 사각형의 미관측 영역까지 자유공간으로 처리합니다/);
 });
 

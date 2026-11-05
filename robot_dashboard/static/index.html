@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="/static/features/settings/settings.css">
   <link rel="stylesheet" href="/static/features/map_editor3d/editor.css">
   <script src="/static/typography.js" defer></script>
+  <link rel="stylesheet" href="/static/features/maps/occupancy_display.css">
 </head>
 <body>
   <div class="ambient ambient-a"></div>
@@ -282,6 +283,8 @@
               </div>
               <div class="map-meta"><span id="savedMapFrame">FRAME —</span><span id="savedMapPoints">0 POINTS</span></div>
             </div>
+          <div class="occupancy-legend" id="savedOccupancyLegend" hidden><span><i class="occupied"></i>OCCUPIED · 장애물</span><span><i class="free"></i>FREE · 자유공간</span><span><i class="unknown"></i>UNKNOWN · 미확인</span></div>
+            <p class="saved-occupancy-details" id="savedOccupancyDetails" hidden></p>
           </article>
           <aside class="panel saved-library-panel">
             <div class="panel-header compact"><div><div class="eyebrow">MAP LIBRARY</div><h2>저장 지도 목록</h2></div><span class="muted" id="savedMapCount">0 maps · 0 B</span></div>
@@ -316,15 +319,15 @@
                 <label><span>thre_z_max (m)</span><input id="mapConvertZMax" type="number" min="-20" max="20" step="0.05" value="0.8"></label>
                 <label><span>resolution (m)</span><input id="mapConvertResolution" type="number" min="0.01" max="1" step="0.01" value="0.05"></label>
               </div>
-              <p class="map-conversion-help">z=0은 XT16 LiDAR 높이 기준입니다. 기본 범위 −0.2~0.8 m에서 결과를 보며 조정하세요.</p>
+              <p class="map-conversion-help">높이는 저장 PCD 좌표계 기준입니다. 지면·낮은 장애물·천장의 실제 Z를 확인해 슬라이스를 지정하세요.</p>
               <details class="map-conversion-advanced">
                 <summary>자동 점 노이즈 필터 (2D 투영)</summary>
                 <div>
-                  <label><span>radius (m)</span><input id="mapConvertRadius" type="number" min="0.01" max="2" step="0.01" value="0.1"></label>
+                  <label><span>XY bin 크기 (m)</span><input id="mapConvertRadius" type="number" min="0.01" max="2" step="0.01" value="0.1"></label>
                   <label><span>min neighbors</span><input id="mapConvertNeighbors" type="number" min="1" max="1000" step="1" value="10"></label>
-                  <label><span>background</span><select id="mapConvertBackground"><option value="unknown" selected>UNKNOWN · 안전 기본</option><option value="free">FREE · 경계 전체 자유공간</option></select></label>
+                  <label><span>background</span><select id="mapConvertBackground"><option value="unknown" selected>UNKNOWN · 안전 기본</option></select></label>
                 </div>
-                <p class="map-conversion-filter-note">XY 2D 투영 점 밀도 필터입니다. 수업에서 사용한 PCL 3D RadiusOutlierRemoval와 동일한 알고리즘이 아닙니다.</p>
+                <p class="map-conversion-filter-note">XY bin의 3×3 근방 점 수를 세며 자기 점을 포함합니다. 같은 원본·높이에서 최소 1점과 현재 설정을 비교하세요.</p>
               </details>
               <button id="mapConvertStart" class="map-primary-action" type="button" disabled>2D 변환 실행</button>
               <div class="map-operation-progress">
@@ -381,6 +384,7 @@
             <div class="map-crop-toolbar">
               <div><strong id="mapCropSource">SOURCE —</strong><small id="mapCropDimensions">영역 미선택</small></div>
               <button id="mapCropSelect" type="button" disabled>CROP AREA 선택</button>
+              <button id="mapCropView" type="button" disabled>경기장 보기 · 확대</button>
               <button id="mapCropCancel" type="button" disabled>선택 취소</button>
             </div>
             <div class="map-crop-stage">
@@ -390,9 +394,9 @@
             <div class="map-editor-save-row">
               <div><strong>새 지도 복사본</strong><small>YAML origin 자동 보정</small></div>
               <label><span>복사본 이름</span><input id="mapCropName" maxlength="64" autocomplete="off" spellcheck="false" placeholder="map_name_crop"></label>
-              <button id="mapCropSave" class="map-primary-action" type="button" disabled>SAVE CROPPED COPY</button>
+              <button id="mapCropSave" class="map-primary-action" type="button" disabled>경기장 지도 만들기 · 새 사본</button>
             </div>
-            <p id="mapCropMessage" class="map-tool-message" aria-live="polite">원본 YAML·PGM·PCD는 변경하지 않습니다. 사각형 밖 영역만 제외한 새 2D 지도를 생성합니다.</p>
+            <p id="mapCropMessage" class="map-tool-message" aria-live="polite">원본 YAML·PGM·PCD는 변경하지 않습니다. 경기장 보기는 표시만 확대합니다. 경기장 지도 만들기는 선택 영역을 새 사본으로 저장합니다. 진입·회전 여유 공간을 포함하세요.</p>
           </article>
         </section>
       </section>
@@ -798,14 +802,17 @@
             <label><span>Preset</span><select id="navigationPreset"><option value="">서버 preset 대기</option></select></label>
             <button id="navigationPresetLoad" type="button" disabled>LOAD PRESET</button>
             <button id="navigationParameterReset" type="button" disabled>RESET CHANGES</button>
-            <button id="navigationParameterApply" class="navigation-primary" type="button" disabled>APPLY</button>
-            <span id="navigationParameterDirty">NO CHANGES</span>
+            <button id="navigationParameterApply" class="navigation-primary" type="button" disabled>현재 설정만 적용</button>
+            <label><span>현재 설정과 차이</span><span id="navigationParameterDirty">NO CHANGES</span></label>
           </div>
           <div class="navigation-parameter-toolbar navigation-preset-create">
             <label><span>새 팀 공용 프리셋 이름</span><input id="navigationPresetName" type="text" maxlength="64" placeholder="예: 실내 복도 · 0.5 m/s" autocomplete="off"></label>
-            <button id="navigationPresetSave" type="button" disabled>SAVE AS PRESET</button>
+            <button id="navigationPresetSave" type="button" disabled>새 프리셋으로 저장</button>
+            <button id="navigationPresetUpdate" type="button" disabled>선택한 사용자 프리셋에 저장</button>
+            <button id="navigationPresetApply" type="button" disabled>프리셋 저장 후 적용</button>
+            <span id="navigationPresetDifference"></span>
             <button id="navigationPresetRefresh" type="button">REFRESH LIST</button>
-            <p id="navigationPresetMessage" role="status">아래 편집 값을 새 이름으로 서버에 저장합니다. 팀원은 목록 새로고침 → LOAD → Nav2 정지 후 APPLY 순서로 사용하세요. 저장만으로 주행 설정이 바뀌지는 않습니다.</p>
+            <p id="navigationPresetMessage" role="status">LOAD로 편집할 프리셋을 불러오세요. 기본 프리셋의 수정본은 새 이름으로 저장하세요.</p>
           </div>
           <div class="navigation-parameter-groups" id="navigationParameterGroups"><div class="sensor-placeholder">파라미터 계약을 확인하고 있습니다.</div></div>
           <div class="navigation-runtime-bindings">

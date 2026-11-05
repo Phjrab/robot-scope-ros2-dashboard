@@ -23,6 +23,10 @@ class PresetConflict(ValueError):
     pass
 
 
+class PresetNotFound(ValueError):
+    pass
+
+
 class PresetUnavailable(RuntimeError):
     pass
 
@@ -88,7 +92,12 @@ class NavigationPresetStore:
                     raise ValueError("duplicate preset")
                 ids.add(identifier)
                 names.add(name.casefold())
-                result.append({"id": identifier, "label": name, "description": "팀 공용 사용자 프리셋", "values": self.validator(entry["values"])})
+                # Version 1 entries predate editable presets. A stable initial
+                # token lets separate processes load them without a migration.
+                revision = entry.get("revision", uuid.uuid5(uuid.NAMESPACE_OID, identifier).hex)
+                if not isinstance(revision, str) or not re.fullmatch(r"[0-9a-f]{32}", revision):
+                    raise ValueError("invalid revision")
+                result.append({"revision": revision, "id": identifier, "label": name, "description": "팀 공용 사용자 프리셋", "values": self.validator(entry["values"])})
             return result
         except (ValueError, KeyError, TypeError, RuntimeError) as exc:
             raise PresetUnavailable("저장된 프리셋을 읽을 수 없습니다. 관리자 확인이 필요합니다.") from exc
@@ -106,19 +115,45 @@ class NavigationPresetStore:
                 raise PresetConflict("같은 이름의 프리셋이 있습니다. 다른 이름을 입력해 주세요.")
             if len(presets) >= self.MAX_PRESETS:
                 raise PresetConflict("프리셋 저장 한도(64개)에 도달했습니다.")
-            preset = {"id": "user-" + uuid.uuid4().hex, "label": name, "description": "팀 공용 사용자 프리셋", "values": normalized}
+            preset = {"revision": uuid.uuid4().hex, "id": "user-" + uuid.uuid4().hex, "label": name, "description": "팀 공용 사용자 프리셋", "values": normalized}
             presets.append(preset)
-            payload = json.dumps({"version": 1, "presets": presets}, ensure_ascii=False, allow_nan=False).encode("utf-8")
-            if len(payload) > self.MAX_BYTES:
-                raise PresetConflict("프리셋 저장 용량 한도에 도달했습니다.")
-            fd, staging = tempfile.mkstemp(prefix=".presets-", dir=self.directory)
-            try:
-                with os.fdopen(fd, "wb") as stream:
-                    stream.write(payload)
-                    stream.flush()
-                    os.fsync(stream.fileno())
-                os.replace(staging, self.directory / "presets.json")
-            finally:
-                if os.path.exists(staging):
-                    os.unlink(staging)
+            self._write("presets.json", presets)
             return {"preset": preset, "presets": presets}
+
+    def update(self, identifier: str, base_revision: str, values: Mapping[str, Any]) -> dict[str, Any]:
+        with self._locked():
+            presets = self._read()
+            for index, entry in enumerate(presets):
+                if entry["id"] != identifier:
+                    continue
+                if entry["revision"] != base_revision:
+                    raise PresetConflict("다른 사용자가 수정했습니다. 목록을 새로고침해 변경값을 확인하세요.")
+                normalized = self.validator(values)
+                if normalized == entry["values"]:
+                    return {"preset": entry, "presets": presets}
+                updated = {**entry, "revision": uuid.uuid4().hex, "values": normalized}
+                self._write("presets.previous.json", presets)
+                presets[index] = updated
+                self._write("presets.json", presets)
+                return {"preset": updated, "presets": presets}
+            raise PresetNotFound("선택한 사용자 프리셋을 찾을 수 없습니다.")
+
+    def _write(self, filename: str, presets: list[dict[str, Any]]) -> None:
+        payload = json.dumps({"version": 1, "presets": presets}, ensure_ascii=False, allow_nan=False).encode("utf-8")
+        if len(payload) > self.MAX_BYTES:
+            raise PresetConflict("프리셋 저장 용량 한도에 도달했습니다.")
+        fd, staging = tempfile.mkstemp(prefix=".presets-", dir=self.directory)
+        try:
+            with os.fdopen(fd, "wb") as stream:
+                stream.write(payload)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(staging, self.directory / filename)
+            directory_fd = os.open(self.directory, os.O_RDONLY | os.O_DIRECTORY)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
+        finally:
+            if os.path.exists(staging):
+                os.unlink(staging)

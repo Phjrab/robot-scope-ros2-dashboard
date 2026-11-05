@@ -2671,6 +2671,7 @@ class SavedMapCatalog:
         pixels = np.full((height, width), background_value, dtype=np.uint8)
         pixels[height - 1 - y_indexes, x_indexes] = values[100]
         return pixels, {
+            "finite_points": int(np.count_nonzero(finite)),
             "z_slice_points": z_slice_points,
             "selected_points": selected_points,
             "occupied_cells": occupied_cells,

@@ -246,6 +246,7 @@ function dashboardSaveHarness({ failCatalogue = false, selection = null } = {}) 
   const saved = { map: { id: 'a'.repeat(24), name: 'synthetic-copy' } };
   const entries = [saved.map], toasts = [], apiCalls = [];
   const context = {
+    renderSavedOccupancyDetails() {},
     document: { querySelector: () => ({ value: '', textContent: '' }) },
     ui: new Proxy({}, { get(target, key) { return target[key] ||= {}; } }),
     selectedSavedMapMeta: selection, selectedSavedMapId: selection?.id || '', savedMapCatalog: [],

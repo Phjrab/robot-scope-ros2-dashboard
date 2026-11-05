@@ -1,3 +1,4 @@
+import { occupancyImage } from './occupancy_display.js';
 const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
 export const validSavedMapName = (value) => NAME_RE.test(String(value || ''));
 export function suggestedDerivedMapName(source, suffix) {
@@ -36,6 +37,8 @@ export function initializeMapCropFeature(options) {
   let selecting = false;
   let pointer = null;
   let crop = null;
+  let focused = false;
+  const view = element('mapCropView');
   let saving = false;
 
   function sourceValue() {
@@ -76,6 +79,14 @@ export function initializeMapCropFeature(options) {
     const context = ui.canvas.getContext('2d');
     context.fillStyle = '#06100e'; context.fillRect(0, 0, width, height);
     if (!source || !image) { layout = null; return; }
+    if (focused && crop) {
+      const w = crop.max_x - crop.min_x, h = crop.max_y - crop.min_y;
+      const scale = Math.min(width / w, height / h) * .94;
+      context.imageSmoothingEnabled = false;
+      context.drawImage(image, crop.min_x, source.height - crop.max_y, w, h, (width - w * scale) / 2, (height - h * scale) / 2, w * scale, h * scale);
+      layout = null;
+      return;
+    }
     const scale = Math.min(width / source.width, height / source.height) * .94;
     const drawWidth = source.width * scale; const drawHeight = source.height * scale;
     const left = (width - drawWidth) / 2; const top = (height - drawHeight) / 2;
@@ -97,6 +108,8 @@ export function initializeMapCropFeature(options) {
     const available = Boolean(source);
     ui.empty.hidden = available;
     ui.select.disabled = !available || saving;
+    view.disabled = !crop;
+    view.textContent = focused ? '전체 지도 보기' : '경기장 보기 · 확대';
     ui.cancel.disabled = !crop || saving;
     ui.name.disabled = !available || saving;
     ui.save.disabled = !crop || saving || !NAME_RE.test(ui.name.value.trim());
@@ -114,28 +127,20 @@ export function initializeMapCropFeature(options) {
     const value = sourceValue();
     const key = value ? `${value.meta.id}:${value.meta.revision}` : '';
     if (key === source?.key) return render();
-    source = null; image = null; crop = null; pointer = null; selecting = false;
+    source = null; image = null; crop = null; focused = false; pointer = null; selecting = false;
     if (!value) return render();
     try {
       const decoded = decodeGrid(value.snapshot);
-      const canvas = document.createElement('canvas'); canvas.width = decoded.width; canvas.height = decoded.height;
-      const context = canvas.getContext('2d'); const pixels = context.createImageData(decoded.width, decoded.height);
-      for (let index = 0; index < decoded.cells.length; index += 1) {
-        const valueByte = decoded.cells[index]; const valueCell = valueByte > 127 ? valueByte - 256 : valueByte;
-        const color = valueCell < 0 ? [126,137,133] : valueCell >= 65 ? [7,10,9] : [242,246,244];
-        const x = index % decoded.width; const y = Math.floor(index / decoded.width);
-        const output = ((decoded.height - 1 - y) * decoded.width + x) * 4;
-        pixels.data.set([...color, 255], output);
-      }
-      context.putImageData(pixels, 0, 0); image = canvas;
+      image = occupancyImage(value.snapshot).source;
       source = { key, meta: value.meta, width: decoded.width, height: decoded.height, resolution: Number(value.snapshot.resolution) };
       ui.name.value = suggestedDerivedMapName(value.meta, '_crop');
       render();
     } catch (error) { render(`크롭 준비 실패: ${error.message}`); }
   }
 
-  ui.select.addEventListener('click', () => { selecting = !selecting; pointer = null; if (selecting) crop = null; render(); });
-  ui.cancel.addEventListener('click', () => { selecting = false; pointer = null; crop = null; render(); });
+  view.addEventListener('click', () => { focused = !focused; render('표시 범위만 변경했습니다. 해상도·측정 정확도는 원본과 같습니다.'); });
+  ui.select.addEventListener('click', () => { focused = false; selecting = !selecting; pointer = null; if (selecting) crop = null; render(); });
+  ui.cancel.addEventListener('click', () => { focused = false; selecting = false; pointer = null; crop = null; render(); });
   ui.name.addEventListener('input', () => render());
   ui.canvas.addEventListener('pointerdown', (event) => { const cell = selecting && cellAt(event); if (!cell || event.button !== 0) return; event.preventDefault(); pointer = { id: event.pointerId, start: cell, end: cell }; try { ui.canvas.setPointerCapture(event.pointerId); } catch (_) {} draw(); });
   ui.canvas.addEventListener('pointermove', (event) => { if (!pointer || pointer.id !== event.pointerId) return; const cell = cellAt(event); if (cell) pointer.end = cell; event.preventDefault(); draw(); });

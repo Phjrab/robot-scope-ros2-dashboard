@@ -158,3 +158,72 @@ class NavigationPresetTests(unittest.TestCase):
         response = client.get(path)
         self.assertEqual(response.status_code, 503)
         self.assertNotIn(str(self.root), response.text)
+
+    def test_update_same_id_roundtrip_and_legacy_catalog(self):
+        a = self.store.create("A", self.values)["preset"]
+        b = self.store.create("B", self.values)["preset"]
+        legacy = {"version": 1, "presets": [
+            {key: value for key, value in entry.items() if key != "revision"}
+            for entry in (a, b)
+        ]}
+        (self.root / "presets.json").write_text(json.dumps(legacy))
+        a, b = self.new_store().snapshot()["presets"]
+        self.assertEqual(self.new_store().snapshot()["presets"][0]["revision"], a["revision"])
+        result = self.store.update(a["id"], a["revision"], {**self.values, "desired_linear_vel": .5})["preset"]
+        self.assertEqual(result["id"], a["id"])
+        self.assertNotEqual(result["revision"], a["revision"])
+        self.assertEqual(self.new_store().snapshot()["presets"], [result, b])
+        self.assertEqual(json.loads((self.root / "presets.previous.json").read_text())["presets"], [a, b])
+        with patch.object(self.store, "MAX_PRESETS", 2):
+            self.assertEqual(self.store.update(result["id"], result["revision"], result["values"])["preset"], result)
+        self.assertEqual(len(self.new_store().snapshot()["presets"]), 2)
+
+    def test_concurrent_update_one_winner_and_old_request_conflicts(self):
+        a = self.store.create("A", self.values)["preset"]
+        def update(index):
+            try:
+                return self.new_store().update(a["id"], a["revision"], {**self.values, "desired_linear_vel": .3 + index * .01})
+            except PresetConflict:
+                return None
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            outcomes = list(pool.map(update, range(8)))
+        winners = [result for result in outcomes if result]
+        self.assertEqual(len(winners), 1)
+        self.assertEqual(self.new_store().snapshot()["presets"], winners[0]["presets"])
+
+    def test_update_write_failure_preserves_catalog_and_draft(self):
+        a = self.store.create("A", self.values)["preset"]
+        before = (self.root / "presets.json").read_bytes()
+        values = {**self.values, "desired_linear_vel": .5}
+        real_replace = __import__("os").replace
+        for filename in ("presets.previous.json", "presets.json"):
+            def fail_replace(source, destination):
+                if Path(destination).name == filename:
+                    raise OSError("private disk error")
+                return real_replace(source, destination)
+            with patch("robot_dashboard.navigation_presets.os.replace", side_effect=fail_replace), self.assertRaises(PresetUnavailable):
+                self.store.update(a["id"], a["revision"], values)
+            self.assertEqual((self.root / "presets.json").read_bytes(), before)
+            self.assertEqual(list(self.root.glob(".presets-*")), [])
+            self.assertEqual(values["desired_linear_vel"], .5)
+        with patch("robot_dashboard.navigation_presets.os.fsync", side_effect=OSError("disk full")), self.assertRaises(PresetUnavailable):
+            self.store.update(a["id"], a["revision"], values)
+        self.assertEqual((self.root / "presets.json").read_bytes(), before)
+
+    def test_update_api_guards_validation_conflicts_and_no_apply(self):
+        client = self.client()
+        path = "/api/v1/navigation/presets"
+        a = client.post(path, {"name": "A", "values": self.values}).json()["preset"]
+        body = {"base_revision": a["revision"], "values": {**self.values, "desired_linear_vel": .5}}
+        target = path + "/" + a["id"]
+        self.assertEqual(client.request("PATCH", target, body, {"Origin": "http://other.test"}).status_code, 403)
+        self.assertEqual(client.request("PATCH", path + "/go2-safe", body).status_code, 404)
+        for bad in ({**body, "base_revision": ""}, {**body, "name": "rename"}, {**body, "values": {}}, {**body, "values": {**self.values, "desired_linear_vel": float("nan")}}):
+            self.assertEqual(client.request("PATCH", target, bad).status_code, 422)
+        with patch.object(NavigationJobManager, "_materialize_parameters", side_effect=AssertionError("must not apply")):
+            response = client.request("PATCH", target, body)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertEqual(response.json()["preset"]["id"], a["id"])
+        self.assertEqual(client.request("PATCH", target, body).status_code, 409)
+        self.assertFalse((self.root / "nav2_params.generated.yaml").exists())
+        self.assertEqual(self.client().get(path).json()["presets"], response.json()["presets"])

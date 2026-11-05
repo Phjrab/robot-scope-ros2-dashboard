@@ -1,3 +1,4 @@
+import { drawOccupancyGrid, renderSavedOccupancyDetails, conversionSummary } from './features/maps/occupancy_display.js';
 import { createSavedMapScene, cloudPointCount, cloudPointSummary, sameSavedCloudRevision } from './features/maps/saved_scene.js';
 import { overviewLidarReception } from './features/sensors/lidar_reception.js';
 import { api, latestApi } from './core/api.js';
@@ -430,6 +431,7 @@ let savedMapMutationBusy = false;
 let offlineCloudSnapshot = null;
 let lastMapSnapshot = null;
 let savedOccupancySnapshot = null;
+let savedMapCatalogGeneration = 0;
 let savedMapCatalog = [];
 let selectedSavedMapId = '';
 let selectedSavedMapMeta = null;
@@ -511,7 +513,7 @@ let navigationParameterSnapshot = null;
 let navigationParameterDraft = null;
 let navigationParameterBusy = false;
 const navigationPresetCatalog = createNavigationPresetCatalog({ api, validate: (values) => navigationEngine.parameterValues(values, { requireAll: true }), onChange: () => syncNavigationParameterControls() });
-const navigationPresetFeature = initializeNavigationPresetFeature({ catalog: navigationPresetCatalog, ui, canSave: () => !navigationParameterBusy && Boolean(navigationParameterSnapshot), getDraft: () => navigationParameterDraft, renderOptions: renderNavigationPresetOptions, sync: syncNavigationParameterControls, showToast });
+const navigationPresetFeature = initializeNavigationPresetFeature({ catalog: navigationPresetCatalog, ui, canSave: () => !navigationParameterBusy && Boolean(navigationParameterSnapshot), getDraft: () => navigationParameterDraft, renderOptions: renderNavigationPresetOptions, sync: syncNavigationParameterControls, showToast, apply: applyNavigationParameters, diff: (a, b) => navigationEngine.changedParameterValues(a, b) });
 let navigationSelectedMapMeta = null;
 let navigationMapSnapshot = null;
 let navigationMapError = '';
@@ -1558,9 +1560,12 @@ function updateSavedMapOverview({ preserveSelection = false } = {}) {
     ui.savedMapSource.textContent = selectedSavedMapMeta?.file_name || '—';
     ui.savedMapDetailFrame.textContent = selectedSavedMapMeta?.frame_id || '—';
     ui.savedMapDetailPoints.textContent = showingGrid ? '2D map loading…' : '3D map loading…';
+    ui.savedMapFrame.textContent = 'FRAME —';
+    ui.savedMapPoints.textContent = 'LOADING';
     ui.savedMapBounds.textContent = '—';
     setStatePill(ui.savedMappingState, entries.length ? 'waiting' : 'waiting', entries.length ? 'LOADING MAP' : 'NO SAVED MAP');
   }
+  renderSavedOccupancyDetails(selectedSavedMapMeta, selected, api);
   updateSavedPointBudgetAvailability();
   updateSavedMapManagement();
   mapCropFeature?.sync();
@@ -1796,7 +1801,7 @@ async function completeSavedMapConversion(operation) {
     const loaded = await selectSavedMap(result.id, false, true);
     if (!loaded) throw new Error('변환 지도는 생성됐지만 대시보드에서 선택하지 못했습니다.');
     mapConversionNameDirty = false;
-    setMapConversionFeedback('ok', 'CONVERTED', `${result.name} 2D 지도를 생성하고 선택했습니다.`, 1);
+    setMapConversionFeedback('ok', 'CONVERTED', `${result.name} 2D 지도를 생성하고 선택했습니다.${conversionSummary(operation.details)}`, 1);
     showToast(`${result.name} 2D 지도를 생성했습니다.`);
   } catch (error) {
     mapConversionPending = null;
@@ -2999,11 +3004,14 @@ async function loadOfflinePointcloud() {
 }
 
 async function refreshSavedMaps() {
+  const generation = ++savedMapCatalogGeneration, selection = savedMapSelectionGeneration;
   try {
     const payload = await api('/api/v1/saved-maps');
+    if (generation !== savedMapCatalogGeneration) return;
     const maps = Array.isArray(payload.maps) ? payload.maps : [];
     savedMapCatalog = maps; savedMapCatalog.totalSizeBytes = payload.total_size_bytes;
     await syncNavigationMapOptions();
+    if (generation !== savedMapCatalogGeneration || selection !== savedMapSelectionGeneration) return;
     const preserved = maps.find((entry) => entry.id === selectedSavedMapId);
     if (editorHasUnsavedChanges() && mapEditorSession?.sourceId === selectedSavedMapId &&
         (!preserved || preserved.revision !== mapEditorSession.revision)) {
@@ -3078,7 +3086,7 @@ async function selectSavedMap(mapId, notify = true, rethrow = false) {
   ui.savedMapViewMode.value = savedMapViewPreference;
   if (meta.kind === 'occupancy2d') savedOccupancySnapshot = null;
   else if (!retainLoadedCloud) offlineCloudSnapshot = null;
-  updateSavedMapOverview();
+  redrawSavedMap();
   try {
     const cacheKey = pointBudgetCacheKey(meta.id, savedPointLimit, meta.kind, meta.revision);
     let payload = savedMapDataCache.get(cacheKey);
@@ -3214,7 +3222,8 @@ function setSavedMapLayerVisibility(mode) {
   const cloudMode = mode !== 'occupancy';
   ui.savedSceneCanvas?.classList.toggle('is-hidden', !cloudMode);
   ui.savedMapCanvas?.classList.toggle('is-hidden', cloudMode);
-  ui.savedMapGridOverlay?.classList.toggle('is-hidden', cloudMode);
+  ui.savedMapGridOverlay?.classList.add('is-hidden');
+  document.getElementById('savedOccupancyLegend').hidden = cloudMode;
   ui.savedSceneControls?.classList.toggle('is-hidden', !cloudMode);
   if (cloudMode) savedScene3d?.resize();
 }
@@ -3331,59 +3340,13 @@ async function refreshMap() {
 function drawOccupancyMap(map, saved = false) {
   if (saved) setSavedMapLayerVisibility('occupancy'); else setMapLayerVisibility('occupancy');
   const canvas = saved ? ui.savedMapCanvas : ui.mapCanvas;
-  const { width, height, ratio } = resizeCanvas(canvas);
-  const source = document.createElement('canvas');
-  source.width = map.width; source.height = map.height;
-  const sourceContext = source.getContext('2d');
-  const image = sourceContext.createImageData(map.width, map.height);
-  const binary = atob(map.data_b64);
-  for (let y = 0; y < map.height; y++) {
-    for (let x = 0; x < map.width; x++) {
-      const inputIndex = y * map.width + x;
-      const outputIndex = ((map.height - 1 - y) * map.width + x) * 4;
-      const raw = binary.charCodeAt(inputIndex);
-      const value = raw > 127 ? -1 : raw;
-      const shade = value < 0 ? 35 : value >= 65 ? 7 : 205;
-      image.data[outputIndex] = shade * .55;
-      image.data[outputIndex + 1] = shade;
-      image.data[outputIndex + 2] = shade * .82;
-      image.data[outputIndex + 3] = 255;
-    }
-  }
-  sourceContext.putImageData(image, 0, 0);
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#06100e'; ctx.fillRect(0, 0, width, height);
-  const scale = Math.min(width / map.width, height / map.height) * .94;
-  const drawWidth = map.width * scale, drawHeight = map.height * scale;
-  const left = (width - drawWidth) / 2;
-  const top = (height - drawHeight) / 2;
-  ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(source, left, top, drawWidth, drawHeight);
+  const { ctx, viewport } = drawOccupancyGrid(map, canvas, resizeCanvas);
   if (saved) savedOccupancySnapshot = map;
   else {
     lastMapSnapshot = map;
     activeMapView = 'occupancy';
+    drawMapOverlay(ctx, viewport);
   }
-  const origin = Array.isArray(map.origin) ? map.origin : [0, 0, 0];
-  const originX = Number(origin[0]) || 0;
-  const originY = Number(origin[1]) || 0;
-  const originYaw = Number(origin[2]) || 0;
-  const resolution = Math.max(Number(map.resolution) || 0, 0.0001);
-  const cos = Math.cos(originYaw);
-  const sin = Math.sin(originYaw);
-  const projectWorld = (pose) => {
-    const dx = pose.x - originX;
-    const dy = pose.y - originY;
-    const localX = cos * dx + sin * dy;
-    const localY = -sin * dx + cos * dy;
-    return {
-      x: left + (localX / resolution) * scale,
-      y: top + drawHeight - (localY / resolution) * scale,
-      heading: -(pose.yaw - originYaw),
-      inside: localX >= 0 && localX <= map.width * resolution && localY >= 0 && localY <= map.height * resolution,
-    };
-  };
-  if (!saved) drawMapOverlay(ctx, { width, height, ratio, projectWorld, fallbackScale: scale / resolution, mode: 'GRID', frameId: map.frame_id || '' });
 }
 
 function extractNavigationSnapshot(payload) {
@@ -4268,18 +4231,19 @@ function syncNavigationParameterControls() {
   const dirty = ready && (validationError || Object.keys(changes).length > 0);
   ui.navigationParameterGroups.querySelectorAll('[data-navigation-parameter]').forEach((input) => {
     const field = navigationEngine.FIELD_BY_KEY[input.dataset.navigationParameter];
-    input.disabled = navigationParameterBusy || !ready || field?.locked === true;
+    input.disabled = navigationPresetCatalog.busy || navigationParameterBusy || !ready || field?.locked === true;
   });
   ui.navigationParameterGroups.querySelectorAll('[data-navigation-parameter-row]').forEach((row) => {
     row.classList.toggle('is-changed', Object.hasOwn(changes, row.dataset.navigationParameterRow));
   });
-  ui.navigationPreset.disabled = navigationParameterBusy || !ready;
-  ui.navigationPresetLoad.disabled = navigationParameterBusy || !ready || !ui.navigationPreset.value;
+  ui.navigationPreset.disabled = navigationPresetCatalog.busy || navigationParameterBusy || !ready;
+  ui.navigationPresetLoad.disabled = navigationPresetCatalog.busy || navigationParameterBusy || !ready || !ui.navigationPreset.value;
   ui.navigationPresetName.disabled = navigationPresetCatalog.busy;
   ui.navigationPresetSave.disabled = navigationPresetCatalog.busy || navigationParameterBusy || !ready || Boolean(validationError) || !ui.navigationPresetName.value.trim();
   ui.navigationPresetRefresh.disabled = navigationPresetCatalog.busy;
-  ui.navigationParameterReset.disabled = navigationParameterBusy || !dirty;
-  ui.navigationParameterApply.disabled = navigationParameterBusy || pipelineActive || !dirty || Boolean(validationError);
+  ui.navigationParameterReset.disabled = navigationPresetCatalog.busy || navigationParameterBusy || !dirty;
+  ui.navigationParameterApply.disabled = navigationPresetCatalog.busy || navigationParameterBusy || pipelineActive || !dirty || Boolean(validationError);
+  navigationPresetFeature.controls({ preset: navigationParameterPresets().find(p => p.id === ui.navigationPreset.value), ready, invalid: Boolean(validationError), pipelineActive, parameterBusy: navigationParameterBusy, currentDirty: dirty });
   ui.navigationParameterDirty.textContent = validationError
     ? 'INVALID VALUES'
     : dirty ? `${Object.keys(changes).length} CHANGED` : 'NO CHANGES';
@@ -4323,10 +4287,11 @@ function updateNavigationParameterDraft(event) {
 }
 
 async function refreshNavigationParameters(force = false) {
-  if (!navigationEngine || navigationParameterBusy || (navigationParameterSnapshot && !force)) {
+  if (!navigationEngine || navigationPresetCatalog.busy || navigationParameterBusy || (navigationParameterSnapshot && !force)) {
     syncNavigationParameterControls();
     return;
   }
+  const preserveDraft = navigationPresetFeature.hasEditedDraft() || navigationParametersDirty();
   navigationParameterBusy = true;
   setStatePill(ui.navigationParameterState, 'waiting', 'LOADING');
   syncNavigationParameterControls();
@@ -4334,11 +4299,18 @@ async function refreshNavigationParameters(force = false) {
     const payload = await api('/api/v1/navigation/parameters');
     const raw = payload?.parameters && typeof payload.parameters === 'object' ? payload.parameters : payload;
     navigationParameterSnapshot = navigationEngine.normalizeParameterSnapshot(raw);
-    navigationParameterDraft = { ...navigationParameterSnapshot.values };
+    if (!preserveDraft) {
+      navigationParameterDraft = { ...navigationParameterSnapshot.values };
+      navigationPresetFeature.remember(null, navigationParameterDraft);
+    }
     renderNavigationPresetOptions();
     renderNavigationParameterGroups(navigationParameterDraft);
     await navigationPresetFeature.refresh();
   } catch (error) {
+    if (navigationParameterSnapshot) {
+      showToast('서버 설정 조회 실패 · 편집 값 유지: ' + error.message, true);
+      return;
+    }
     navigationParameterSnapshot = null;
     navigationParameterDraft = null;
     renderNavigationPresetOptions();
@@ -4355,8 +4327,9 @@ async function refreshNavigationParameters(force = false) {
 function loadNavigationPreset() {
   if (!navigationParameterSnapshot || navigationParameterBusy) return;
   const preset = navigationParameterPresets().find((item) => item.id === ui.navigationPreset.value);
-  if (!preset) return;
+  if (!preset || !navigationPresetFeature.allowReplace()) return;
   try {
+    navigationPresetFeature.remember(preset);
     navigationParameterDraft = navigationEngine.parameterValues(preset.values, { requireAll: true });
     renderNavigationParameterGroups(navigationParameterDraft);
     syncNavigationParameterControls();
@@ -4367,17 +4340,18 @@ function loadNavigationPreset() {
 }
 
 function resetNavigationParameterDraft() {
-  if (!navigationParameterSnapshot || navigationParameterBusy) return;
+  if (!navigationParameterSnapshot || navigationParameterBusy || !navigationPresetFeature.allowReplace()) return;
+  navigationPresetFeature.remember(null, navigationParameterSnapshot.values);
   navigationParameterDraft = { ...navigationParameterSnapshot.values };
   renderNavigationParameterGroups(navigationParameterDraft);
   syncNavigationParameterControls();
 }
 
 async function applyNavigationParameters() {
-  if (!navigationParameterSnapshot || navigationParameterBusy) return;
+  if (!navigationParameterSnapshot || navigationParameterBusy) return '현재 적용 대기';
   if (navigationEngine.pipelineActive(navigationSnapshot)) {
     showToast('Nav2를 STOP한 뒤 파라미터를 적용하세요.', true);
-    return;
+    return '현재 적용 차단 · Nav2 실행 중';
   }
   let patch;
   try {
@@ -4388,14 +4362,14 @@ async function applyNavigationParameters() {
     );
   } catch (error) {
     showToast(`파라미터 검증 실패: ${error.message}`, true);
-    return;
+    return '현재 적용 실패 · 입력값 확인';
   }
   if (!Object.keys(patch.values).length) {
     showToast('적용할 변경 사항이 없습니다.');
-    return;
+    return '현재 설정과 동일';
   }
   navigationParameterBusy = true;
-  let reloadAfterConflict = false;
+
   syncNavigationParameterControls();
   try {
     const response = await api('/api/v1/navigation/parameters', {
@@ -4411,17 +4385,14 @@ async function applyNavigationParameters() {
     renderNavigationPresetOptions();
     renderNavigationParameterGroups(navigationParameterDraft);
     showToast('Navigation 파라미터를 적용했습니다. 다음 Nav2 시작에 사용됩니다.');
+    return '현재 설정 적용 완료';
   } catch (error) {
     showToast(`파라미터 적용 실패: ${error.message}`, true);
-    reloadAfterConflict = error.status === 409 || String(error.message).includes('409');
+    return '현재 적용 실패 · ' + error.message;
   } finally {
     navigationParameterBusy = false;
     syncNavigationParameterControls();
     renderNavigationStatus();
-  }
-  if (reloadAfterConflict) {
-    await refreshNavigationParameters(true);
-    showToast('파라미터 revision이 변경되어 최신 값을 다시 불러왔습니다. 변경 사항을 다시 확인하세요.', true);
   }
 }
 
@@ -4437,7 +4408,10 @@ function redrawSavedMap() {
   setSavedMapLayerVisibility(savedMapViewPreference);
   if (savedMapViewPreference === 'occupancy') {
     if (savedOccupancySnapshot) drawOccupancyMap(savedOccupancySnapshot, true);
-    else setStatePill(ui.savedMappingState, 'waiting', 'LOADING 2D MAP');
+    else {
+      ui.savedMapCanvas.getContext('2d').clearRect(0, 0, ui.savedMapCanvas.width, ui.savedMapCanvas.height);
+      setStatePill(ui.savedMappingState, 'waiting', 'LOADING 2D MAP');
+    }
   } else {
     drawSavedPointcloud();
   }
@@ -6796,7 +6770,7 @@ window.addEventListener('pageshow', () => {
   syncCameraTransport();
 });
 window.addEventListener('beforeunload', (event) => {
-  if (!editorHasUnsavedChanges() && !mapAnnotationFeature?.hasDirty()) return;
+  if (!editorHasUnsavedChanges() && !mapAnnotationFeature?.hasDirty() && !navigationPresetFeature.hasEditedDraft()) return;
   event.preventDefault();
   event.returnValue = '';
 });
