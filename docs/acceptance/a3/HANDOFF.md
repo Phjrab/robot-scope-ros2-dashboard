@@ -20,6 +20,23 @@
 - 정상 주행은 기존 3D 사전검사, bundle, geometry와 match 조건을 사용한다. 구성된 3D job의 bundle이 사라지면 실행이 실패한다. 실험 job에는 이 bundle과 PCD가 생성되지 않는다.
 - 합성 검증은 오프라인 UI/API와 ROS 콜백 동작을 확인한다. 네이티브 Nav2와 실제 장비 판정은 [검증 기록](ROUND1_RESULTS.md)에 구분했다.
 
+## `4cebeed` 격리 Nav2 검증
+
+2026-11-05 KST. 제품 SHA `4cebeed8f309a1f5e69ade96f21a4f29d2ba93f4`를 Ubuntu 22.04의 ROS 2 Humble과 Nav2 1.1.20에서 실행했다. 시험 컨테이너는 `--network none`, 루프백 인터페이스만 사용했다. 실제 NavigationRosGateway, ControlManager, map_server, planner, controller와 BT를 사용했고, LiDAR·두 odometry·브리지 상태·구동부는 모의 입력으로 연결했다. 모의 위치는 Nav2 명령을 적분해 갱신했다. 아래 좌표 단위는 m, 방향 단위는 rad다. [통과한 실행과 증거](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41983696807)
+
+| 검사 | 네이티브 결과 |
+| --- | --- |
+| 비영점 odom 시드와 TF | odom의 `(7.00, −3.00, 0.80)`에서 map 시드 `(2.00, 3.00, 0.25)`를 수락했다. 독립 tf2 조회가 위치와 방향을 재현했다. `/tf`·`/tf_static`의 소유자는 위치 런타임 하나였다. |
+| 직선 목표 이동 | 목표 `(3.60, 3.00, 0.00)`에 Nav2 `SUCCEEDED`. 실제 모의 위치 오차 0.350 m, 방향 오차 0.0016 rad였다. |
+| 이동 중 취소 | Nav2 `CANCELED`. 취소 요청 시점부터 정지 확인까지 추가 이동은 0.000 m였다. |
+| 장애물 | `/scan`으로 관측한 장애물 셀의 비용값이 0에서 100으로 바뀌었고, Nav2가 우회 후 목표에 도착했다. 접촉 0회, 모의 로봇 외곽 기준 최소 여유 0.053 m였다. |
+| 상대 odom 중단 | 활성 목표가 취소되고 제어권과 이전 시드가 무효화됐다. 정지 확인까지 0.81초, 추가 이동 0.101 m였다. odom 복구 후에도 이전 TF 발행은 재개되지 않았고 이전 시드의 목표 요청은 거부됐다. |
+| 새 작업에서 재시드 | 변경된 odom 원점 `(4.70, 5.20, −0.45)`에서 새 초기값을 명시 적용했다. 독립 tf2 조회를 확인했고 다음 목표가 `SUCCEEDED`였다. 위치 오차 0.346 m였다. |
+
+**A1 확인 사항** · 이 SHA에서는 시드가 수락되고 API의 목표 허용 상태가 켜져도 `bt_navigator`가 아직 비활성일 수 있다. 실제 선행 실행에서 초기 시드 및 재시드 직후 첫 목표가 각각 거부됐다. 통과 실행은 `/bt_navigator/get_state`의 `ACTIVE` 확인 뒤 목표를 명시 전송했다. 최초 시드와 재시드에서 그 상태를 기다린 시간은 각각 약 0.91초와 0.86초였다. 현장에서도 `ros2 lifecycle get /bt_navigator`의 `active`를 확인하고, 거부된 목표는 자동 재전송 없이 별도 명시 조작으로 처리한다. [활성화 전 거부를 재현한 실행](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41983058893)
+
+장비 접속·배포·주행은 `DEVICE_NOT_RUN`이다. 실제 FAST-LIO 추정기, signed 하드웨어 브리지, 장비용 시작 검사, 물리 장애물 여유는 이 시험 범위 밖이다. 재현은 [격리 시험 워크플로](../../../.github/workflows/a3-native-nav2.yml)에서 실행하며, 매번 `4cebeed`를 고정한다.
+
 ## A1 배포 및 현장 인계
 
 - 배포 후보는 [소스 기록](SOURCE_LOCK.json)의 `implementation_sha`다. A1의 이전 시험에 사용한 고정 배포는 별개다. 현장 시험은 새 승인 범위를 확보한 뒤 A1이 수행한다.

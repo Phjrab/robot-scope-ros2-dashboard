@@ -14,7 +14,7 @@
 | E07 | PASS · SYNTHETIC | signed STOP/lease·목표 취소·stale gate와 실제 callback의 fail-closed 분기를 확인. 실제 Nav2 장애물 반영과 물리 정지는 E10 및 A1 범위. |
 | E08 | PASS · SYNTHETIC | 전체 대시보드에서 실제 로컬 FastAPI로 준비 → 드래그 seed → 목표 → 취소 → STOP 검증. 센서·Nav2·제어는 합성 경계. |
 | E09 | 로컬/CI 결과 아래 참조 | C0 기본 준비, A0 지도·프리셋, A2 확장, REPLAY 및 기존 Navigation 회귀. |
-| E10 | NOT_RUN · NATIVE | 로컬 호스트에 ROS 2 Humble과 격리 컨테이너 엔진이 없다. 실제 Nav2 planner/controller, TF consumer, simulated actuator 및 costmap 장애물 시험은 미실행. |
+| E10 | PASS · NATIVE, Nav2 ACTIVE 확인 후 | 후속으로 `4cebeed`를 네트워크 없는 Humble 컨테이너에서 실행했다. 7개 케이스 통과. 시드 수락 직후 목표 거부 사례도 보존했다. [측정값과 A1 확인 사항](HANDOFF.md) · [실행 결과](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41983696807) |
 | E11 | DEVICE_NOT_RUN | A1용 코드·사용법·readback·복귀 순서를 인계 문서에 기록. |
 
 ## 첫 실패와 조치

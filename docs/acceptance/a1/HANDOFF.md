@@ -32,3 +32,7 @@
 `ROBOT_SCOPE_EXPANSION_REVIEW_WORKSPACE`는 700 폴더 안 600 JSON이다. schema `robot-scope.review-workspace.v1`, `catalogue_root=<동일 폴더>/sources`, `bundle_root=<동일 폴더>/bundles`, map ID별 `metadata`를 명시한다. sources도 700이며 운영 catalogue·수정 권한·지도 활성화 callback을 연결하지 않는다. 전체 점 저장은 기존 C1 exporter를 사용한다. MULTIMAP/REPLAY/USABILITY만 켜고 SCENE/RUNTIME은 끈다.
 
 이번 정지 배포는 `ROBOT_SCOPE_CONTROL_START_STOPPED=1`로 첫 제어 객체부터 STOP을 잠근다. 기본값은 기존과 같고 해제는 별도 명시 절차다. 새 TLS 구성 실패 시 같은 검증판에서 HTTPS와 MULTIMAP만 끄는 복구가 가능하다. STOP 시작 기능이 없는 과거판을 자동 재시작하지 않는다. 그보다 이른 실패에서는 두 서비스를 정지한 상태로 selector를 복원하고 결과를 보고한다. 배포 성공 여부와 실지도 정합 결과는 실행 후 FIELD_SESSION에 별도로 기록한다.
+
+## A3 수동 2D 주행 격리 검증
+
+`4cebeed`를 ROS 2 Humble 격리 환경에서 실행했다. 비영점 odom 시드·직선 목표·이동 중 취소·비용지도 장애물 우회·odom 중단 후 정지·새 작업의 명시 재시드를 확인했다. 이 SHA는 초기값 수락 직후 Nav2 활성화가 끝나기 전에 목표가 거부될 수 있다. 별도 승인된 A3 현장 시험에서 `bt_navigator`의 `active` 상태를 읽은 뒤 목표를 명시 전송한다. A3 실장비 검증 상태는 `DEVICE_NOT_RUN`이다. [A3 절차와 측정값](../a3/HANDOFF.md) · [격리 실행 결과](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41983696807)
