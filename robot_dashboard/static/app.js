@@ -4035,7 +4035,7 @@ async function refreshNavigation() {
   }
 }
 
-async function runNavigationMutation(path, body, successMessage) {
+async function runNavigationMutation(path, body, successMessage, onError) {
   if (navigationOperationBusy) return null;
   navigationOperationBusy = true;
   navigationOperationKind = path.endsWith('/start') ? 'start' : path.endsWith('/stop') ? 'stop' : 'command';
@@ -4050,6 +4050,7 @@ async function runNavigationMutation(path, body, successMessage) {
     return response;
   } catch (error) {
     showToast(`Navigation 명령 실패: ${error.message}`, true);
+    onError?.(error);
     return null;
   } finally {
     navigationOperationBusy = false;
@@ -6849,7 +6850,7 @@ initializeManual2dExperiment({
     busy: navigationOperationBusy,
     scene: savedScene3d,
   }),
-  mutate: runNavigationMutation,
+  mutate: (path, body, onError) => runNavigationMutation(path, body, undefined, onError),
   stop: async (path, body) => {
     try {
       navigationStatusRequestGeneration += 1;

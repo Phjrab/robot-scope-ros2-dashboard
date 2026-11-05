@@ -3801,7 +3801,10 @@ class NavigationRosGateway:
             topic_publishers,
             localization_metrics,
         )
+        software_stop_latched = bool(control.get("estop", {}).get("latched"))
         blockers: list[str] = []
+        if software_stop_latched:
+            blockers.append("software_stop_latched")
         if not configured:
             blockers.append("navigation_transport_unavailable")
         if not target_supported:
@@ -3819,6 +3822,7 @@ class NavigationRosGateway:
             configured
             and target_supported
             and bridge_ready
+            and not software_stop_latched
             and not manual_active
             and not active
             and not localization_only_active

@@ -90,10 +90,15 @@ export function initializeManual2dExperiment({ host, api, engine, context, mutat
     el('send').disabled = stopping || !!busy || !draft || !canPose(nav, draft.mode); el('send').textContent = draft?.mode === 'goal' ? '이동 시작' : '초기 위치 적용';
     el('pose').textContent = draft ? `${draft.mode.toUpperCase()} · X ${draft.x.toFixed(2)} · Y ${draft.y.toFixed(2)} · YAW ${draft.yaw.toFixed(2)}` : '위치 초안 없음';
     const blockers = Array.isArray(nav?.safety?.blockers) ? nav.safety.blockers.join(', ') : '';
+    el('stop-notice').hidden = !nav?.safety?.blockers?.includes('software_stop_latched');
     const modeLabel = manual(nav) ? 'MANUAL_SEEDED_ODOMETRY'
       : isActive(nav) ? '기존 주행 또는 위치추정 세션 사용 중' : '실험 대기';
+    const stopped = manual(nav) && nav?.deactivation_reason;
+    const stopReason = stopped === 'navigation localization inputs are stale'
+      ? `LiDAR 또는 상대 위치 입력이 제때 들어오지 않아 주행 제어가 중단됐습니다. (${stopped})`
+      : stopped;
     el('status').textContent = [modeLabel, nav?.manual_seed?.state || nav?.pipeline?.state || 'IDLE',
-      nav?.pipeline?.error, blockers, message].filter(Boolean).join(' · ');
+      stopReason && `중단 사유: ${stopReason}`, nav?.pipeline?.error, blockers, message].filter(Boolean).join(' · ');
     const seed = nav?.manual_seed;
     const readiness = nav?.readiness || {};
     const quality = key => readiness[key] === true ? '확인' : '대기';
@@ -107,7 +112,7 @@ export function initializeManual2dExperiment({ host, api, engine, context, mutat
       `센서 상태 · scan ${quality('scan')} · 속도 odom ${quality('odometry')} · TF ${quality('tf')}`,
       `상대 위치 ${nav?.bindings?.localization_odometry || '/Odometry'} · 속도 입력 ${nav?.bindings?.controller_odometry || '확인 중'} · 장애물 ${nav?.bindings?.scan || '/scan'}`,
       `세션 ${jobId(nav) || '—'} · odometry epoch ${seed?.source_epoch ?? '—'} · seed 세대 ${seed?.seed_generation ?? '—'}`,
-      `seed 수락 ${acceptedAt} · 경과 ${seconds(seed?.seed_age_s)} · 상대 odometry 이동 거리 ${distance} · 정지 관측 ${seconds(seed?.stopped_seconds)}`,
+      `초기 위치 수락 기록 ${acceptedAt} · 경과 ${seconds(seed?.seed_age_s)} · 상대 odometry 이동 거리 ${distance} · 정지 관측 ${seconds(seed?.stopped_seconds)}`,
       `TF 확인 ${seed?.tf_readback ? '확인' : '대기'}${seed?.reason ? ` · ${seed.reason}` : ''}`,
     ].join('\n');
     const list = (annotations?.points || []).filter(p => p?.id && p?.pose && ['x','y','yaw'].every(k => Number.isFinite(p.pose[k])));
@@ -117,7 +122,18 @@ export function initializeManual2dExperiment({ host, api, engine, context, mutat
   }
   el('map').addEventListener('change', () => { message = ''; el('site').checked = false; void load((context().maps || []).find(m => m.id === el('map').value)); });
   el('site').addEventListener('change', render);
-  el('prepare').addEventListener('click', async () => { if (el('prepare').disabled) return; message = ''; await mutate('/api/v1/navigation/start', { map_id: meta.id, map_revision: meta.revision, parameters_revision: context().parameters.revision, mode: 'manual_seeded_2d' }); render(); });
+  async function request(path, body) {
+    message = '요청 처리 중'; render();
+    try {
+      const result = await mutate(path, body, error => { message = `요청 실패: ${error.message}`; });
+      if (message === '요청 처리 중') message = result ? '' : '요청을 완료하지 못했습니다. 현재 상태를 확인하세요.';
+      return result;
+    } catch (error) {
+      message = `요청 실패: ${error.message}`;
+      return null;
+    } finally { render(); }
+  }
+  el('prepare').addEventListener('click', async () => { if (el('prepare').disabled) return; await request('/api/v1/navigation/start', { map_id: meta.id, map_revision: meta.revision, parameters_revision: context().parameters.revision, mode: 'manual_seeded_2d' }); });
   async function safetyCommand(path, body) {
     if (stopping) return;
     stopping = true;
@@ -153,7 +169,7 @@ export function initializeManual2dExperiment({ host, api, engine, context, mutat
       body.source_epoch = nav.manual_seed.source_epoch;
     }
     if (draft.annotationId) { body.annotation_id = draft.annotationId; body.annotation_revision = draft.annotationRevision; } else body.pose = { x: draft.x, y: draft.y, yaw: draft.yaw };
-    const wasGoal = draft.mode === 'goal'; const result = await mutate(endpoint, body); if (result) { clear(); message = wasGoal ? '목표 접수됨' : '초기 위치 요청 처리됨 · seed 및 TF 수락 상태를 확인하세요.'; } render(); });
+    const wasGoal = draft.mode === 'goal'; const result = await request(endpoint, body); if (result) { clear(); message = wasGoal ? '목표 접수됨' : '초기 위치 요청 처리됨 · seed 및 TF 수락 상태를 확인하세요.'; } render(); });
   document.addEventListener('robot-scope:page-change', () => { if (active()) { void refresh(); render(); } else { clear(); } });
   setInterval(render, 1000);
 }

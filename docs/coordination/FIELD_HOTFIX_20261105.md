@@ -14,3 +14,21 @@
 A0 코드 `03b58a6c6565af88f811ecd43867407ddfc55631`은 main에 게시됐고, A1은 해당 후보를 읽고 인수했다. A2는 이 SHA를 fast-forward로 반영해 확장 진입 작업을 진행 중이다. A2의 후속 더 보기·상단 링크는 기존 HTML 변환 지점에서 처리하며 A0의 지도·프리셋 수정 구간과 분리했다.
 
 마감 전달에는 동일 코드 SHA의 표준 CI `41962895986`과 I0/C0 `41962895963` 통과 영수증을 포함한다. 실장비 작업은 A1이 다음 시험창에서 고정 release를 선택해 수행한다. A0의 장비 접속·배포·운영 지도 및 LiDAR 설정 변경 횟수는 0회다. 현장 원본 PCD/PGM 쌍과 ROI·Z·밀도 비교 자료를 A1에 인계할 다음 확인 항목으로 남긴다.
+
+## 후속 접근 개선과 실험 준비 상태 · 2026-11-05
+
+사용자가 관련 채팅 전체 상태 확인, 확장 로그인 제거, A3 메뉴 위치 안내를 요청했다. A0/A1/A2/A3, 유무선 연결, C0 통합 및 이전 3D·C5·C6·C7 채팅의 최신 완료 기록을 읽고 main `217a70c`까지 인수했다. A0 지도·프리셋 및 A2 제품 코드, A3 구현·격리 Humble 검증은 게시됐다. A1의 실지도 정합은 유효 겹침 0.87%로 저장이 차단됐고 현장 초기화·P1/P2·경사로 검증이 남았다. 과거 C5/C6/C7 개별 CI 기록은 통합 후 검증 기록과 구분했다.
+
+확장 화면의 로그인·코드·로그아웃과 session API를 제거했다. 활성화된 HTTPS 검토 주소에서 사본 조회·계산·수락·저장을 바로 실행하며 기존 DB 설정은 사용하지 않는다. HTTPS·Host·Origin, 입력 검증, 사본 계보와 저장 경계는 회귀 검사한다. A1/A2에 수정 범위를 전달했고 A2가 미게시 변경 0건을 회신했다.
+
+사용자의 추가 오류 `dashboard software stop is latched`는 A1의 읽기 자료에서 STOP 잠금 ON, can_start=true, 작업 ID·실행 로그 없음과 함께 확인됐다. runtime snapshot의 can_start를 실제 준비 preflight와 맞추고 실험 화면에 설정의 SOFTWARE STOP CLEAR 안내를 추가했다. 잠금 해제는 운영자가 기존 안전 확인란과 명시 버튼으로 수행한다.
+
+A3 접근 경로는 대시보드 기본 메뉴 **실험 → 2D 수동 초기 위치 주행**, fragment는 `/#experiments`다. 모바일·데스크톱 실제 메뉴 클릭으로 확인했다. 초기 위치 요청 실패 문구가 일시 알림에만 남고, 실험 화면이 공개된 deactivation_reason을 표시하지 않던 문제도 수정했다. 요청 오류는 화면에 보존하고 제어 중단 사유와 과거 수락 기록을 함께 표시한다. 합성 제품 검사에서 423 실패 후 상태 조회·명시 재시도와 자동 명령 0건을 확인했다.
+
+로컬 I0 52건, JavaScript 765건, 확장 제품 브라우저 13건, cone 제품 브라우저 11건, STOP snapshot 27건, 수동 주행 API/ROS/coordinator·작업 공간 44건과 실험 화면·실제 API 합성 흐름을 확인했다. 첫 브라우저 실행은 같은 문서의 fragment만 변경하는 검사 조작으로 실패했고 실제 메뉴 클릭·새로고침 흐름으로 수정해 통과했다. 최종 macOS 전체 실행 3,731건은 12 failures·61 errors·37 skips로 /proc 및 교정 파일 소유자 환경 경계와 후속 검증 실패를 포함한다. 원본 실패 로그와 최종 코드 검사 결과는 비공개 증거에 보관하고 Linux CI에서 최종 확인한다. 장비 배포와 실제 주행 판정은 A1의 고정 release 절차를 따른다.
+
+## 초기 위치 적용 후 비활성화 분석
+
+A1이 고정 release `7092851dca9561ca240462eaefc8282f2f892b80`에서 읽기만 수행한 첫 작업 기록을 분석했다. 16:27:25 KST의 receipt는 accepted=true, MANUAL_ANCHOR_APPLIED이고 이후 seed 세대가 1에서 2로 바뀌었다. 16:28:50–55 상태 조회에서는 작업 프로세스가 running이지만 제어 세션은 비활성 상태이며 deactivation_reason은 `navigation localization inputs are stale`이다. map→odom의 마지막 시각은 16:27:29 부근이고 이후 TF 과거 외삽과 scan filter drop이 반복된다. 초기 위치 HTTP 응답 원문과 최초 비활성화 순간의 raw health는 확보하지 못했다. 이 자료만으로 정확히 어느 입력이 먼저 끊겼는지, 후속 TF 오류가 최초 원인인지 확정하지 않는다.
+
+코드에서 해당 deactivation_reason은 runtime health의 cloud_fresh 또는 odom_fresh가 false일 때 발생한다. 이후 입력이 회복돼도 이미 무효화된 초기 위치나 제어 권한을 자동 복구하지 않는다. 후속 ROS raw health는 새 job/runtime의 waiting_initial_pose 기록이므로 첫 작업의 정상 입력 증거로 합치지 않는다. 사용자가 충전을 위해 장비 전원을 끈 뒤 A1은 추가 접속을 중단했다. 충전 후 A1이 다음 시험창에서 첫 준비부터 수락·최초 비활성화까지 같은 job/runtime의 health와 입력 timestamp를 보존해야 근본 원인을 확정할 수 있다. freshness·정지·TF 확인 기준 완화, 자동 재시드, STOP 해제, 장비 배포는 이번 A0 수정에 포함하지 않는다.

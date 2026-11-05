@@ -37,6 +37,20 @@ test('full experiment prepares, seeds, submits a goal, cancels, and stops', asyn
     await page.mouse.up();
   };
   await drag(0.44, 0.56);
+  let rejectedSeeds = 0;
+  await page.route('**/api/v1/navigation/initial-pose', route => {
+    rejectedSeeds++;
+    return route.fulfill({status:423, json:{detail:'MANUAL_RESEED_REQUIRES_OBSERVED_STOP'}});
+  });
+  await field('send').click();
+  await expect(field('status')).toContainText('요청 실패:');
+  await expect(field('status')).toContainText('MANUAL_RESEED_REQUIRES_OBSERVED_STOP');
+  // Polling must retain the explanation without retrying the failed command.
+  await page.waitForResponse(response => new URL(response.url()).pathname === '/api/v1/navigation' && response.request().method() === 'GET');
+  await expect(field('status')).toContainText('MANUAL_RESEED_REQUIRES_OBSERVED_STOP');
+  expect(rejectedSeeds).toBe(1);
+  expect((await readback()).seed_count).toBe(0);
+  await page.unroute('**/api/v1/navigation/initial-pose');
   await field('send').click();
   await expect(field('status')).toContainText('ready_manual');
 

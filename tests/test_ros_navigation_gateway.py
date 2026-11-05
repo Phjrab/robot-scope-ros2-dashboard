@@ -167,6 +167,23 @@ class NavigationRosGatewayTests(unittest.TestCase):
             "sequence": 0,
         })
 
+    def test_start_readiness_tracks_software_stop_without_clearing_it(self):
+        port = StubControlPort()
+        navigation = gateway(port=port)
+        with mock.patch.object(navigation, "_navigation_transport_configured_locked", return_value=True):
+            self.assertTrue(navigation.runtime_snapshot()["safety"]["can_start"])
+            port.manager._snapshot["estop"]["latched"] = True
+            stopped = navigation.runtime_snapshot()["safety"]
+            self.assertFalse(stopped["can_start"])
+            self.assertIn("software_stop_latched", stopped["blockers"])
+            self.assertTrue(port.manager.snapshot()["estop"]["latched"])
+            self.assertEqual(port.manager.submissions, [])
+            self.assertEqual(port.published, [])
+            port.manager._snapshot["estop"]["latched"] = False
+            cleared = navigation.runtime_snapshot()["safety"]
+            self.assertTrue(cleared["can_start"])
+            self.assertNotIn("software_stop_latched", cleared["blockers"])
+
     def test_policy_observer_not_initialized_has_explicit_detached_evidence(self):
         navigation = gateway()
 

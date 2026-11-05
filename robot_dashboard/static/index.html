@@ -668,6 +668,7 @@
           <label><input type="checkbox" data-manual="site"> 이 2D 지도와 주행 구역이 현재 장소와 맞는지 확인했습니다.</label>
           <div class="navigation-pipeline-actions"><button type="button" data-manual="prepare" disabled>실험 준비</button><button type="button" data-manual="stop" disabled>Nav2 STOP / 실험 종료</button><button type="button" data-manual="estop" class="danger">비상정지 (소프트웨어)</button></div>
           <p data-manual="status" role="status" aria-live="polite">상태 확인 중</p>
+          <p data-manual="stop-notice" hidden>SOFTWARE STOP 잠금으로 실험 준비가 차단됐습니다. 로봇의 실제 정지와 주변 안전을 확인한 뒤 <a href="#settings">설정 → 소프트웨어 정지</a>에서 확인란을 선택하고 SOFTWARE STOP CLEAR를 누르세요.</p>
           <div class="navigation-map-stage"><canvas data-manual="canvas" aria-label="2D 지도에서 위치와 방향을 드래그하여 지정"></canvas></div>
           <p>지도에서 위치를 누르고 방향으로 드래그하세요. 로봇 표시는 수동 초기화 + 상대 odometry입니다.</p>
           <div class="navigation-pose-toolbar"><button type="button" data-manual="initial">INITIAL POSE / 다시 지정</button><button type="button" data-manual="goal">GOAL POSE</button><span data-manual="pose">위치 초안 없음</span><button type="button" data-manual="discard">초안 지우기</button><button type="button" data-manual="send" disabled>초기 위치 적용</button></div>
