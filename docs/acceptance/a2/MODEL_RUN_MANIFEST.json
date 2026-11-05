@@ -1,0 +1,12 @@
+{
+  "role": "A2",
+  "selection_scope": "task dispatch only",
+  "parent": {"task":"integration, owner, checks and publication","effective_model":null,"effective_effort":null,"status":"MODEL_SELECTION_UNAVAILABLE"},
+  "children": [
+    {"task":"security_review","requested_model":"gpt-6.1-sol","requested_effort":"high","effective_model":null,"effective_effort":null,"status":"CONFIGURED_BUT_RUNTIME_UNVERIFIED","work":["independent security and lock-order review","fused-input lock-order fix and regression","independent review of parent-authored session code"]},
+    {"task":"history","requested_model":"gpt-6.1-terra","requested_effort":"medium","effective_model":null,"effective_effort":null,"status":"CONFIGURED_BUT_RUNTIME_UNVERIFIED","work":["delayed history and DOM regression","session UI and focused browser regression"]}
+  ],
+  "max_concurrent_children":2,
+  "child_git_writes":false,
+  "device_access":false
+}

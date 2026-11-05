@@ -1,0 +1,243 @@
+{
+  "source": "dce1e88995e5989d63fab257ea55b8d7d2ab8e24",
+  "frozen_utc": "2026-11-05T01:55:41.773970+00:00",
+  "rows": [
+    {
+      "id": "N00",
+      "scope": "HTTP",
+      "result": "PASS",
+      "evidence": "기본 OFF 라우트·worker·원본 index 검사, 미설정 flag 차단."
+    },
+    {
+      "id": "N01",
+      "scope": "HTTP",
+      "result": "BLOCKED_DEPENDENCY",
+      "evidence": "제품 bootstrap에는 인증 주입이 없다. 기본 C1은 401, 인위적으로 읽기만 허용하면 입력 503·변경 403. 독립 테스트 인증만으로 제품 인증이 성립하지 않는다."
+    },
+    {
+      "id": "N02",
+      "scope": "UNIT",
+      "result": "FAIL",
+      "evidence": "poll 대기 중 reading=true, changed=0. 첫 클릭의 상세 GET 0회, 재시도 후에만 404가 표시됐다."
+    },
+    {
+      "id": "N03",
+      "scope": "REAL_CORE / HTTP / BROWSER",
+      "result": "PASS",
+      "evidence": "합성 원본 400점씩. AB 800, ABC와 AB+C 각 1200. 원본 해시·DAG·중복 ancestry 409, PCD 편집/2D 변환 33건."
+    },
+    {
+      "id": "N03.session",
+      "scope": "HTTP / SOURCE",
+      "result": "FAIL",
+      "evidence": "C1 descriptor의 mapping_session_id=null인데 미리보기 input_pin과 C2 화면에는 unverified:<map_id>가 세션값으로 들어간다."
+    },
+    {
+      "id": "N04",
+      "scope": "HTTP / BROWSER",
+      "result": "PASS",
+      "evidence": "C1 단일 구독, 콘 Canvas·TTL·지연·탭 종료·권한 11건. 실제 모델·XYZ·교정과 opaque codec은 INPUT_REQUIRED."
+    },
+    {
+      "id": "N05",
+      "scope": "REAL_CORE / BROWSER",
+      "result": "PASS",
+      "evidence": "C6 합성 parser→picker→seek/비교/요약. 업로드·제어 쓰기 0, 실제 현장 기록은 INPUT_REQUIRED."
+    },
+    {
+      "id": "N06",
+      "scope": "REAL_CORE",
+      "result": "PASS",
+      "evidence": "고정 C7 기준 및 bounded 26개 조합. byte 한도 초과 거부, 큐·캐시·geometry 검증. Jetson·capture-to-render는 미측정."
+    },
+    {
+      "id": "N07",
+      "scope": "BROWSER",
+      "result": "PASS",
+      "evidence": "제품 host 9건에 390/768/1440 dark/light 6조합 포함. DOM, contrast, 탭 종료, 재열기 및 합성 오류 검사."
+    }
+  ],
+  "first_history_event_utc": "2026-11-05T01:52:06.585782+00:00",
+  "history_repro": {
+    "result": "REPRODUCED_SHARED_POLL_OPEN_RACE",
+    "source": "robot_dashboard/static/features/maps/global_observation_contract.js",
+    "sha": "dce1e88995e5989d63fab257ea55b8d7d2ab8e24",
+    "whilePolling": {
+      "reading": true,
+      "canOpenHistorical": false,
+      "changedNotifications": 0
+    },
+    "during": {
+      "requests": [
+        "/api/v1/observations/global-jobs"
+      ],
+      "error": ""
+    },
+    "afterPoll": {
+      "requests": [
+        "/api/v1/observations/global-jobs"
+      ],
+      "error": "",
+      "canOpenHistorical": true
+    },
+    "retry": {
+      "requests": [
+        "/api/v1/observations/global-jobs",
+        "/api/v1/observations/global-jobs/dddddddddddddddddddddddd"
+      ],
+      "error": "과거 결과 조회 실패 · synthetic job not found"
+    }
+  },
+  "diagnostics": {
+    "profile": "bounded",
+    "config_sha256": "ea05d9d549a5793ca16990485ac9835d5e17560dc631ad78afbe84f1caee86df",
+    "counts": {
+      "case_inputs_including_warmup": 99,
+      "measured_case_inputs": 75,
+      "core_processing_attempts": 99,
+      "table_cases": 26,
+      "table_delivered": 18,
+      "table_not_sent": 8,
+      "note": "Table counts are one retained result per case; repetitions include one excluded warm-up. Queue/C4 composition counters separate."
+    },
+    "input_sha256": "9fda0f566eb6bcb7ee289fa31198b226a40452cf8867498372cdc54b02bb63ea",
+    "raw_bytes": 14112,
+    "snapshot_bytes": 4342,
+    "baseline_stage_times_ms": {
+      "baseline/cone/1/metadata0/C4_PointCloud2_decode": {
+        "n": 1,
+        "p50_ms": 1.230958,
+        "p95_ms": 1.230958,
+        "max_ms": 1.230958
+      },
+      "baseline/cone/1/metadata0/D2_C4CorePort_process_including_compaction": {
+        "n": 1,
+        "p50_ms": 1.401542,
+        "p95_ms": 1.401542,
+        "max_ms": 1.401542
+      },
+      "baseline/cone/1/metadata0/D2_provenance_compaction": {
+        "n": 1,
+        "p50_ms": 0.125042,
+        "p95_ms": 0.125042,
+        "max_ms": 0.125042
+      },
+      "baseline/cone/1/metadata0/C1_full_frame_wire_validation": {
+        "n": 1,
+        "p50_ms": 0.196334,
+        "p95_ms": 0.196334,
+        "max_ms": 0.196334
+      },
+      "baseline/cone/1/metadata0/C4_projection": {
+        "n": 1,
+        "p50_ms": 0.12325,
+        "p95_ms": 0.12325,
+        "max_ms": 0.12325
+      },
+      "baseline/cone/1/metadata0/C1_service_ingest": {
+        "n": 1,
+        "p50_ms": 0.391166,
+        "p95_ms": 0.391166,
+        "max_ms": 0.391166
+      },
+      "baseline/cone/1/metadata0/C1_snapshot_and_contract_serialization": {
+        "n": 1,
+        "p50_ms": 0.425334,
+        "p95_ms": 0.425334,
+        "max_ms": 0.425334
+      },
+      "baseline/cone/1/metadata0/C1_canonical_response_encoding": {
+        "n": 1,
+        "p50_ms": 0.03075,
+        "p95_ms": 0.03075,
+        "max_ms": 0.03075
+      },
+      "baseline/cone/1/metadata0/D3_assess_full_retained_geometry": {
+        "n": 1,
+        "p50_ms": 61.763125,
+        "p95_ms": 61.763125,
+        "max_ms": 61.763125
+      }
+    },
+    "queue": {
+      "input": 60,
+      "processed": 2,
+      "replaced_pending": 58,
+      "pending_max": 1,
+      "end_to_end_latency": "UNKNOWN_SOURCE_CLOCK_MAPPING"
+    },
+    "checks": {
+      "baseline": "PASS",
+      "c3_cache": "PASS",
+      "exact_sample_boundary": "PASS",
+      "exact_wire_boundary": "PASS",
+      "exact_compactor_boundary": "PASS",
+      "aggregate_and_assets": "PASS",
+      "full_geometry": "PASS",
+      "stale_map_clock": "PASS",
+      "bounded_queue": "PASS",
+      "canonical_connection": "PASS",
+      "browser_load": "NOT_RUN",
+      "protected_sources": "PASS"
+    },
+    "process": {
+      "peak_rss_bytes": 121323520,
+      "user_cpu_s": 3.020415,
+      "system_cpu_s": 0.361045,
+      "scope": "Whole diagnostic process including imports; cumulative high-water RSS, not per-stage memory"
+    },
+    "rejections": [
+      {
+        "family": "sparse",
+        "metadata_bytes": 0,
+        "first_observed_objects": 32,
+        "reason": "FRAME_BUDGET_EXCEEDED:22419+2048>16384",
+        "scope": "FIRST_SAMPLED_FAILURE; only cone metadata0 has adjacent 15/16 check"
+      },
+      {
+        "family": "sparse",
+        "metadata_bytes": 4096,
+        "first_observed_objects": 16,
+        "reason": "FRAME_BUDGET_EXCEEDED:16277+2048>16384",
+        "scope": "FIRST_SAMPLED_FAILURE; only cone metadata0 has adjacent 15/16 check"
+      },
+      {
+        "family": "cone",
+        "metadata_bytes": 0,
+        "first_observed_objects": 16,
+        "reason": "FRAME_BUDGET_EXCEEDED:14763+2048>16384",
+        "scope": "FIRST_SAMPLED_FAILURE; only cone metadata0 has adjacent 15/16 check"
+      },
+      {
+        "family": "cone",
+        "metadata_bytes": 4096,
+        "first_observed_objects": 12,
+        "reason": "FRAME_BUDGET_EXCEEDED:15680+2048>16384",
+        "scope": "FIRST_SAMPLED_FAILURE; only cone metadata0 has adjacent 15/16 check"
+      }
+    ]
+  },
+  "environment": {
+    "python": "3.12.14",
+    "node": "v26.13.0",
+    "os": "macOS arm64",
+    "i0_tests": 45,
+    "js_pass": 87,
+    "js_skip": 2,
+    "product_browser": 9,
+    "cone_browser": 11
+  },
+  "log_sha256": {
+    "r1-history.json": "b0c8e0c90210f57df794fe495f576922163a90fba457fd9ede3cdb0f2a8110b3",
+    "r1-i0-ready.log": "bc29c009a775b437a2ce0e310ea5aaeabb2ad3548b1413375204d8b615fe4cba",
+    "r1-js-env.log": "20da42296a033b9e61b1f469c1485e6472b2ddc5b8ea5d9f6d7ba9ca33ef7500",
+    "r1-product-ready.log": "06fb42102fd91eb6593d592570c5d20488d431f66191f90c9b3f946953f934ed",
+    "r1-cones-ready.log": "f7985d1caa6200f38eded85e6a659748164faf6f52b0463d264bea05a7ea6736",
+    "r1-copy.log": "a88d7d7c9db66d3eb194aac2dcd3cbe70131075589ca55c19abff07afdabd558",
+    "baseline.json": "fa331e41d6be754c6a6dbe6040400351a74edc2f0d7860665fb3f1dd65716d9e",
+    "bounded.json": "42b27ede952d6f52c5d8ba448d061dfd8ebb3d740011a3aa68a5573e32745bd5",
+    "r1-i0.log": "ea04574fb19bde4f6cb7a3de901e8648d38ad98788eee2d18ec32788a0ff0c69",
+    "r1-browser.log": "252e290083d47319cd2f615e0e30f1d7817a3dda5b2b14485ddfbf4c3fbd839e",
+    "r1-js.log": "7722283863a938f35729a3f3009e70f572799ce9de43b3e7fb17ce590f52a668"
+  }
+}

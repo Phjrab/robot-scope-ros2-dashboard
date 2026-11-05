@@ -1,0 +1,115 @@
+{
+  "baseline": "dce1e88995e5989d63fab257ea55b8d7d2ab8e24",
+  "branch": "main",
+  "local_date": "2026-11-05",
+  "repository": "Phjrab/robot-scope-ros2-dashboard",
+  "inherited_ci": [
+    {
+      "run": 41494400313,
+      "conclusion": "success"
+    },
+    {
+      "run": 41494400406,
+      "conclusion": "success"
+    }
+  ],
+  "diagnostic_dependencies": {
+    "main": "846121b4988ed2932d329020857925558f8f2c79",
+    "C1": "8fd42bdd5a1cdf2b5bf26eeab830e071988ac7d3",
+    "C2": "7625c87ede2489143c44862d883e10fc1791df28",
+    "C3": "e394b090221c555cf0649021d132163596c19fe2",
+    "C4": "b7242fca7c1b863ef111978debe444b2a74cc3d3",
+    "D1": "203c144f6b4a90966839c34b603ae12ee676cb12",
+    "D2": "7313f0a31c00ae87ae216b84ca41a23804e91917",
+    "D3": "0bb91b70b4ffd3801a5a5562637309eb595813c9"
+  },
+  "product_commit": "3bcb1d58116cc8411f78be1d4fc148c6c5da78d5",
+  "changed_paths": [
+    "robot_dashboard/expansion_integration/bootstrap.py",
+    "robot_dashboard/expansion_integration/catalogue.py",
+    "robot_dashboard/expansion_integration/host.py",
+    "robot_dashboard/expansion_integration/review_access.py",
+    "robot_dashboard/expansion_integration/review_owner.py",
+    "robot_dashboard/expansion_services/catalogue.py",
+    "robot_dashboard/expansion_services/errors.py",
+    "robot_dashboard/expansion_services/export.py",
+    "robot_dashboard/expansion_services/jobs.py",
+    "robot_dashboard/expansion_services/router.py",
+    "robot_dashboard/static/features/expansion/index.html",
+    "robot_dashboard/static/features/expansion/index.js",
+    "robot_dashboard/static/features/expansion/scene_poll.js",
+    "robot_dashboard/static/features/expansion/style.css",
+    "robot_dashboard/static/features/expansion/transport.js",
+    "robot_dashboard/static/features/maps/global_observation_contract.js",
+    "robot_dashboard/static/features/multimap_fusion/c1_contract.js",
+    "robot_dashboard/static/features/multimap_fusion/c1_ports.js",
+    "robot_dashboard/static/features/multimap_fusion/contract.js",
+    "robot_dashboard/static/features/multimap_fusion/index.js",
+    "robot_dashboard/static/features/obstacle_scene/c1_adapter.js",
+    "robot_dashboard/static/features/obstacle_scene/cone_display.js",
+    "tests/e2e/global_observation_history.spec.mjs",
+    "tests/expansion_c1/test_services.py",
+    "tests/expansion_c2/c1_exact.test.mjs",
+    "tests/expansion_c2/contract.test.mjs",
+    "tests/expansion_c3/test_canonical.mjs",
+    "tests/expansion_c3/test_cones.mjs",
+    "tests/expansion_services/http_client.py",
+    "tests/integration_i0/fixture.py",
+    "tests/integration_i0/product.spec.mjs",
+    "tests/integration_i0/test_review_owner.py",
+    "tests/test_global_observation_history.mjs",
+    "tests/test_i0_scene_transport.mjs"
+  ],
+  "product_tree": "fc0ef15b7ac25b00b4952fbd65ed22a9e7ac2551",
+  "handoff_only_paths": [
+    "docs/acceptance/a2/A1_FIELD_HANDOFF.md",
+    "docs/acceptance/a2/HANDOFF.md",
+    "docs/acceptance/a2/MODEL_RUN_MANIFEST.json",
+    "docs/acceptance/a2/POST_ROUND1_DIAGNOSIS.md",
+    "docs/acceptance/a2/ROUND1_RESULTS.json",
+    "docs/acceptance/a2/ROUND1_RESULTS.md",
+    "docs/acceptance/a2/SOURCE_LOCK.json",
+    "docs/acceptance/a2/WORKBOARD.md"
+  ],
+  "device": "NOT_RUN",
+  "verification_log_sha256": {
+    "r2-full-python.log": "9e9ee5a05db5ad5788d67d580c65de221a85a9c5f6e34a821420dcb8ebe25e06",
+    "final-python.log": "7f17e59fc3596021c46b9fd0cef31452308dcb926453f5ae7e1d70658b03be41",
+    "publish-python.log": "d283c78e9dbe67f6afb90bc4029b93459c84a5f0be5ac5fd8f6bdc32b5e25a2a",
+    "publish-i0.log": "444dea57d2e4d81c76c8415c580d45369d2e65fff01760a2280cbe798c1d4260",
+    "final-js.log": "0523f5ad13121d6ac32055a7f937432903dbdda7cbea186a451ab0f6449e65e7",
+    "final-responsive.log": "1e5f519b2bbc290dd28cbd207fe45afc954818a09e6fd3cf4c02aac737a1ef6c",
+    "r2-history-dom.log": "837c45862b2a5881e17069c6a14419f9721950a0f09aad6395889a6f586db722",
+    "final-cones.log": "e27dff5a720c08167f47663ee76a87bb3666c98016c6d7c8e0fe912d7667e3ca",
+    "final-timer.json": "03a9c89518134c7817e9216d739e26d375f2836c7acd93483273b8ad3a0279b5",
+    "final-stdlib.log": "7964bf5ce0eb7ddb720a4157457aafec1a6b4286e34e24a6fe2d269af0bf4b27",
+    "slow-grant-before.log": "e5fd36f4d3d71dd9f2f16531ebca24d0989255a85bdca3bf521c9d74bbcbd833",
+    "published-session.log": "acd797f07287c42acbda2b7a5583a94a90f5841988c14a3b8d5a4ef55b6ae2b8",
+    "published-https.log": "17019fe5ddf94018192ae26b53c2c0ca94601a11bb714276773b5473c1a15762"
+  },
+  "verification_environment": {
+    "local": "macOS arm64",
+    "python": "3.12.14",
+    "node": "26.13.0",
+    "playwright": "1.62.1",
+    "chromium": "151.0.7922.34",
+    "optional_c2_c1_export": "54629c793ad4ae0ea88127f00ed1b7f8805fc4e2"
+  },
+  "local_results": {
+    "full_python": {
+      "run": 3695,
+      "failures": 5,
+      "errors": 59,
+      "skipped": 37,
+      "status": "FAIL"
+    },
+    "i0_python": 52,
+    "javascript": 845,
+    "javascript_skipped": 0,
+    "i0_product_browser": 10,
+    "i0_cones_browser": 11,
+    "maps_history_browser": 5,
+    "real_tls_chromium_flow": "PASS",
+    "supported_linux_full_app": "SEE_EXACT_PUBLISHED_SHA_CI"
+  }
+}
