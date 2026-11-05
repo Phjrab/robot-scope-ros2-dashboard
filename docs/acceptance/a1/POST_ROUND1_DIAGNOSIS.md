@@ -25,3 +25,18 @@ Humble rclpy 3.3.22의 take_message는 두 타임스탬프만 노출하고 일�
 처음 로컬 회귀 15건의 1 FAIL/1 ERROR는 HTTP 검사 클라이언트 자동 redirect 및 macOS native subprocess의 TMPDIR/PATH에서 발생했다. 실제 TLS 주소를 자동 방문하지 않는 HTTP redirect 검사와 정규화한 시험 환경으로 15건 PASS를 확인했다. 전체 검사 첫 실행은 3677건, FAIL 14/ERROR 61/skip 40이었다. 기존 Mac 기준의 73개 실패 이름과 동일한 항목 외 신규 2개는 app.py 1600줄 제한 위반이었다. HTTPS/default 실행 분기를 별도 실행기로 이동하여 앱 크기 제한을 유지했다. 최초 결과는 덮어쓰지 않는다. Linux exact-SHA CI와 이후 장비 결과를 독립적으로 확인한다.
 
 수정 후 최종 로컬 전체 검사 3677건은 FAIL 12/ERROR 61/skip 40이며, 실패 이름 73개 모두 기존 Mac 기준과 일치한다. 관련 59건 및 JavaScript 763건 PASS, Ruff·Mypy·secret scan·frontend syntax PASS다. exact Linux CI 완료 전 현장 전환하지 않는다.
+
+
+## 여러 지도 현장 첫 실패 이후 진단
+
+| 사건 | 확정 근거와 경계 | 최소 조치·후속 확인 |
+|---|---|---|
+| 전환 admission 거절 | 첫 시도는 서비스/selector 변경 전 거절. 후속 원문에서 bridge ready=false·본체 DDS 수신 stale. 근본 연결 불안정 원인은 미확정. | 조건을 삭제하지 않고 fresh·관측 속도 0의 연속 5표본 후 같은 고정판 전환. 이후에도 간헐 stale이 있어 최종 물리 정지 판정은 UNKNOWN. |
+| Mac 인증서 | macOS verify는 PASS였지만 Chromium 실제 접속 실패. 최초 등록에 policy string이 있었다. Chromium 구현은 해당 문자열이 있는 trust 항목을 지원하지 않는다. | 같은 CA:FALSE 서버 leaf의 SSL trust 항목만 policy string 없이 다시 등록, 운영자 키체인 승인. 실제 HTTPS PASS, 다른 호스트 이름 거부. 개인키 복사·인증서 경고 우회·새 CA 설치 없음. |
+| 실지도 결과 | 실제 job GET 200의 state=DISCONNECTED. 유효 겹침 약 0.87%, inlier 13, accepted edge 0. 품질 거절은 실제 결과이며 전송/표시 실패로 대체하지 않는다. | 원문·화면 보존, 수락/저장 0. 사용자는 확인된 배치/대응점 없음으로 답했다. 추가 계산·threshold 튜닝·알고리즘 연구 없음. |
+| 시험 수집기 | 첫 브라우저 수집기의 비동기 response 변수는 null이었지만 UI에는 job/revision·품질이 표시됐다. null 자체를 서버 응답 부재로 단정할 수 없다. | 새 계산 없이 기존 job의 실제 인증 GET으로 원문 복구. 모든 최초 로그 유지. |
+| 모바일 시험 경로 | replay 상태에서 동일 문서 URL의 fragment만 바꿨다. 제품의 메뉴 전환 함수를 호출하지 않아 replay DOM이 유지됐다. | 실제 메뉴 클릭과 명시 문서 reload로 시험 경로 교정. 390px 목록 2개·session 복원·read 쓰기 제한·로그아웃/401 PASS. 주소 fragment 변경만으로 전환하는 기능은 검증 완료로 주장하지 않는다. 제품 코드 변경 없음. |
+
+Chromium 근거: [macOS trust 구현](https://chromium.googlesource.com/chromium/src/+/main/net/cert/internal/trust_store_mac.cc), [로컬 SSL 신뢰 설명](https://chromium.googlesource.com/chromium/src/+/main/net/data/ssl/chrome_root_store/faq.md). 인증서 신뢰 교정 뒤에는 실제 장비와 기존 브라우저 신뢰 저장소를 사용했고 응답 mock이나 TLS 오류 무시는 사용하지 않았다.
+
+종료 문서 검사의 두 초기 실패는 A1 전용 가상환경 미선택으로 fastapi/yaml/scipy 등의 모듈을 찾지 못한 환경 문제였다. 기존 가상환경과 정규 임시 경로에서 전체 3,697건을 실행하자 기존 Mac 실패 73개와 정확히 같았고 신규 실패 이름은 없었다. 검사를 통과시키기 위한 제품·안전 조건 변경은 없었다.

@@ -64,3 +64,24 @@
 최종 결합 소스의 macOS 전체 Python 3,697건은 FAIL 12/ERROR 61/skip 40으로 기존 실패 이름 73개와 동일했다. A3 후속 상대 odometry 준비 보정까지 반영한 관련 100건, JavaScript 765건, 정적 검사 PASS다. 공개 Git에는 사본·인증서 개인키·로그인 코드·장비 주소를 넣지 않았다. 실제 접속 주소와 비공개 증거는 현장 인계 사본에 보존한다.
 
 고정 후보의 최종 [표준 CI](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41976977598)는 Ubuntu 22.04/Python 3.10, Ubuntu 24.04/Python 3.12, competition-offline 모두 SUCCESS이며 [I0 제품 CI](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41976977597)도 SUCCESS다. 이 결과는 `7092851` 소프트웨어 검증이고 장비 전환·실지도 정합 성공을 뜻하지 않는다.
+
+
+## 여러 지도 HTTPS 실제 적용·대표 검사 · 15:26–15:52 KST
+
+운영자의 재연결 통보 후 기존 승인 범위로 재개했다. 고정 `7092851`의 두 CI 성공과 보존 기준을 재확인했다. 첫 전환은 `BASELINE_LIFECYCLE`에서 selector/서비스 변경 전에 거절됐다. 별도 읽기에서 로봇 본체 DDS 수신 중단과 bridge ready=false를 확인했다. 이후 2초 간격의 fresh·속도 0 표본 5개와 정지·소유권·배터리 39%를 확인한 뒤 15:30:22 KST에 전환했고, 15:30:29에 두 서비스의 같은 release·시작 STOP·자산·TLS·보호 해시를 대조했다. 이 회차의 원복 실행은 없었다.
+
+| 행 | 실제 결과 |
+|---|---|
+| M00 정지·소유권 | 전환 전 PASS. STOP ON으로 시작, lease/goal/추가 센서 세션 없음. 본체 신선도는 간헐적으로 중단됐으며 종료 시 UNKNOWN. 소프트웨어 정지와 물리 정지를 분리한다. |
+| M01 HTTPS | 최초 실제 Chromium 접속은 CERT_AUTHORITY_INVALID. 같은 leaf 인증서의 Mac SSL 신뢰 형식만 교정한 후 경고 우회 없이 정상 HTTPS·secureContext PASS. HTTP 확장 링크가 직접 HTTPS로 이동. 잘못된 호스트 이름은 거부. |
+| M02 검토 세션 | 실제 TLS 12항목 PASS: HTTP/forwarded 우회 거부, 미로그인/다른 origin 거부, secure/httponly/samesite cookie, read 조회·쓰기 거부, 코드 1회 사용, 회수·만료. 실제 브라우저 read/review 로그인·로그아웃 PASS. 시험 grant 회수. |
+| M03 실지도 catalogue | 사본 2개의 ID/revision·원본 ID/revision/내용 SHA와 사용자 같은 장소 확인을 실제 API/브라우저에서 대조 PASS. 별도 저장 폴더만 연결. 원본 capture epoch/session은 null 유지. |
+| M04 정합·수락·전체 점 저장·재조회 | 실지도 계산 정확히 1회. `DISCONNECTED`, accepted edge 0/rejected 1, connected components 2. 수락/저장 요청 0. exports GET 200/빈 목록. 유효 후보가 없어 저장/저장본 재조회 BLOCKED_DEPENDENCY. 사용자는 알려진 상대 배치/대응점 없음으로 확인. |
+| M05 기존 화면·재생·모바일 | HTTPS 대시보드 STOP 표시, 실제 WSS/WS joint/pose 수신, 기존 HTTP 대시보드와 메뉴 복귀, 로컬 합성 REPLAY 원본 ns 보존, Scene 404 PASS. 모바일 390px 실제 메뉴 클릭·문서 새로고침·세션 복원·읽기 제한·로그아웃 PASS, 가로 넘침 없음. fragment-only 시험 실패는 별도 보존. |
+| M06 보존·종료 | 원본 지도 140·navigation 4·기타 설정 6파일 SHA 동일, 사본 SHA 동일, 새 bundle 0. selector는 승인한 release/HTTPS/review/flags/시작 STOP만 변경. SOFTWARE STOP ON·lease 없음·명령 0·새 bridge nonzero/action 0. final body stale로 물리 정지는 미확인. |
+
+실제 job의 원문에서 유효 겹침 source/target 각각 `0.008666666666666666`, inlier 13, 거리 p50 `1.6452649893162592 m`, p95 `5.253311924918951 m`, inlier RMSE `0.10017842945518989 m`, reason `AMBIGUOUS_OR_LOW_OVERLAP_OR_DEGENERATE`를 확인했다. 낮은 inlier RMSE를 지도 정확도/성공으로 표시하지 않았다. C1이 원본 사본 파일을 D1 solver에 전달하며 160점 화면 preview를 정합 입력으로 넘기지 않는 것을 확인했다. 상세 원인(초기 배치·샘플 분포·형상)은 이번 자료로 확정하지 않는다. 품질 한도·solver·운영 지도·TF 변경 및 추가 정합 실험은 0건이다.
+
+본문과 별도로 최초 접속 실패, 전환 거절, 첫 정합/모바일 시험 실패, 원문 job GET, 마지막 telemetry stale을 비공개 증거에 보존했다. 최초 A1 9행 결과표와 여러 지도 7행 상태표는 수정하지 않았다. 관측 서비스 inactive, Nav2 goal 없음, 운영 지도 미선택을 유지했다. UI 검사를 위한 세션 POST 외 로봇 제어 쓰기는 없었다.
+
+**현장 종료 문서 검사** · 게시 전 원격 main의 A3 격리 workflow/runner 2파일만 fast-forward로 인수했으며 장비는 7092851을 유지한다. A1 기존 Python 3.12.14 가상환경의 전체 3,697건은 FAIL 12/ERROR 61/skip 40, 실패 이름 73개는 앞선 Mac 기준과 동일하고 신규 이름은 없다. JavaScript 765건·secret scan·diff 형식 검사 PASS. 처음 두 검사 시도는 기본 Python 3.13 및 가상환경 밖 Python 3.12에서 의존성 부재로 각각 2,591건(FAIL 1/ERROR 161/skip 46), 2,661건(FAIL 16/ERROR 118/skip 57)이었고 원문을 보존했다. 필수 모듈 import를 확인한 기존 A1 가상환경으로 교정했으며 제품 소스 변경은 없다. 지원 Linux의 장비 코드 검증은 고정 7092851의 두 CI 성공이다.
