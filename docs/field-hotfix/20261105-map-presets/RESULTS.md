@@ -27,7 +27,7 @@
 - 전체 JavaScript 첫 실행 761건 중 759 통과. 기존 conflict 자동 재조회 기대와 추출 함수의 helper stub 2건을 새 동작에 맞게 보완했다. 재실행 761/761 통과. 표시용 unit 2건 추가 후 최종 763/763 통과.
 - 전체 Python macOS 첫 실행 3,701건, 실패7·오류214·skip37. 오류는 /proc 부재59, symlink 금지129, mission 저장소 불가26이며 실패는 기존 Linux 과정의 후속 판정에 발생했다. 관련 변경 테스트에서 실패는 0건이다. 임시 경로를 심볼릭 링크가 없는 실제 디렉터리로 지정한 지도·프리셋·Nav2 저장/조율·API 계약·full-source 집중 회귀 163/163 통과.
 - 관련 브라우저 묶음 96건 중 95 통과. 독립 준비 화면 fixture의 selected.generation 접근 1건은 첫 실행에서 null이었다. 동일 검사·동일 제한을 별도 5회 실행해 5/5 통과했고 첫 실패도 보존했다. 새 두 hotfix 브라우저 흐름과 기존 full-source3·Nav2 이벤트 안전4는 통과했다. 프리셋 테스트 서버의 소유 포트 자동 할당 수정 후 해당 흐름도 통과했다.
-- JavaScript syntax 134개, ruff, mypy, secret scan, diff 공백 검사 통과. Linux 전수 및 I0/C0는 게시된 exact SHA의 CI 결과로 최종 기록한다.
+- JavaScript syntax 134개, ruff, mypy, secret scan, diff 공백 검사 통과. 아래 exact SHA의 Linux 전수 및 I0/C0 결과를 최종 인수했다.
 - 실제 지형을 추가 생성하거나 최소 밀도를 운영 기본값으로 일괄 변경하는 처리는 수행하지 않았다. 저장소의 기존 수집 설정과 기본 프리셋 값은 현장 검증의 기준으로 보존했다.
 
 ## 배포·복구 인계
@@ -35,3 +35,12 @@
 A1이 다음 안전한 시험창에서 게시 SHA와 기존 runtime 경로를 확인한다. 먼저 사용자 프리셋 사본으로 동일 ID 저장 후 재조회, 화면 새로고침과 다음 서버 시작 때 보존을 확인한다. 지도는 실제 원본·2D 쌍을 확보해 같은 ROI·Z에서 밀도1과 현재 설정의 경계를 비교한다. 현재 운영 지도를 교체하려면 A1의 별도 지도 선택 절차를 따른다.
 
 코드 복구는 이 hotfix의 정상 revert로 수행한다. 프리셋 값 복구는 A1이 서비스 정지 후 presets.json과 presets.previous.json을 별도 사본으로 보존하고, 원하는 catalog의 ID·값을 확인한 뒤 진행한다. 기본 버전1 JSON은 유지하며 원본 지도 복구가 필요한 자동 변경은 수행하지 않았다.
+
+
+## 게시 커밋 검증 완료
+
+검증 코드 SHA는 `03b58a6c6565af88f811ecd43867407ddfc55631`이다. Ubuntu 22.04/Python 3.10 및 Ubuntu 24.04/Python 3.12 각각 Python 3,701건(skip35), JavaScript763, 브라우저336, 실제 API 미션10건을 통과했다. 최초 macOS 실패 및 분리 재검사는 위 기록과 JSON에 보존했다. [표준 CI](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41962895986)
+
+같은 SHA의 I0/C0가 모두 통과했다. C0 component·full-app 원본 동일성, I0 core52·의존성4, 제품 브라우저10·콘 표시11과 baseline/bounded 진단을 확인했다. [I0/C0 CI](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41962895963)
+
+A1은 코드 후보를 읽고 인수했으며 현장 고정판 `dce1e889`의 별도 배포 검토를 유지한다. A2는 공용 지도·프리셋 구간의 중복 수정 0건을 확인했다. exact SHA와 두 통과 영수증을 기존 A1/A2 채팅에 전달한다. 공개 JSON에는 검사 수·상태·로그 해시를, 비공개 증거 폴더에는 전체 로그·합성 화면·CI 영수증을 보관한다.

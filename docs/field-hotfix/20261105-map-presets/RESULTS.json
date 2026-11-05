@@ -1,0 +1,70 @@
+{
+  "source_sha": "03b58a6c6565af88f811ecd43867407ddfc55631",
+  "device_actions": 0,
+  "field_map_quality": "INPUT_REQUIRED",
+  "direct_session_messaging": "SUPPORTED",
+  "a1_start": "ACKNOWLEDGED",
+  "a2_start": "ACKNOWLEDGED",
+  "a1_code_intake": "ACKNOWLEDGED",
+  "ci": {
+    "standard": {
+      "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41962895986",
+      "head_sha": "03b58a6c6565af88f811ecd43867407ddfc55631",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "competition-offline-integration",
+          "conclusion": "success"
+        },
+        {
+          "name": "hardware-free-tests (ubuntu-24.04, 3.12)",
+          "conclusion": "success"
+        },
+        {
+          "name": "hardware-free-tests (ubuntu-22.04, 3.10)",
+          "conclusion": "success"
+        }
+      ]
+    },
+    "i0": {
+      "url": "https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41962895963",
+      "head_sha": "03b58a6c6565af88f811ecd43867407ddfc55631",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "product-and-capacity",
+          "conclusion": "success"
+        }
+      ]
+    }
+  },
+  "linux_each": {
+    "python_run": 3701,
+    "python_skipped": 35,
+    "javascript_pass": 763,
+    "browser_pass": 336,
+    "mission_real_api_pass": 10
+  },
+  "local": {
+    "python_run": 3701,
+    "failures": 7,
+    "errors": 214,
+    "skips": 37,
+    "targeted_python_pass": 163,
+    "javascript_pass": 763,
+    "related_browser_pass": 95,
+    "related_browser_first_fail": 1,
+    "failed_case_rechecks_pass": 5
+  },
+  "logs_sha256": {
+    "i0-ci.log": "fb860d8b624f12efaefc41700addab72f9116b3cca188e4dadda1266fdac9f7f",
+    "a0-target-python.log": "480bc059524ecc0acf99d0d398b48c4be008c9f4894a26d6f363096b26a0fff6",
+    "a0-related-browser.log": "baf9d32d918f1da53e9a53830b2cc5359b01232afc2933b55aa1bbcf6db839a6",
+    "a0-full-python.log": "00d23972e86578bf23231ac3f4eb163f31f0f589a84fd398e58b4c0093c82609",
+    "a0-full-js-final2.log": "85f38b1d7c330674b4abafcc8c98acfde2762d8cf95773ec33ba04b5f5fe012b",
+    "a0-presets-final.log": "5c927240b03862af78de22be101ba3dc62faa1fb99b07943b906c6c22138f243",
+    "standard-ci.log": "422885793ff25997a9437a6964b13b94ecef465ef2225b71b867657126921cfd",
+    "a0-preparation-recheck.log": "8b54d7ce2b438a7dd549d89bd9abeb7397fd3710c77a56764b482f489bccf03a",
+    "a0-full-js.log": "2d292bb2ce87bd539ffe262bd9333170627cfe3e1c030fdb9d1430ca720d89d2"
+  }
+}
