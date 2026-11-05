@@ -490,6 +490,8 @@ def run(repo, output, requested_sha, report):
         wait("previous ROS graph cleanup", lambda: plant.count_publishers(HEALTH) == 0
              and plant.count_publishers("/tf") == 0 and plant.count_publishers(RAW) == 0,
              25, check_process=False)
+        wait("simulated bridge and lowstate heartbeat",
+             lambda: port.manager.snapshot()["ready"], 5, check_process=False)
         gateway.manual_start_preflight()
         ready_after = time.monotonic()
         report["isolation"]["native_launch_attempted"] = True
