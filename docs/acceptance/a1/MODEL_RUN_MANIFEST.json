@@ -1,0 +1,32 @@
+{
+  "parent": {
+    "role": "A1 sole hardware and Git owner",
+    "recommended_model": "gpt-6.1-sol",
+    "recommended_effort": "high",
+    "status": "MODEL_SELECTION_UNAVAILABLE",
+    "effective_model": null,
+    "effective_effort": null
+  },
+  "children": [
+    {
+      "task": "D07 identity and native evidence",
+      "requested_model": "gpt-6.1-sol",
+      "requested_effort": "high",
+      "status": "CONFIGURED_BUT_RUNTIME_UNVERIFIED",
+      "effective_model": null,
+      "effective_effort": null,
+      "device_access": false,
+      "git_writes": false
+    },
+    {
+      "task": "D01-D06/D08 local test evidence",
+      "requested_model": "gpt-6.1-terra",
+      "requested_effort": "medium",
+      "status": "CONFIGURED_BUT_RUNTIME_UNVERIFIED",
+      "effective_model": null,
+      "effective_effort": null,
+      "device_access": false,
+      "git_writes": false
+    }
+  ]
+}

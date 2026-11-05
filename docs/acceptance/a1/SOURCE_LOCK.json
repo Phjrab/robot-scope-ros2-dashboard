@@ -1,0 +1,42 @@
+{
+  "date_kst": "2026-11-05",
+  "repo": "Phjrab/robot-scope-ros2-dashboard",
+  "branch": "main",
+  "round1_source": "dce1e88995e5989d63fab257ea55b8d7d2ab8e24",
+  "field_candidate_frozen": "dce1e88995e5989d63fab257ea55b8d7d2ab8e24",
+  "field_candidate_applied_by_a1": true,
+  "field_loaded_source_evidence": "FIELD_SESSION.md",
+  "ancestors_verified": [
+    "ae41a9b6cf5cf5c7c133e818e3fad4693eb2053e",
+    "cc7e0fc526eb2fec365f1df84d1dd5f422da83d1"
+  ],
+  "baseline_ci": [
+    {
+      "run": 41494400313,
+      "conclusion": "success",
+      "attempt": 1
+    },
+    {
+      "run": 41494400406,
+      "conclusion": "success",
+      "attempt": 1,
+      "c0_component_pass": 37,
+      "c0_full_app_pass": 8
+    }
+  ],
+  "auto_deploy_main": false,
+  "original_loaded_source": "4ff0e47467f9d049706cd70ca49af6e3da805457",
+  "verified_field_release": "dce1e88995e5989d63fab257ea55b8d7d2ab8e24",
+  "release_archive": {
+    "source": "dce1e88995e5989d63fab257ea55b8d7d2ab8e24",
+    "tree": "20c724cbebbfcc9646dcf8acdb849388ef8cb307",
+    "tracked_blobs_verified": 2655,
+    "sha256": "4b32f797a44e85f6d95a2d06e649f24949ed1f567502533212a81de2ad3dbd4d",
+    "size_bytes": 90654113,
+    "scope": "git source archive only"
+  },
+  "round1_json_sha256": "d9c035bddd6a2bee87ab2a55dd8b7439e4f22b538a925c3776de83533caeebb9",
+  "stationary_receipt_sha256": "17a8939e7288ebe2a95dac937e8a96f57fd1ae7487522e60450c85d332fc9b06",
+  "protected_map_manifest_sha256": "521068a337ca9a247841e7b636d93e045f8e88721100afdd908cefb2d9909430",
+  "end_selected_map": null
+}
