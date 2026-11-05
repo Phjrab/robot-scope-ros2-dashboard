@@ -32,7 +32,21 @@ async def _invoke(callback, *args):
     return await result if inspect.isawaitable(result) else result
 
 
+def install_landing(app, flags, owner=None):
+    """Public discovery only. Reading the page never resolves private providers."""
+    @app.get("/extensions", response_class=HTMLResponse)
+    async def page():
+        auth = "OWNER_POLICY" if callable(getattr(owner, "authorize", None)) else "BLOCKED_AUTH"
+        config = {"flags": flags.public(),
+                  "auth": "REVIEW_SESSION" if getattr(owner, "session_login", False) else auth}
+        template = (STATIC / "features/expansion/index.html").read_text()
+        return HTMLResponse(template.replace("__I0_CONFIG__", json.dumps(config)),
+                            headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
+                                     "Content-Security-Policy": "default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"})
+
+
 def install_expansion(app, flags=ExpansionFlags(), owner=None):
+    install_landing(app, flags, owner)
     if not flags.enabled:
         return None
     owner = owner or ExpansionOwner()
@@ -71,15 +85,6 @@ def install_expansion(app, flags=ExpansionFlags(), owner=None):
                                      before_dispatch=mutation if owner.session_login else None))
     router = APIRouter()
 
-    @router.get("/extensions", response_class=HTMLResponse)
-    async def page():
-        auth = "OWNER_POLICY" if callable(owner.authorize) else "BLOCKED_AUTH"
-        config = {"flags": flags.public(), "auth": "REVIEW_SESSION" if owner.session_login else auth}
-        template = (STATIC / "features/expansion/index.html").read_text()
-        return HTMLResponse(template.replace("__I0_CONFIG__", json.dumps(config)),
-                            headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
-                                     "Content-Security-Policy": "default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"})
-
     @router.get("/api/v1/extensions/scene/context", dependencies=[Depends(authorize)])
     async def context():
         if not callable(owner.scene_context):
@@ -104,9 +109,13 @@ def install_expansion(app, flags=ExpansionFlags(), owner=None):
 
 
 def dashboard_index(flags):
-    """Only opt-in HTML differs; existing app/navigation modules stay untouched."""
+    """Add ordinary links through the existing host hook, outside SPA actions."""
     html = (STATIC / "index.html").read_text()
-    if flags.enabled:
-        html = html.replace('<div class="top-actions">', '<div class="top-actions">'
-                            '<a class="ghost-button" href="/extensions">확장 기능 · Offline review</a>', 1)
-    return html
+    html = html.replace('</head>', '<link rel="stylesheet" href="/static/features/expansion/entry.css"></head>', 1)
+    html = html.replace('<div class="top-actions">', '<div class="top-actions">'
+                        '<a class="ghost-button expansion-entry-top" href="/extensions">확장 기능</a>', 1)
+    menu_end = '          </nav>\n        </details>'
+    return html.replace(menu_end,
+                        '<a class="nav-item" href="/extensions" aria-label="확장 기능">'
+                        '<i aria-hidden="true">＋</i><span><b>확장 기능</b>'
+                        '<small>지도 합치기·관측·재생</small></span></a>' + menu_end, 1)

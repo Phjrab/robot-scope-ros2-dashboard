@@ -1,0 +1,4 @@
+/* The additional top link shares the dashboard's existing mobile breakpoint. */
+@media (max-width: 800px) {
+  .top-actions .expansion-entry-top { display: none; }
+}

@@ -35,7 +35,12 @@ class MapIntegrationTests(unittest.TestCase):
         app=FastAPI()
         before=list(app.routes)
         self.assertIsNone(install_expansion(app))
-        self.assertEqual(before, app.routes)
+        self.assertEqual(app.routes[:len(before)], before)
+        self.assertEqual([route.path for route in app.routes[len(before):]], ['/extensions'])
+        self.assertFalse(hasattr(app.state, 'expansion_owner'))
+        with TestClient(app, base_url="http://testserver") as client:
+            self.assertEqual(client.get('/api/v1/extensions/multimap/sources').status_code, 404)
+        app=FastAPI()
         install_expansion(app, ExpansionFlags(multimap=True))
         with TestClient(app, base_url="http://testserver") as client:
             self.assertEqual(client.get('/api/v1/extensions/multimap/sources').status_code,401)

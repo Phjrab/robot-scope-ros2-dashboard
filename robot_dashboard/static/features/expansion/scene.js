@@ -8,7 +8,7 @@ import {mountOperatorUsability} from '../operator_usability/index.js';
 function stylesheet(name){const href=`/static/features/${name}`;if(document.querySelector(`link[href="${href}"]`))return;
   const link=document.createElement('link');link.rel='stylesheet';link.href=href;document.head.append(link);}
 
-export function mountObservationReview(host,{name,request,signal,usability,onError}) {
+export function mountObservationReview(host,{name,request,signal,usability,onError,onStatus=()=>{}}) {
   stylesheet('obstacle_scene/obstacle_scene.css');
   stylesheet('expansion/replay.css');
   if(usability)stylesheet('operator_usability/operator_usability.css');
@@ -60,6 +60,7 @@ export function mountObservationReview(host,{name,request,signal,usability,onErr
         spaceNote.hidden=next?.space_kind!=='ISOLATED_SIMULATION';
         spaceNote.textContent='SIMULATED · 독립 평면 데모 · 실제 지도/3D 위치 미검증';},
       onPacket(packet){
+        onStatus(packet.evidence_kind);
         if(context?.space_kind==='ISOLATED_SIMULATION' && framedContext!==JSON.stringify(context)){
           const points=packet.obstacle_frame?.obstacles?.map(o=>o.geometry?.center_m);
           if(points?.length && points.every(p=>Array.isArray(p)&&p.length===3&&p.every(Number.isFinite))){
