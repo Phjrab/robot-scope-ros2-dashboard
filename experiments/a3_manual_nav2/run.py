@@ -138,6 +138,8 @@ def run(repo, output, requested_sha, report):
     import rclpy
     from action_msgs.msg import GoalStatus, GoalStatusArray
     from geometry_msgs.msg import Twist
+    from lifecycle_msgs.msg import State
+    from lifecycle_msgs.srv import GetState
     from nav_msgs.msg import OccupancyGrid, Odometry, Path as NavPath
     from rclpy.executors import SingleThreadedExecutor
     from rclpy.node import Node
@@ -256,6 +258,7 @@ def run(repo, output, requested_sha, report):
             for key in ("global", "local"):
                 self.create_subscription(OccupancyGrid, f"/{key}_costmap/costmap",
                                          lambda msg, key=key: self.on_costmap(key, msg), latched)
+            self.navigator_state = self.create_client(GetState, "/bt_navigator/get_state")
             self.tf = Buffer()
             self.listener = TransformListener(self.tf, self, spin_thread=False)
             self.gateway = NavigationRosGateway(
@@ -519,6 +522,22 @@ def run(repo, output, requested_sha, report):
         require(not status["safety"]["can_send_goal"], "goal opened before explicit seed")
         return job_id
 
+    def navigator_active():
+        client = plant.navigator_state
+        wait("native bt_navigator lifecycle service", client.service_is_ready, 12)
+        started = time.monotonic()
+        observed_states = []
+        while time.monotonic() - started < 20:
+            response = client.call_async(GetState.Request())
+            state = wait("native bt_navigator lifecycle readback",
+                         lambda: response.result().current_state if response.done() else None, 4)
+            if not observed_states or observed_states[-1] != state.label:
+                observed_states.append(state.label)
+                trace("navigator_lifecycle_readback", state_id=state.id, label=state.label)
+            if state.id == State.PRIMARY_STATE_ACTIVE:
+                return {"states": observed_states, "wait_seconds": time.monotonic() - started}
+        raise TimeoutError(f"bt_navigator never reached active; observed {observed_states}")
+
     def seed(job, pose):
         native_generation_before = manual()["seed_generation"]
         odom = compose(plant.odom_from_map, plant.pose)
@@ -533,6 +552,10 @@ def run(repo, output, requested_sha, report):
         wait("independent tf2 map/base and valid action gate",
              lambda: tf_stamp("map", "base_link") >= int(receipt["odometry_stamp_ns"])
              and gateway.runtime_snapshot()["safety"]["can_send_goal"], 40)
+        # Seed may unblock global_costmap before Nav2's action endpoint is
+        # active. Discovery alone accepted an early dispatch in round three,
+        # which Nav2 rejected. The movement cases explicitly wait for ACTIVE.
+        navigator = navigator_active()
         observed = pose_from_transform(tf_lookup("map", "base_link").transform)
         odom_tf = pose_from_transform(tf_lookup("odom", "base_link").transform)
         map_odom_tf = pose_from_transform(tf_lookup("map", "odom").transform)
@@ -546,11 +569,14 @@ def run(repo, output, requested_sha, report):
             "runtime_receipt": receipt,
             "runtime_tf_readback_stamp_ns": status["manual_seed"]["tf_readback_stamp_ns"],
             "independent_tf2_stamp_ns": tf_stamp("map", "base_link"),
+            "bt_navigator_before_motion": navigator,
         }
 
     def send(target):
         validated = manager.validate_active_pose(**map_identity, x=target[0], y=target[1], yaw=target[2])
-        status = gateway.send_goal(**map_identity, **validated, seed_generation=manual()["seed_generation"])
+        generation = manual()["seed_generation"]
+        trace("gateway_goal_request", target=target, seed_generation=generation)
+        status = gateway.send_goal(**map_identity, **validated, seed_generation=generation)
         goal_id = status["goal"]["goal_id"]
 
         def live_handle():
