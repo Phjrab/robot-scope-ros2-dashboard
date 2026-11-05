@@ -1,0 +1,69 @@
+name: A3 isolated native Humble verification
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  isolated-native:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    env:
+      PRODUCT_SHA: 4cebeed8f309a1f5e69ade96f21a4f29d2ba93f4
+      IMAGE: a3-native-humble:verification
+    steps:
+      - name: Check out the verification harness
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check out the exact product revision
+        uses: actions/checkout@v4
+        with:
+          ref: 4cebeed8f309a1f5e69ade96f21a4f29d2ba93f4
+          path: a3-product
+          persist-credentials: false
+      - name: Build the Humble image before isolation
+        shell: bash
+        run: |
+          evidence="$RUNNER_TEMP/a3-native-evidence"
+          mkdir -p "$evidence"
+          git -C a3-product rev-parse HEAD > "$evidence/source-sha.txt"
+          test "$(cat "$evidence/source-sha.txt")" = "$PRODUCT_SHA"
+          git rev-parse HEAD > "$evidence/harness-sha.txt"
+          docker version > "$evidence/docker-version.txt"
+          base="$(python3 -c 'import json; print(json.load(open("a3-product/experiments/competition_nav2/repro/image-lock.json"))["base_digest"])')"
+          [[ "$base" =~ ^ros@sha256:[a-f0-9]{64}$ ]]
+          printf '%s\n' "$base" > "$evidence/base-digest.txt"
+          docker build --build-arg "BASE_IMAGE=$base" \
+            --iidfile "$evidence/image-id.txt" \
+            --tag "$IMAGE" a3-product/experiments/competition_nav2/container \
+            2>&1 | tee "$evidence/image-build.log"
+      - name: Run the native Nav2 cases without a network
+        shell: bash
+        run: |
+          evidence="$RUNNER_TEMP/a3-native-evidence"
+          container="$(docker create --network none --read-only --cap-drop ALL \
+            --security-opt no-new-privileges --pids-limit 384 \
+            --user "$(id -u):$(id -g)" --shm-size 128m \
+            --tmpfs /tmp:rw,exec,nosuid,nodev,size=768m \
+            --env HOME=/tmp --env ROS_LOG_DIR=/evidence/ros --env PRODUCT_SHA \
+            --mount "type=bind,source=$PWD/a3-product,target=/repo,readonly" \
+            --mount "type=bind,source=$PWD/experiments/a3_manual_nav2,target=/harness,readonly" \
+            --mount "type=bind,source=$evidence,target=/evidence" \
+            --workdir /repo "$IMAGE" /bin/bash -euc \
+            'cp /opt/c3-packages.tsv /evidence/packages.tsv; exec python3 /harness/run.py --repo /repo --output /evidence --sha "$PRODUCT_SHA"')"
+          trap 'docker rm -f "$container" >/dev/null 2>&1 || true' EXIT
+          docker inspect --format '{{.HostConfig.NetworkMode}}' "$container" > "$evidence/network-mode.txt"
+          test "$(cat "$evidence/network-mode.txt")" = none
+          docker start --attach "$container" 2>&1 | tee "$evidence/native-console.log"
+          test "$(docker inspect --format '{{.State.ExitCode}}' "$container")" = 0
+      - name: Preserve native results and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a3-native-4cebeed-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/a3-native-evidence
+          if-no-files-found: error
+          retention-days: 14
