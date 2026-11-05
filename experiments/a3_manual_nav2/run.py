@@ -105,9 +105,12 @@ def native_launcher(repo, output):
         '[[ "$#" == 6 && "$1" == --map-yaml && "$3" == --params-file && '
         '"$5" == --mode && "$6" == manual_seeded_2d ]]\n'
         f"PROJECT_DIR={shlex.quote(str(repo))}\n"
+        f"EVIDENCE_DIR={shlex.quote(str(output))}\n"
         'MAP_YAML="$2"\nPARAMS_FILE="$4"\nRUNTIME_MODE=(--mode "$6")\n'
         "MAPPING_PROFILE=go2-onboard\n"
         'cd "$PROJECT_DIR"\n'
+        'JOB_NAME="$(basename -- "$(dirname -- "$PARAMS_FILE")")"\n'
+        'exec > >(tee "$EVIDENCE_DIR/nav2-$JOB_NAME.log") 2>&1\n'
         + tail
     )
     wrapper.chmod(0o700)
@@ -489,6 +492,7 @@ def run(repo, output, requested_sha, report):
              25, check_process=False)
         gateway.manual_start_preflight()
         ready_after = time.monotonic()
+        report["isolation"]["native_launch_attempted"] = True
         start = manager.start(**map_identity,
                               parameters_revision=manager.snapshot()["parameters_revision"], mode=MODE)
         job_id = start["pipeline"]["job_id"]
@@ -504,7 +508,10 @@ def run(repo, output, requested_sha, report):
         wait("manual runtime with fresh synthetic inputs",
              lambda: (manual().get("job_id") == job_id and manual().get("inputs_ready")
                       and manual().get("state") == "waiting_initial_pose"
-                      and manual().get("stopped_seconds", 0) >= 2.05), 35)
+                      and manual().get("stopped_seconds", 0) >= 2.05
+                      and gateway.prelocalization_snapshot(
+                          **map_identity, mode=MODE, job_id=job_id,
+                          ready_after=ready_after)["ready"]), 35)
         status = gateway.activate(**map_identity, map_name="A3 synthetic room",
                                   mode=MODE, job_id=job_id, ready_after=ready_after)
         require(not status["safety"]["can_send_goal"], "goal opened before explicit seed")
@@ -679,7 +686,8 @@ def run(repo, output, requested_sha, report):
         gateway.clear_costmaps(scope="both")
         wait("clear-costmap service finished",
              lambda: (gateway.state.get("clear_costmaps") or {}).get("state") not in
-                     (None, "idle", "pending", "clearing"), 10)
+                     (None, "idle", "pending", "clearing", "running"), 10)
+        require(gateway.state["clear_costmaps"]["state"] == "succeeded", "costmap clear failed")
         old_generation = manual()["seed_generation"]
         _, identifier = send(target)
         wait("moving when FAST-LIO odometry is interrupted",
@@ -693,7 +701,7 @@ def run(repo, output, requested_sha, report):
                                         and value["seed_generation"] > old_generation else None), 5)
             wait("gateway closes lease and stops actuator",
                  lambda: not gateway.state["active"] and port.stop_count > old_stop_count and zero_for(.3), 5)
-            stopped = plant.pose
+            stopped, verified_stop_time = plant.pose, time.monotonic()
             require(math.dist(stopped[:2], cut_pose[:2]) < .25, "actuator did not stop within outage bound")
             wait("Nav2 cancels exact interrupted goal",
                  lambda: plant.statuses.get(identifier) == GoalStatus.STATUS_CANCELED, 8)
@@ -716,7 +724,7 @@ def run(repo, output, requested_sha, report):
                 "stop_displacement_m": math.dist(stopped[:2], cut_pose[:2]),
                 "runtime_invalidation": invalidated, "gateway_stop_reason": gateway.state["deactivation_reason"],
                 "native_action_uuid": identifier, "native_action_status": plant.statuses[identifier],
-                "elapsed_until_verified_stop_s": time.monotonic() - cut_time,
+                "elapsed_until_verified_stop_s": verified_stop_time - cut_time,
                 "old_tf_stamp_unchanged_ns": withheld_ns, "stale_goal_rejection": stale_goal_rejection}
 
     def record(name, operation, *, cleanup=False):

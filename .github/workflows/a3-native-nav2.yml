@@ -36,9 +36,15 @@ jobs:
           base="$(python3 -c 'import json; print(json.load(open("a3-product/experiments/competition_nav2/repro/image-lock.json"))["base_digest"])')"
           [[ "$base" =~ ^ros@sha256:[a-f0-9]{64}$ ]]
           printf '%s\n' "$base" > "$evidence/base-digest.txt"
-          docker build --build-arg "BASE_IMAGE=$base" \
-            --iidfile "$evidence/image-id.txt" \
-            --tag "$IMAGE" a3-product/experiments/competition_nav2/container \
+          c3=a3-product/experiments/competition_nav2/container
+          packages="ros-humble-navigation2 ros-humble-nav2-bringup ros-humble-rmw-fastrtps-cpp python3-numpy python3-scipy python3-yaml python3-pip"
+          {
+            cat "$c3/Dockerfile"
+            # The production gateway imports Pydantic v2 through mission route models.
+            printf '%s\n' 'RUN python3 -m pip install --no-cache-dir pydantic==2.14.2 && python3 -m pip freeze > /opt/a3-python-packages.txt'
+          } | docker build --file - --build-arg "BASE_IMAGE=$base" \
+            --build-arg "PACKAGE_SPECS=$packages" \
+            --iidfile "$evidence/image-id.txt" --tag "$IMAGE" "$c3" \
             2>&1 | tee "$evidence/image-build.log"
       - name: Run the native Nav2 cases without a network
         shell: bash
@@ -53,7 +59,7 @@ jobs:
             --mount "type=bind,source=$PWD/experiments/a3_manual_nav2,target=/harness,readonly" \
             --mount "type=bind,source=$evidence,target=/evidence" \
             --workdir /repo "$IMAGE" /bin/bash -euc \
-            'cp /opt/c3-packages.tsv /evidence/packages.tsv; exec python3 /harness/run.py --repo /repo --output /evidence --sha "$PRODUCT_SHA"')"
+            'cp /opt/c3-packages.tsv /evidence/packages.tsv; cp /opt/a3-python-packages.txt /evidence/python-packages.txt; exec python3 /harness/run.py --repo /repo --output /evidence --sha "$PRODUCT_SHA"')"
           trap 'docker rm -f "$container" >/dev/null 2>&1 || true' EXIT
           docker inspect --format '{{.HostConfig.NetworkMode}}' "$container" > "$evidence/network-mode.txt"
           test "$(cat "$evidence/network-mode.txt")" = none
