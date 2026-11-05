@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 from robot_dashboard.api.dependencies import require_same_origin
 from .flags import ExpansionFlags
@@ -32,10 +32,13 @@ async def _invoke(callback, *args):
     return await result if inspect.isawaitable(result) else result
 
 
-def install_landing(app, flags, owner=None):
+def install_landing(app, flags, owner=None, *, review_origin=None):
     """Public discovery only. Reading the page never resolves private providers."""
     @app.get("/extensions", response_class=HTMLResponse)
-    async def page():
+    async def page(request: Request):
+        if review_origin and request.url.scheme != "https":
+            return RedirectResponse(review_origin + "/extensions", status_code=307,
+                                    headers={"Cache-Control": "no-store"})
         auth = "OWNER_POLICY" if callable(getattr(owner, "authorize", None)) else "BLOCKED_AUTH"
         config = {"flags": flags.public(),
                   "auth": "REVIEW_SESSION" if getattr(owner, "session_login", False) else auth}
@@ -45,8 +48,8 @@ def install_landing(app, flags, owner=None):
                                      "Content-Security-Policy": "default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'"})
 
 
-def install_expansion(app, flags=ExpansionFlags(), owner=None):
-    install_landing(app, flags, owner)
+def install_expansion(app, flags=ExpansionFlags(), owner=None, *, review_origin=None):
+    install_landing(app, flags, owner, review_origin=review_origin)
     if not flags.enabled:
         return None
     owner = owner or ExpansionOwner()

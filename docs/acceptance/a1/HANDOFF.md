@@ -18,3 +18,15 @@
 **다음 한 가지** · 보존한 `map1`/`map1_2D`의 실제 장소에서 현재 현장 범위와 X/Y/yaw 초안·정지 가정을 운영자가 확인한다. 현재 STOP 잠금의 해제는 다음 현장 절차에서 명시적으로 다룬다. 그다음 geometry → 정확한 관측 종료 → Nav2 → 명시 INITIAL POSE → 별도 match·지속 보정을 검증한다. 실제 이동 직전에 운영자·충전선 분리·배터리(20% 이하면 중단)·통로·회수/정지 수단·제어권·목표·횟수·시간을 새로 확인한다. 후속 main을 자동 배포하지 않는다.
 
 [첫 결과표](ROUND1_RESULTS.md) · [후속 진단](POST_ROUND1_DIAGNOSIS.md) · [현장 관측·복구](FIELD_SESSION.md) · [A2 입력](A2_INPUT_HANDOFF.md) · [소스 고정](SOURCE_LOCK.json)
+
+## 후속 여러 지도 검토 연결 준비
+
+사용자가 승인한 추가 범위는 직접 HTTPS·ReviewAccess·별도 사본 catalogue를 연결하고 실지도 2개 정합→후보 검토→리뷰 PCD 저장·재조회까지 확인하는 것이다. 두 지도는 동일 장소를 겹쳐 촬영한 실지도라고 운영자가 확인했다. 센서 수집 epoch와 최초 capture session은 확인되지 않아 null로 유지한다. REPLAY의 `source_epoch`는 원본 저장 파일 revision이며 센서 epoch라는 뜻이 아니다. frame은 보존된 map-family 선언, m 단위는 기존 mapping 산출 규약에 근거한다. 복사본은 자기 ID/revision을 사용하고 원본 ID/revision/내용 SHA를 acquisition에 따로 보존한다.
+
+직접 HTTPS는 `ROBOT_SCOPE_HTTPS_HOST/PORT/CERTFILE/KEYFILE` 4개를 함께 설정할 때만 켜진다. 사설 주소를 명시하고 별도의 비특권 포트 및 해당 주소와 일치하는 `ROBOT_SCOPE_EXPANSION_REVIEW_ORIGIN`이 필요하다. HTTP와 HTTPS는 하나의 event loop와 앱 lifespan을 공유하며 forwarded 헤더를 신뢰하지 않는다. 공개 인터넷·프록시·인증서 경고 우회는 이번 범위에 없다. 현재 Mac에는 서버 인증서 한 장을 해당 호스트의 SSL 용도로 신뢰 등록한다.
+
+`ROBOT_SCOPE_EXPANSION_REVIEW_DB`는 사전에 발급한 700 폴더 안 600 SQLite 파일이다. `python -m robot_dashboard.expansion_integration.review_access <private-db> issue review --ttl 900`은 15분 일회용 검토 코드를 발급한다. `read`는 조회 전용이며 `revoke <grant-id>`로 회수한다. 코드·쿠키·DB·TLS 개인키는 공개 저장소에 넣지 않는다. 브라우저 로그인은 HTTPS 확장 페이지의 일회용 코드 입력란을 사용한다.
+
+`ROBOT_SCOPE_EXPANSION_REVIEW_WORKSPACE`는 700 폴더 안 600 JSON이다. schema `robot-scope.review-workspace.v1`, `catalogue_root=<동일 폴더>/sources`, `bundle_root=<동일 폴더>/bundles`, map ID별 `metadata`를 명시한다. sources도 700이며 운영 catalogue·수정 권한·지도 활성화 callback을 연결하지 않는다. 전체 점 저장은 기존 C1 exporter를 사용한다. MULTIMAP/REPLAY/USABILITY만 켜고 SCENE/RUNTIME은 끈다.
+
+이번 정지 배포는 `ROBOT_SCOPE_CONTROL_START_STOPPED=1`로 첫 제어 객체부터 STOP을 잠근다. 기본값은 기존과 같고 해제는 별도 명시 절차다. 새 TLS 구성 실패 시 같은 검증판에서 HTTPS와 MULTIMAP만 끄는 복구가 가능하다. STOP 시작 기능이 없는 과거판을 자동 재시작하지 않는다. 그보다 이른 실패에서는 두 서비스를 정지한 상태로 selector를 복원하고 결과를 보고한다. 배포 성공 여부와 실지도 정합 결과는 실행 후 FIELD_SESSION에 별도로 기록한다.

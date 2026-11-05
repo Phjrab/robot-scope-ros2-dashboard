@@ -378,8 +378,8 @@ class ControlManager:
         self._lease_end_reason = ""
         self._bridge_seen: float | None = None
         self._lowstate_seen: float | None = None
-        self._estop_latched = False
-        self._estop_reason = ""
+        self._estop_latched = env.get("ROBOT_SCOPE_CONTROL_START_STOPPED") == "1"
+        self._estop_reason = "operator_start_stopped" if self._estop_latched else ""
         self._action_guard_until = 0.0
         self._action_guard_name = ""
 

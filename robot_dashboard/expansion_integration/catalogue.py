@@ -7,7 +7,8 @@ from pathlib import Path
 from dataclasses import replace
 import numpy as np
 
-from robot_dashboard.expansion_contracts import MapSourceDescriptor
+from robot_dashboard.expansion_contracts import MapSourceDescriptor, canonical
+from robot_dashboard.expansion_contracts.messages import HASH, ID, token
 from robot_dashboard.expansion_services.catalogue import CatalogueAdapter, ResolvedSource
 from robot_dashboard.expansion_services.errors import Conflict
 from robot_dashboard.pcd_editing.pcd import _read_header
@@ -47,6 +48,23 @@ class SavedCataloguePort:
             raise Conflict("source qualification changed", code="STALE_SOURCE_REVISION")
         with _open_regular(asset.path, self.saved_maps.max_file_bytes) as stream:
             _, _, _, count, fields = _read_header(stream, asset.path.stat().st_size, 20_000_000)
+        acquisition = {"origin": "qualified saved catalogue", "display_name": metadata["display_name"]}
+        original = metadata.get("original_source")
+        if original is not None:
+            if not isinstance(original, dict) or set(original) != {"map_id", "revision", "sha256"}:
+                raise ValueError("invalid original copy identity")
+            token(original["map_id"], "original map ID", ID)
+            for key in ("revision", "sha256"):
+                token(original[key], "original " + key, HASH)
+            if original["sha256"] != digest:
+                raise Conflict("review copy differs from original", code="SOURCE_CONTENT_CHANGED")
+            acquisition["original_source"] = dict(original)
+        qualification = metadata.get("qualification")
+        if qualification is not None:
+            if not isinstance(qualification, dict):
+                raise ValueError("invalid source qualification basis")
+            canonical(qualification, 4096)
+            acquisition["qualification"] = qualification
         descriptor = MapSourceDescriptor(
             schema_version="0.1", evidence_kind=metadata["evidence_kind"],
             producer="i0-saved-catalogue", sequence=0, source_epoch=metadata["source_epoch"],
@@ -55,7 +73,7 @@ class SavedCataloguePort:
             mapping_session_id=metadata.get("mapping_session_id"),
             gravity_or_plane=metadata.get("gravity_or_plane"),
             point_count=count, point_schema=fields,
-            acquisition={"origin": "qualified saved catalogue", "display_name": metadata["display_name"]},
+            acquisition=acquisition,
         )
         lineage = metadata.get("lineage", {})
         if asset.edit_history and not lineage:

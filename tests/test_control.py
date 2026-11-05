@@ -83,6 +83,7 @@ class ControlManagerTests(unittest.TestCase):
         manager = self.manager(profile=profile_off)
         self.assertFalse(manager.snapshot()["enabled"])
         self.assertFalse(manager.snapshot()["configured"])
+
         with self.assertRaises(ControlDisabled):
             manager.acquire_lease("keyboard")
 
@@ -95,6 +96,18 @@ class ControlManagerTests(unittest.TestCase):
         self.assertTrue(manager.snapshot()["configured"])
         manager.set_readiness(bridge_ready=True, lowstate_ready=True)
         self.assertTrue(manager.acquire_lease("keyboard")["lease"]["active"])
+
+    def test_explicit_start_stopped_blocks_lease_after_readiness_until_confirmed_clear(self):
+        manager = self.manager(env={**self.env, "ROBOT_SCOPE_CONTROL_START_STOPPED": "1"})
+        self.assertTrue(manager.snapshot()["estop"]["latched"])
+        manager.set_readiness(bridge_ready=True, lowstate_ready=True)
+        with self.assertRaises(EmergencyStopLatched):
+            manager.acquire_lease("keyboard")
+        with self.assertRaises(CommandValidationError):
+            manager.clear_emergency_stop(confirm=False)
+        manager.clear_emergency_stop(confirm=True)
+        self.assertFalse(manager.snapshot()["lease"]["active"])
+        self.assertFalse(manager.snapshot()["estop"]["latched"])
 
     def test_only_one_bound_lease_is_allowed(self):
         manager = self.ready_manager()

@@ -9,7 +9,9 @@ def configure_expansion(app, environ, *, review_inputs=None):
         from .host import install_expansion
         from .review_owner import configured_owner
         owner = configured_owner(app, flags, environ, review_inputs)
-        install_expansion(app, flags, owner)
+        install_expansion(app, flags, owner,
+                          review_origin=environ.get("ROBOT_SCOPE_EXPANSION_REVIEW_ORIGIN")
+                          if getattr(owner, "session_login", False) else None)
     else:
         from .host import install_landing
         install_landing(app, flags)

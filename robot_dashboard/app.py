@@ -13,11 +13,12 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict
 
-import uvicorn
 from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
 from .expansion_integration.bootstrap import configure_expansion
+from .expansion_integration.review_workspace import configured_review_inputs
+from .https_listener import run_dashboard
 from .application.lifecycle_coordinator import LifecycleCoordinator, LifecycleTransitionBusy
 from .application.mapping_coordinator import (
     MappingCoordinator,
@@ -614,7 +615,8 @@ def saved_map_error(exc: Exception) -> HTTPException:
 app.include_router(create_map_families_router(saved_maps, saved_map_error))
 app.include_router(create_pcd_editing_router(saved_maps, saved_map_error, RUNTIME))
 
-expansion_index = configure_expansion(app, os.environ)
+expansion_index = configure_expansion(
+    app, os.environ, review_inputs=configured_review_inputs(os.environ))
 
 
 def parse_saved_point_limit(value: str) -> int | None:
@@ -1571,14 +1573,7 @@ def main() -> None:
             "dataset_storage": Path(args.dataset_output_dir).expanduser().resolve(),
         },
     )
-    uvicorn.run(
-        app,
-        host=args.host,
-        port=args.port,
-        workers=1,
-        access_log=False,
-        timeout_graceful_shutdown=3,
-    )
+    run_dashboard(app, host=args.host, port=args.port, environ=os.environ)
 
 if __name__ == "__main__":
     main()

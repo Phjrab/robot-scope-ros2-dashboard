@@ -15,3 +15,13 @@
 Humble rclpy 3.3.22의 take_message는 두 타임스탬프만 노출하고 일반 executor는 메시지만 콜백에 준다. 그래프의 GID를 메시지별 신원으로 승격하지 않았다. 새 경로는 비활성, URDF는 ADVISORY_ONLY다. [Humble native binding](https://github.com/ros2/rclpy/blob/3.3.22/rclpy/src/rclpy/subscription.cpp) · [executor](https://github.com/ros2/rclpy/blob/3.3.22/rclpy/rclpy/executors.py)
 
 후속 REPLAY 배포의 첫 OWNERSHIP 거절은 원문 누락으로 원인 미확정이다. 두 번째 전환과 원복 직후의 거절은 `system/ownership-readback`이 잠금/대기자 존재 시 `pipeline_coordination / owners_not_sampled`를 반환한 것이며 제품의 정상 보수적 동작이다. 배포 도구가 이 응답을 즉시 최종 실패로 판정한 문제가 있었다. 정확한 미조회 상태에만 제한 시간의 읽기 재시도를 추가하고 실제 busy/unknown·서비스 admission·정지·해시 검사를 유지했다. 세 번째 전환, 실제 브라우저 대표 검사, STOP 1회와 자산 보존이 통과했다. [시간·최초 실패·복구 근거](FIELD_SESSION.md#replay사용-안내-후속-배포--13541402-kst)
+
+## 여러 지도 실사용 연결 — 배포 전 진단
+
+최초 7행 상태표를 별도 비공개 증거에 고정했다. M00 정지·소유권 PASS, M01 직접 HTTPS와 M02 검토 로그인은 NOT_CONFIGURED, M03 지도 자격 INPUT_REQUIRED, M04 정합/저장 BLOCKED_DEPENDENCY, M05 기존 기능 회귀와 M06 보존/복구는 NOT_RUN이었다. 이후 운영자가 두 입력의 같은 장소·실지도 성격을 확인했다. 원본 신원과 사본 신원을 구분하고 확인되지 않은 capture session/epoch는 비워 둔다.
+
+확정 선행 원인은 장비 HTTPS·검토 저장소·ReviewInputs 연결 부재다. 기존 정합·품질·C1 저장 알고리즘은 변경하지 않았다. 최소 연결 변경은 선택적 직접 TLS(앱 lifespan 1회), 별도 사본 manifest 공급자, HTTP 확장 링크의 HTTPS 이동, 복사 원본 신원 표시, 정지 배포용 시작 STOP 옵션이다.
+
+처음 로컬 회귀 15건의 1 FAIL/1 ERROR는 HTTP 검사 클라이언트 자동 redirect 및 macOS native subprocess의 TMPDIR/PATH에서 발생했다. 실제 TLS 주소를 자동 방문하지 않는 HTTP redirect 검사와 정규화한 시험 환경으로 15건 PASS를 확인했다. 전체 검사 첫 실행은 3677건, FAIL 14/ERROR 61/skip 40이었다. 기존 Mac 기준의 73개 실패 이름과 동일한 항목 외 신규 2개는 app.py 1600줄 제한 위반이었다. HTTPS/default 실행 분기를 별도 실행기로 이동하여 앱 크기 제한을 유지했다. 최초 결과는 덮어쓰지 않는다. Linux exact-SHA CI와 이후 장비 결과를 독립적으로 확인한다.
+
+수정 후 최종 로컬 전체 검사 3677건은 FAIL 12/ERROR 61/skip 40이며, 실패 이름 73개 모두 기존 Mac 기준과 일치한다. 관련 59건 및 JavaScript 763건 PASS, Ruff·Mypy·secret scan·frontend syntax PASS다. exact Linux CI 완료 전 현장 전환하지 않는다.
