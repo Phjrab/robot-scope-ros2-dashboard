@@ -146,17 +146,21 @@ class NavigationParameterPatchRequest(StrictRequest):
     values: Dict[str, Any] = Field(min_length=1, max_length=27)
 
 
-class NavigationStartRequest(StrictRequest):
+class NavigationMapStartRequest(StrictRequest):
     map_id: str = Field(pattern=r"^[0-9a-f]{24}$")
     map_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
     parameters_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class NavigationStartRequest(NavigationMapStartRequest):
+    mode: Literal["standard", "manual_seeded_2d"] = "standard"
 
 
 class NavigationStopRequest(StrictRequest):
     pass
 
 
-class NavigationLocalizationStartRequest(NavigationStartRequest):
+class NavigationLocalizationStartRequest(NavigationMapStartRequest):
     pass
 
 
@@ -170,21 +174,31 @@ class NavigationPose(StrictRequest):
     yaw: float = Field(strict=True, ge=-3.141592653589793, le=3.141592653589793)
 
 
-class NavigationPoseRequest(StrictRequest):
+class NavigationMapPoseRequest(StrictRequest):
     map_id: str = Field(pattern=r"^[0-9a-f]{24}$")
     map_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
     pose: NavigationPose
 
 
-class NavigationLocalizationPoseRequest(NavigationPoseRequest):
+class NavigationPoseRequest(NavigationMapPoseRequest):
+    job_id: str | None = Field(default=None, pattern=r"^[0-9a-f]{32}$")
+    seed_generation: int | None = Field(default=None, strict=True, ge=0, le=9_007_199_254_740_991)
+    source_epoch: int | None = Field(default=None, strict=True, gt=0, le=9_007_199_254_740_991)
+
+
+class NavigationLocalizationPoseRequest(NavigationMapPoseRequest):
     confirmed: bool = Field(strict=True)
 
 
-class NavigationGoalRequest(NavigationPoseRequest):
+class NavigationGoalRequest(NavigationMapPoseRequest):
+    job_id: str | None = Field(default=None, pattern=r"^[0-9a-f]{32}$")
+    seed_generation: int | None = Field(default=None, strict=True, gt=0, le=9_007_199_254_740_991)
     confirmed: bool = Field(strict=True)
 
 
 class NavigationAnnotationGoalRequest(StrictRequest):
+    job_id: str | None = Field(default=None, pattern=r"^[0-9a-f]{32}$")
+    seed_generation: int | None = Field(default=None, strict=True, gt=0, le=9_007_199_254_740_991)
     map_id: str = Field(pattern=r"^[0-9a-f]{24}$")
     map_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
     annotation_revision: str = Field(pattern=r"^[0-9a-f]{64}$")

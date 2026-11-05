@@ -119,6 +119,34 @@
       && snapshot?.map?.id === id && snapshot?.map?.revision === map.revision);
   }
 
+  function buildMapSource(map) {
+    const geometry = mapGeometry(map);
+    const binary = atob(String(map.data_b64 || ''));
+    if (binary.length !== geometry.width * geometry.height) throw new Error('2D 지도 셀 수가 width·height와 일치하지 않습니다.');
+    const source = document.createElement('canvas');
+    source.width = geometry.width;
+    source.height = geometry.height;
+    const context = source.getContext('2d');
+    const image = context.createImageData(geometry.width, geometry.height);
+    const cells = new Int8Array(geometry.width * geometry.height);
+    for (let y = 0; y < geometry.height; y += 1) {
+      for (let x = 0; x < geometry.width; x += 1) {
+        const input = y * geometry.width + x;
+        const output = ((geometry.height - 1 - y) * geometry.width + x) * 4;
+        const byte = binary.charCodeAt(input);
+        const value = byte > 127 ? byte - 256 : byte;
+        cells[input] = value;
+        const color = value < 0 ? [30, 45, 41] : value >= 65 ? [8, 13, 12] : [185, 220, 207];
+        image.data[output] = color[0];
+        image.data[output + 1] = color[1];
+        image.data[output + 2] = color[2];
+        image.data[output + 3] = 255;
+      }
+    }
+    context.putImageData(image, 0, 0);
+    return { source, cells };
+  }
+
   function currentRobotOverlay(snapshot, map, { requireOperational = false } = {}) {
     const operational = snapshot?.operational_localization;
     if (operational) {
@@ -129,7 +157,11 @@
     }
     if (requireOperational || snapshot?.operational_expected) return null;
     const pose = snapshot?.localization?.pose;
-    if (!matchingPoseMap(snapshot, map) || snapshot?.localization?.state !== 'localized'
+    const manual = snapshot?.mode === 'manual_seeded_2d';
+    const valid = manual
+      ? snapshot?.localization?.state === 'manual_seeded' && snapshot?.manual_seed?.state === 'ready_manual'
+      : snapshot?.localization?.state === 'localized';
+    if (!matchingPoseMap(snapshot, map) || !valid
         || !['x', 'y', 'yaw'].every(key => Number.isFinite(pose?.[key]))) return null;
     return { ...pose, mode: 'robot' };
   }
@@ -504,6 +536,7 @@
     changedParameterValues,
     parameterPatch,
     mapGeometry,
+    buildMapSource,
     mapLayout,
     canvasToWorld,
     worldToCanvas,

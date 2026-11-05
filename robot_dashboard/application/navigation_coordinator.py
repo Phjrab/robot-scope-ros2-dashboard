@@ -21,6 +21,8 @@ from typing import Any, Protocol
 from ..mapping_jobs import MappingJobError
 from ..navigation_dispatch import OperatorDispatchRejected
 from ..navigation_jobs import (
+    MANUAL_SEEDED_2D,
+    STANDARD_NAVIGATION,
     NavigationBusy,
     NavigationConflict,
     NavigationJobError,
@@ -28,6 +30,7 @@ from ..navigation_jobs import (
     NavigationUnavailable,
 )
 from ..public_diagnostics import public_diagnostic
+from ..saved_maps import SavedMapError
 
 
 LOGGER = logging.getLogger(__name__)
@@ -86,6 +89,7 @@ def navigation_start_state() -> dict[str, Any]:
         "seq": 0,
         "token": None,
         "phase": "idle",
+        "mode": None,
         "pending": False,
         "cancel_requested": False,
         "mapping_job_id": None,
@@ -116,6 +120,31 @@ def localization_session_state() -> dict[str, Any]:
     }
 
 
+class ManualNavigationPort(Protocol):
+    """Job-bound operations on the same ROS navigation owner."""
+
+    def manual_start_preflight(self, *, cold_odometry: bool) -> dict[str, Any]: ...
+
+    def prelocalization_snapshot(
+        self, *, ready_after: float, mode: str, job_id: str, map_id: str, map_revision: str,
+    ) -> dict[str, Any]: ...
+
+    def activate(
+        self, *, map_id: str, map_revision: str, map_name: str,
+        ready_after: float, mode: str, job_id: str,
+    ) -> dict[str, Any]: ...
+
+    def set_initial_pose(
+        self, *, map_id: str, map_revision: str, x: float, y: float, yaw: float,
+        job_id: str, seed_generation: int, source_epoch: int,
+    ) -> dict[str, Any]: ...
+
+    def send_goal(
+        self, *, map_id: str, map_revision: str, x: float, y: float, yaw: float,
+        seed_generation: int,
+    ) -> dict[str, Any]: ...
+
+
 class NavigationAgentPort(Protocol):
     """Narrow application-facing port implemented by the RosAgent facade."""
 
@@ -130,6 +159,9 @@ class NavigationAgentPort(Protocol):
     ) -> dict[str, Any]: ...
 
     def navigation_start_preflight(self) -> None: ...
+
+    @property
+    def navigation_manual(self) -> ManualNavigationPort: ...
 
     def navigation_localization_only_preflight(self) -> dict[str, Any]: ...
 
@@ -233,6 +265,7 @@ class NavigationJobsPort(Protocol):
         map_id: str,
         map_revision: str,
         parameters_revision: str,
+        mode: str = STANDARD_NAVIGATION,
     ) -> dict[str, Any]: ...
 
     def stop(self) -> dict[str, Any]: ...
@@ -259,7 +292,7 @@ class MappingCoordinatorPort(Protocol):
 
     def snapshot(self, *, since_log_seq: int = 0) -> dict[str, Any]: ...
 
-    def start_mapping(self) -> dict[str, Any]: ...
+    def start_mapping(self, *, relative_odometry_only: bool = False) -> dict[str, Any]: ...
 
     def stop_mapping_if_job_id(
         self,
@@ -299,6 +332,7 @@ class NavigationCoordinator:
         *,
         coordination_lock: asyncio.Lock,
         require_lifecycle_idle: Callable[[], None],
+        require_manual_start_idle: Callable[[], None] | None = None,
         ready_timeout_s: float = NAVIGATION_START_READY_TIMEOUT_S,
         localization_timeout_s: float = NAVIGATION_LOCALIZATION_READY_TIMEOUT_S,
         poll_interval_s: float = NAVIGATION_START_READY_POLL_S,
@@ -316,6 +350,7 @@ class NavigationCoordinator:
         self._saved_maps = saved_maps
         self._coordination_lock = coordination_lock
         self._require_lifecycle_idle = require_lifecycle_idle
+        self._require_manual_start_idle = require_manual_start_idle
         self._ready_timeout_s = float(ready_timeout_s)
         self._localization_timeout_s = float(localization_timeout_s)
         self._poll_interval_s = float(poll_interval_s)
@@ -465,7 +500,7 @@ class NavigationCoordinator:
                 error=_public_navigation_diagnostic(error) if error else None,
             )
 
-    def begin_start(self) -> str:
+    def begin_start(self, mode: str = STANDARD_NAVIGATION) -> str:
         """Reserve the one permitted localization/Nav2 startup transaction."""
 
         with self._state_lock:
@@ -482,6 +517,7 @@ class NavigationCoordinator:
                 seq=int(self._start.get("seq", 0) or 0) + 1,
                 token=token,
                 phase="starting_localization",
+                mode=mode,
                 pending=True,
                 cancel_requested=False,
                 mapping_job_id=None,
@@ -644,6 +680,7 @@ class NavigationCoordinator:
                 seq=int(self._start.get("seq", 0) or 0) + 1,
                 token=None,
                 phase="idle",
+                mode=None,
                 pending=False,
                 cancel_requested=False,
                 mapping_job_id=None,
@@ -760,12 +797,18 @@ class NavigationCoordinator:
         map_id: str,
         map_revision: str,
         parameters_revision: str,
+        mode: str = STANDARD_NAVIGATION,
     ) -> dict[str, Any]:
         """Validate and schedule the one-click startup without blocking HTTP."""
 
+        if mode not in (STANDARD_NAVIGATION, MANUAL_SEEDED_2D):
+            raise NavigationConflict("unsupported navigation mode")
+        manual = mode == MANUAL_SEEDED_2D
         manager = self._jobs
         async with self._coordination_lock:
             self._require_lifecycle_idle()
+            if manual and self._require_manual_start_idle is not None:
+                self._require_manual_start_idle()
             mapping_busy, _ = self._mapping.activity()
             if mapping_busy:
                 raise NavigationBusy(
@@ -790,7 +833,7 @@ class NavigationCoordinator:
             )
 
             operational_preflight = getattr(manager, 'operational_preflight', None)
-            if operational_preflight is not None:
+            if not manual and operational_preflight is not None:
                 try:
                     await asyncio.to_thread(operational_preflight, map_id, map_revision)
                 except ValueError as exc:
@@ -820,7 +863,12 @@ class NavigationCoordinator:
                     "localization pipeline ownership is unavailable"
                 )
 
-            token = self.begin_start()
+            if manual:
+                await asyncio.to_thread(
+                    self._agent.navigation_manual.manual_start_preflight,
+                    cold_odometry=shared_pipeline_state != "running",
+                )
+            token = self.begin_start(mode)
             if shared_pipeline_state == "running":
                 self.update_start(
                     token,
@@ -835,6 +883,7 @@ class NavigationCoordinator:
                 map_revision=str(source.revision),
                 map_name=str(source.name),
                 parameters_revision=parameters_revision,
+                mode=mode,
                 start_localization=shared_pipeline_state in {"idle", "failed"},
                 previous_mapping_job_id=(
                     existing_mapping_job_id
@@ -1109,6 +1158,54 @@ class NavigationCoordinator:
             "navigation": await asyncio.to_thread(self.view),
         }
 
+    async def _validate_manual_request(
+        self,
+        *,
+        job_id: str | None,
+        map_id: str,
+        map_revision: str,
+        seed_generation: int | None,
+        source_epoch: int | None = None,
+        goal: bool = False,
+    ) -> bool:
+        """Fence experiments to one active process and its current map revision."""
+
+        ownership = self.internal_start_state()
+        if ownership.get("mode") != MANUAL_SEEDED_2D:
+            if any(value is not None for value in (job_id, seed_generation, source_epoch)):
+                raise NavigationConflict("no manual 2D experiment owns navigation")
+            return False
+        if (
+            ownership.get("phase") != "active"
+            or not job_id
+            or ownership.get("navigation_job_id") != job_id
+        ):
+            raise NavigationConflict("request does not match the active manual 2D job")
+        if type(seed_generation) is not int or seed_generation < int(goal):
+            raise NavigationConflict("the current manual seed generation is required")
+        if not goal and (type(source_epoch) is not int or source_epoch <= 0):
+            raise NavigationConflict("the current relative odometry epoch is required")
+        job = await asyncio.to_thread(self._jobs.snapshot)
+        pipeline = job.get("pipeline") or {}
+        selected = job.get("map") or {}
+        if (
+            pipeline.get("job_id") != job_id
+            or pipeline.get("state") != "running"
+            or pipeline.get("mode") != MANUAL_SEEDED_2D
+            or selected.get("id") != map_id
+            or selected.get("revision") != map_revision
+        ):
+            raise NavigationConflict("request does not match the pinned manual 2D map")
+        try:
+            await asyncio.to_thread(self._saved_maps.resolve_navigation_map, map_id, map_revision)
+        except SavedMapError as exc:
+            # Normal dashboard mutations already share the navigation exclusion
+            # lock. If a managed source changed externally, close this job once.
+            token = self.request_start_cancel()
+            await asyncio.shield(self._perform_stop_cleanup(token))
+            raise NavigationConflict("manual 2D map changed; prepare and set a new initial pose") from exc
+        return True
+
     async def set_initial_pose(
         self,
         *,
@@ -1117,6 +1214,9 @@ class NavigationCoordinator:
         x: object,
         y: object,
         yaw: object,
+        job_id: str | None = None,
+        seed_generation: int | None = None,
+        source_epoch: int | None = None,
     ) -> dict[str, Any]:
         if self.internal_localization_session().get("active"):
             raise NavigationConflict(
@@ -1124,6 +1224,10 @@ class NavigationCoordinator:
             )
         async with self._coordination_lock:
             self._require_lifecycle_idle()
+            manual = await self._validate_manual_request(
+                job_id=job_id, map_id=map_id, map_revision=map_revision,
+                seed_generation=seed_generation, source_epoch=source_epoch,
+            )
             mapping_busy, _ = self._mapping.activity()
             if mapping_busy:
                 raise NavigationBusy("mapping is active")
@@ -1144,16 +1248,20 @@ class NavigationCoordinator:
                 yaw=yaw,
             )
             handoff_check = getattr(self._jobs, "operational_initial_pose_check", None)
-            if handoff_check is not None:
+            if not manual and handoff_check is not None:
                 try:
                     await asyncio.to_thread(handoff_check, map_id, map_revision, pose)
                 except ValueError as exc:
                     raise NavigationConflict(str(exc)) from exc
             await asyncio.to_thread(
-                self._agent.navigation_set_initial_pose,
+                self._agent.navigation_manual.set_initial_pose if manual
+                else self._agent.navigation_set_initial_pose,
                 map_id=map_id,
                 map_revision=map_revision,
                 **pose,
+                **({
+                    "job_id": job_id, "seed_generation": seed_generation, "source_epoch": source_epoch,
+                } if manual else {}),
             )
         return {
             "accepted": True,
@@ -1170,6 +1278,8 @@ class NavigationCoordinator:
         yaw: object,
         confirmed: bool,
         dispatch_guard: Any = None,
+        job_id: str | None = None,
+        seed_generation: int | None = None,
     ) -> dict[str, Any]:
         if self.internal_localization_session().get("active"):
             raise NavigationConflict(
@@ -1187,6 +1297,8 @@ class NavigationCoordinator:
                 y=y,
                 yaw=yaw,
                 dispatch_guard=dispatch_guard,
+                job_id=job_id,
+                seed_generation=seed_generation,
             )
         return {
             "accepted": True,
@@ -1202,6 +1314,8 @@ class NavigationCoordinator:
         annotation_id: str,
         confirmed: bool,
         dispatch_guard: Any = None,
+        job_id: str | None = None,
+        seed_generation: int | None = None,
     ) -> dict[str, Any]:
         """Resolve a revision-pinned point then use the normal goal safety path."""
 
@@ -1228,6 +1342,8 @@ class NavigationCoordinator:
                 y=annotation.y,
                 yaw=annotation.yaw,
                 dispatch_guard=dispatch_guard,
+                job_id=job_id,
+                seed_generation=seed_generation,
             )
         return {
             "accepted": True,
@@ -1248,9 +1364,17 @@ class NavigationCoordinator:
         y: object,
         yaw: object,
         dispatch_guard: Any = None,
+        job_id: str | None = None,
+        seed_generation: int | None = None,
     ) -> None:
         try:
             self._require_lifecycle_idle()
+            manual = await self._validate_manual_request(
+                job_id=job_id, map_id=map_id, map_revision=map_revision,
+                seed_generation=seed_generation, goal=True,
+            )
+            if manual and dispatch_guard is not None:
+                raise NavigationConflict("a mission cannot send manual 2D experiment goals")
             mapping_busy, _ = self._mapping.activity()
             if mapping_busy:
                 raise NavigationBusy("mapping is active")
@@ -1285,11 +1409,18 @@ class NavigationCoordinator:
                 'parameters_revision': job.get('parameters_revision'),
                 'parameter_evidence': job.get('parameter_evidence'),
             })
+        if manual:
+            send = self._agent.navigation_manual.send_goal
+        elif dispatch_guard is not None:
+            send = self._agent.navigation_send_guarded_goal
+        else:
+            send = self._agent.navigation_send_goal
         await asyncio.to_thread(
-            self._agent.navigation_send_guarded_goal if dispatch_guard is not None else self._agent.navigation_send_goal,
+            send,
             map_id=map_id,
             map_revision=map_revision,
             **pose,
+            **({"seed_generation": seed_generation} if manual else {}),
             **({'dispatch_guard': dispatch_guard} if dispatch_guard is not None else {}),
         )
 
@@ -1312,9 +1443,14 @@ class NavigationCoordinator:
         manager: NavigationJobsPort,
         *,
         ready_after: float,
+        manual_identity: Mapping[str, str] | None = None,
     ) -> None:
         """Wait boundedly for fresh Nav-runtime cloud/odom projections."""
 
+        prelocalization = (
+            self._agent.navigation_manual.prelocalization_snapshot if manual_identity
+            else self._agent.navigation_prelocalization_snapshot
+        )
         deadline = time.monotonic() + self._ready_timeout_s
         reason = "navigation runtime inputs did not become ready"
         while time.monotonic() < deadline:
@@ -1327,8 +1463,9 @@ class NavigationCoordinator:
                     "navigation pipeline stopped while runtime inputs were warming up"
                 )
             readiness = await asyncio.to_thread(
-                self._agent.navigation_prelocalization_snapshot,
+                prelocalization,
                 ready_after=ready_after,
+                **(manual_identity or {}),
             )
             if readiness.get("ready") is True:
                 return
@@ -1341,11 +1478,15 @@ class NavigationCoordinator:
         token: str,
         *,
         previous_job_id: str | None,
+        relative_odometry_only: bool = False,
     ) -> str:
         """Start mapping and claim its exact job even when this task is cancelled."""
 
         start_task = asyncio.create_task(
-            asyncio.to_thread(self._mapping.start_mapping),
+            asyncio.to_thread(
+                self._mapping.start_mapping,
+                **({"relative_odometry_only": True} if relative_odometry_only else {}),
+            ),
             name="navigation-localization-start",
         )
         snapshot: dict[str, Any] | None = None
@@ -1606,6 +1747,7 @@ class NavigationCoordinator:
         map_id: str,
         map_revision: str,
         parameters_revision: str,
+        mode: str = STANDARD_NAVIGATION,
     ) -> None:
         """Settle an uncancellable manager thread before any rollback."""
 
@@ -1615,6 +1757,7 @@ class NavigationCoordinator:
                 map_id=map_id,
                 map_revision=map_revision,
                 parameters_revision=parameters_revision,
+                **({"mode": mode} if mode == MANUAL_SEEDED_2D else {}),
             ),
             name="navigation-manager-start",
         )
@@ -1669,16 +1812,21 @@ class NavigationCoordinator:
         map_revision: str,
         map_name: str,
         ready_after: float,
+        manual_job_id: str | None = None,
     ) -> dict[str, Any]:
         """Settle activation and public projection before any rollback."""
 
+        activate = (
+            self._agent.navigation_manual.activate if manual_job_id else self._agent.navigation_activate
+        )
         activation_task = asyncio.create_task(
             asyncio.to_thread(
-                self._agent.navigation_activate,
+                activate,
                 map_id=map_id,
                 map_revision=map_revision,
                 map_name=map_name,
                 ready_after=ready_after,
+                **({"mode": MANUAL_SEEDED_2D, "job_id": manual_job_id} if manual_job_id else {}),
             ),
             name="navigation-runtime-activate",
         )
@@ -1736,6 +1884,7 @@ class NavigationCoordinator:
         map_revision: str,
         map_name: str,
         parameters_revision: str,
+        mode: str,
         start_localization: bool,
         previous_mapping_job_id: str | None,
     ) -> None:
@@ -1746,6 +1895,7 @@ class NavigationCoordinator:
                 await self.start_localization_dependency(
                     token,
                     previous_job_id=previous_mapping_job_id,
+                    relative_odometry_only=mode == MANUAL_SEEDED_2D,
                 )
             if self.start_cancelled(token):
                 raise NavigationConflict("navigation startup was stopped")
@@ -1761,6 +1911,7 @@ class NavigationCoordinator:
                 map_id=map_id,
                 map_revision=map_revision,
                 parameters_revision=parameters_revision,
+                mode=mode,
             )
 
             started = await asyncio.to_thread(manager.snapshot)
@@ -1787,9 +1938,14 @@ class NavigationCoordinator:
 
             if self.start_cancelled(token):
                 raise NavigationConflict("navigation startup was stopped")
+            manual_identity = (
+                {"mode": mode, "job_id": navigation_job_id, "map_id": map_id, "map_revision": map_revision}
+                if mode == MANUAL_SEEDED_2D else None
+            )
             await self.wait_prelocalization_ready(
                 manager,
                 ready_after=start_fence,
+                manual_identity=manual_identity,
             )
             await self.wait_localization_dependency(token)
             latest = await asyncio.to_thread(manager.snapshot)
@@ -1807,6 +1963,7 @@ class NavigationCoordinator:
                 map_revision=map_revision,
                 map_name=map_name,
                 ready_after=start_fence,
+                manual_job_id=navigation_job_id if manual_identity else None,
             )
             if not self.commit_start(token):
                 raise NavigationConflict("navigation startup was stopped")
@@ -2148,6 +2305,10 @@ class NavigationCoordinator:
             pipeline_state = "starting"
         elif startup_phase == "failed" and pipeline_state == "idle":
             pipeline_state = "failed"
+        mode = startup.get("mode") if startup_pending else manager_pipeline.get("mode")
+        if mode is None and pipeline_state in {"starting", "running", "stopping"}:
+            mode = startup.get("mode") or STANDARD_NAVIGATION
+        manual = mode == MANUAL_SEEDED_2D
         pipeline = {
             "state": pipeline_state,
             "job_id": manager_pipeline.get("job_id"),
@@ -2237,12 +2398,13 @@ class NavigationCoordinator:
             else {}
         )
         localization_state = str(localization.get("state", "uninitialized"))
-        if localization_state not in {
-            "uninitialized",
-            "localizing",
-            "localized",
-            "lost",
-        }:
+        allowed_localization_states = {
+            "uninitialized", "localizing", "localized", "lost",
+        }
+        if manual:
+            allowed_localization_states.discard("localized")
+            allowed_localization_states.add("manual_seeded")
+        if localization_state not in allowed_localization_states:
             localization_state = "lost"
         localization_view = {
             "state": localization_state,
@@ -2330,11 +2492,13 @@ class NavigationCoordinator:
             ),
             "can_set_initial_pose": bool(
                 running
+                and (not manual or startup_phase == "active")
                 and shared_mapping_state == "running"
                 and runtime_safety.get("can_set_initial_pose", False)
             ),
             "can_send_goal": bool(
                 running
+                and (not manual or startup_phase == "active")
                 and not localization_session.get("active")
                 and shared_mapping_state == "running"
                 and runtime_safety.get("can_send_goal", False)
@@ -2374,10 +2538,13 @@ class NavigationCoordinator:
             "pipeline": pipeline,
             "readiness": readiness,
             "map": manager_map,
+            "mode": mode,
             "localization": localization_view,
             "session_mode": (
                 "localization_only"
                 if localization_session.get("active")
+                else MANUAL_SEEDED_2D
+                if manual
                 else "navigation"
                 if runtime.get("active")
                 else "idle"
@@ -2408,6 +2575,10 @@ class NavigationCoordinator:
                 "error": _public_navigation_diagnostic(startup.get("error")),
             },
         }
+        if manual:
+            seed = runtime.get("manual_seed")
+            result["manual_seed"] = dict(seed) if isinstance(seed, Mapping) else None
+            localization_view["pose_source"] = "manual_seeded_odometry"
         controller_source = runtime.get("controller_source")
         if isinstance(controller_source, Mapping):
             result["controller_source"] = dict(controller_source)
@@ -2420,11 +2591,11 @@ class NavigationCoordinator:
         diagnostics = (runtime.get("runtime_health") or {}).get("localization_diagnostics")
         runtime_health = runtime.get("runtime_health") or {}
         expected_source = getattr(self._jobs, 'operational_expected_source', None)
-        if expected_source is not None and pipeline_state in {'starting', 'running', 'stopping'} and manager_map:
+        if not manual and expected_source is not None and pipeline_state in {'starting', 'running', 'stopping'} and manager_map:
             result['operational_expected'] = expected_source(
                 pipeline.get('job_id'), manager_map.get('id'), manager_map.get('revision'))
         operational = runtime_health.get("operational_3d")
-        if isinstance(operational, Mapping):
+        if not manual and isinstance(operational, Mapping):
             result["operational_localization"] = {
                 **dict(operational),
                 "fresh": runtime_health.get("fresh") is True,

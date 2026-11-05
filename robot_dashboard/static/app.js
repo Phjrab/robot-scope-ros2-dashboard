@@ -1,3 +1,4 @@
+import { initializeManual2dExperiment } from './features/experiments/manual_2d/index.js';
 import { drawOccupancyGrid, renderSavedOccupancyDetails, conversionSummary } from './features/maps/occupancy_display.js';
 import { createSavedMapScene, cloudPointCount, cloudPointSummary, sameSavedCloudRevision } from './features/maps/saved_scene.js';
 import { overviewLidarReception } from './features/sensors/lidar_reception.js';
@@ -3432,34 +3433,6 @@ async function syncNavigationMapOptions() {
   return loadNavigationMap(selected);
 }
 
-function buildNavigationMapSource(map) {
-  const geometry = navigationEngine.mapGeometry(map);
-  const binary = atob(String(map.data_b64 || ''));
-  if (binary.length !== geometry.width * geometry.height) throw new Error('2D 지도 셀 수가 width·height와 일치하지 않습니다.');
-  const source = document.createElement('canvas');
-  source.width = geometry.width;
-  source.height = geometry.height;
-  const context = source.getContext('2d');
-  const image = context.createImageData(geometry.width, geometry.height);
-  const cells = new Int8Array(geometry.width * geometry.height);
-  for (let y = 0; y < geometry.height; y += 1) {
-    for (let x = 0; x < geometry.width; x += 1) {
-      const input = y * geometry.width + x;
-      const output = ((geometry.height - 1 - y) * geometry.width + x) * 4;
-      const byte = binary.charCodeAt(input);
-      const value = byte > 127 ? byte - 256 : byte;
-      cells[input] = value;
-      const color = value < 0 ? [30, 45, 41] : value >= 65 ? [8, 13, 12] : [185, 220, 207];
-      image.data[output] = color[0];
-      image.data[output + 1] = color[1];
-      image.data[output + 2] = color[2];
-      image.data[output + 3] = 255;
-    }
-  }
-  context.putImageData(image, 0, 0);
-  return { source, cells };
-}
-
 function resetMapAnnotations(message = '저장된 2D 지도를 선택하세요.') {
   mapAnnotationFeature?.reset(message);
 }
@@ -3490,7 +3463,7 @@ async function loadNavigationMap(meta) {
       throw new Error('지도 revision이 목록과 다릅니다. Saved Maps 목록을 새로고침하세요.');
     }
     navigationEngine.mapGeometry(payload);
-    const decoded = buildNavigationMapSource(payload);
+    const decoded = navigationEngine.buildMapSource(payload);
     navigationMapSourceCanvas = decoded.source;
     navigationMapCells = decoded.cells;
     navigationMapSnapshot = payload;
@@ -3592,6 +3565,7 @@ function scheduleNavigationMapDraw() {
 
 function navigationCanvasPoint(event) { return navigationCanvasPointFrom(ui.navigationMapCanvas, event); }
 function navigationPoseToolAllowed(mode) {
+  if (navigationSnapshot?.mode === 'manual_seeded_2d') return false;
   const state = String(navigationSnapshot?.pipeline?.state || '').toLowerCase();
   const robotOnline = navigationSnapshot?.robot_online === true;
   const manualConflict = navigationManualControlConflict();
@@ -3983,6 +3957,10 @@ function renderNavigationStatus() {
         'Nav2를 시작하고 초기 위치를 지정한 뒤 목표를 보낼 수 있습니다.'
   );
 
+  if (snapshot.mode === 'manual_seeded_2d') {
+    ui.navigationSafetyTitle.textContent = 'EXPERIMENTAL · MANUAL_SEEDED_ODOMETRY';
+    ui.navigationSafetyMessage.textContent = '실험 세션: 지도 재보정 없음. 위치·목표 명령은 실험 화면에서만 사용하세요.';
+  }
   ui.navigationGoalPrecision.textContent = navigationEngine.goalPrecisionText(snapshot.goal) + '\n\n' + navigationEngine.parameterEvidenceText(snapshot.parameter_evidence);
 
   const mapReady = Boolean(
@@ -4061,11 +4039,12 @@ async function runNavigationMutation(path, body, successMessage) {
   if (navigationOperationBusy) return null;
   navigationOperationBusy = true;
   navigationOperationKind = path.endsWith('/start') ? 'start' : path.endsWith('/stop') ? 'stop' : 'command';
-  navigationStatusRequestGeneration += 1;
+  const generation = ++navigationStatusRequestGeneration;
   renderNavigationStatus();
   let response = null;
   try {
     response = await api(path, { method: 'POST', body: JSON.stringify(body) });
+    if (generation !== navigationStatusRequestGeneration) return null;
     try { applyNavigationSnapshot(response); } catch (_) {}
     if (successMessage) showToast(successMessage);
     return response;
@@ -4081,6 +4060,7 @@ async function runNavigationMutation(path, body, successMessage) {
 }
 
 async function startNavigation() {
+  if (navigationSnapshot?.mode === 'manual_seeded_2d') return;
   if (navigationPreparation?.canStart() === false) {
     showToast('선택한 3D·2D 지도 연결과 초기 높이·기울기를 단계별 준비 화면에서 먼저 확인하세요.', true);
     return;
@@ -6856,6 +6836,35 @@ setInterval(syncCameraFrameFreshness, 500);
 setInterval(refreshControlSnapshot, 1000);
 setInterval(refreshControlGamepads, 1000);
 globalThis.RobotScopeTypography?.subscribe(() => drawNavigationMap());
+
+initializeManual2dExperiment({
+  host: document.querySelector('#manual2dExperiment'),
+  api,
+  engine: navigationEngine,
+  context: () => ({
+    maps: navigationMapCandidates(),
+    navigation: navigationSnapshot,
+    parameters: navigationParameterSnapshot,
+    available: navigationApiAvailable,
+    busy: navigationOperationBusy,
+    scene: savedScene3d,
+  }),
+  mutate: runNavigationMutation,
+  stop: async (path, body) => {
+    try {
+      navigationStatusRequestGeneration += 1;
+      await api(path, { method: 'POST', body: JSON.stringify(body) });
+      return true;
+    } catch (error) {
+      showToast(`Navigation 명령 실패: ${error.message}`, true);
+      return false;
+    } finally {
+      void refreshNavigation();
+    }
+  },
+  emergencyStop: () => triggerEmergencyStop('manual_2d_experiment'),
+  refresh: refreshNavigation,
+});
 
 initializeMapEditor3D({
   panel: document.querySelector('.map-editor-panel'),

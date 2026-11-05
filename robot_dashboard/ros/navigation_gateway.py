@@ -32,7 +32,25 @@ from ..localization_diagnostics import sanitize_localization_diagnostics
 from ..navigation_policy import POLICY_SCHEMA
 from ..goal_precision import GoalPrecision, parameter_observation
 from ..goal_evidence_sink import GoalEvidenceSink
-from .initial_pose_receipt import operational_initial_pose_context, wait_initial_pose_receipt, wait_match_receipt
+from .initial_pose_receipt import (
+    operational_initial_pose_context,
+    wait_initial_pose_receipt,
+    wait_manual_seed_receipt,
+    wait_match_receipt,
+)
+from .manual_navigation import (
+    MODE as MANUAL_MODE,
+    POSE_SOURCE as MANUAL_POSE_SOURCE,
+    SEED_PUBLISHER_NAME,
+    SEED_TOPIC,
+    STOP_SECONDS,
+    binding as manual_binding,
+    context as manual_context,
+    publisher_endpoint,
+    sanitize_status as sanitize_manual_status,
+    stamp_ns,
+    stamp_string,
+)
 from ..relocalization.operational import MATCH_TOPIC, STAGED_WORKFLOW
 
 
@@ -220,6 +238,11 @@ class NavigationRosGateway:
         self._navigation_health_subscriptions: Dict[str, Any] = {}
         self._navigation_initial_pose_publisher: Any = None
         self._navigation_match_publisher: Any = None
+        self._manual_seed_publisher: Any = None
+        self._manual_session: tuple[dict[str, str], str] | None = None
+        self._manual_pending_stamp = None
+        self._manual_confirmed_stamp = None
+        self._manual_goal_generation = None
         self._navigation_string_type: Any = None
         self._navigation_pose_type: Any = None
         self._navigation_action_type: Any = None
@@ -494,6 +517,8 @@ class NavigationRosGateway:
             )
             match_publisher = node.create_publisher(
                 String, MATCH_TOPIC, reliable, callback_group=callback_group)
+            seed_publisher = node.create_publisher(
+                String, SEED_TOPIC, reliable, callback_group=callback_group)
             action_client = ActionClient(
                 node,
                 action_type,
@@ -514,6 +539,7 @@ class NavigationRosGateway:
                 self._navigation_health_subscriptions = health_subscriptions
                 self._navigation_initial_pose_publisher = pose_publisher
                 self._navigation_match_publisher = match_publisher
+                self._manual_seed_publisher = seed_publisher
                 self._navigation_string_type = String
                 self._navigation_pose_type = pose_type
                 self._navigation_action_type = action_type
@@ -645,6 +671,8 @@ class NavigationRosGateway:
         map_revision: str,
         map_name: str = "",
         ready_after: float = 0.0,
+        mode: str | None = None,
+        job_id: str | None = None,
     ) -> Dict[str, Any]:
         """Arm a pinned map only after its runtime inputs are currently ready."""
 
@@ -663,12 +691,13 @@ class NavigationRosGateway:
             or float(ready_after) < 0.0
         ):
             raise CommandValidationError("navigation readiness fence is invalid")
+        pins = self._manual_activation_binding(mode, job_id, identifier, revision)
         with self._control_port.operation_lock:
             self.start_preflight()
-            interlock = self._navigation_prelocalization_reason(
-                time.monotonic(),
-                ready_after=float(ready_after),
-            )
+            now = time.monotonic()
+            interlock = self._navigation_prelocalization_reason(now, ready_after=float(ready_after))
+            health = self._navigation_runtime_health_snapshot(now)
+            interlock = interlock or self._manual_prelocalization_reason(health, pins)
             if interlock:
                 raise ControlNotReady(interlock)
             acquired = self._control_port.manager.acquire_navigation_lease()
@@ -693,6 +722,10 @@ class NavigationRosGateway:
                 self._navigation_goal_handle = None
                 self._navigation_cancel_requested = False
                 self._navigation_last_clear = 0.0
+                self._manual_session = (pins, health["runtime_instance_generation"]) if pins else None
+                self._manual_pending_stamp = self._manual_confirmed_stamp = self._manual_goal_generation = None
+                if pins:
+                    self._navigation_validated_receipts[NAVIGATION_LOCALIZATION_POSE_TOPIC] = 0.0
                 self._navigation.update(
                     {
                         "seq": int(self._navigation.get("seq", 0)) + 1,
@@ -781,10 +814,57 @@ class NavigationRosGateway:
                 raise LeaseBusy("another controller already owns the robot")
             return {"ready": True}
 
+    @staticmethod
+    def _manual_activation_binding(mode, job_id, map_id, map_revision):
+        if mode is None and job_id is None:
+            return None
+        pins = manual_binding({"mode": mode, "job_id": job_id, "map_id": map_id, "map_revision": map_revision})
+        if pins is None:
+            raise CommandValidationError("invalid manual navigation job binding")
+        return pins
+
+    def _manual_prelocalization_reason(self, health, pins):
+        if pins is None:
+            if health.get("manual_seed") is not None:
+                return "MANUAL_RUNTIME_REQUIRES_EXPERIMENT_SESSION"
+            return None
+        source, instance, _ = manual_context(health)
+        if source != pins or not instance or not health.get("fresh"):
+            return "MANUAL_RUNTIME_JOB_BINDING_UNCONFIRMED"
+        if self._manual_seed_publisher is None or self._navigation_source_count(SEED_TOPIC) != 1:
+            return "MANUAL_SEED_PUBLISHER_NOT_UNIQUE"
+        if not health["manual_seed"]["inputs_ready"]:
+            return health["manual_seed"]["reason"]
+        if health["manual_seed"]["state"] != "waiting_initial_pose":
+            return "MANUAL_RUNTIME_ALREADY_USED"
+        return None
+
+    def manual_start_preflight(self, *, cold_odometry: bool = False) -> Dict[str, Any]:
+        """Refuse to launch fixed Nav2/TF publishers beside a graph owner."""
+        with self._control_port.operation_lock:
+            self.start_preflight()
+            node = self._node_getter()
+            try:
+                topics = ("/tf", "/tf_static", "/map", "/scan", NAVIGATION_LOCALIZATION_POSE_TOPIC,
+                          NAVIGATION_RUNTIME_HEALTH_TOPIC, NAVIGATION_CMD_VEL_TOPIC)
+                if cold_odometry:
+                    topics += (NAVIGATION_FAST_LIO_ODOM_TOPIC,)
+                conflict = next((topic for topic in topics if node.count_publishers(topic)), None)
+                action_ready = self._navigation_action_client.server_is_ready()
+            except (AttributeError, RuntimeError, TypeError, ValueError) as exc:
+                raise ControlNotReady("manual navigation owner check unavailable") from exc
+            if conflict or action_ready:
+                raise LeaseBusy(f"existing ROS navigation or TF owner: {conflict or NAVIGATION_ACTION}")
+            return {"ready": True}
+
     def prelocalization_snapshot(
         self,
         *,
         ready_after: float = 0.0,
+        mode: str | None = None,
+        job_id: str | None = None,
+        map_id: str | None = None,
+        map_revision: str | None = None,
     ) -> Dict[str, Any]:
         """Observe the fixed runtime's fresh cloud/odom gate without arming."""
 
@@ -795,10 +875,11 @@ class NavigationRosGateway:
             or float(ready_after) < 0.0
         ):
             raise CommandValidationError("navigation readiness fence is invalid")
-        reason = self._navigation_prelocalization_reason(
-            time.monotonic(),
-            ready_after=float(ready_after),
-        )
+        pins = self._manual_activation_binding(mode, job_id, map_id, map_revision)
+        now = time.monotonic()
+        reason = self._navigation_prelocalization_reason(now, ready_after=float(ready_after))
+        reason = reason or self._manual_prelocalization_reason(
+            self._navigation_runtime_health_snapshot(now), pins)
         return {
             "ready": reason is None,
             "reason": None if reason is None else public_navigation_reason(reason),
@@ -1093,6 +1174,8 @@ class NavigationRosGateway:
                 binding = self._navigation_binding
                 handle = self._navigation_goal_handle
                 was_active = bool(self._navigation.get("active"))
+                manual_session = self._manual_session if was_active else None
+                self._manual_pending_stamp = self._manual_confirmed_stamp = self._manual_goal_generation = None
                 self._navigation_token = ""
                 self._navigation_binding = ""
                 self._navigation_goal_handle = None
@@ -1145,6 +1228,13 @@ class NavigationRosGateway:
             # Stop crosses the signed transport before asynchronous Nav2
             # cancellation can wait on a failed action server.
             self._navigation_cancel_handle(handle)
+            if manual_session is not None:
+                context = manual_context(self._navigation_runtime_health_snapshot(time.monotonic()))
+                if context[:2] == manual_session:
+                    try:
+                        self._publish_manual_command(context, "invalidate")
+                    except (ControlError, RuntimeError, ValueError):
+                        pass
         return self.runtime_snapshot()
 
     def _navigation_health_callback(self, topic: str, message: Any) -> None:
@@ -1791,6 +1881,8 @@ class NavigationRosGateway:
         except (AttributeError, json.JSONDecodeError, TypeError, ValueError) as exc:
             with self._navigation_lock:
                 self._navigation_runtime_health_received = 0.0
+                if self._manual_session is not None:
+                    self._manual_confirmed_stamp = None
                 self._navigation_runtime_health = {
                     "ready": False,
                     "cloud_fresh": False,
@@ -1806,7 +1898,16 @@ class NavigationRosGateway:
             operational = None
         if payload.get('operational_3d') is not None and (operational is None or not operational['ready']):
             payload['ready'] = payload['localized'] = False
+        manual_seed = sanitize_manual_status(payload.get("manual_seed"))
+        if payload.get("manual_seed") is not None and (
+            manual_seed is None or payload.get("operational_3d") is not None or not instance
+            or manual_seed["state"] != "ready_manual" or not manual_seed["tf_readback"]
+        ):
+            payload["ready"] = payload["localized"] = False
+        if payload.get("operational_3d") is not None or not instance:
+            manual_seed = None
         sanitized = {
+            "manual_seed": manual_seed,
             "operational_3d": operational,
             "ready": payload["ready"],
             "cloud_fresh": payload["cloud_fresh"],
@@ -1851,6 +1952,8 @@ class NavigationRosGateway:
                 and previous_health.get("runtime_instance_generation") == instance
             )
             if not same_instance:
+                if self._manual_session is not None:
+                    self._manual_confirmed_stamp = None
                 self._navigation_fresh_sequence_count = 0
                 self._navigation_health_sequences = (0, 0)
             elif (health_sequence is not None and previous_health.get("health_sequence") is not None
@@ -1864,12 +1967,12 @@ class NavigationRosGateway:
                 sanitized["localization_diagnostics"] = diagnostics
             elif same_instance and "localization_diagnostics" not in payload:
                 sanitized["localization_diagnostics"] = previous_health.get("localization_diagnostics")
-            if (
-                self._navigation_runtime_health_received > 0.0
-                and now - self._navigation_runtime_health_received
-                > self._health_thresholds.runtime_health_stale_s
-            ):
-                self._navigation_fresh_sequence_count = 0
+            if self._navigation_runtime_health_received > 0.0:
+                previous_age = now - self._navigation_runtime_health_received
+                if previous_age > self._health_thresholds.runtime_health_stale_s:
+                    self._navigation_fresh_sequence_count = 0
+                if self._manual_session is not None and previous_age > .75:
+                    self._manual_confirmed_stamp = None
             sequences = (
                 bounded_integers["cloud_sequence"],
                 bounded_integers["odometry_sequence"],
@@ -1891,6 +1994,10 @@ class NavigationRosGateway:
             sanitized["fresh_sequence_count"] = self._navigation_fresh_sequence_count
             self._navigation_runtime_health_received = now
             self._navigation_runtime_health = sanitized
+            if self._manual_session is not None and self._navigation.get("active"):
+                if not self._manual_seed_confirmed_locked(sanitized):
+                    self._manual_confirmed_stamp = None
+                    self._navigation["localization"] = {"state": "uninitialized", "pose": None}
             self._update_localization_readiness_locked(now, sanitized)
 
     def _navigation_localization_callback(self, message: Any) -> None:
@@ -1919,6 +2026,7 @@ class NavigationRosGateway:
             elif localization_only_active:
                 self.fail_localization_only(reason)
             return
+        pose_stamp = 0
         try:
             pose = message.pose.pose
             x = float(pose.position.x)
@@ -1938,6 +2046,13 @@ class NavigationRosGateway:
                 ),
             )
             x, y, yaw = self.pose_values(x, y, yaw)
+            if self._manual_session is not None and self._navigation.get("active"):
+                if str(message.header.frame_id).lstrip("/") != "map":
+                    raise ValueError("unexpected manual pose frame")
+                pose_stamp = stamp_ns(message.header.stamp)
+                age_ns = node.get_clock().now().nanoseconds - pose_stamp
+                if not 0 <= age_ns <= 750_000_000:
+                    raise ValueError("manual pose timestamp is stale")
         except (AttributeError, TypeError, ValueError, CommandValidationError) as exc:
             with self._navigation_lock:
                 self._navigation_validated_receipts[
@@ -1956,6 +2071,11 @@ class NavigationRosGateway:
             return
         self._tick(NAVIGATION_LOCALIZATION_POSE_TOPIC, now)
         with self._navigation_lock:
+            manual = self._manual_session is not None and self._navigation.get("active")
+            source = self._navigation_runtime_health.get("manual_seed") or {}
+            if manual and (not self._manual_seed_confirmed_locked(self._navigation_runtime_health)
+                           or pose_stamp < int(source["tf_readback_stamp_ns"])):
+                return
             self._navigation_validated_receipts[
                 NAVIGATION_LOCALIZATION_POSE_TOPIC
             ] = now
@@ -1964,12 +2084,17 @@ class NavigationRosGateway:
             ):
                 return
             self._navigation["localization"] = {
-                "state": "localized",
+                "state": "manual_seeded" if manual else "localized",
                 "pose": {"x": x, "y": y, "yaw": yaw},
             }
+            if manual:
+                self._navigation["localization"]["pose_source"] = MANUAL_POSE_SOURCE
             operational = self._navigation_runtime_health.get('operational_3d') or {}
-            generation = (self._navigation_runtime_health.get('runtime_instance_generation'),
-                          operational.get('bundle_generation'), operational.get('localization_generation'))
+            generation = (
+                self._navigation_runtime_health.get("runtime_instance_generation"),
+                source.get("source_epoch") if manual else operational.get("bundle_generation"),
+                source.get("seed_generation") if manual else operational.get("localization_generation"),
+            )
             self._goal_precision_call('observe_map', message, self._goal_precision_clock(), now, generation)
             if self._localization_only.get("active"):
                 self._localization_only["state"] = "localized"
@@ -2021,6 +2146,15 @@ class NavigationRosGateway:
             return "navigation runtime health is stale"
         if not health.get("cloud_fresh") or not health.get("odom_fresh"):
             return "navigation localization inputs are stale"
+        with self._navigation_lock:
+            if self._manual_session is not None and self._navigation.get("active"):
+                if self._navigation_source_count(NAVIGATION_RUNTIME_HEALTH_TOPIC) != 1:
+                    return "MANUAL_RUNTIME_HEALTH_PUBLISHER_NOT_UNIQUE"
+                if any(self._navigation_source_count(topic) != 1 for topic in ("/tf", "/tf_static")):
+                    return "MANUAL_TF_AUTHORITY_LOST"
+                reason = self._manual_session_interlock_locked(health, require_seed=require_localized)
+                if reason:
+                    return reason
         if require_localized and (
             not health.get("ready") or not health.get("localized")
         ):
@@ -2054,6 +2188,43 @@ class NavigationRosGateway:
             if not recent:
                 return f"navigation input {topic} is stale"
         return None
+
+    def _manual_seed_confirmed_locked(self, health):
+        source = health.get("manual_seed") or {}
+        receipt = source.get("receipt") or {}
+        return bool(
+            self._manual_confirmed_stamp is not None
+            and self._manual_pending_stamp is None
+            and manual_context(health)[:2] == self._manual_session
+            and source.get("state") == "ready_manual" and source.get("tf_readback")
+            and stamp_string(source.get("tf_readback_stamp_ns"))
+            and source.get("inputs_ready") and health.get("ready")
+            and receipt.get("accepted") and receipt.get("stamp_ns") == self._manual_confirmed_stamp
+            and receipt.get("source_epoch") == source.get("source_epoch")
+            and receipt.get("seed_generation") == source.get("seed_generation")
+        )
+
+    def _manual_session_interlock_locked(self, health, *, require_seed):
+        source = health.get("manual_seed") or {}
+        if manual_context(health)[:2] != self._manual_session:
+            return "MANUAL_RUNTIME_JOB_CHANGED"
+        if not source.get("inputs_ready"):
+            return source.get("reason") or "MANUAL_RUNTIME_INPUTS_UNAVAILABLE"
+        if require_seed and not self._manual_seed_confirmed_locked(health):
+            return "MANUAL_SEED_REQUIRED"
+        if (require_seed and self._manual_goal_generation is not None
+                and (self._navigation.get("goal") or {}).get("state") in {"pending", "active", "canceling"}
+                and source.get("seed_generation") != self._manual_goal_generation):
+            return "MANUAL_GOAL_SEED_CHANGED"
+        return None
+
+    def _require_manual_control_lease(self):
+        control = self._control_port.manager.snapshot()
+        if control.get("estop", {}).get("latched"):
+            raise EmergencyStopLatched("dashboard software stop is latched")
+        lease = control.get("lease", {})
+        if not (control.get("ready") and lease.get("active") and lease.get("input_source") == "navigation"):
+            raise ControlNotReady("manual navigation control lease is unavailable")
 
     def _navigation_prelocalization_reason(
         self,
@@ -2148,6 +2319,13 @@ class NavigationRosGateway:
         with self._navigation_lock:
             if token == self._navigation_token:
                 self._navigation_last_heartbeat = now
+                health = self._navigation_runtime_health
+                if self._manual_session is not None and self._manual_seed_confirmed_locked(health):
+                    try:
+                        self._publish_manual_command(manual_context(health), "keepalive",
+                                                     seed_generation=health["manual_seed"]["seed_generation"])
+                    except (ControlError, RuntimeError, ValueError):
+                        return "MANUAL_CONTROL_FENCE_UNAVAILABLE"
         return None
 
     def reconcile_control_locked(self, now: float) -> Optional[str]:
@@ -2336,6 +2514,81 @@ class NavigationRosGateway:
                 "navigation map revision does not match the active session"
             )
 
+    def _publish_manual_command(self, context, operation, **pose):
+        pins, instance, epoch = context
+        node = self._node_getter()
+        publisher = self._manual_seed_publisher
+        if (node is None or publisher is None
+                or publisher_endpoint(node, SEED_TOPIC, expected_name=SEED_PUBLISHER_NAME) is None):
+            raise ControlDisabled("MANUAL_SEED_PUBLISHER_NOT_UNIQUE")
+        ros_stamp = node.get_clock().now().nanoseconds
+        if type(ros_stamp) is not int or ros_stamp <= 0:
+            raise ControlNotReady("manual navigation ROS clock is invalid")
+        stamp = str(ros_stamp)
+        message = self._navigation_string_type()
+        message.data = json.dumps({
+            **pins, "runtime_instance_generation": instance, "source_epoch": epoch,
+            "stamp_ns": stamp, "operation": operation, **pose,
+        }, separators=(",", ":"))
+        publisher.publish(message)
+        return stamp
+
+    def _set_manual_initial_pose(self, *, map_id, map_revision, x, y, yaw, job_id, seed_generation, source_epoch):
+        with self._control_port.operation_lock:
+            self._require_manual_control_lease()
+            now = time.monotonic()
+            reason = self._navigation_sensor_interlock_reason(now, require_localized=False)
+            if reason:
+                raise ControlDisabled(reason)
+            health = self._navigation_runtime_health_snapshot(now)
+            context = manual_context(health)
+            with self._navigation_lock:
+                self._navigation_require_pinned_map_locked(map_id, map_revision)
+                if context[:2] != self._manual_session or context[0]["job_id"] != job_id:
+                    raise ControlDisabled("MANUAL_RUNTIME_JOB_CHANGED")
+                if (self._navigation.get("goal") or {}).get("state") in {"pending", "active", "canceling"}:
+                    raise LeaseBusy("cancel the active goal before resetting localization")
+                if self._manual_pending_stamp is not None:
+                    raise LeaseBusy("a manual initial pose request is already pending")
+                source = self._navigation_runtime_health.get("manual_seed") or {}
+                if (manual_context(self._navigation_runtime_health) != context
+                        or type(seed_generation) is not int or seed_generation != source.get("seed_generation")
+                        or type(source_epoch) is not int or source_epoch != context[2]):
+                    raise ControlDisabled("MANUAL_SEED_GENERATION_OR_SOURCE_CHANGED")
+                stopped = source.get("stopped_seconds")
+                if stopped is None or stopped < STOP_SECONDS:
+                    raise ControlDisabled("MANUAL_RESEED_REQUIRES_OBSERVED_STOP")
+                self._manual_pending_stamp = stamp = self._publish_manual_command(
+                    context, "seed", x=x, y=y, yaw=yaw, seed_generation=seed_generation)
+                self._manual_confirmed_stamp = None
+                self._navigation_validated_receipts[NAVIGATION_LOCALIZATION_POSE_TOPIC] = 0.0
+                self._navigation["localization"] = {"state": "uninitialized", "pose": None}
+                self._navigation["seq"] += 1
+        try:
+            receipt = wait_manual_seed_receipt(self._navigation_runtime_health_snapshot, context, stamp)
+            with self._control_port.operation_lock:
+                self._require_manual_control_lease()
+                now = time.monotonic()
+                reason = self._navigation_sensor_interlock_reason(now, require_localized=False)
+                if reason:
+                    raise ControlDisabled(reason)
+                with self._navigation_lock:
+                    latest = self._navigation_runtime_health
+                    latest_receipt = (latest.get("manual_seed") or {}).get("receipt")
+                    if (not self._navigation.get("active") or self._manual_pending_stamp != stamp
+                            or manual_context(latest) != context or latest_receipt != receipt):
+                        raise ControlDisabled("MANUAL_INITIAL_POSE_INVALIDATED")
+                    self._manual_pending_stamp = None
+                    self._manual_confirmed_stamp = stamp
+                    if not self._manual_seed_confirmed_locked(latest):
+                        self._manual_confirmed_stamp = None
+                        raise ControlDisabled("MANUAL_INITIAL_POSE_INVALIDATED")
+        finally:
+            with self._navigation_lock:
+                if self._manual_pending_stamp == stamp:
+                    self._manual_pending_stamp = None
+        return self.runtime_snapshot()
+
     def set_initial_pose(
         self,
         *,
@@ -2344,8 +2597,18 @@ class NavigationRosGateway:
         x: object,
         y: object,
         yaw: object,
+        job_id: str | None = None,
+        seed_generation: int | None = None,
+        source_epoch: int | None = None,
     ) -> Dict[str, Any]:
         x_value, y_value, yaw_value = self.pose_values(x, y, yaw)
+        with self._navigation_lock:
+            manual = self._manual_session is not None and self._navigation.get("active")
+        if manual or job_id is not None or seed_generation is not None or source_epoch is not None:
+            return self._set_manual_initial_pose(
+                map_id=map_id, map_revision=map_revision, job_id=job_id,
+                seed_generation=seed_generation, source_epoch=source_epoch,
+                x=x_value, y=y_value, yaw=yaw_value)
         with self._control_port.operation_lock:
             interlock = self._navigation_sensor_interlock_reason(
                 time.monotonic(),
@@ -2355,6 +2618,8 @@ class NavigationRosGateway:
                 raise ControlDisabled(interlock)
             with self._navigation_lock:
                 self._navigation_require_pinned_map_locked(map_id, map_revision)
+                if self._manual_session is not None:
+                    raise ControlDisabled("manual navigation requires an explicit job-bound seed")
                 goal_state = str(
                     (self._navigation.get("goal") or {}).get("state", "idle")
                 )
@@ -2397,6 +2662,8 @@ class NavigationRosGateway:
                 raise ControlDisabled(interlock)
             with self._navigation_lock:
                 self._navigation_require_pinned_map_locked(map_id, map_revision)
+                if self._manual_session is not None:
+                    raise ControlDisabled("manual navigation does not run a stored-map matcher")
                 if (self._navigation.get('goal') or {}).get('state') in {'pending', 'active', 'canceling'}:
                     raise LeaseBusy('cancel the active goal before matching localization')
                 publisher = self._navigation_match_publisher
@@ -2689,6 +2956,16 @@ class NavigationRosGateway:
             self._navigation["seq"] += 1
         self._navigation_issue_stop(f"navigation goal {state}")
 
+    def _require_goal_seed_locked(self, generation):
+        if self._manual_session is None:
+            if generation is not None:
+                raise ControlDisabled("manual navigation goal requires a manual session")
+            return
+        health = self._navigation_runtime_health
+        if (type(generation) is not int or not self._manual_seed_confirmed_locked(health)
+                or generation != health["manual_seed"]["seed_generation"]):
+            raise ControlDisabled("MANUAL_GOAL_SEED_CHANGED")
+
     def send_goal(
         self,
         *,
@@ -2698,6 +2975,7 @@ class NavigationRosGateway:
         y: object,
         yaw: object,
         dispatch_guard: Any = None,
+        seed_generation: int | None = None,
     ) -> Dict[str, Any]:
         x_value, y_value, yaw_value = self.pose_values(x, y, yaw)
         with self._control_port.operation_lock:
@@ -2709,9 +2987,11 @@ class NavigationRosGateway:
                 raise ControlDisabled(interlock)
             with self._navigation_lock:
                 self._navigation_require_pinned_map_locked(map_id, map_revision)
+                manual = self._manual_session is not None
+                self._require_goal_seed_locked(seed_generation)
                 if (
                     self._navigation.get("localization") or {}
-                ).get("state") != "localized":
+                ).get("state") != ("manual_seeded" if manual else "localized"):
                     raise ControlDisabled(
                         "a fresh localized pose is required before sending a goal"
                     )
@@ -2730,6 +3010,7 @@ class NavigationRosGateway:
                 generation = self._navigation_goal_generation
                 self._navigation_cancel_requested = False
                 self._navigation_goal_handle = None
+                self._manual_goal_generation = seed_generation
                 self._navigation["goal"] = {
                     "state": "pending",
                     "goal_id": goal_id,
@@ -2756,14 +3037,21 @@ class NavigationRosGateway:
             try:
                 if dispatch_guard is not None:
                     dispatch_guard()
-                future = client.send_goal_async(
-                    goal_message,
-                    feedback_callback=(
-                        lambda feedback, g=generation, i=goal_id: (
-                            self._navigation_feedback_callback(g, i, feedback)
-                        )
-                    ),
-                )
+                if manual:
+                    self._require_manual_control_lease()
+                    reason = self._navigation_sensor_interlock_reason(time.monotonic(), require_localized=True)
+                    if reason:
+                        raise ControlDisabled(reason)
+                with self._navigation_lock:
+                    self._require_goal_seed_locked(seed_generation)
+                    future = client.send_goal_async(
+                        goal_message,
+                        feedback_callback=(
+                            lambda feedback, g=generation, i=goal_id: (
+                                self._navigation_feedback_callback(g, i, feedback)
+                            )
+                        ),
+                    )
                 with self._navigation_lock:
                     self._goal_precision_call('sent', goal_message.pose, self._goal_precision_clock(), time.monotonic(), event='dispatch')
                 future.add_done_callback(
@@ -3344,9 +3632,30 @@ class NavigationRosGateway:
                 snapshot = copy.deepcopy(self._navigation)
                 localization_only = copy.deepcopy(self._localization_only)
                 configured = self._navigation_transport_configured_locked()
+                manual_session = self._manual_session
+                manual_pending = self._manual_pending_stamp is not None
                 action_client = self._navigation_action_client
                 clear_clients = dict(self._navigation_clear_clients)
         runtime_health = self._navigation_runtime_health_snapshot(now)
+        manual_seed = None
+        if manual_session is not None:
+            pins, instance = manual_session
+            current = manual_context(runtime_health)[:2] == manual_session
+            manual_seed = dict(runtime_health.get("manual_seed") or {}) if current else dict(pins)
+            manual_seed["runtime_instance_generation"] = instance
+            manual_seed["pose_source"] = MANUAL_POSE_SOURCE
+            with self._navigation_lock:
+                confirmed = (bool(snapshot.get("active")) and bool(runtime_health.get("fresh"))
+                             and self._manual_seed_confirmed_locked(runtime_health))
+            if not confirmed:
+                manual_seed["tf_readback"] = False
+                manual_seed["tf_readback_stamp_ns"] = None
+                if manual_pending:
+                    manual_seed.update(state="checking_tf", reason="MANUAL_SEED_AWAITING_RECEIPT")
+                elif not current or not snapshot.get("active") or not runtime_health.get("fresh"):
+                    manual_seed.update(state="reseed_required", reason="MANUAL_SESSION_OR_SOURCE_UNAVAILABLE", inputs_ready=False)
+                elif manual_seed.get("state") in {"ready_manual", "checking_tf"}:
+                    manual_seed.update(state="reseed_required", reason="MANUAL_SEED_UNCONFIRMED")
         node = self._node_getter()
         try:
             cmd_publishers = (
@@ -3440,7 +3749,7 @@ class NavigationRosGateway:
         instantaneous_health = classify_localization_health(
             localization_metrics,
             active=active or localization_only_active,
-            localized=str((snapshot.get("localization") or {}).get("state", "")) == "localized",
+            localized=str((snapshot.get("localization") or {}).get("state", "")) in {"localized", "manual_seeded"},
             thresholds=self._health_thresholds,
             rate_policy=self._rate_policy,
         )
@@ -3544,6 +3853,14 @@ class NavigationRosGateway:
             and fast_odom_ready
             and runtime_prelocalization_ready
         )
+        if manual_seed is not None and active:
+            can_set_initial_pose = bool(
+                can_set_initial_pose and controller_odom_ready and navigation_lease_active
+                and manual_seed.get("inputs_ready")
+                and (manual_seed.get("stopped_seconds") or 0.0) >= STOP_SECONDS
+                and not manual_pending and not control.get("estop", {}).get("latched")
+                and (snapshot.get("goal") or {}).get("state") not in {"pending", "active", "canceling"}
+            )
         can_start_localization_only = bool(
             configured
             and target_supported
@@ -3571,7 +3888,10 @@ class NavigationRosGateway:
             and controller_odom_ready
             and localization_ready
             and runtime_ready
-            and localization_state == "localized"
+            and (localization_state == "localized" if manual_seed is None else (
+                localization_state == "manual_seeded" and manual_seed.get("state") == "ready_manual"
+                and navigation_lease_active and not control.get("estop", {}).get("latched")
+            ))
             and (snapshot.get("goal") or {}).get("state")
             not in {"pending", "active", "canceling"}
         )
@@ -3644,11 +3964,12 @@ class NavigationRosGateway:
                 "session_mode": (
                     "localization_only"
                     if localization_only_active
-                    else "navigation"
-                    if active
-                    else "idle"
+                    else MANUAL_MODE
+                    if active and manual_seed is not None
+                    else "navigation" if active else "idle"
                 ),
                 "localization_session": localization_only,
+                "manual_seed": manual_seed,
                 "manual_control_active": manual_active,
                 "navigation_lease_active": navigation_lease_active,
                 "cleanup_required": cleanup_required,

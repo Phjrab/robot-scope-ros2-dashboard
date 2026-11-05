@@ -1027,6 +1027,10 @@ class RosAgent(ObservationSubscriptionMixin, RawObservationAccessMixin):
     def _navigation_transport_configured_locked(self) -> bool:
         return self._navigation_gateway._navigation_transport_configured_locked()
 
+    @property
+    def navigation_manual(self) -> NavigationRosGateway:
+        return self._navigation_gateway
+
     def navigation_activate(
         self,
         *,

@@ -43,6 +43,17 @@ from robot_dashboard.localization_diagnostics import (
     SCHEMA as LOCALIZATION_DIAGNOSTICS_SCHEMA,
 )
 from robot_dashboard.relocalization.operational import MATCH_TOPIC, load_bundle, pose_matrix, write_pose, write_transform
+from robot_dashboard.ros.manual_navigation import (
+    MODE as MANUAL_MODE,
+    OPERATIONAL_MODE,
+    SEED_PUBLISHER_NAME,
+    SEED_TOPIC,
+    STOP_SECONDS,
+    ManualSeed,
+    load_manual_binding,
+    publisher_endpoint,
+    stamp_ns,
+)
 
 
 POINT_FIELD_DTYPES: Mapping[int, str] = {
@@ -979,7 +990,15 @@ def _build_ros_runtime_node_class() -> type[Any]:
             self._odom_z = 0.0
             self._odom_quaternion = (0.0, 0.0, 0.0, 1.0)
             self._map_to_odom: PlanarTransform | None = None
-            self._operational = load_bundle(getattr(options, 'runtime_params_file', None))
+            mode = getattr(options, "mode", None)
+            params_file = getattr(options, "runtime_params_file", None)
+            self._manual = ManualSeed(load_manual_binding(params_file), options.odom_timeout) if mode == MANUAL_MODE else None
+            self._manual_cloud_stamp_ns = 0
+            self._manual_odom_tf_stamp_ns = 0
+            self._manual_static_tf_seen = False
+            self._operational = None if self._manual else load_bundle(params_file)
+            if mode == OPERATIONAL_MODE and self._operational is None:
+                raise NavigationRuntimeError("OPERATIONAL_NAVIGATION_BUNDLE_REQUIRED")
             self._operational_pairs: OrderedDict[int, tuple[Any, float]] = OrderedDict()
             self._registered_pending = None
             self._registered_source = None
@@ -1037,10 +1056,11 @@ def _build_ros_runtime_node_class() -> type[Any]:
                 self._publisher_counts[FASTLIO_CONTROLLER_ODOM_TOPIC] = 0
             self._tf_broadcaster = TransformBroadcaster(self)
             self._static_tf_broadcaster = StaticTransformBroadcaster(self)
-            if self._operational is not None:
+            if self._operational is not None or self._manual is not None:
                 from robot_dashboard.relocalization.transform_authority import TransformAuthorityMonitor
                 from tf2_msgs.msg import TFMessage
                 self._transform_authority = TransformAuthorityMonitor(
+                    {'/tf': [], '/tf_static': []} if self._manual else
                     self._operational.bundle['calibration'].get('tf_publishers'),
                     own_name=self.get_name(), own_namespace=self.get_namespace())
                 self.create_subscription(TFMessage, '/tf', self._on_operational_tf, 100)
@@ -1058,12 +1078,16 @@ def _build_ros_runtime_node_class() -> type[Any]:
                 self._on_odometry,
                 qos_profile_sensor_data,
             )
-            self.create_subscription(
-                PoseWithCovarianceStamped,
-                "/initialpose",
-                self._on_initial_pose,
-                10,
-            )
+            if self._manual is not None:
+                self.create_subscription(String, SEED_TOPIC, self._on_manual_seed, 10)
+                self.create_subscription(
+                    Odometry, options.controller_odom_topic, self._on_manual_controller_odom,
+                    qos_profile_sensor_data,
+                )
+            else:
+                self.create_subscription(
+                    PoseWithCovarianceStamped, "/initialpose", self._on_initial_pose, 10,
+                )
             if self._operational is not None:
                 self.create_subscription(PointCloud2, '/cloud_registered', self._on_registered, qos_profile_sensor_data)
                 self.create_subscription(String, MATCH_TOPIC, self._on_operational_match, 10)
@@ -1095,8 +1119,12 @@ def _build_ros_runtime_node_class() -> type[Any]:
             received_wall_ns = time.time_ns()
             reason = "callback_error"
             try:
+                if self._manual is not None and not self._cloud_fresh():
+                    self._invalidate_manual_seed("MANUAL_SCAN_STALE")
                 reason = self._process_cloud(message)
             finally:
+                if self._manual is not None and reason != "accepted":
+                    self._invalidate_manual_seed("MANUAL_SCAN_INVALID")
                 self._input_diagnostics["cloud"].observe(
                     message, reason=reason, wall_ns=received_wall_ns,
                     monotonic_s=started_at,
@@ -1124,6 +1152,13 @@ def _build_ros_runtime_node_class() -> type[Any]:
                 self._last_cloud_monotonic = 0.0
                 self._last_cloud_error = "stale or missing PointCloud2 timestamp"
                 return stamp_reason
+            if self._manual is not None:
+                source_stamp = stamp_ns(message.header.stamp)
+                if source_stamp <= self._manual_cloud_stamp_ns:
+                    self._last_cloud_monotonic = 0.0
+                    self._last_cloud_error = "PointCloud2 timestamp did not increase"
+                    return "nonincreasing_stamp"
+                self._manual_cloud_stamp_ns = source_stamp
             try:
                 xyz = xyz_from_pointcloud2_layout(
                     message.data,
@@ -1201,6 +1236,9 @@ def _build_ros_runtime_node_class() -> type[Any]:
             # map alignment alive. The next valid sample then skipped the
             # outage check and silently revived that alignment.
             self._map_to_odom = None
+            if self._manual is not None:
+                self._manual.odom_stop.clear()
+                self._invalidate_manual_seed("MANUAL_ODOMETRY_INVALID")
             if self._operational is not None:
                 self._operational.invalidate(error)
                 self._operational_pairs.clear()
@@ -1225,10 +1263,26 @@ def _build_ros_runtime_node_class() -> type[Any]:
 
         def _on_operational_tf(self, message):
             if not self._transform_authority.observe_transforms(message):
-                self._operational.invalidate(self._transform_authority.reason)
+                self._invalidate_tf_authority()
+            elif self._manual is not None and self._transform_authority.ready:
+                for transform in message.transforms:
+                    if transform.header.frame_id == "odom" and transform.child_frame_id == "base_link":
+                        self._manual_odom_tf_stamp_ns = max(self._manual_odom_tf_stamp_ns, stamp_ns(transform.header.stamp))
+                self._manual.observe_tf(message)
 
         def _on_operational_static_tf(self, message):
             if not self._transform_authority.observe_transforms(message, topic='/tf_static'):
+                self._invalidate_tf_authority()
+            elif self._manual is not None:
+                self._manual_static_tf_seen = self._manual_static_tf_seen or any(
+                    transform.header.frame_id == "base_link" and transform.child_frame_id == self._options.cloud_frame
+                    for transform in message.transforms
+                )
+
+        def _invalidate_tf_authority(self):
+            if self._manual is not None:
+                self._invalidate_manual_seed("MANUAL_TF_AUTHORITY_LOST")
+            else:
                 self._operational.invalidate(self._transform_authority.reason)
 
         def _refresh_operational_authority(self):
@@ -1240,7 +1294,7 @@ def _build_ros_runtime_node_class() -> type[Any]:
             except Exception:
                 ready = False
             if not ready and self._transform_authority.publishing:
-                self._operational.invalidate(self._transform_authority.reason)
+                self._invalidate_tf_authority()
 
         def _operational_status(self):
             state = self._operational.status()
@@ -1372,6 +1426,9 @@ def _build_ros_runtime_node_class() -> type[Any]:
                     # A localization outage requires a new operator-approved
                     # initial pose; never silently reuse the old map alignment.
                     self._map_to_odom = None
+                    if self._manual is not None:
+                        self._manual.odom_stop.clear()
+                        self._invalidate_manual_seed("MANUAL_ODOMETRY_STALE")
                     if self._operational is not None:
                         self._operational.invalidate('ODOMETRY_OUTAGE')
                 else:
@@ -1391,6 +1448,9 @@ def _build_ros_runtime_node_class() -> type[Any]:
                         self._last_odom_error = discontinuity
                         self._odom_to_base = None
                         self._map_to_odom = None
+                        if self._manual is not None:
+                            self._manual.odom_stop.clear()
+                            self._invalidate_manual_seed("MANUAL_ODOMETRY_JUMP")
                         if self._operational is not None:
                             self._operational.invalidate(discontinuity)
                         return {
@@ -1428,8 +1488,13 @@ def _build_ros_runtime_node_class() -> type[Any]:
                     self._controller_odom_error = self._last_odom_error
                     self._odom_to_base = None
                     self._map_to_odom = None
+                    if self._manual is not None:
+                        self._manual.odom_stop.clear()
+                        self._invalidate_manual_seed("MANUAL_CONTROLLER_ODOMETRY_INVALID")
                     return "controller_gate_rejected"
 
+            if self._manual is not None and self._manual.source_signature is not None:
+                self._observe_manual_odometry(previous, odom_to_base, source_stamp_ns, now)
             self._odom_to_base = odom_to_base
             self._odom_z = z_value
             self._odom_quaternion = yaw_to_quaternion(yaw)
@@ -1442,6 +1507,125 @@ def _build_ros_runtime_node_class() -> type[Any]:
             self._odom_frame_error = ""
             self._broadcast_dynamic_transforms()
             return "accepted"
+
+        def _invalidate_manual_seed(self, reason: str) -> None:
+            self._manual.invalidate(reason)
+            self._map_to_odom = None
+            self._last_map_tf_monotonic = 0.0
+
+        def _refresh_manual_sources(self) -> None:
+            topics = ("/Odometry", "/velodyne_points", self._options.controller_odom_topic)
+            own_topics = ("/scan", "/amcl_pose")
+            endpoints = (
+                *(publisher_endpoint(self, topic) for topic in topics),
+                *(publisher_endpoint(self, topic, expected_name=self.get_name()) for topic in own_topics),
+                publisher_endpoint(self, SEED_TOPIC, expected_name=SEED_PUBLISHER_NAME),
+            )
+            if self._manual.observe_sources(endpoints if all(endpoints) else None):
+                self._map_to_odom = None
+                self._last_map_tf_monotonic = 0.0
+
+        def _observe_manual_odometry(self, previous, current, source_stamp, now):
+            elapsed = (source_stamp - self._last_odom_source_stamp_ns) * 1e-9
+            if self._manual.seeded_at is not None and (
+                not self._manual.odom_stop.fresh(now) or not 0 < elapsed <= self._options.odom_timeout
+            ):
+                self._manual.odom_stop.clear()
+                self._invalidate_manual_seed("MANUAL_ODOMETRY_STALE")
+            displacement = math.inf
+            heading = math.inf
+            if previous is not None and self._manual.odom_stop.fresh(now) and 0 < elapsed <= self._options.odom_timeout:
+                displacement = math.hypot(current.x - previous.x, current.y - previous.y)
+                heading = abs(normalize_angle(current.yaw - previous.yaw))
+                if self._manual.seeded_at is not None:
+                    self._manual.distance_m += displacement
+            if not self._manual.odom_stop.observe(source_stamp, now, displacement / max(elapsed, 1e-9),
+                                                   heading / max(elapsed, 1e-9)):
+                self._invalidate_manual_seed("MANUAL_ODOMETRY_INVALID")
+
+        def _on_manual_controller_odom(self, message: Any) -> None:
+            if self._manual.source_signature is None:
+                return
+            now = time.monotonic()
+            twist = message.twist.twist
+            x, y, wz = twist.linear.x, twist.linear.y, twist.angular.z
+            source_stamp = stamp_ns(message.header.stamp)
+            controller = self._manual.controller_stop
+            if (not controller.fresh(now) or
+                    controller.stamp and source_stamp - controller.stamp > controller.timeout * 1e9):
+                self._invalidate_manual_seed("MANUAL_CONTROLLER_ODOMETRY_STALE")
+            if (normalize_frame_id(message.header.frame_id) != "odom"
+                    or normalize_frame_id(message.child_frame_id) != "base_link"
+                    or not all(math.isfinite(value) for value in (x, y, wz))
+                    or abs(x) > 5.0 or abs(y) > 5.0 or abs(wz) > 10.0
+                    or not self._manual.controller_stop.observe(source_stamp, now, math.hypot(x, y), abs(wz))):
+                self._manual.controller_stop.clear()
+                self._invalidate_manual_seed("MANUAL_CONTROLLER_ODOMETRY_INVALID")
+
+        def _manual_input_reason(self, now: float) -> str:
+            if self._manual.source_signature is None:
+                return "MANUAL_SOURCE_NOT_UNIQUE"
+            if not self._transform_authority.ready:
+                return self._transform_authority.reason
+            now_ns = self.get_clock().now().nanoseconds
+            if (not self._manual_static_tf_seen or not self._manual_odom_tf_stamp_ns
+                    or not 0 <= now_ns - self._manual_odom_tf_stamp_ns <= int(self._options.odom_timeout * 1e9)):
+                return "MANUAL_TF_READBACK_UNAVAILABLE"
+            if not self._cloud_fresh():
+                return "MANUAL_SCAN_STALE"
+            if not self._odom_fresh() or not self._manual.odom_stop.fresh(now):
+                return "MANUAL_ODOMETRY_STALE"
+            if not self._manual.controller_stop.fresh(now):
+                return "MANUAL_CONTROLLER_ODOMETRY_STALE"
+            return ""
+
+        def _on_manual_seed(self, message: Any) -> None:
+            try:
+                payload = json.loads(message.data) if len(message.data) <= 4096 else None
+                if not isinstance(payload, dict):
+                    return
+                self._refresh_operational_authority()
+                self._refresh_manual_sources()
+                if self._manual.source_signature is None:
+                    return
+                now_ns = self.get_clock().now().nanoseconds
+                stamp = self._manual.request_stamp(payload, self._runtime_instance_generation, now_ns)
+                if stamp is None:
+                    return
+                operation = payload.get("operation")
+                if operation == "invalidate":
+                    self._invalidate_manual_seed("MANUAL_CONTROL_INVALIDATED")
+                    return
+                now = time.monotonic()
+                generation = payload.get("seed_generation")
+                if operation == "keepalive":
+                    self._manual.keepalive(generation, now)
+                    if self._manual.seeded_at is None:
+                        self._map_to_odom = None
+                    return
+                if operation != "seed":
+                    return
+                if type(generation) is not int or generation != self._manual.seed_generation:
+                    self._manual.acknowledge(stamp, "MANUAL_SEED_GENERATION_CHANGED")
+                    return
+                reason = self._manual_input_reason(now)
+                if not 0 <= now_ns - self._last_odom_source_stamp_ns <= int(self._options.odom_timeout * 1e9):
+                    reason = "MANUAL_ODOMETRY_STAMP_STALE"
+                if not reason and self._manual.stopped_seconds(now) < STOP_SECONDS:
+                    reason = "MANUAL_RESEED_REQUIRES_OBSERVED_STOP"
+                if reason:
+                    self._invalidate_manual_seed(reason)
+                    self._manual.acknowledge(stamp, reason)
+                    return
+                x, y, _ = bounded_pose_position(payload.get("x"), payload.get("y"), 0.0)
+                initial = PlanarTransform(x, y, _finite_number(payload.get("yaw"), "seed yaw"))
+            except (ValueError, TypeError, AttributeError, OverflowError):
+                return
+            assert self._odom_to_base is not None
+            self._map_to_odom = map_to_odom_transform(initial, self._odom_to_base)
+            self._manual.acknowledge(stamp, "MANUAL_ANCHOR_APPLIED", now=now,
+                                     odom_stamp=self._last_odom_source_stamp_ns, accepted_ros_ns=now_ns)
+            self._broadcast_dynamic_transforms()
 
         def _on_initial_pose(self, message: Any) -> None:
             def receipt(accepted, reason):
@@ -1532,6 +1716,14 @@ def _build_ros_runtime_node_class() -> type[Any]:
                 self._broadcast_operational_transforms()
                 return
             now = self.get_clock().now().to_msg()
+            if self._manual is not None:
+                if self._map_to_odom is not None and not self._manual.control_fresh(time.monotonic()):
+                    self._invalidate_manual_seed("MANUAL_CONTROL_FENCE_STALE")
+                if not self._transform_authority.ready:
+                    return
+                if not self._transform_authority.publishing:
+                    self._transform_authority.begin_publication()
+                now.sec, now.nanosec = divmod(self._last_odom_source_stamp_ns, 1_000_000_000)
             odom_tf = TransformStamped()
             odom_tf.header.stamp = now
             odom_tf.header.frame_id = "odom"
@@ -1544,10 +1736,12 @@ def _build_ros_runtime_node_class() -> type[Any]:
             odom_tf.transform.rotation.y = qy
             odom_tf.transform.rotation.z = qz
             odom_tf.transform.rotation.w = qw
-            self._tf_broadcaster.sendTransform(odom_tf)
-            self._last_odom_tf_monotonic = time.monotonic()
-
+            if self._manual is None or self._map_to_odom is None:
+                self._tf_broadcaster.sendTransform(odom_tf)
+                self._last_odom_tf_monotonic = time.monotonic()
             if self._map_to_odom is None:
+                return
+            if self._manual is not None and not self._manual.note_map_tf_publication(self._last_odom_source_stamp_ns):
                 return
             map_tf = TransformStamped()
             map_tf.header.stamp = now
@@ -1561,7 +1755,11 @@ def _build_ros_runtime_node_class() -> type[Any]:
             map_tf.transform.rotation.y = qy
             map_tf.transform.rotation.z = qz
             map_tf.transform.rotation.w = qw
-            self._tf_broadcaster.sendTransform(map_tf)
+            if self._manual is not None:
+                self._tf_broadcaster.sendTransform([odom_tf, map_tf])
+                self._last_odom_tf_monotonic = time.monotonic()
+            else:
+                self._tf_broadcaster.sendTransform(map_tf)
             self._last_map_tf_monotonic = time.monotonic()
 
             map_pose = self._map_to_odom.compose(self._odom_to_base)
@@ -1708,6 +1906,20 @@ def _build_ros_runtime_node_class() -> type[Any]:
             cloud_fresh = self._cloud_fresh()
             odom_fresh = self._odom_fresh()
             localized = self._map_to_odom is not None and odom_fresh
+            manual_status = None
+            if self._manual is not None:
+                self._refresh_manual_sources()
+                now = time.monotonic()
+                reason = self._manual_input_reason(now)
+                if reason:
+                    self._invalidate_manual_seed(reason)
+                elif self._map_to_odom is not None and not self._manual.control_fresh(now):
+                    self._invalidate_manual_seed("MANUAL_CONTROL_FENCE_STALE")
+                elif (self._manual.state == "checking_tf" and
+                      now - self._manual.seeded_at > .75):
+                    self._invalidate_manual_seed("MANUAL_TF_READBACK_TIMEOUT")
+                manual_status = self._manual.snapshot(now, not reason, reason)
+                localized = bool(not reason and self._map_to_odom is not None and self._manual.tf_readback)
             if self._operational is not None:
                 self._operational.poll()
                 localized = self._operational_status()['ready'] and odom_fresh
@@ -1769,6 +1981,7 @@ def _build_ros_runtime_node_class() -> type[Any]:
             payload = {
                 "schema": "robot-scope.navigation-runtime-health.v1",
                 "operational_3d": self._operational_status() if self._operational else None,
+                "manual_seed": manual_status,
                 "runtime_instance_generation": self._runtime_instance_generation,
                 "health_sequence": self._health_sequence,
                 "ready": bool(
@@ -1968,6 +2181,7 @@ def _build_rmw_timing_executor_class() -> type[Any]:
 def build_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Robot Scope fixed Humble Nav2 runtime")
     parser.add_argument("--runtime-params-file", required=True)
+    parser.add_argument("--mode", choices=(MANUAL_MODE, OPERATIONAL_MODE))
     parser.add_argument("--cloud-frame", default="hesai_lidar")
     parser.add_argument("--lidar-x", type=float, default=0.25)
     parser.add_argument("--lidar-y", type=float, default=0.0)
@@ -2023,7 +2237,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     # never leak into rclpy's ROS argument parser.  This runtime intentionally
     # accepts no ROS remaps or topic overrides.
     rclpy.init(args=[])
-    node = node_type(options)
+    try:
+        node = node_type(options)
+    except (OSError, ValueError) as exc:
+        print(f"[Robot Scope] navigation runtime unavailable: {exc}", file=sys.stderr)
+        rclpy.shutdown()
+        return 2
     executor = executor_type(node)
     executor.add_node(node)
 

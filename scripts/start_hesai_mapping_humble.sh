@@ -174,6 +174,10 @@ start_once() {
   local log_file="$3"
   local command="$4"
   if has_live_match "$pattern"; then
+    if [[ "${ROBOT_SCOPE_NAVIGATION_RELATIVE_ODOM:-0}" == "1" ]]; then
+      echo "[Robot Scope] manual 2D experiment found an existing $label owner" >&2
+      return 1
+    fi
     echo "[Robot Scope] $label already running"
     return
   fi
@@ -195,7 +199,14 @@ start_once() {
 # "새 맵 시작" is an explicit accumulator reset.  The dashboard-owned Hesai
 # driver and XT16 bridge remain alive as the persistent raw preview; only the
 # fixed FAST-LIO process group belongs to this mapping launch.
-stop_existing "fastlio_mapping|ros2 launch fast_lio" "FAST-LIO"
+if [[ "${ROBOT_SCOPE_NAVIGATION_RELATIVE_ODOM:-0}" == "1" ]]; then
+  if has_live_match "fastlio_mapping|ros2 launch fast_lio"; then
+    echo "[Robot Scope] manual 2D experiment found an existing FAST-LIO owner" >&2
+    exit 1
+  fi
+else
+  stop_existing "fastlio_mapping|ros2 launch fast_lio" "FAST-LIO"
+fi
 
 # Fresh converted clouds and Go2 IMU prove that both persistent preview
 # processes are alive and compatible before FAST-LIO can be started.
@@ -206,7 +217,8 @@ start_once "fastlio_mapping" "FAST-LIO" "$LOG_DIR/fastlio_dashboard.log" "$PROJE
 python3 "$PROJECT_DIR/scripts/check_xt16_lidar_ready.py" \
   --stage fastlio \
   --timeout "${ROBOT_SCOPE_FASTLIO_READY_TIMEOUT_SECONDS:-45}"
-if [[ "${ROBOT_SCOPE_START_STATIC_MAP:-0}" == "1" ]]; then
+if [[ "${ROBOT_SCOPE_START_STATIC_MAP:-0}" == "1" &&
+      "${ROBOT_SCOPE_NAVIGATION_RELATIVE_ODOM:-0}" != "1" ]]; then
   start_once "nav2_map_server map_server" "static map server" "$LOG_DIR/map_server_dashboard.log" "$PROJECT_DIR/scripts/run_static_map_humble.sh"
   MAP_STATE="$(ros2 lifecycle get /map_server 2>/dev/null || true)"
   if [[ "$MAP_STATE" != *"active"* ]]; then

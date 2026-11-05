@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ...saved_maps import SavedMapError
 from ...control import ControlError
-from ...navigation_jobs import NavigationJobError
+from ...navigation_jobs import MANUAL_SEEDED_2D, NavigationJobError
 from ...application.runtime_health_sample import capture_runtime_health
 from ..dependencies import require_component, require_competition_unlocked, require_manual_operation_mode, require_same_origin, runtime_from_request
 
@@ -225,7 +225,7 @@ async def select_idle(request, body, operation="select"):
         if runtime.mapping and runtime.mapping.activity()[0]:
             raise HTTPException(409, 'MAPPING_TRANSITION_ACTIVE')
         snapshot = await asyncio.to_thread(nav.view)
-        if snapshot.get('localization_session', {}).get('active') or snapshot.get('session_mode', snapshot.get('mode')) == 'navigation':
+        if snapshot.get('localization_session', {}).get('active') or snapshot.get('session_mode', snapshot.get('mode')) in {'navigation', MANUAL_SEEDED_2D}:
             raise HTTPException(409, 'STOP_NAVIGATION_BEFORE_SOURCE_SELECTION')
         try:
             return await asyncio.to_thread(getattr(manager, operation), body)
@@ -284,6 +284,7 @@ async def match(body: MatchRequest, request: Request):
         snapshot = await asyncio.to_thread(nav.view)
         active_map = snapshot.get('map') or {}
         if (snapshot.get('pipeline', {}).get('state') != 'running'
+                or snapshot.get('mode') == MANUAL_SEEDED_2D
                 or active_map.get('id') != body.map_id
                 or active_map.get('revision') != body.map_revision
                 or snapshot.get('localization_session', {}).get('active')

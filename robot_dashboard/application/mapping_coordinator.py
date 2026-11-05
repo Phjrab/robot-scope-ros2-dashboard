@@ -183,10 +183,11 @@ class MappingCoordinator:
             self._manager.snapshot(since_log_seq=since_log_seq)
         )
 
-    def start_mapping(self) -> dict[str, Any]:
+    def start_mapping(self, *, relative_odometry_only: bool = False) -> dict[str, Any]:
         """Start trusted localization for an already-fenced Nav transaction."""
 
-        return _public_mapping_snapshot(self._manager.start_mapping())
+        options = {"relative_odometry_only": True} if relative_odometry_only else {}
+        return _public_mapping_snapshot(self._manager.start_mapping(**options))
 
     def stop_mapping_if_job_id(
         self,

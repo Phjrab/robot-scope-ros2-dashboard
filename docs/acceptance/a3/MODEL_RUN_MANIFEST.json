@@ -1,0 +1,10 @@
+{
+  "model_selection": "CONFIGURED_BUT_RUNTIME_UNVERIFIED",
+  "verification": "Codex agent tool accepted each requested model and effort. Worker runtime did not independently expose the model and effort.",
+  "runs": [
+    {"task": "ui", "model": "gpt-6.1-terra", "effort": "medium", "scope": "Static experiment route, map tools and UI regression"},
+    {"task": "runtime", "model": "gpt-6.1-sol", "effort": "high", "scope": "ROS runtime, receipt, TF authority, seed validity and gateway safety"},
+    {"task": "integration", "model": "gpt-6.1-sol", "effort": "medium", "scope": "Synthetic HTTP and full-dashboard browser verification"}
+  ],
+  "publication_owner": "A3 parent"
+}

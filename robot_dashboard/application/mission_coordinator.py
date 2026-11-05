@@ -852,6 +852,8 @@ class MissionCoordinator:
 
     async def _claim(self, mission: dict[str, Any]) -> None:
         async with self._coordination_lock:
+            if self._navigation.view().get("mode") == "manual_seeded_2d":
+                raise MissionConflict("stop the manual 2D experiment before starting a mission")
             if self._context_guard is not None:
                 self._context_guard(mission)
             if self._active_id not in {None, mission["id"]}:

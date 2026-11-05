@@ -6,6 +6,7 @@ import threading
 import time
 import unittest
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 import yaml
 
@@ -13,6 +14,7 @@ from robot_dashboard.navigation_jobs import (
     COSTMAP_MAX_OBSTACLE_HEIGHT,
     COSTMAP_MIN_OBSTACLE_HEIGHT,
     HUMBLE_BT_PLUGIN_LIBRARIES,
+    MANUAL_SEEDED_2D,
     MAP_YAML_TOKEN,
     PARAMETER_FIELDS,
     PARAMS_FILE_TOKEN,
@@ -255,6 +257,38 @@ class NavigationJobManagerTests(unittest.TestCase):
         self.assertIsNone(stopped["pipeline"]["job_id"])
         self.assertIsNone(stopped["pipeline"]["started_at"])
         self.assertFalse(job_dir.exists())
+
+    def test_manual_job_pins_exact_manifest_and_never_materializes_3d_bundle(self):
+        # The manager and private files are real. The fixture subprocess just
+        # verifies file existence and stays alive without starting ROS.
+        self.manager.operational_snapshotter = Mock()
+        revision = self.manager.parameters_snapshot()["revision"]
+        with patch.object(self.manager, "_spawn", wraps=self.manager._spawn) as spawn:
+            started = self.manager.start(
+                map_id=MAP_ID, map_revision=MAP_REVISION,
+                parameters_revision=revision, mode=MANUAL_SEEDED_2D,
+            )
+        self.manager.operational_snapshotter.assert_not_called()
+        pipeline = started["pipeline"]
+        self.assertEqual(pipeline["mode"], MANUAL_SEEDED_2D)
+        job_dir = self.manager._job_dir
+        manifest = job_dir / "manual-navigation.json"
+        self.assertEqual(json.loads(manifest.read_text(encoding="utf-8")), {
+            "mode": MANUAL_SEEDED_2D, "job_id": pipeline["job_id"],
+            "map_id": MAP_ID, "map_revision": MAP_REVISION,
+        })
+        self.assertEqual(manifest.stat().st_mode & 0o777, 0o600)
+        self.assertFalse((job_dir / "operational-3d.json").exists())
+        self.assertFalse((job_dir / "localization-reference.pcd").exists())
+        argv, cwd = spawn.call_args.args
+        self.assertEqual(argv, (
+            str(Path(sys.executable).resolve()), str(self.launcher),
+            str(job_dir / "map.yaml"), str(job_dir / "nav2_params.yaml"),
+            "--mode", MANUAL_SEEDED_2D,
+        ))
+        self.assertEqual(cwd, self.project)
+        self.manager.stop()
+        self.assertFalse(manifest.exists())
 
     def test_start_rejects_stale_parameter_revision_and_missing_prerequisites(self):
         with self.assertRaises(NavigationConflict):

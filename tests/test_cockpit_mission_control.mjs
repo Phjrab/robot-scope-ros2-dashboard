@@ -26,7 +26,8 @@ test('default, corrupt and retired routes enter observation while active routes 
   assert.equal(missionPageFromHash(mode, ''), 'cockpit');
   assert.equal(missionPageFromHash(mode, '#untrusted'), 'cockpit');
   assert.equal(missionPageFromHash(mode, '#maps'), 'maps');
-  for (const route of ['#controls', '#experiments', '#/controls']) assert.equal(missionPageFromHash(mode, route), 'cockpit');
+  assert.equal(missionPageFromHash({ dedicated: false, pageFromHash: () => 'experiments' }, '#experiments'), 'experiments');
+  for (const route of ['#controls', '#/controls']) assert.equal(missionPageFromHash(mode, route), 'cockpit');
   assert.equal(missionPageFromHash({ dedicated: true, pageFromHash: () => 'cockpit' }, '#controls'), 'cockpit');
 });
 test('inspector separates stale, missing readiness and absent measurements', () => {

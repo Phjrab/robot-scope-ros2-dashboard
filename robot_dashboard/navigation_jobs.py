@@ -40,6 +40,9 @@ from .public_diagnostics import (
 from .saved_maps import NavigationMapSnapshot
 
 
+MANUAL_SEEDED_2D = "manual_seeded_2d"
+STANDARD_NAVIGATION = "standard"
+
 PARAMS_FILE_TOKEN = "{params_file}"
 MAP_YAML_TOKEN = "{map_yaml}"
 ALLOWED_COMMAND_TOKENS = frozenset({PARAMS_FILE_TOKEN, MAP_YAML_TOKEN})
@@ -651,7 +654,10 @@ class NavigationJobManager:
         map_id: str,
         map_revision: str,
         parameters_revision: str,
+        mode: str = STANDARD_NAVIGATION,
     ) -> dict[str, Any]:
+        if mode not in (STANDARD_NAVIGATION, MANUAL_SEEDED_2D):
+            raise NavigationConflict("unsupported navigation mode")
         if not isinstance(map_id, str) or not MAP_ID_RE.fullmatch(map_id):
             raise NavigationConflict("saved navigation map was not found")
         if not isinstance(map_revision, str) or not REVISION_RE.fullmatch(map_revision):
@@ -678,6 +684,7 @@ class NavigationJobManager:
             self._pipeline = {
                 "state": "starting",
                 "job_id": token,
+                "mode": mode,
                 "error": None,
                 "started_at": _utc_now(),
                 "stopped_at": None,
@@ -700,7 +707,17 @@ class NavigationJobManager:
                     "navigation map snapshot identity does not match the request"
                 )
             self._validate_map_snapshot_paths(map_snapshot, job_dir)
-            if self.operational_snapshotter is not None:
+            if mode == MANUAL_SEEDED_2D:
+                manifest = {
+                    "mode": mode, "job_id": token,
+                    "map_id": map_id, "map_revision": map_revision,
+                }
+                self._write_exclusive(
+                    job_dir / "manual-navigation.json",
+                    json.dumps(manifest).encode("utf-8"),
+                    0o600,
+                )
+            elif self.operational_snapshotter is not None:
                 self.operational_snapshotter(map_id, map_revision, job_dir, map_snapshot)
             params_file = job_dir / "nav2_params.yaml"
             with self._lock:
@@ -716,7 +733,7 @@ class NavigationJobManager:
                 )
             generated_bytes = params_file.read_bytes()
             self._generated_parameter_evidence = {
-                'job_id': token, 'parameters_revision': parameters_revision,
+                'job_id': token, 'mode': mode, 'parameters_revision': parameters_revision,
                 'sha256': hashlib.sha256(generated_bytes).hexdigest(),
                 'parameters': generated_readback(yaml.safe_load(generated_bytes)),
                 'meaning': 'GENERATED_YAML_NOT_LIVE_ROS_READBACK',
@@ -725,6 +742,10 @@ class NavigationJobManager:
                 map_yaml=map_snapshot.yaml_path,
                 params_file=params_file,
             )
+            if mode == MANUAL_SEEDED_2D:
+                argv += ("--mode", mode)
+            elif self.operational_snapshotter is not None:
+                argv += ("--mode", "operational_3d")
             process = self._spawn(argv, self.start_command.cwd)
             pgid = process.pid
             with self._lock:
@@ -799,6 +820,7 @@ class NavigationJobManager:
             self._pipeline.update(
                 state="idle",
                 job_id=None,
+                mode=None,
                 error=None,
                 started_at=None,
                 stopped_at=_utc_now(),

@@ -2,12 +2,20 @@
 set -eo pipefail
 
 usage() {
-  echo "usage: run_go2_navigation_humble.sh --map-yaml ABSOLUTE_FILE --params-file ABSOLUTE_FILE" >&2
+  echo "usage: run_go2_navigation_humble.sh --map-yaml ABSOLUTE_FILE --params-file ABSOLUTE_FILE [--mode operational_3d|manual_seeded_2d]" >&2
   exit 2
 }
 
-if [[ "$#" -ne 4 || "$1" != "--map-yaml" || "$3" != "--params-file" ]]; then
+if [[ ( "$#" -ne 4 && "$#" -ne 6 ) || "$1" != "--map-yaml" || "$3" != "--params-file" ]]; then
   usage
+fi
+
+RUNTIME_MODE=()
+if [[ "$#" -eq 6 ]]; then
+  if [[ "$5" != "--mode" || ( "$6" != "operational_3d" && "$6" != "manual_seeded_2d" ) ]]; then
+    usage
+  fi
+  RUNTIME_MODE=(--mode "$6")
 fi
 
 MAP_INPUT="$2"
@@ -145,7 +153,7 @@ if [[ "$MAPPING_PROFILE" == "go2-xt16-wireless" ]]; then
 fi
 
 "$PYTHON_BIN" -m robot_dashboard.navigation_runtime \
-  --runtime-params-file "$PARAMS_FILE" &
+  --runtime-params-file "$PARAMS_FILE" "${RUNTIME_MODE[@]}" &
 PIDS+=("$!")
 "$MAP_SERVER" --ros-args \
   --params-file "$PARAMS_FILE" \

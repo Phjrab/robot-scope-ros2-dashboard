@@ -935,11 +935,7 @@ async def navigation_start(
     require_same_origin(request)
     require_manual_operation_mode(RUNTIME)
     try:
-        return await navigation_coordinator().start(
-            map_id=body.map_id,
-            map_revision=body.map_revision,
-            parameters_revision=body.parameters_revision,
-        )
+        return await navigation_coordinator().start(**body.model_dump(exclude_defaults=True))
     except LifecycleTransitionBusy as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except SavedMapError as exc:
@@ -1037,9 +1033,7 @@ async def navigation_initial_pose(
     require_mission_navigation_idle("active mission must pause or abort before changing initial pose")
     try:
         return await navigation_coordinator().set_initial_pose(
-            map_id=body.map_id,
-            map_revision=body.map_revision,
-            **body.pose.model_dump(),
+            **body.model_dump(exclude={"pose"}, exclude_none=True), **body.pose.model_dump(),
         )
     except LifecycleTransitionBusy as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -1058,10 +1052,8 @@ async def navigation_goal(
     require_mission_navigation_idle("active mission owns navigation goals")
     try:
         return await navigation_coordinator().send_goal(
-            map_id=body.map_id,
-            map_revision=body.map_revision,
             confirmed=body.confirmed,
-            **body.pose.model_dump(),
+            **body.model_dump(exclude={"pose", "confirmed"}, exclude_none=True), **body.pose.model_dump(),
         )
     except LifecycleTransitionBusy as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
@@ -1079,13 +1071,7 @@ async def navigation_annotation_goal(
     require_same_origin(request)
     require_mission_navigation_idle("active mission owns navigation goals")
     try:
-        return await navigation_coordinator().send_annotation_goal(
-            map_id=body.map_id,
-            map_revision=body.map_revision,
-            annotation_revision=body.annotation_revision,
-            annotation_id=body.annotation_id,
-            confirmed=body.confirmed,
-        )
+        return await navigation_coordinator().send_annotation_goal(**body.model_dump(exclude_none=True))
     except LifecycleTransitionBusy as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except SavedMapError as exc:
@@ -1532,6 +1518,7 @@ def main() -> None:
         RUNTIME.agent, navigation_manager, RUNTIME.mapping, catalog,
         coordination_lock=RUNTIME.pipeline_coordination_lock,
         require_lifecycle_idle=require_lifecycle_idle_application,
+        require_manual_start_idle=RUNTIME.require_manual_navigation_idle,
         logger=LOGGER,
     )
     RUNTIME.mission = MissionCoordinator(

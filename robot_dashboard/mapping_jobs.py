@@ -527,7 +527,7 @@ class MappingJobManager:
             self._append_log_locked("preview", "XT16 preview stopped")
         return self.snapshot()
 
-    def start_mapping(self) -> dict[str, Any]:
+    def start_mapping(self, *, relative_odometry_only: bool = False) -> dict[str, Any]:
         """Start the allowlisted mapping pipeline in a new process group."""
 
         with self._lock:
@@ -564,7 +564,11 @@ class MappingJobManager:
             self._append_log_locked("pipeline", "starting allowlisted Hesai + FAST-LIO pipeline")
 
         try:
-            process = self._spawn(self.start_command.argv, self.start_command.cwd)
+            if relative_odometry_only:
+                env = {**os.environ, "ROBOT_SCOPE_NAVIGATION_RELATIVE_ODOM": "1"}
+                process = self._spawn(self.start_command.argv, self.start_command.cwd, env=env)
+            else:
+                process = self._spawn(self.start_command.argv, self.start_command.cwd)
         except OSError as exc:
             with self._lock:
                 self._pipeline.update(
@@ -1018,10 +1022,13 @@ class MappingJobManager:
                 self._terminate_group(preview_process, preview_pgid)
 
     @staticmethod
-    def _spawn(argv: Sequence[str], cwd: Optional[Path]) -> subprocess.Popen[str]:
+    def _spawn(
+        argv: Sequence[str], cwd: Optional[Path], *, env: Optional[Mapping[str, str]] = None,
+    ) -> subprocess.Popen[str]:
         return subprocess.Popen(
             list(argv),
             cwd=str(cwd) if cwd else None,
+            env=env,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,

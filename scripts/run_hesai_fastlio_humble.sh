@@ -80,7 +80,8 @@ esac
 # cumulative map are isolated from operational consumers. The caller must own
 # the process and preserve FAST-LIO's compiled-in Log directory (e.g. a private
 # systemd BindPaths mount); this mode does not stop any existing producer.
-if [[ "${ROBOT_SCOPE_FASTLIO_OBSERVATION_ONLY:-0}" == "1" ]]; then
+if [[ "${ROBOT_SCOPE_FASTLIO_OBSERVATION_ONLY:-0}" == "1" ||
+      "${ROBOT_SCOPE_NAVIGATION_RELATIVE_ODOM:-0}" == "1" ]]; then
   exec ros2 run fast_lio fastlio_mapping --ros-args \
     --params-file "$FASTLIO_CONFIG_PATH/$FASTLIO_CONFIG_FILE" \
     -p use_sim_time:=false -p pcd_save.pcd_save_en:=false \

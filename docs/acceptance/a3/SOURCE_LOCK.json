@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/Phjrab/robot-scope-ros2-dashboard",
+  "branch": "main",
+  "starting_origin_main": "767e31316b97fc9ad5dc677e496609400a3a2959",
+  "implementation_sha": null,
+  "hardware_execution": "DEVICE_NOT_RUN",
+  "native_ros_execution": "NOT_RUN",
+  "runtime_dependencies": ["ROS 2 Humble", "existing FAST-LIO profile", "existing Nav2 profile", "existing signed bridge"]
+}

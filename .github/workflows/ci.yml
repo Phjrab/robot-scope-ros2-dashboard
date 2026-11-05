@@ -121,6 +121,11 @@ jobs:
       - name: Run mission real-API fixture E2E
         run: npx playwright test --config playwright.competition.config.mjs --reporter=line --output=competition-test-results
 
+      - name: Run manual 2D real-API fixture E2E
+        env:
+          MANUAL_NAVIGATION_TEST_PYTHON: python
+        run: npx playwright test --config playwright.manual-navigation.config.mjs --reporter=line --output=manual-navigation-test-results
+
       - name: Preserve browser evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -129,4 +134,5 @@ jobs:
           path: |
             test-results/
             competition-test-results/
+            manual-navigation-test-results/
           if-no-files-found: ignore

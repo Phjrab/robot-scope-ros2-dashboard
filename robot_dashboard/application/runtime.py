@@ -89,6 +89,23 @@ class ApplicationRuntime:
         jobs.operational_initial_pose_check = self.operational_navigation.check_initial_pose
         self.mission._operational_health = lambda: self.agent._navigation_runtime_health_snapshot(time.monotonic())
 
+    def require_manual_navigation_idle(self) -> None:
+        from .ownership_readback import ownership_readback
+        from ..navigation_jobs import NavigationBusy
+
+        owners = ownership_readback(self)
+        exclusive = {
+            "navigation", "slam", "mission", "mission_routes",
+            "global_observation", "relocalization", "fastlio_observation",
+        }
+        busy = exclusive.intersection(owners["busy_components"])
+        unknown = exclusive.intersection(owners["unknown_components"])
+        if busy or unknown:
+            raise NavigationBusy(
+                "manual 2D experiment requires an idle navigation/observation owner: "
+                + ", ".join(sorted(busy | unknown))
+            )
+
     def require_agent(self) -> RosAgent:
         if self.agent is None:
             raise RuntimeError("ROS agent is not configured")
