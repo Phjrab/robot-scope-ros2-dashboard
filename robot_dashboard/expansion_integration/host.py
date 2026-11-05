@@ -24,7 +24,6 @@ class ExpansionOwner:
     store: object = None
     scene: object = None
     scene_context: object = None
-    session_login: bool = False
 
 
 async def _invoke(callback, *args):
@@ -40,8 +39,7 @@ def install_landing(app, flags, owner=None, *, review_origin=None):
             return RedirectResponse(review_origin + "/extensions", status_code=307,
                                     headers={"Cache-Control": "no-store"})
         auth = "OWNER_POLICY" if callable(getattr(owner, "authorize", None)) else "BLOCKED_AUTH"
-        config = {"flags": flags.public(),
-                  "auth": "REVIEW_SESSION" if getattr(owner, "session_login", False) else auth}
+        config = {"flags": flags.public(), "auth": auth}
         template = (STATIC / "features/expansion/index.html").read_text()
         return HTMLResponse(template.replace("__I0_CONFIG__", json.dumps(config)),
                             headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
@@ -85,7 +83,7 @@ def install_expansion(app, flags=ExpansionFlags(), owner=None, *, review_origin=
     from robot_dashboard.expansion_services.router import create_router
     app.include_router(create_router(Port("manager"), Port("catalogue"), Port("scene"), Port("store"),
                                      authorize=authorize, require_origin=mutation,
-                                     before_dispatch=mutation if owner.session_login else None))
+                                     before_dispatch=mutation))
     router = APIRouter()
 
     @router.get("/api/v1/extensions/scene/context", dependencies=[Depends(authorize)])

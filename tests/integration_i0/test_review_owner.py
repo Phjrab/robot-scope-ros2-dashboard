@@ -1,24 +1,16 @@
 """Exercise the configured product bootstrap over an ephemeral local TLS server."""
-from concurrent.futures import ThreadPoolExecutor
-import http.client
-import os
-import ssl
-import threading
 from pathlib import Path
 import subprocess
 import tempfile
 import time
 import unittest
-from unittest.mock import patch
-from urllib.parse import urlsplit
 
 from fastapi import FastAPI, HTTPException
 
 from robot_dashboard.expansion_contracts import FusionRequest
 from robot_dashboard.expansion_integration.bootstrap import configure_expansion
 from robot_dashboard.expansion_integration.catalogue import compose_maps
-from robot_dashboard.expansion_integration.review_access import AccessUnavailable, ReviewAccess
-from robot_dashboard.expansion_integration.review_owner import API, COOKIE, ReviewInputs, qualified_context
+from robot_dashboard.expansion_integration.review_owner import API, ReviewInputs, qualified_context
 from robot_dashboard.expansion_services.scene import SceneSnapshotService
 from tests.expansion_services.http_client import TestClient
 from .fixture import saved_sources
@@ -39,13 +31,8 @@ class ConfiguredReviewTests(unittest.TestCase):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
         self.root = Path(temp.name).resolve()
-        self.now = 10000
-        self.db = self.root / "access.sqlite3"
-        self.store = ReviewAccess(self.db, clock=lambda: self.now)
-        self.store.initialize()
         self.origin = "https://review.example"
         self.env = {"ROBOT_SCOPE_EXPANSION_MULTIMAP": "1", "ROBOT_SCOPE_EXPANSION_SCENE": "1",
-                    "ROBOT_SCOPE_EXPANSION_REVIEW_DB": str(self.db),
                     "ROBOT_SCOPE_EXPANSION_REVIEW_ORIGIN": self.origin}
         self.ctx = dict(map_id="a"*24, revision="b"*64, generation=1, source_epoch="recording",
                         stream_epoch="test-stream", frame_id="sensor", clock_domain="recorder",
@@ -56,136 +43,73 @@ class ConfiguredReviewTests(unittest.TestCase):
         ports = ReviewInputs(maps_factory=lambda: compose_maps(self.saved, self.qualified.get, self.root / "bundles"),
                              scene=self.scene, scene_context=lambda: self.ctx)
         app = FastAPI()
-        with patch("robot_dashboard.expansion_integration.review_owner.ReviewAccess", return_value=self.store):
-            configure_expansion(app, self.env, review_inputs=ports)
+        configure_expansion(app, self.env, review_inputs=ports)
         self.client = TestClient(app, self.origin, tls=self.tls)
         self.client.__enter__()
         self.addCleanup(self.client.__exit__, None, None, None)
 
-    def login(self, role="read", ttl=90):
-        grant, code = self.store.issue(role, ttl)
-        response = self.client.post(API + "/session", json=code, headers={"Origin": self.origin})
-        self.assertEqual(response.status_code, 200, response.text)
-        cookie = response.headers["Set-Cookie"]
-        for part in (COOKIE, "Secure", "HttpOnly", "SameSite=strict", "Path=" + API):
-            self.assertIn(part, cookie)
-        self.assertNotIn("Domain=", cookie)
-        self.assertNotIn(code, response.text + cookie)
-        return grant, code, {"Origin": self.origin, "Cookie": cookie.split(";")[0]}
-
-    def test_session_role_revocation_expiry_and_logout(self):
-        routes = ["/multimap/sources", "/scene/context", "/scene/snapshot", "/scene/assets/x/y"]
-        for path in routes:
-            response = self.client.get(API + path, headers={"x-i0-synthetic-fixture":"local-test-only"})
-            self.assertEqual(response.status_code, 401)
+    def test_direct_reads_without_login_database_or_cookies(self):
+        for path in ("/multimap/sources", "/scene/context", "/scene/snapshot"):
+            response = self.client.get(API + path)
+            self.assertEqual(response.status_code, 200, response.text)
             self.assertIn("no-store", response.headers["Cache-Control"])
-        grant, code, headers = self.login()
-        self.assertEqual(self.client.get(API + "/session", headers=headers).json()["role"], "read")
-        self.assertEqual(self.client.post(API + "/session", json=code, headers=headers).status_code, 401)
-        self.assertEqual(self.client.get(API + "/multimap/sources", headers=headers).status_code, 200)
-        for path in ("/jobs", "/jobs/x/cancel", "/jobs/x/review", "/jobs/x/exports"):
-            self.assertEqual(self.client.post(API + "/multimap" + path, json={}, headers=headers).status_code, 403)
+            self.assertNotIn("set-cookie", response.headers)
         self.assertFalse((self.root / "bundles").exists())
-        self.store.revoke(grant)
-        self.assertEqual(self.client.get(API + "/scene/context", headers=headers).status_code, 401)
-        _, _, short = self.login(ttl=5)
-        self.now += 5
-        self.assertEqual(self.client.get(API + "/scene/context", headers=short).status_code, 401)
-        _, _, active = self.login()
-        response = self.client.post(API + "/session/logout", headers=active)
-        self.assertEqual(response.status_code, 200)
-        self.assertIn("Max-Age=0", response.headers["Set-Cookie"])
-        self.assertEqual(self.client.get(API + "/multimap/sources", headers=active).status_code, 401)
+        self.assertEqual(self.client.get(API + "/session").status_code, 404)
+        for path in ("/session", "/session/logout"):
+            self.assertEqual(self.client.post(API + path, json={},
+                headers={"Origin": self.origin}).status_code, 404)
+        page = self.client.get("/extensions")
+        self.assertNotIn('id="expansion-login"', page.text)
+        self.assertNotIn('id="expansion-code"', page.text)
+        self.assertNotIn("REVIEW_SESSION", page.text)
 
-    def test_origin_storage_failure_and_single_redemption(self):
-        _, code = self.store.issue("review", 5)
-        for origin in ("http://review.example", "https://elsewhere.example", ""):
-            self.assertEqual(self.client.post(API + "/session", json=code, headers={"Origin": origin}).status_code, 403)
-        self.assertEqual(self.client.get(API + "/session?code=" + code).status_code, 401)
-        self.assertEqual(self.client.post(API + "/session", json="x"*257,
-                                         headers={"Origin": self.origin}).status_code, 413)
-        with ThreadPoolExecutor(max_workers=2) as workers:
-            statuses = list(workers.map(lambda _: self.client.post(API + "/session", json=code,
-                                    headers={"Origin": self.origin}).status_code, range(2)))
-        self.assertCountEqual(statuses, [200, 401])
-        _, _, h = self.login("review")
-        self.assertEqual(self.client.post(API + "/multimap/jobs", json={},
-                                         headers={**h, "Origin": "https://wrong.example"}).status_code, 403)
-        os.chmod(self.db, 0o644)
-        result = self.client.get(API + "/session", headers=h)
-        self.assertEqual(result.status_code, 503)
-        self.assertNotIn(str(self.root), result.text)
-        self.assertIn("no-store", result.headers["Cache-Control"])
-        os.chmod(self.db, 0o600)
-        alias = self.root / "alias"
-        alias.symlink_to(self.db)
-        with self.assertRaises(AccessUnavailable):
-            ReviewAccess(alias).issue("review", 10)
+    def test_wrong_origin_host_and_missing_mutation_origin_are_rejected(self):
+        for origin in ("http://review.example", "https://elsewhere.example", "null", ""):
+            headers = {"Origin": origin}
+            self.assertEqual(self.client.get(API + "/multimap/sources", headers=headers).status_code, 403)
+            self.assertEqual(self.client.post(API + "/multimap/jobs", json={}, headers=headers).status_code, 403)
+        self.assertEqual(self.client.post(API + "/multimap/jobs", json={}).status_code, 403)
+        self.assertEqual(self.client.get(API + "/multimap/sources",
+            headers={"Host": "elsewhere.example"}).status_code, 403)
+        self.assertFalse((self.root / "bundles").exists())
 
-    def test_revoked_session_cannot_dispatch_after_slow_request_body(self):
-        _, _, headers = self.login("review")
-        # Pause the real TLS body after the initial authorization checks.
-        checked = threading.Event()
-        lookup = self.store.lookup
-        calls = []
-
-        def observe(session):
-            grant = lookup(session)
-            calls.append(bool(grant))
-            if len(calls) >= 2:
-                checked.set()
-            return grant
-
-        address = urlsplit(self.client.url)
-        conn = http.client.HTTPSConnection(address.hostname, address.port,
-            context=ssl.create_default_context(cafile=self.tls[0]), timeout=5)
-        self.addCleanup(conn.close)
-        with patch.object(self.store, "lookup", side_effect=observe):
-            conn.putrequest("POST", API + "/multimap/jobs/x/cancel", skip_host=True)
-            for key, value in {**headers, "Host":"review.example", "Content-Length":"2",
-                               "Content-Type":"application/json"}.items():
-                conn.putheader(key, value)
-            conn.endheaders(b"{")
-            self.assertTrue(checked.wait(2))
-            self.assertEqual(self.client.post(API + "/session/logout", headers=headers).status_code, 200)
-            conn.send(b"}")
-            response = conn.getresponse()
-            self.assertEqual(response.status, 401, response.read())
-
-    def test_http_cannot_redeem_with_spoofed_forwarded_scheme(self):
+    def test_http_cannot_read_with_spoofed_forwarded_scheme(self):
         app = FastAPI()
         configure_expansion(app, self.env)
-        _, code = self.store.issue("read", 30)
         with TestClient(app, self.origin) as client:
-            response = client.post(API + "/session", json=code, headers={
-                "Origin": self.origin, "X-Forwarded-Proto":"https"})
+            response = client.get(API + "/multimap/sources", headers={
+                "Origin": self.origin, "X-Forwarded-Proto": "https"})
         self.assertEqual(response.status_code, 403)
         self.assertNotIn("set-cookie", response.headers)
+
+    def test_legacy_database_configuration_is_unused(self):
+        app = FastAPI()
+        environment = {**self.env, "ROBOT_SCOPE_EXPANSION_REVIEW_DB": "/missing/old-access.sqlite3"}
+        inputs = ReviewInputs(scene=self.scene, scene_context=lambda: self.ctx)
+        configure_expansion(app, environment, review_inputs=inputs)
+        with TestClient(app, self.origin, tls=self.tls) as client:
+            self.assertEqual(client.get(API + "/scene/snapshot").status_code, 200)
+            self.assertEqual(client.get(API + "/multimap/sources").status_code, 503)
 
     def test_missing_map_factory_leaves_scene_readable(self):
         def unavailable():
             raise FileNotFoundError("private source directory")
         app = FastAPI()
-        # Use a grant on the actual system clock of this separate app instance.
-        access = ReviewAccess(self.db)
-        _, code = access.issue("read", 90)
         inputs = ReviewInputs(maps_factory=unavailable, scene=self.scene, scene_context=lambda: self.ctx)
         with self.assertLogs("robot_dashboard.expansion_integration.review_owner", level="WARNING"):
             configure_expansion(app, self.env, review_inputs=inputs)
         with TestClient(app, self.origin, tls=self.tls) as client:
-            response = client.post(API + "/session", json=code, headers={"Origin": self.origin})
-            headers = {"Cookie": response.headers["Set-Cookie"].split(";")[0]}
-            self.assertEqual(client.get(API + "/multimap/sources", headers=headers).status_code, 503)
-            self.assertEqual(client.get(API + "/scene/snapshot", headers=headers).status_code, 200)
+            self.assertEqual(client.get(API + "/multimap/sources").status_code, 503)
+            self.assertEqual(client.get(API + "/scene/snapshot").status_code, 200)
 
     def test_private_asset_context_fence_and_error_redaction(self):
-        _, _, h = self.login()
+        h = {"Origin": self.origin}
         self.ctx["private_owner_note"] = "not-public"
         current = self.client.get(API + "/scene/context", headers=h)
         self.assertNotIn("private_owner_note", current.json())
         ref = self.scene.publish_asset("live_cloud", "recording", b"opaque")
         path = API + f"/scene/assets/{ref['id']}/{ref['revision']}"
-        self.assertEqual(self.client.get(path).status_code, 401)
         response = self.client.get(path, headers=h)
         self.assertEqual(response.content, b"opaque")
         self.assertIn("no-store", response.headers["Cache-Control"])
@@ -205,8 +129,8 @@ class ConfiguredReviewTests(unittest.TestCase):
             with self.subTest(key=key), self.assertRaises(HTTPException):
                 qualified_context(missing)
 
-    def test_review_grant_full_source_save_and_stale_revision(self):
-        _, _, h = self.login("review")
+    def test_direct_full_source_save_and_stale_revision(self):
+        h = {"Origin": self.origin}
         base = API + "/multimap"
         def get(path):
             return self.client.get(base + path, headers=h)

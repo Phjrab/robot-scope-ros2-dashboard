@@ -14,10 +14,6 @@
 .expansion-space-note { position: absolute; top: 6px; left: 8px; right: 8px; margin: 0; padding: 7px 10px; background: #101820; color: #fff1d5; border: 1px solid #b67935; font-size: 13px; pointer-events: none; }
 .expansion-page .os-layers label { white-space: nowrap; flex: 0 0 auto; }
 .expansion-page .os-layers input[type="checkbox"] { width: 16px; min-width: 16px; height: 16px; min-height: 16px; flex: 0 0 auto; }
-.expansion-session { margin: 12px 0; padding: 12px; border: 1px solid var(--accent, #57bce9); }
-.expansion-session form, #expansion-session-active { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.expansion-session input { min-height: 44px; min-width: 0; max-width: 100%; }
-.expansion-session p { margin: 8px 0 0; }
 .expansion-help, .expansion-setup { max-width: 1440px; margin: 16px auto; padding: 16px; border: 1px solid var(--border, #657080); border-radius: 12px; line-height: 1.7; overflow-wrap: anywhere; }
 .expansion-help h2 { margin: 0 0 8px; }
 .expansion-help p { margin: 8px 0; }

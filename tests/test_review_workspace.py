@@ -1,4 +1,4 @@
-"""Provisioned copied-map inputs fail closed and retain existing auth boundaries."""
+"""Provisioned copied-map inputs fail closed and retain HTTPS and origin boundaries."""
 import json
 import http.client
 from pathlib import Path
@@ -9,7 +9,6 @@ from tests.expansion_services.http_client import TestClient
 from tests.integration_i0.fixture import saved_sources
 from robot_dashboard.expansion_integration.review_workspace import configured_review_inputs
 from robot_dashboard.expansion_integration.bootstrap import configure_expansion
-from robot_dashboard.expansion_integration.review_access import ReviewAccess
 
 class ReviewWorkspaceTests(unittest.TestCase):
     def setUp(self):
@@ -47,9 +46,8 @@ class ReviewWorkspaceTests(unittest.TestCase):
         self.assertTrue(descriptor.acquisition['qualification']['same_place_operator_confirmation'])
         row['original_source']['sha256']='c'*64;self.write()
         with self.assertRaises(Exception):configured_review_inputs(self.env).maps_factory()
-    def test_http_landing_redirects_only_when_session_owner_is_configured(self):
-        db=self.root/'access.sqlite3';ReviewAccess(db).initialize()
-        env={**self.env,'ROBOT_SCOPE_EXPANSION_REVIEW_DB':str(db),'ROBOT_SCOPE_EXPANSION_REVIEW_ORIGIN':'https://127.0.0.1:18443'}
+    def test_http_landing_redirects_when_review_origin_is_configured(self):
+        env={**self.env,'ROBOT_SCOPE_EXPANSION_REVIEW_ORIGIN':'https://127.0.0.1:18443'}
         app=FastAPI();configure_expansion(app,env,review_inputs=configured_review_inputs(env))
         with TestClient(app,base_url='http://testserver') as client:
             connection=http.client.HTTPConnection('127.0.0.1',client.listener.getsockname()[1])

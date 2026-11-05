@@ -31,59 +31,27 @@ for (const width of [390, 1440]) test(`default OFF dashboard menu and public lan
   expect(backend.mutations('/api/v1/control/stop')).toHaveLength(0);
   await page.getByRole('link', {name: '← Robot Scope'}).click();
   await expect(page.locator('#navigationStopButton')).toBeAttached();
+  await page.locator('[data-nav=experiments]').click();
+  await expect(page).toHaveURL(/#experiments$/);
+  await expect(page.locator('#manual2dExperiment')).toBeVisible();
+  await expect(page.locator('#manual2dExperiment h2')).toHaveText('2D 수동 초기 위치 주행');
+  expect(backend.mutations('/api/v1/navigation/goal')).toHaveLength(0);
   await page.goto(`${off}/#settings`);
   await page.locator('[data-cockpit-software-stop]').click();
   await expect.poll(() => backend.mutations('/api/v1/control/stop').length).toBe(1);
 });
 
-test('HTTP configured-session page explains HTTPS and sends no credentials or private requests', async ({page}) => {
-  await page.route('**/extensions', async route => {
-    const response = await route.fetch();
-    await route.fulfill({response, body: (await response.text()).replace('"auth": "OWNER_POLICY"', '"auth": "REVIEW_SESSION"')});
-  });
-  const privateRequests = [];
-  page.on('request', request => { if (request.url().includes('/api/v1/extensions/')) privateRequests.push(request.url()); });
-  await page.goto('/extensions');
-  await expect(page.locator('#expansion-status')).toContainText('HTTPS_REQUIRED');
-  await expect(page.locator('#expansion-login')).toBeHidden();
-  await page.locator('[data-feature=replay]').click();
-  await expect(page.locator('input[data-run="0"]')).toBeVisible();
-  expect(privateRequests).toEqual([]);
-});
-
 test.describe('actual configured HTTPS owner', () => {
   test.use({baseURL: tls, ignoreHTTPSErrors: true, hasTouch: true});
-  async function login(page, request, role, ttl = 180) {
-    const grant = await request.post('/__i0_test__/grant', {data: {role, ttl}});
-    expect(grant.status()).toBe(200);
-    await page.locator('#expansion-code').fill((await grant.json()).code);
-    await page.locator('#expansion-code').press('Enter');
-    await expect(page.locator('#expansion-session-active')).toBeVisible();
-  }
-  test('read/review, manual XYZ, two-source save/reload and logout over real TLS', async ({page, request}, info) => {
+  test('direct manual XYZ, two-source save/reload and new tab over real TLS', async ({page}, info) => {
     await page.setViewportSize({width: 390, height: 1000});
     const writes = [], errors = [];
     page.on('request', r => { if (r.method() !== 'GET') writes.push(new URL(r.url()).pathname); });
     page.on('pageerror', e => errors.push(e.message));
     await page.goto('/extensions');
-    await expect(page.locator('#expansion-login')).toBeVisible();
-    await page.locator('[data-feature=multimap]').click();
-    await expect(page.locator('#expansion-status')).toContainText('LOGIN_REQUIRED');
-    await login(page, request, 'read');
+    await expect(page.locator('#expansion-login, #expansion-code, #expansion-logout')).toHaveCount(0);
     await expect(state(page)).toContainText('Catalogue ready');
-    for (const name of ['map0', 'map1']) {
-      await page.getByRole('checkbox', {name: `Select ${name}`, exact: true}).check();
-      await expect(state(page)).toContainText('previews ready');
-    }
-    await expect(page.locator('[data-action=start]')).toBeDisabled();
-    await expect(page.locator('[data-action=save]')).toBeDisabled();
-    expect(writes).toEqual(['/api/v1/extensions/session']);
-    await page.context().clearCookies();
-    await page.locator('[data-action=reload]').click();
-    await expect(page.locator('#expansion-login')).toBeVisible();
-    await expect(page.locator('#expansion-host')).toBeEmpty();
-    await login(page, request, 'review');
-    await expect(state(page)).toContainText('Catalogue ready');
+    expect(writes).toEqual([]);
     for (const name of ['map0', 'map1']) {
       await page.getByRole('checkbox', {name: `Select ${name}`, exact: true}).check();
       await expect(state(page)).toContainText('previews ready');
@@ -138,24 +106,32 @@ test.describe('actual configured HTTPS owner', () => {
     await expect(page.getByRole('checkbox', {name: 'Select tls_browser_review', exact: true})).toBeVisible();
     await page.locator('[data-feature=scene]').tap();
     await expect(page.locator('#expansion-status')).toContainText('UNAVAILABLE');
-    await page.locator('#expansion-logout').click();
-    await expect(page.locator('#expansion-host')).toBeEmpty();
+    await page.context().clearCookies();
+    await page.locator('[data-feature=multimap]').click();
     await page.reload();
-    await expect(page.locator('#expansion-login')).toBeVisible();
-    expect(writes.every(path => path.startsWith('/api/v1/extensions/'))).toBe(true);
+    await expect(page.getByRole('checkbox', {name: 'Select tls_browser_review', exact: true})).toBeVisible();
+    const another = await page.context().newPage();
+    await another.goto('/extensions#multimap');
+    await expect(another.getByRole('checkbox', {name: 'Select tls_browser_review', exact: true})).toBeVisible();
+    await another.close();
+    expect(writes.every(path => path.startsWith('/api/v1/extensions/multimap/'))).toBe(true);
     expect(errors).toEqual([]);
   });
 
-  test('local replay survives real session expiry; private state and refresh require login', async ({page, request}) => {
+  test('local replay and map review open directly after reload without session requests', async ({page}) => {
+    const sessions = [];
+    page.on('request', request => {
+      if (new URL(request.url()).pathname.startsWith('/api/v1/extensions/session')) sessions.push(request.url());
+    });
     await page.goto('/extensions#replay');
     await expect(page.locator('.rr-banner')).toContainText('REPLAY');
-    await login(page, request, 'read', 3);
-    await expect(page.locator('#expansion-session-status')).toContainText('만료', {timeout: 7000});
-    await expect(page.locator('.rr-banner')).toContainText('REPLAY');
-    await page.locator('[data-feature=scene]').click();
-    await expect(page.locator('#expansion-status')).toContainText('LOGIN_REQUIRED');
-    await expect(page.locator('.obstacle-scene')).toHaveCount(0);
     await page.reload();
-    await expect(page.locator('#expansion-login')).toBeVisible();
+    await expect(page.locator('.rr-banner')).toContainText('REPLAY');
+    await page.locator('[data-feature=multimap]').click();
+    await expect(state(page)).toContainText('Catalogue ready');
+    await page.locator('[data-feature=scene]').click();
+    await expect(page.locator('#expansion-status')).toContainText('UNAVAILABLE');
+    expect(sessions).toEqual([]);
+    await expect(page.locator('input[type=password]')).toHaveCount(0);
   });
 });

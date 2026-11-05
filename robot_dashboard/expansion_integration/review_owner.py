@@ -1,23 +1,17 @@
-"""Server-owned review session and data ports. No discovery or control clients."""
-import asyncio
+"""Explicit HTTPS review workspace access and qualified data ports."""
 from dataclasses import dataclass
-import json
 import logging
-import sqlite3
 from urllib.parse import urlsplit
 
-from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi import HTTPException
 
 from robot_dashboard.api.dependencies import require_same_origin
 from robot_dashboard.expansion_contracts import ContractError
 from robot_dashboard.expansion_contracts.messages import HASH, ID, integer, token
 from .host import ExpansionOwner
-from .review_access import AccessUnavailable, ReviewAccess, SECRET
 
 
 API = "/api/v1/extensions"
-COOKIE = "__Secure-robot_scope_review"
 
 
 @dataclass
@@ -97,14 +91,16 @@ class PrivateResponses:
         await self.app(scope, receive, private_send)
 
 
-class SessionPolicy:
-    def __init__(self, access, origin):
+class ReviewPolicy:
+    """Visitors to the configured HTTPS origin can review the shared copies."""
+
+    def __init__(self, origin):
         address = urlsplit(origin)
         if (address.scheme != "https" or not address.hostname or address.username is not None
                 or address.password is not None or origin != f"https://{address.netloc}"
                 or address.netloc != address.netloc.lower()):
             raise ValueError("A canonical HTTPS review origin is required")
-        self.access, self.origin, self.host = access, origin, address.netloc
+        self.origin, self.host = origin, address.netloc
 
     def check_transport(self, request, *, mutation=False):
         if request.url.scheme != "https" or request.headers.getlist("host") != [self.host]:
@@ -115,80 +111,23 @@ class SessionPolicy:
         if mutation:
             require_same_origin(request)
 
-    async def query(self, operation, *args):
-        try:
-            return await asyncio.to_thread(operation, *args)
-        except (OSError, AccessUnavailable, sqlite3.Error, RuntimeError):
-            raise HTTPException(503, "REVIEW_ACCESS_UNAVAILABLE") from None
-
     async def authorize(self, request):
         self.check_transport(request)
-        grant = await self.query(self.access.lookup, request.cookies.get(COOKIE))
-        if grant is None:
-            raise HTTPException(401, "REVIEW_SESSION_REQUIRED")
-        return grant
 
     async def require_review(self, request):
         self.check_transport(request, mutation=True)
-        grant = await self.authorize(request)
-        if grant["role"] != "review":
-            raise HTTPException(403, "REVIEW_WRITE_REQUIRED")
-
-    def install(self, app):
-        app.add_middleware(PrivateResponses)
-        router = APIRouter(prefix=API)
-
-        @router.get("/session")
-        async def current(request: Request):
-            return await self.authorize(request)
-
-        @router.post("/session")
-        async def login(request: Request):
-            self.check_transport(request, mutation=True)
-            if request.headers.get("content-type", "").split(";")[0] != "application/json":
-                raise HTTPException(415, "REVIEW_JSON_REQUIRED")
-            body = bytearray()
-            async for chunk in request.stream():
-                if len(body) + len(chunk) > 256:
-                    raise HTTPException(413, "REVIEW_CODE_LIMIT")
-                body.extend(chunk)
-            try:
-                # Exactly one JSON string; no schema errors can echo its contents.
-                code = json.loads(body)
-            except (ValueError, UnicodeError, RecursionError):
-                code = None
-            if not isinstance(code, str) or not SECRET.fullmatch(code):
-                raise HTTPException(401, "REVIEW_CODE_INVALID")
-            session = await self.query(self.access.redeem, code)
-            if not session:
-                raise HTTPException(401, "REVIEW_CODE_INVALID")
-            response = JSONResponse({"authenticated": True})
-            response.set_cookie(COOKIE, session, path=API, secure=True, httponly=True, samesite="strict")
-            return response
-
-        @router.post("/session/logout")
-        async def logout(request: Request):
-            self.check_transport(request, mutation=True)
-            await self.query(self.access.logout, request.cookies.get(COOKIE))
-            response = JSONResponse({"authenticated": False})
-            response.delete_cookie(COOKIE, path=API, secure=True, httponly=True, samesite="strict")
-            return response
-
-        app.include_router(router)
 
 
 def configured_owner(app, flags, environ, inputs):
-    db = environ.get("ROBOT_SCOPE_EXPANSION_REVIEW_DB")
     origin = environ.get("ROBOT_SCOPE_EXPANSION_REVIEW_ORIGIN")
-    if not (db and origin and (flags.multimap or flags.scene)):
+    if not (origin and (flags.multimap or flags.scene)):
         return None
     try:
-        policy = SessionPolicy(ReviewAccess(db), origin)
+        policy = ReviewPolicy(origin)
     except ValueError:
         return None
-    policy.install(app)
-    owner = ExpansionOwner(authorize=policy.authorize, require_mutation=policy.require_review,
-                           session_login=True)
+    app.add_middleware(PrivateResponses)
+    owner = ExpansionOwner(authorize=policy.authorize, require_mutation=policy.require_review)
     if inputs:
         if flags.multimap and inputs.maps_factory:
             try:

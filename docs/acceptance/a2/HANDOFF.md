@@ -1,5 +1,7 @@
 # A2 비주행 제품 인수
 
+2026-11-05 후속 변경으로 확장 로그인·세션 단계를 제거했다. 아래 표는 최초 인수 결과이며 현재 접근 방법은 [DASHBOARD_ACCESS](DASHBOARD_ACCESS.md)를 따른다.
+
 현재 결과는 OWNER_IMPLEMENTED_OFFLINE이다. 통합 main에서 기존 C1/C2/C3, D1, SavedMapCatalog, C6 및 C7 경로를 사용했다. A1의 공유 진입점/배포 파일은 편집하지 않았다. 제품 소스는 SOURCE_LOCK.json의 product_commit, 출발점과 최초 실패는 ROUND1_RESULTS.md/json에 고정했다.
 
 | 흐름 | 확인한 결과 |

@@ -12,13 +12,6 @@
 <body class="expansion-page"><header class="expansion-header"><a href="/">← Robot Scope</a>
 <h1>확장 기능</h1><p>저장 지도 합치기, 장애물 관측, 기록 재생을 한곳에서 확인합니다.</p>
 <button id="expansion-theme" type="button">테마 전환 / Theme</button><p id="expansion-status" role="status"></p>
-<section id="expansion-session" class="expansion-session" hidden aria-label="검토 세션">
-<form id="expansion-login"><label for="expansion-code">일회용 코드</label>
-<input id="expansion-code" type="password" autocomplete="one-time-code" required>
-<button type="submit">로그인</button></form>
-<div id="expansion-session-active" hidden><span id="expansion-session-info"></span>
-<button id="expansion-logout" type="button">로그아웃</button></div>
-<p id="expansion-session-status" role="status" aria-live="polite"></p></section>
 <nav id="expansion-nav" aria-label="확장 기능"></nav></header>
 <main>
 <section id="expansion-help" class="expansion-help" aria-label="사용 안내">
@@ -53,10 +46,10 @@ python -m robot_dashboard.expansion_diagnostics run --deps /tmp/rs-c7-pins --pro
   <details id="expansion-demo-help" hidden><summary>합성 관측 데모 안내</summary><p>검증 담당자가 개발 환경에서 별도 데모를 시작하고 표시된 로컬 주소를 엽니다.</p><pre><code>python -m experiments.expansion_20261101.cone_display.demo --port 4192</code></pre><p>로컬 브라우저에서 http://127.0.0.1:4192/를 열고 콘 표시를 선택합니다. 데모는 SIMULATED · 독립 평면 좌표로 표시합니다. 실제 지도 정렬·높이는 미검증입니다.</p></details>
 </section>
 <div id="expansion-host"></div>
-<details class="expansion-setup"><summary>활성화와 로그인 준비</summary>
-<p>관리자가 기능을 켜고 준비 상태를 확인합니다. REPLAY는 로컬 파일을 사용하는 독립 기능입니다. 지도·관측은 HTTPS와 검토 세션, 검증된 데이터 제공자 연결이 필요합니다.</p>
+<details class="expansion-setup"><summary>활성화와 연결 준비</summary>
+<p>관리자가 기능을 켜고 준비 상태를 확인합니다. REPLAY는 로컬 파일을 사용하는 독립 기능입니다. 지도·관측은 HTTPS와 검증된 데이터 제공자 연결이 필요합니다.</p>
 <p>HTTP로 접속했다면 관리자가 안내한 HTTPS 주소를 여세요. 해당 주소의 호스트명과 일치하는 인증서 및 브라우저 신뢰 설정이 필요합니다. 연결 설정과 서비스 배포는 A1이 담당합니다.</p>
-<p>읽기 권한은 조회·비교, 검토 권한은 지도 계산·후보 수락·리뷰 사본 저장에 사용합니다. 운영 지도 적용은 별도 절차입니다.</p>
-<p><a href="https://github.com/Phjrab/robot-scope-ros2-dashboard/blob/main/docs/acceptance/a2/DASHBOARD_ACCESS.md">관리자용 권한·입력 연결 계약</a></p>
+<p>확장 기능에 접속하면 지도 조회·비교·계산·후보 수락·리뷰 사본 저장을 사용할 수 있습니다. 운영 지도 적용은 별도 절차입니다.</p>
+<p><a href="https://github.com/Phjrab/robot-scope-ros2-dashboard/blob/main/docs/acceptance/a2/DASHBOARD_ACCESS.md">관리자용 입력 연결 안내</a></p>
 </details>
 </main></body></html>
