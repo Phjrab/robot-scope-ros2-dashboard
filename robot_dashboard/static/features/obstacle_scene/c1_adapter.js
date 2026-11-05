@@ -29,6 +29,11 @@ const geometry = g => g ? {center_m:g.center,extent_m:g.extent,orientation_xyzw:
 export function adaptC1ScenePacket(wire, context, { transportAgeMs = 0, displayAssets = [] } = {}) {
   const failure = reason => ({packet:null,reason});
   if (!['0.1','0.2'].includes(wire?.schema_version)) return failure('C1_VERSION_UNSUPPORTED');
+  if (!context || !/^[a-f0-9]{24}$/.test(context.map_id) || !/^[a-f0-9]{64}$/.test(context.revision)
+      || !Number.isSafeInteger(context.generation) || context.generation < 0 || context.units !== 'm'
+      || !['frame_id','source_epoch','stream_epoch','clock_domain','calibration_id'].every(
+        k=>typeof context[k] === 'string' && context[k].length > 0 && context[k].length <= 128))
+    return failure('C1_CONTEXT_UNQUALIFIED');
   if (!sameBinding(wire.map_binding,context)) return failure('C1_MAP_GENERATION_MISMATCH');
   if (wire.stream_epoch !== context.stream_epoch || wire.source_epoch !== wire.stream_epoch) return failure('C1_STREAM_MISMATCH');
   if (!Number.isFinite(transportAgeMs) || transportAgeMs < 0) return failure('C1_TRANSPORT_AGE_UNKNOWN');

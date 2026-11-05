@@ -44,6 +44,16 @@ for(const width of [390,768,1440])for(const theme of ['dark','light'])test(`prod
   });expect(contrast).toBeGreaterThanOrEqual(4.5);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
   await page.screenshot({path:info.outputPath(`product-${width}-${theme}.png`),fullPage:true});
+  const longError='지도 사본의 원본 revision을 확인해 주세요. '+ 'a'.repeat(128);
+  await page.route('**/api/v1/extensions/multimap/sources',route=>
+    route.fulfill({status:409,json:{error:{code:'STALE_SOURCE_REVISION',message:longError}}}));
+  await page.locator('[data-feature=multimap]').click();
+  await expect(state(page)).toContainText(longError);
+  expect(await page.locator('.mmf').evaluate(async el=>{
+    const loaded=await document.fonts.load('14px "IBM Plex Sans KR"','지도');
+    return loaded.length>0 && getComputedStyle(el).fontFamily.includes('IBM Plex')
+      && document.documentElement.scrollWidth<=innerWidth+1;
+  })).toBe(true);
 });
 test('actual C4/D2/D3 → C1 HTTP → mounted C3 expires while paused, no control writes',async({page,request})=>{
   const mutations=[];page.on('request',r=>{if(r.method()!=='GET')mutations.push(r.url());});
@@ -103,4 +113,62 @@ test('installed parser → local picker → C3 replay / seek / compare; no uploa
   await page.locator('[data-feature=multimap]').click();await page.locator('[data-feature=replay]').click();
   await expect(page.locator('.rr-events')).toBeEmpty();expect(await page.locator('.os-overlay').count()).toBe(0);
   expect(errors).toEqual([]);expect(mutations).toEqual([]);expect(external).toEqual([]);
+});
+
+// Routed session contract exercises the browser UI only; HTTPS and server session policy are tested separately.
+test.describe('review session',()=>{
+ test.use({hasTouch:true});
+ test('review session gates private views, clears them on logout, expiry and 401, and leaves replay available',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  let authenticated=false, duration=60, unauthorized=false, role='review';
+  const sessionBodies=[], errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.route('**/extensions',async route=>{
+    const response=await route.fetch();let html=await response.text();
+    html=html.replace(/(<script id="expansion-config" type="application\/json">)([\s\S]*?)(<\/script>)/,(_,a,json,b)=>{
+      const config=JSON.parse(json);config.auth='REVIEW_SESSION';return a+JSON.stringify(config)+b;
+    });
+    await route.fulfill({response,body:html});
+  });
+  await page.route('**/api/v1/extensions/**',async route=>{
+    const request=route.request(), path=new URL(request.url()).pathname;
+    if(path==='/api/v1/extensions/session'){
+      if(request.method()==='POST'){
+        sessionBodies.push(request.postData());authenticated=request.postData()==='"synthetic-code"';
+        return route.fulfill({status:authenticated?200:401,json:authenticated?{authenticated:true}:{detail:'denied'}});
+      }
+      return route.fulfill({status:authenticated?200:401,json:authenticated?{role,remaining_seconds:duration}:{detail:'denied'}});
+    }
+    if(path==='/api/v1/extensions/session/logout'){authenticated=false;return route.fulfill({json:{authenticated:false}});}
+    if(unauthorized)return route.fulfill({status:401,json:{detail:'expired'}});
+    return route.continue();
+  });
+  await page.goto('/extensions');
+  await expect(page.locator('#expansion-login')).toBeVisible();
+  await expect(page.locator('[data-feature=multimap]')).toBeDisabled();
+  await page.locator('[data-feature=replay]').tap();await expect(page.locator('.rr-banner')).toContainText('REPLAY');
+  await page.locator('#expansion-code').fill('wrong');await page.locator('#expansion-code').press('Enter');
+  await expect(page.locator('#expansion-session-status')).toContainText('로그인하지 못했습니다');
+  await expect(page.locator('#expansion-code')).toHaveValue('');
+  async function login(){await expect(page.locator('#expansion-login button')).toBeEnabled();await page.locator('#expansion-code').fill('synthetic-code');await page.locator('#expansion-code').press('Enter');
+    await expect(page.locator('#expansion-session-active')).toBeVisible();await expect(page.locator('#expansion-code')).toHaveValue('');}
+  await login();await expect(page.locator('.rr-banner')).toContainText('REPLAY');
+  await page.locator('[data-feature=multimap]').click();await expect(state(page)).toContainText('Catalogue ready');
+  await page.locator('#expansion-logout').click();await expect(page.locator('#expansion-login')).toBeVisible();
+  await expect(page.locator('#expansion-host')).toBeEmpty();
+  await page.clock.install();
+  duration=300;role='read';await login();await expect(page.locator('#expansion-session-info')).toContainText('읽기 권한');
+  await page.locator('[data-feature=multimap]').click();await expect(state(page)).toContainText('Catalogue ready');
+  await select(page,['map0','map1']);
+  await expect(page.locator('[data-action=start]')).toBeDisabled();
+  await page.locator('[data-feature=replay]').click();await expect(page.locator('.rr-banner')).toContainText('REPLAY');
+  await page.clock.fastForward(300_001);
+  await expect(page.locator('#expansion-session-status')).toContainText('만료');
+  await expect(page.locator('.rr-banner')).toContainText('REPLAY');
+  duration=60;role='review';await login();await page.locator('[data-feature=multimap]').click();await expect(state(page)).toContainText('Catalogue ready');
+  unauthorized=true;await page.locator('[data-action=reload]').click();
+  await expect(page.locator('#expansion-login')).toBeVisible();await expect(page.locator('#expansion-host')).toBeEmpty();
+  expect(sessionBodies).toEqual(['"wrong"','"synthetic-code"','"synthetic-code"','"synthetic-code"']);
+  expect(errors).toEqual([]);
+});
+
 });

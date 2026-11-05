@@ -93,3 +93,14 @@ test('JSON pins ignore member insertion order but retain arrays, types and every
   assert.equal(pinsEqual([1,2],[2,1]),false);
   assert.equal(pinsEqual([1,2],{0:1,1:2}),false);
 });
+
+test('unknown session stays null including legacy preview pins tied to the same map',()=>{
+  const source=sourceDescriptor({...maps()[0],session_id:null});
+  assert.equal(pin(source).session_id,null);
+  const preview={schema:SCHEMA,input_pin:pin(source),units:'m',points:[1,2,3]};
+  assert.deepEqual(boundedPreview(preview,source).points,[[1,2,3]]);
+  preview.input_pin.session_id=`unverified:${source.id}`;
+  assert.deepEqual(boundedPreview(preview,source).points,[[1,2,3]]);
+  preview.input_pin.session_id='unverified:another-map';
+  assert.throws(()=>boundedPreview(preview,source),/stale preview/);
+});

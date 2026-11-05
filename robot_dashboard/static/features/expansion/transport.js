@@ -1,5 +1,5 @@
 // One same-origin bounded transport. No credential persistence or robot API port.
-export function createTransport({fetcher=fetch, signal, timeoutMs=3000}={}) {
+export function createTransport({fetcher=fetch, signal, timeoutMs=3000, onUnauthorized=()=>{}}={}) {
   if(!Number.isFinite(timeoutMs)||timeoutMs<=0||timeoutMs>30000)throw new Error('REQUEST_TIMEOUT_INVALID');
   return async function request(path, {method='GET', body, raw=false, signal:requestSignal}={}) {
     if (!path.startsWith('/api/v1/extensions/') || path.includes('..') || path.includes('\\')) throw new Error('UNSUPPORTED_EXTENSION_ROUTE');
@@ -17,7 +17,7 @@ export function createTransport({fetcher=fetch, signal, timeoutMs=3000}={}) {
     });
     async function read(){
       if(controller.signal.aborted)throw controller.signal.reason;
-      const response=await fetcher(path,{method,credentials:'same-origin',cache:'no-store',signal:controller.signal,
+      const response=await fetcher(path,{method,credentials:'same-origin',cache:'no-store',redirect:'error',signal:controller.signal,
         headers:body===undefined?{}:{'Content-Type':'application/json'},
         body:body===undefined?undefined:JSON.stringify(body)});
       reader=response.body?.getReader();
@@ -28,7 +28,7 @@ export function createTransport({fetcher=fetch, signal, timeoutMs=3000}={}) {
         size+=value.byteLength;if(size>131072)throw new Error('DOCUMENT_LIMIT');chunks.push(value);}
       const bytes=new Uint8Array(size);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength;}
       const text=new TextDecoder('utf-8',{fatal:true}).decode(bytes);
-      if(!response.ok){let data;try{data=JSON.parse(text);}catch{data={};}
+      if(!response.ok){if(response.status===401)onUnauthorized();let data;try{data=JSON.parse(text);}catch{data={};}
         const code=typeof data.error?.code==='string'?data.error.code:`HTTP_${response.status}`;
         const message=typeof data.error?.message==='string'?data.error.message:typeof data.detail==='string'?data.detail:'요청이 거절되었습니다.';
         const error=new Error(`${code}: ${message}`);error.code=code;error.status=response.status;throw error;}

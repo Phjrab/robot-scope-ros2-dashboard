@@ -4,11 +4,13 @@ from fastapi.responses import FileResponse, HTMLResponse
 from .flags import ExpansionFlags
 
 
-def configure_expansion(app, environ):
+def configure_expansion(app, environ, *, review_inputs=None):
     flags = ExpansionFlags.from_environ(environ)
     if flags.enabled:
         from .host import install_expansion
-        install_expansion(app, flags)
+        from .review_owner import configured_owner
+        owner = configured_owner(app, flags, environ, review_inputs)
+        install_expansion(app, flags, owner)
 
     def index_response(*, headers):
         if flags.enabled:

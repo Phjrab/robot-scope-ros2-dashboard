@@ -37,9 +37,13 @@ async function fixture(page) {
   backend.on('/api/v1/saved-maps', ({ json }) => json({ maps: [map], total_size_bytes: 1000 }));
   backend.on(`/api/v1/saved-maps/${map.id}/data`, ({ json }) => json({ ...map, map_id: map.id,
     seq: 1, points: [-2,-2,0,2,-2,0,2,2,0,-2,2,0,0,0,1], units: 'm', source_points: 5 }));
-  backend.on(ROOT, ({ json }) => json({ schema: 'robot-scope.raw-global-observations.v1',
+  backend.on(ROOT, async ({ json }) => {
+    const gate = state.nextStatusGate; state.nextStatusGate = null;
+    if (gate) { gate.started(); await gate.wait; }
+    return json({ schema: 'robot-scope.raw-global-observations.v1',
     provider: { available: true, backend_id: 'SYNTHETIC_HISTORY_FIXTURE' }, generation: state.generation,
-    closed: false, active: null, latest: state.latest, ...flags }));
+    closed: false, active: null, latest: state.latest, ...flags });
+  });
   for (const id of [ID, OTHER]) backend.on(`${ROOT}/${id}`, ({ route, json }) => {
     if (state.detailFailure === 'network') return route.abort('connectionfailed');
     if (state.detailFailure === 'missing') return json({ detail: 'synthetic job not found' }, 404);
@@ -135,5 +139,24 @@ test('a saved failed terminal job displays its original reason without exporting
   await expect(page.locator('#savedGlobalObservation')).toContainText('SYNTHETIC_CAPTURE_FAILED');
   await expect(page.locator('#savedGlobalRecord')).toHaveText('');
   await expect(page.locator('#savedGlobalExport')).toBeDisabled();
+  expect(writes).toEqual([]); expect(errors).toEqual([]);
+});
+
+
+test('first history click opens while a refresh response is delayed', async ({ page }) => {
+  const { state, reads, writes, errors } = await fixture(page);
+  let release, started;
+  const wait = new Promise(resolve => { release = resolve; });
+  const entered = new Promise(resolve => { started = resolve; });
+  state.nextStatusGate = { wait, started };
+  await page.locator('#savedGlobalHistoryRefresh').click();
+  await entered;
+  try {
+    await expect(page.locator('#savedGlobalHistoryOpen')).toBeEnabled();
+    await page.locator('#savedGlobalHistoryOpen').click();
+    await expect(page.locator('#savedGlobalSummary')).toContainText('AMBIGUOUS_ALTERNATIVES');
+    expect(reads.filter(path => path === `${ROOT}/${ID}`)).toHaveLength(1);
+  } finally { release(); }
+  await expect(page.locator('#savedGlobalHistoryStatus')).toContainText(ID);
   expect(writes).toEqual([]); expect(errors).toEqual([]);
 });

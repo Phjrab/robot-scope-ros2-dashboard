@@ -17,7 +17,10 @@ export function startScenePolling({request,signal,onContext,onPacket,onError,clo
       const adapted=adaptC1ScenePacket(parseC1SceneJSON(raw),context,{transportAgeMs:Math.max(0,clock()-started)});
       if(!adapted.packet){onContext(null);throw new Error(adapted.reason);}
       failures=0;onPacket(adapted.packet);
-    }catch(error){if(!closed&&error.name!=='AbortError'){failures=Math.min(9,failures+1);onError(error);}}
+    }catch(error){if(!closed&&error.name!=='AbortError'){
+      if([401,403,409,503].includes(error.status))onContext(null);
+      failures=Math.min(9,failures+1);onError(error);
+    }}
     finally{if(!closed)timer=schedule(poll,failures?Math.min(30000,500*2**failures):100);}
   }
   signal?.addEventListener('abort',abort,{once:true});

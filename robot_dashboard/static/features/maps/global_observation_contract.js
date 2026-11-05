@@ -154,7 +154,7 @@ export class GlobalObservationController {
   invalidate(reason = 'CONTEXT_CHANGED') {
     const hadHistorical = Boolean(this.historicalSelection || this.historyBusy);
     this.generation++; this.record = null;
-    this.historyReadToken++; this.historyJob = null; this.historicalSelection = null; this.history = [];
+    this.historyReadToken++; this.historyBusy = false; this.historyJob = null; this.historicalSelection = null; this.history = [];
     if (hadHistorical && !this.job?.worker_active) this.job = null;
     if (this.pending || this.job?.worker_active || hadHistorical) this.error = reason;
     if (this.pending) this.pending.invalidated = true;
@@ -169,7 +169,7 @@ export class GlobalObservationController {
       historicalTrackingEligible: Boolean(this.historicalSelection && this.record),
       displayJob: this.historicalSelection ? this.historyJob : this.job,
       displayRecord: this.historicalSelection ? (this.historyJob?.state === 'succeeded' ? this.historyJob : null) : this.record,
-      canOpenHistorical: !historyLocked && !this.disposed && Boolean(this.map) && !this.historyBusy && !this.reading
+      canOpenHistorical: !historyLocked && !this.disposed && Boolean(this.map)
         && !this.busy && !this.foreignBusy && !this.job?.worker_active && !this.pending,
       error: this.error, busy: this.busy || this.historyBusy || this.foreignBusy || Boolean(this.job?.worker_active),
       canStart: !this.disposed && Boolean(this.map) && (this.getRequestOptions().search_mode === 'seeded_local' ? this.seededLocalProvider?.available === true : this.provider?.available === true)
@@ -236,27 +236,30 @@ export class GlobalObservationController {
   async poll() {
     if (this.reading || this.historyBusy || this.disposed) return;
     this.reading = true;
-    const knownJob = this.job?.job_id;
+    const knownJob = this.job?.job_id, historyToken = this.historyReadToken, generation = this.generation;
+    const currentHistory = () => historyToken === this.historyReadToken && generation === this.generation && !this.disposed;
     try {
       const status = await this.json(ROOT);
       if (status.schema !== 'robot-scope.raw-global-observations.v1' || !restricted(status)
           || typeof status.provider?.available !== 'boolean'
           || !Number.isSafeInteger(status.generation) || status.generation < 0) throw new Error('STATUS_CONTRACT_MISMATCH');
-      this.provider = clone(status.provider); this.seededLocalProvider = clone(status.seeded_local_provider);
-      this.serverGeneration = status.generation;
-      this.updateHistory(status.latest);
-      if (knownJob && knownJob === this.record?.job_id && status.generation !== this.record.generation) this.record = null;
+      if (currentHistory()) {
+        this.provider = clone(status.provider); this.seededLocalProvider = clone(status.seeded_local_provider);
+        this.serverGeneration = status.generation;
+      }
+      if (currentHistory()) this.updateHistory(status.latest);
+      if (currentHistory() && knownJob && knownJob === this.record?.job_id && status.generation !== this.record.generation) this.record = null;
       if (knownJob && knownJob === this.job?.job_id && this.pending && status.generation !== this.job.generation
           && !this.pending.invalidated) this.invalidate('SERVER_GENERATION_CHANGED');
-      this.foreignBusy = Boolean(status.active?.worker_active && status.active.request_id !== this.pending?.request_id
+      if (currentHistory() || this.pending) this.foreignBusy = Boolean(status.active?.worker_active && status.active.request_id !== this.pending?.request_id
         && status.active.job_id !== this.job?.job_id);
-      if (this.historicalSelection && (status.closed !== false || status.active !== null)) this.record = null;
+      if (currentHistory() && this.historicalSelection && (status.closed !== false || status.active !== null)) this.record = null;
       const match = [status.active, status.latest].find(job => job && job.request_id === this.pending?.request_id);
       if (match) await this.accept(match);
       else if (this.job?.worker_active && this.pending) await this.accept(await this.json(`${ROOT}/${this.job.job_id}`));
-    } catch (error) { this.provider = null; this.seededLocalProvider = null; this.history = [];
+    } catch (error) { if (currentHistory()) { this.provider = null; this.seededLocalProvider = null; this.history = [];
       if (this.historicalSelection) this.record = null;
-      this.error = `조회 실패 · ${error.message}`; }
+      this.error = `조회 실패 · ${error.message}`; } }
     finally { this.reading = false; this.changed(); }
   }
   updateHistory(latest = null) {
@@ -275,7 +278,7 @@ export class GlobalObservationController {
   clearHistoricalSelection() {
     // This is local display invalidation only: never cancel an owned/uncertain job.
     if (!this.historyChangeAllowed() || this.pending || this.busy || this.job?.worker_active) return;
-    this.historyReadToken++; this.historyJob = null; this.historicalSelection = null;
+    this.historyReadToken++; this.historyBusy = false; this.historyJob = null; this.historicalSelection = null;
     this.record = null; this.job = null; this.error = ''; this.changed();
   }
   async openHistorical(jobId) {
@@ -319,7 +322,7 @@ export class GlobalObservationController {
     } catch (error) {
       if (current()) { this.record = null; this.job = null; this.historyJob = null; this.historicalSelection = null;
         this.error = `과거 결과 조회 실패 · ${error.message}`; }
-    } finally { this.historyBusy = false; this.changed(); }
+    } finally { if (token === this.historyReadToken) this.historyBusy = false; this.changed(); }
   }
   async cancel(explicit = true) {
     if (explicit) { this.generation++; this.record = null; if (this.pending) this.pending.invalidated = true; }

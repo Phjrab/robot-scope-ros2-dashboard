@@ -275,8 +275,10 @@ class FusionJobManager:
         integer(expected_revision, "expected proposal revision", 1)
         if type(accepted) is not bool:
             raise ContractError("explicit boolean review required")
-        with self._lock:
-            j = self._jobs[job_id]
+
+        def require_current_review():
+            if self._jobs.get(job_id) is not j:
+                raise Conflict("review lost proposal ownership")
             if j["proposal_revision"] != expected_revision:
                 raise Conflict(
                     "stale proposal revision", code="STALE_PROPOSAL_REVISION"
@@ -287,7 +289,17 @@ class FusionJobManager:
                 or j["exporting"]
             ):
                 raise Conflict("stale proposal or invalid review state")
-            self.catalogue.pinned(j["request"])
+
+        with self._lock:
+            j = self._jobs[job_id]
+            require_current_review()
+            request = j["request"]
+        # Resolving a prior fusion can acquire the bundle registry lock. Never
+        # hold the manager lock across that I/O: publication takes them in the
+        # opposite order. Recheck ownership after another operation can run.
+        self.catalogue.pinned(request)
+        with self._lock:
+            require_current_review()
             proposal = j["proposal"]
             if manual_selection is not None:
                 if (

@@ -4,7 +4,7 @@ import {createOverlay,COLORS,drawDerived} from './overlay.js';
 export {createHttpPorts} from './contract.js';
 export {createRobotSceneRenderer} from './overlay.js';
 
-export function mount(host,{catalogue,jobs,renderer,onReview=()=>{},confirmDiscard=()=>globalThis.confirm('Discard the current UI draft and proposal? Original maps are preserved.'),pollMs=350}={}) {
+export function mount(host,{catalogue,jobs,renderer,readOnly=false,onReview=()=>{},confirmDiscard=()=>globalThis.confirm('Discard the current UI draft and proposal? Original maps are preserved.'),pollMs=350}={}) {
   if(!host||!catalogue?.list||!catalogue?.preview||!jobs?.start)throw new TypeError('Host, catalogue and jobs ports required.');
   const doc=host.ownerDocument,win=doc.defaultView,session=createSession();
   let entries=[],previews=new Map(),visibility={},dirty=false,destroyed=false,active=null,timer=null,loadGeneration=0,previewGeneration=0,busy=false;
@@ -33,7 +33,7 @@ export function mount(host,{catalogue,jobs,renderer,onReview=()=>{},confirmDisca
   function renderCatalogue(){
     slot('catalogue').replaceChildren();const ids=chosen().map(s=>s.id);
     for(const s of entries){const label=el('label');label.className='mmf-source';const check=el('input');check.type='checkbox';check.dataset.source=s.id;check.checked=ids.includes(s.id);check.setAttribute('aria-label',`Select ${s.name}`);
-      check.disabled=busy;label.append(check);const text=el('span');text.append(el('strong',s.name),el('small',`${s.session_id} · rev ${s.revision} · ${s.point_count.toLocaleString()} pts · m`),el('small',`${s.id} · frame ${s.frame_id}${s.ancestors.length?' · merged ancestors '+s.ancestors.join(', '):''}`));label.append(text);slot('catalogue').append(label);}
+      check.disabled=busy;label.append(check);const text=el('span');text.append(el('strong',s.name),el('small',`${s.session_id ?? '세션 미확인'} · rev ${s.revision} · ${s.point_count.toLocaleString()} pts · m`),el('small',`${s.id} · frame ${s.frame_id}${s.ancestors.length?' · merged ancestors '+s.ancestors.join(', '):''}`));label.append(text);slot('catalogue').append(label);}
     slot('empty').textContent=entries.length?'':'Empty catalogue · 로컬 3D source가 없습니다.';
   }
   function renderLayers(snapshot){
@@ -56,12 +56,12 @@ export function mount(host,{catalogue,jobs,renderer,onReview=()=>{},confirmDisca
     const s=session.snapshot(),target=field('target').value;
     targets(field('anchor'),s.draft.sources,s.draft.anchor);targets(field('target'),s.draft.sources.filter(v=>v.id!==s.draft.anchor),target);
     for(const input of slot('pose').querySelectorAll('input')){input.value=s.draft.priors[field('target').value]?.[input.dataset.pose]??0;input.disabled=busy||!field('target').value;}
-    field('anchor').disabled=busy;field('target').disabled=busy;field('name').disabled=busy;
+    field('anchor').disabled=busy;field('target').disabled=busy;field('name').disabled=readOnly||busy;field('ack').disabled=readOnly;
     for(const name of ['pair','clearPairs','reset'])button(name).disabled=busy;
     button('undo').disabled=!s.canUndo||busy;button('redo').disabled=!s.canRedo||busy;
-    button('start').disabled=s.draft.sources.length<2||busy||!!active||previewError;
-    button('cancel').disabled=!active;button('accept').disabled=!jobs.accept||s.status!=='SOLVED_CANDIDATE'||!field('ack').checked||busy||s.proposal?.connected_components?.length!==1;
-    button('save').disabled=!jobs.save||s.status!=='ACCEPTED'||busy||!field('name').value.trim();
+    button('start').disabled=readOnly||s.draft.sources.length<2||busy||!!active||previewError;
+    button('cancel').disabled=readOnly||!active;button('accept').disabled=readOnly||!jobs.accept||s.status!=='SOLVED_CANDIDATE'||!field('ack').checked||busy||s.proposal?.connected_components?.length!==1;
+    button('save').disabled=readOnly||!jobs.save||s.status!=='ACCEPTED'||busy||!field('name').value.trim();
     slot('status').textContent=`${s.status} · ${message}`;slot('status').dataset.state=s.status;
     slot('identity').textContent=`UI draft rev ${s.revision} · proposal ${s.proposal?`${s.proposal.proposal_id}@${s.proposal.proposal_revision}`:'none'} · stale responses ignored ${s.stale} · undo/redo restores draft only; proposal requires recompute`;
     slot('warnings').replaceChildren(...[...s.warnings,...(s.proposal?.warnings||[])].map(w=>el('li',w)));
@@ -115,7 +115,7 @@ export function mount(host,{catalogue,jobs,renderer,onReview=()=>{},confirmDisca
   listen(field('target'),'change',()=>refresh());
   listen(slot('layers'),'change',run(()=>{for(const e of slot('layers').querySelectorAll('input')){const id=e.dataset.visible||e.dataset.opacity;visibility[id]||={};if(e.dataset.visible)visibility[id].hidden=!e.checked;else visibility[id].opacity=Number(e.value);}draw();}));
   for(const k of ['view','rotation'])listen(field(k),'change',run(()=>{viewMode=field('view').value;draw();}));
-  listen(field('ack'),'change',()=>refresh());listen(field('name'),'input',()=>{button('save').disabled=session.snapshot().status!=='ACCEPTED'||busy||!field('name').value.trim();});
+  listen(field('ack'),'change',()=>refresh());listen(field('name'),'input',()=>{button('save').disabled=readOnly||session.snapshot().status!=='ACCEPTED'||busy||!field('name').value.trim();});
   const actions={reload:async()=>{await loadCatalogue();if(chosen().length)await loadPreviews();},
     undo:async()=>{const before=JSON.stringify(chosen());session.undo();modified();if(before!==JSON.stringify(chosen()))await loadPreviews();},redo:async()=>{const before=JSON.stringify(chosen());session.redo();modified();if(before!==JSON.stringify(chosen()))await loadPreviews();},reset:()=>{session.reset();modified();},
     pair:()=>{const xyz=n=>field(n).value.split(',').map(Number);session.addPair(field('target').value,xyz('sourceXYZ'),xyz('anchorXYZ'),'explicit-or-sampled-XYZ');modified();},

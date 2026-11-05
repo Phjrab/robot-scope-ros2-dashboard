@@ -5,6 +5,7 @@ No Starlette TestClient/httpx/httpx2 optional test dependency is required.
 
 import json as jsonlib
 import socket
+import ssl
 import threading
 import time
 import urllib.error
@@ -26,17 +27,24 @@ class Response:
 
 
 class TestClient:
-    def __init__(self, app, base_url="http://127.0.0.1"):
+    def __init__(self, app, base_url="http://127.0.0.1", *, tls=None):
         self.app, self.host_header = app, urlsplit(base_url).netloc
-        self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        self.tls = tls
+        handlers = [urllib.request.ProxyHandler({})]
+        if tls:
+            handlers.append(urllib.request.HTTPSHandler(context=ssl.create_default_context(cafile=tls[0])))
+        self.opener = urllib.request.build_opener(*handlers)
 
     def __enter__(self):
         self.listener = socket.socket()
         self.listener.bind(("127.0.0.1", 0))
         self.listener.listen(16)
-        self.url = f"http://127.0.0.1:{self.listener.getsockname()[1]}"
+        scheme = "https" if self.tls else "http"
+        self.url = f"{scheme}://127.0.0.1:{self.listener.getsockname()[1]}"
         self.server = uvicorn.Server(
-            uvicorn.Config(self.app, log_level="error", lifespan="on")
+            uvicorn.Config(self.app, log_level="error", lifespan="on", proxy_headers=False,
+                           ssl_certfile=self.tls[0] if self.tls else None,
+                           ssl_keyfile=self.tls[1] if self.tls else None)
         )
         self.thread = threading.Thread(
             target=self.server.run, kwargs={"sockets": [self.listener]}, daemon=True

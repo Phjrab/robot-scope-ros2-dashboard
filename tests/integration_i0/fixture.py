@@ -13,7 +13,7 @@ from robot_dashboard.expansion_integration.flags import ExpansionFlags
 from robot_dashboard.expansion_integration.host import ExpansionOwner, STATIC, install_expansion
 
 
-def compose(root, flags=None):
+def saved_sources(root):
     root = Path(root)
     maps = root / "sources"
     maps.mkdir()
@@ -26,6 +26,12 @@ def compose(root, flags=None):
             sha256=hashlib.sha256(asset.path.read_bytes()).hexdigest(), frame_id=asset.frame_id,
             units="m", evidence_kind="SYNTHETIC", source_epoch="i0-generated",
             display_name=row["name"], mapping_session_id=None)
+    return saved, qualified
+
+
+def compose(root, flags=None):
+    root = Path(root)
+    saved, qualified = saved_sources(root)
     catalogue, manager, store = compose_maps(saved, qualified.get, root / "review-bundles")
 
     def authorize(request: Request):

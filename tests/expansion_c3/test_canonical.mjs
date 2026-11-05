@@ -145,3 +145,13 @@ test('paused receipt processing neither copies geometry nor grows the existing c
   assert.equal(h.consumer.diagnostics().geometryCopies,before.geometryCopies);
   assert.equal(h.consumer.diagnostics().cachedLayers,before.cachedLayers);
 });
+
+test('incomplete trusted context cannot produce a canonical packet',()=>{
+  for (const key of Object.keys(context)) {
+    const incomplete={...context};
+    delete incomplete[key];
+    const wire=fixture();
+    delete wire.map_binding[key];
+    assert.equal(adaptC1ScenePacket(wire,incomplete).reason,'C1_CONTEXT_UNQUALIFIED');
+  }
+});

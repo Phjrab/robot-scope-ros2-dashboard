@@ -24,6 +24,7 @@ class ExpansionOwner:
     store: object = None
     scene: object = None
     scene_context: object = None
+    session_login: bool = False
 
 
 async def _invoke(callback, *args):
@@ -38,7 +39,7 @@ def install_expansion(app, flags=ExpansionFlags(), owner=None):
     app.state.expansion_owner = owner
 
     async def authorize(request: Request):
-        feature = "multimap" if "/multimap/" in request.url.path else "scene"
+        feature = "multimap" if request.url.path.startswith("/api/v1/extensions/multimap/") else "scene"
         if not getattr(flags, feature):
             raise HTTPException(404, "FEATURE_DISABLED")
         if not callable(owner.authorize):
@@ -66,12 +67,14 @@ def install_expansion(app, flags=ExpansionFlags(), owner=None):
 
     from robot_dashboard.expansion_services.router import create_router
     app.include_router(create_router(Port("manager"), Port("catalogue"), Port("scene"), Port("store"),
-                                     authorize=authorize, require_origin=mutation))
+                                     authorize=authorize, require_origin=mutation,
+                                     before_dispatch=mutation if owner.session_login else None))
     router = APIRouter()
 
     @router.get("/extensions", response_class=HTMLResponse)
     async def page():
-        config = {"flags": flags.public(), "auth": "OWNER_POLICY" if callable(owner.authorize) else "BLOCKED_AUTH"}
+        auth = "OWNER_POLICY" if callable(owner.authorize) else "BLOCKED_AUTH"
+        config = {"flags": flags.public(), "auth": "REVIEW_SESSION" if owner.session_login else auth}
         template = (STATIC / "features/expansion/index.html").read_text()
         return HTMLResponse(template.replace("__I0_CONFIG__", json.dumps(config)),
                             headers={"Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
@@ -81,7 +84,8 @@ def install_expansion(app, flags=ExpansionFlags(), owner=None):
     async def context():
         if not callable(owner.scene_context):
             raise HTTPException(503, "UNAVAILABLE: producer context not configured")
-        return await _invoke(owner.scene_context)
+        from .review_owner import qualified_context
+        return qualified_context(await _invoke(owner.scene_context))
 
     app.include_router(router)
     previous_lifespan = app.router.lifespan_context

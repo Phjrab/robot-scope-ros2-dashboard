@@ -18,5 +18,6 @@ export function coneStatus(view,enabled) {
   const source=view.evidence_kind==='SYNTHETIC'?'SIMULATED':view.evidence_kind||'UNKNOWN';
   const freshness=layer?.value&&!layer.value.suppressed&&source==='SIMULATED'?'VALID':/STALE|EXPIRED|INVALIDATED/.test(layer?.reason||'')?'STALE':'UNAVAILABLE';
   const aligned=source==='SIMULATED'&&view.map_identity?.space_kind==='ISOLATED_SIMULATION'&&view.map_identity?.map_id==='c0dec0dec0dec0dec0dec0de';
-  return `CONES ${enabled?'ON':'OFF'} · ${source} · ${freshness} · ${aligned?'ISOLATED_DEMO_ONLY':'UNALIGNED'} · FLAT_DEMO_ONLY / HEIGHT_UNVERIFIED · ${layer?.value?.obstacles.length??0}개 · frame ${view.map_identity?.frame_id||'UNKNOWN'} · 실제 위치·주행 안전 미검증`;
+  const count=freshness==='VALID' ? layer.value.obstacles.length : '—';
+  return `CONES ${enabled?'ON':'OFF'} · ${source} · ${freshness} · ${aligned?'ISOLATED_DEMO_ONLY':'UNALIGNED'} · FLAT_DEMO_ONLY / HEIGHT_UNVERIFIED · ${count}개 · frame ${view.map_identity?.frame_id||'UNKNOWN'} · 실제 위치·주행 안전 미검증`;
 }

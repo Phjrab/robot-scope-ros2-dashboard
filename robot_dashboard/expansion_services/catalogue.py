@@ -19,6 +19,14 @@ class ResolvedSource:
     semantic_masks: tuple = ()
 
 
+def review_evidence_kind(descriptors):
+    kinds = {row["evidence_kind"] for row in descriptors}
+    if not kinds or not kinds <= {"SYNTHETIC", "REPLAY"}:
+        raise Conflict("offline review sources required", code="REVIEW_EVIDENCE_MISMATCH")
+    # A mixed copy contains generated geometry even if an acquired map is its anchor.
+    return "SYNTHETIC" if "SYNTHETIC" in kinds else "REPLAY"
+
+
 def validate_dag(sources):
     graph = {}
     for s in sources:
@@ -119,6 +127,8 @@ class CatalogueAdapter:
                     code = "STALE_SOURCE_REVISION"
                     break
             raise Conflict("catalogue descriptors changed", code=code)
+        if request.evidence_kind != review_evidence_kind(request.sources):
+            raise Conflict("review evidence differs from sources", code="REVIEW_EVIDENCE_MISMATCH")
         validate_dag(result)
         return result
 

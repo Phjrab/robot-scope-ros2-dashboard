@@ -10,7 +10,7 @@ from robot_dashboard.expansion_contracts.messages import MAX_DOCUMENT_BYTES
 from .errors import public_error
 
 
-def create_router(manager, catalogue, scene, store, *, authorize, require_origin):
+def create_router(manager, catalogue, scene, store, *, authorize, require_origin, before_dispatch=None):
     if not callable(authorize) or not callable(require_origin):
         raise TypeError("host auth and origin policies are required")
     router = APIRouter(prefix="/api/v1/extensions", dependencies=[Depends(authorize)])
@@ -55,9 +55,12 @@ def create_router(manager, catalogue, scene, store, *, authorize, require_origin
                 expected_fields is not None and set(value) != expected_fields
             ):
                 raise ValueError("invalid fields")
-            return value
         except (ValueError, UnicodeError, RecursionError):
             raise HTTPException(422, "invalid bounded JSON document") from None
+        # A short-lived grant can expire or be revoked while the body streams.
+        if before_dispatch is not None:
+            await before_dispatch(request)
+        return value
 
     async def call(fn, *args, envelope=None, **kwargs):
         try:

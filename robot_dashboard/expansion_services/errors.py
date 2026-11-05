@@ -9,6 +9,7 @@ from robot_dashboard.pcd_editing.geometry import PcdEditError
 
 
 MESSAGES = {
+    "REVIEW_EVIDENCE_MISMATCH": "Review evidence must match the qualified offline source maps. Refresh the catalogue.",
     "ANCESTRY_OVERLAP": "Selected maps share original sources and cannot be merged together.",
     "INVALID_PROVENANCE": "Source ancestry is inconsistent. Refresh the source catalogue.",
     "STALE_SOURCE_REVISION": "A source revision changed. Refresh the sources and solve again.",

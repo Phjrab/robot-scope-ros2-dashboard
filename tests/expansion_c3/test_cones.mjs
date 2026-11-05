@@ -46,7 +46,7 @@ test('LIVE evidence cannot promote XY-only cone geometry',()=>{
 test('empty observed sample remains distinguishable from expired empty sample',()=>{
  const h=harness(),w=structuredClone(original.wire);w.obstacle_frame.obstacles=[];h.ingest(w);
  assert.match(coneStatus(h.consumer.snapshot(),true),/VALID.*0개/);h.advance(1001);
- assert.match(coneStatus(h.consumer.snapshot(),true),/STALE/);assert.doesNotMatch(coneStatus(h.consumer.snapshot(),true),/WAITING/);
+ assert.match(coneStatus(h.consumer.snapshot(),true),/STALE.*—개/);assert.doesNotMatch(coneStatus(h.consumer.snapshot(),true),/WAITING/);
 });
 test('server invalidation rejects late same-sequence geometry and destroy retains nothing',()=>{
  const h=harness();h.ingest();const w=structuredClone(original.wire);w.obstacle_frame=null;w.sources.obstacle_frame.status='expired';h.ingest(w);h.ingest();

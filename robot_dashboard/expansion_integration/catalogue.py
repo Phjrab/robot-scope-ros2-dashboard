@@ -81,7 +81,7 @@ class SavedCataloguePort:
         return {"schema": "robot-scope.multimap-ui.v1", "units": "m",
                 "input_pin": {"id": descriptor.map_id, "revision": descriptor.revision,
                               "sha256": descriptor.sha256,
-                              "session_id": descriptor.mapping_session_id or f"unverified:{descriptor.map_id}"},
+                              "session_id": descriptor.mapping_session_id},
                 "points": points}
 
 

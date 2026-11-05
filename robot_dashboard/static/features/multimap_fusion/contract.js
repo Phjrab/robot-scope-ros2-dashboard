@@ -8,7 +8,7 @@ export const clone = (v) => JSON.parse(JSON.stringify(v));
 const finite = (v) => typeof v === 'number' && Number.isFinite(v);
 const text = (v) => typeof v === 'string' && v.length > 0 && v.length <= 256;
 export function sourceDescriptor(s) {
-  if (!s || s.kind !== 'pointcloud3d' || !text(s.id) || !text(s.name) || !text(s.session_id)
+  if (!s || s.kind !== 'pointcloud3d' || !text(s.id) || !text(s.name) || (s.session_id !== null && !text(s.session_id))
       || !((typeof s.revision==='string'&&text(s.revision))||(Number.isSafeInteger(s.revision)&&s.revision>=0)) || !/^[a-f0-9]{64}$/.test(s.sha256 || '')
       || !text(s.frame_id) || s.units !== 'm' || !Number.isSafeInteger(s.point_count) || s.point_count < 0)
     throw new Error('Unsupported source descriptor: require 3D ID/session/revision/hash/frame/count and meters.');
@@ -45,7 +45,12 @@ export function poseMatrix({x=0,y=0,z=0,roll=0,pitch=0,yaw=0}={}) {
 }
 export const transformPoint = (m,p) => [0,1,2].map(r=>m[r*4]*p[0]+m[r*4+1]*p[1]+m[r*4+2]*p[2]+m[r*4+3]);
 export function boundedPreview(payload, source, limit=MAX_PREVIEW_POINTS) {
-  if (payload?.schema !== SCHEMA || !pinsEqual(payload.input_pin,pin(source)) || payload.units !== 'm'
+  // Older preview services used a map-specific display sentinel for a null session.
+  const expected = pin(source);
+  const received = payload?.input_pin;
+  const previewPin = expected.session_id === null && received?.session_id === `unverified:${source.id}`
+    ? {...received, session_id:null} : received;
+  if (payload?.schema !== SCHEMA || !pinsEqual(previewPin,expected) || payload.units !== 'm'
       || !Array.isArray(payload.points) || payload.points.length % 3 || payload.points.length > 3_000_000)
     throw new Error('Unsupported or stale preview schema.');
   const count=payload.points.length/3, stride=Math.max(1,Math.ceil(count/limit)), points=[];

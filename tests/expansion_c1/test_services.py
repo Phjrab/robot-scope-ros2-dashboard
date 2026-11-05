@@ -1,4 +1,6 @@
 from dataclasses import replace
+from contextlib import contextmanager, ExitStack
+import fcntl
 from pathlib import Path
 import subprocess
 import sys
@@ -304,6 +306,126 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual([p for p in r.store.root.iterdir() if len(p.name) == 24], [])
         self.assertEqual(r.manager.status(j["job_id"])["state"], "CANCELED")
 
+    def test_fused_review_and_export_do_not_invert_registry_lock(self):
+        from robot_dashboard.expansion_services import export as export_module
+
+        r = self.rig()
+        first = r.manager.export(r.solve_review()["job_id"], "base", 2)
+        fused = r.store.reload(first["id"])
+        original_resolver = r.catalogue.resolver
+        r.catalogue.resolver = lambda map_id: (
+            r.store.reload(map_id)
+            if map_id == first["id"] else original_resolver(map_id)
+        )
+        descriptors = [fused.descriptor, r.resolved[f"{3:024x}"].descriptor]
+        exporting = r.solve_review(request(descriptors, "export-A"))
+        reviewing = r.wait(r.manager.enqueue(request(descriptors, "review-B"))["job_id"])
+        registry_held, review_entered = threading.Event(), threading.Event()
+        original_lock = export_module._registry_lock
+        original_pinned = r.catalogue.pinned
+        failures = []
+
+        @contextmanager
+        def bounded_lock(root, mode, **kwargs):
+            # A regressed lock order must fail within this test, never strand
+            # threads (and teardown) on an unbounded flock.
+            deadline = time.monotonic() + 2
+            with ExitStack() as locks:
+                while True:
+                    try:
+                        locks.enter_context(original_lock(root, mode | fcntl.LOCK_NB, **kwargs))
+                        break
+                    except BlockingIOError:
+                        if time.monotonic() >= deadline:
+                            raise AssertionError("registry lock order stalled")
+                        time.sleep(0.002)
+                if (threading.current_thread().name == "export-A"
+                        and mode == fcntl.LOCK_EX and not kwargs.get("create")):
+                    registry_held.set()
+                    if not review_entered.wait(2):
+                        raise AssertionError("review never reached pin validation")
+                yield
+
+        def pinned(value):
+            if threading.current_thread().name == "review-B":
+                review_entered.set()
+            return original_pinned(value)
+
+        def run(callback):
+            try:
+                callback()
+            except BaseException as exc:
+                failures.append(exc)
+
+        with patch.object(export_module, "_registry_lock", bounded_lock), patch.object(
+            r.catalogue, "pinned", pinned
+        ):
+            a = threading.Thread(target=lambda: run(lambda: r.manager.export(
+                exporting["job_id"], "concurrent", 2)), name="export-A", daemon=True)
+            b = threading.Thread(target=lambda: run(lambda: r.manager.review(
+                reviewing["job_id"], 1, True)), name="review-B", daemon=True)
+            a.start()
+            try:
+                self.assertTrue(registry_held.wait(2))
+                b.start()
+                a.join(5)
+                b.join(5)
+            finally:
+                review_entered.set()
+                a.join(5)
+                if b.ident is not None:
+                    b.join(5)
+            self.assertFalse(a.is_alive())
+            self.assertFalse(b.is_alive())
+            self.assertEqual(failures, [])
+        self.assertEqual(r.manager.status(exporting["job_id"])["state"], "EXPORTED")
+        self.assertEqual(r.manager.status(reviewing["job_id"])["state"], "REVIEWED")
+
+    def test_review_rechecks_revision_cancel_and_export_after_pin_validation(self):
+        r = self.rig()
+        for action in ("review", "cancel", "export"):
+            with self.subTest(action=action):
+                j = r.solve_review(r.request(request_id=f"pin-race-{action}"))
+                entered, release = threading.Event(), threading.Event()
+                original_pinned = r.catalogue.pinned
+                failures = []
+
+                def pinned(value):
+                    if threading.current_thread().name == "paused-review":
+                        entered.set()
+                        if not release.wait(2):
+                            raise AssertionError("review pin gate timed out")
+                    return original_pinned(value)
+
+                def review():
+                    try:
+                        r.manager.review(j["job_id"], 2, True)
+                    except BaseException as exc:
+                        failures.append(exc)
+
+                with patch.object(r.catalogue, "pinned", pinned):
+                    thread = threading.Thread(target=review, name="paused-review", daemon=True)
+                    thread.start()
+                    try:
+                        self.assertTrue(entered.wait(2))
+                        if action == "review":
+                            r.manager.review(j["job_id"], 2, False)
+                        elif action == "cancel":
+                            r.manager.cancel(j["job_id"])
+                        else:
+                            r.manager.export(j["job_id"], "pin-race", 2)
+                    finally:
+                        release.set()
+                        thread.join(5)
+                    self.assertFalse(thread.is_alive())
+                self.assertEqual(len(failures), 1)
+                self.assertIsInstance(failures[0], Conflict)
+                if action == "review":
+                    self.assertEqual(failures[0].code, "STALE_PROPOSAL_REVISION")
+                self.assertEqual(r.manager.status(j["job_id"])["state"], {
+                    "review": "REJECTED", "cancel": "CANCELED", "export": "EXPORTED"
+                }[action])
+
     def test_two_to_three_source_dag_cycle_duplicate_ancestor(self):
         r = self.rig()
         j = r.solve_review()
@@ -344,6 +466,19 @@ class ServiceTests(unittest.TestCase):
         with self.assertRaises(ContractError):
             r.manager.export(j2["job_id"], "schema", 2)
         self.assertEqual(list(r.store.root.glob(".stage-*")), [])
+
+    def test_reloaded_mixed_copy_preserves_synthetic_evidence_in_either_order(self):
+        r = self.rig()
+        key = f"{1:024x}"
+        original = r.resolved[key]
+        recorded = replace(original.descriptor, evidence_kind="REPLAY")
+        r.resolved[key] = replace(original, descriptor=recorded)
+        for indices in ((1, 2), (2, 1)):
+            name = f"order-{indices[0]}"
+            job = r.solve_review(r.request(indices=indices, request_id=name))
+            manifest = r.manager.export(job["job_id"], name, job["proposal_revision"])
+            self.assertEqual(r.store.reload(manifest["id"]).descriptor.evidence_kind, "SYNTHETIC")
+            self.assertEqual({s["evidence_kind"] for s in manifest["sources"]}, {"REPLAY", "SYNTHETIC"})
 
     def test_tilted_and_missing_z_masks_stay_review_candidates(self):
         r = self.rig()

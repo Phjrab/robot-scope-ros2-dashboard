@@ -339,3 +339,61 @@ test('history guard becoming false during a detail or status read prevents late 
     assert.equal(model.pending, null); readOnly(calls);
   });
 });
+
+test('history opens during a delayed poll and its outcome survives the older poll', async t => {
+  for (const outcome of ['success', 'missing', 'network']) await t.test(outcome, async () => {
+    const delay = deferred(); let statusReads = 0;
+    const { model, calls } = controller(async url => {
+      if (url === ROOT) return ++statusReads === 1 ? delay.promise : response(status());
+      if (outcome === 'missing') return response({ detail: 'missing' }, 404);
+      if (outcome === 'network') throw new Error('disconnect');
+      return response(completed());
+    });
+    const poll = model.poll();
+    assert.equal(model.snapshot().canOpenHistorical, true);
+    await model.openHistorical(ID);
+    const before = model.snapshot();
+    delay.resolve(response(status(completed(OTHER, 2), 2))); await poll;
+    const after = model.snapshot();
+    assert.equal(after.historicalSelection, outcome === 'success' ? ID : null);
+    assert.deepEqual(after.displayRecord, before.displayRecord);
+    assert.equal(after.error, before.error);
+    assert.deepEqual(after.history, before.history);
+    assert.equal(after.historicalCurrentGeneration, before.historicalCurrentGeneration);
+    readOnly(calls);
+  });
+});
+
+test('latest history open owns busy state and stale replies after close or map change cannot adopt', async t => {
+  for (const transition of ['new open', 'close and reopen', 'map change and reopen']) await t.test(transition, async () => {
+    const old = deferred(), newer = deferred();
+    const { model, calls } = controller(async url => url === `${ROOT}/${ID}` ? old.promise
+      : url === `${ROOT}/${OTHER}` ? newer.promise : response(status(completed(OTHER))));
+    const first = model.openHistorical(ID);
+    if (transition === 'close and reopen') model.clearHistoricalSelection();
+    if (transition === 'map change and reopen') {
+      model.setMap({ ...map, revision: 'e'.repeat(64) }, null);
+      model.setMap(map, null);
+    }
+    const second = model.openHistorical(OTHER);
+    old.resolve(response(completed())); await first;
+    assert.equal(model.snapshot().historyBusy, true);
+    newer.resolve(response(completed(OTHER))); await second;
+    assert.equal(model.snapshot().historicalSelection, OTHER);
+    assert.equal(model.snapshot().displayRecord?.job_id, OTHER);
+    assert.equal(model.snapshot().historyBusy, false); readOnly(calls);
+  });
+});
+
+test('failed older poll cannot erase a completed history open', async () => {
+  const delay = deferred(); let reads = 0;
+  const { model, calls } = controller(async url => {
+    if (url !== ROOT) return response(completed());
+    return ++reads === 1 ? delay.promise : response(status());
+  });
+  const poll = model.poll(); await model.openHistorical(ID);
+  delay.resolve(response({ detail: 'old status missing' }, 404)); await poll;
+  assert.equal(model.snapshot().displayRecord?.job_id, ID);
+  assert.equal(model.snapshot().record?.job_id, ID);
+  assert.equal(model.snapshot().error, ''); readOnly(calls);
+});

@@ -12,5 +12,12 @@
 <body class="expansion-page"><header class="expansion-header"><a href="/">← Robot Scope</a>
 <h1>확장 기능 · 검토 작업 공간</h1><p>저장 사본 · 관측 진단 · 기록 재생. 운영 지도 적용과 로봇 제어는 제공하지 않습니다.</p>
 <button id="expansion-theme" type="button">테마 전환 / Theme</button><p id="expansion-status" role="status"></p>
+<section id="expansion-session" class="expansion-session" hidden aria-label="검토 세션">
+<form id="expansion-login"><label for="expansion-code">일회용 코드</label>
+<input id="expansion-code" type="password" autocomplete="one-time-code" required>
+<button type="submit">로그인</button></form>
+<div id="expansion-session-active" hidden><span id="expansion-session-info"></span>
+<button id="expansion-logout" type="button">로그아웃</button></div>
+<p id="expansion-session-status" role="status" aria-live="polite"></p></section>
 <nav id="expansion-nav" aria-label="확장 기능"></nav></header>
 <main id="expansion-host"></main></body></html>

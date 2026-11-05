@@ -41,7 +41,7 @@ from robot_dashboard.pcd_editing.store import (
     _sync_directory,
     SourceAsset,
 )
-from .catalogue import Busy, Conflict, ResolvedSource, validate_dag
+from .catalogue import Busy, Conflict, ResolvedSource, review_evidence_kind, validate_dag
 
 _NAME = re.compile(r"[A-Za-z0-9_-]{1,64}\Z")
 
@@ -461,7 +461,7 @@ class BundleStore:
         m = self.get(result_id)
         d = MapSourceDescriptor(
             schema_version="0.1",
-            evidence_kind=m["sources"][0]["evidence_kind"],
+            evidence_kind=review_evidence_kind(m["sources"]),
             producer="c1-bundle",
             sequence=0,
             source_epoch=m["id"],

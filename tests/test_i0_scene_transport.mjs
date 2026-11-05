@@ -32,9 +32,9 @@ test('one pending scene request, disposal aborts and ignores late context; no re
  assert.equal(callbacks,0);assert.equal(scheduled,0);
 });
 test('source failure backoff bounded, timer cleaned and subsequent mount has one request',async()=>{
- let scheduled=[],timer,removed=0,errors=0;
+ let scheduled=[],timer,removed=0,errors=0,clears=0;
  const poll=startScenePolling({request:async()=>{const e=new Error('BLOCKED_INPUTS');e.status=503;throw e;},
- onContext:()=>{},onPacket:()=>{},onError:()=>errors++,schedule:(fn,ms)=>{timer=fn;scheduled.push(ms);return scheduled.length;},cancel:()=>removed++});
+ onContext:value=>{assert.equal(value,null);clears++;},onPacket:()=>{},onError:()=>errors++,schedule:(fn,ms)=>{timer=fn;scheduled.push(ms);return scheduled.length;},cancel:()=>removed++});
  await tick();for(let i=0;i<12;i++){await timer();}
- assert.equal(errors,13);assert.ok(scheduled.every(ms=>ms>=1000&&ms<=30000));poll.destroy();assert.equal(removed,1);
+ assert.equal(errors,13);assert.equal(clears,13);assert.ok(scheduled.every(ms=>ms>=1000&&ms<=30000));poll.destroy();assert.equal(removed,1);
 });
