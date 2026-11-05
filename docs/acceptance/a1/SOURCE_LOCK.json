@@ -79,5 +79,46 @@
     "local_replay_input": "SYNTHETIC",
     "rollback_to_previous_release_observed": true
   },
-  "initial_protected_map_manifest_sha256": "521068a337ca9a247841e7b636d93e045f8e88721100afdd908cefb2d9909430"
+  "initial_protected_map_manifest_sha256": "521068a337ca9a247841e7b636d93e045f8e88721100afdd908cefb2d9909430",
+  "multimap_review_preparation": {
+    "candidate": "7092851dca9561ca240462eaefc8282f2f892b80",
+    "archive_sha256": "2063a9b0dffcca5c60e06444c191ed5b550f02cf9f46e21cd796d25780a6a66a",
+    "tracked_blobs_verified": 2709,
+    "staged_on_device": true,
+    "selector_switched": false,
+    "services_restarted": false,
+    "last_known_active_release": "8c26c3f588f9f7f48e6325f5b5601c5e33d524f3",
+    "current_device_state": "UNAVAILABLE_OPERATOR_REPORTED",
+    "same_place_real_maps": "USER_CONFIRMED",
+    "copied_input_count": 2,
+    "input_points": [
+      86785,
+      127882
+    ],
+    "source_capture_epoch": null,
+    "source_capture_session": null,
+    "source_epoch_basis": "ORIGINAL_SAVED_FILE_REVISION",
+    "frozen_first_status_sha256": "957fb4307a80e907c87b074d74c35f8bc77726906a60ced64a1f20aedcd0c66a",
+    "intended_flags": {
+      "multimap": true,
+      "replay": true,
+      "usability": true,
+      "scene": false,
+      "runtime": false
+    },
+    "ci": [
+      {
+        "run": 41976977598,
+        "head_sha": "7092851dca9561ca240462eaefc8282f2f892b80",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "run": 41976977597,
+        "head_sha": "7092851dca9561ca240462eaefc8282f2f892b80",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ]
+  }
 }

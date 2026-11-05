@@ -1,6 +1,6 @@
 # A1 실장비 기록 · 2026-11-05 KST
 
-**최신 종료 상태 · 14:02 KST** · 아래 후속 배포에서 양 실행판 `8c26c3f588f9f7f48e6325f5b5601c5e33d524f3`, REPLAY·USABILITY ON, 나머지 확장 flags OFF를 확인했다. SOFTWARE STOP 잠금 ON, 배터리 63%, Nav2·goal idle, lease inactive, deadman false, 명령·관측 속도 0, 관측 서비스 inactive, 제어 브리지 active/authenticated로 종료했다.
+**마지막 완료 회차 종료 상태 · 14:02 KST** · 아래 후속 배포에서 양 실행판 `8c26c3f588f9f7f48e6325f5b5601c5e33d524f3`, REPLAY·USABILITY ON, 나머지 확장 flags OFF를 확인했다. SOFTWARE STOP 잠금 ON, 배터리 63%, Nav2·goal idle, lease inactive, deadman false, 명령·관측 속도 0, 관측 서비스 inactive, 제어 브리지 active/authenticated로 종료했다.
 
 **앞선 정지 센서 회차 · 11:15 KST** · 고정판 `dce1e88995e5989d63fab257ea55b8d7d2ab8e24`로 대시보드와 브리지 실행을 검증했다. 정지 FAST-LIO 관측 1회를 종료했다. 배터리 84%, Nav2·goal idle, lease inactive, deadman false, 명령 전축 0, 관측 서비스 inactive, 제어 브리지 active/authenticated였다. 이번 A1의 초기 위치·goal 전송, P1/P2 주행, 시험 녹색 클릭은 각각 0회다.
 
@@ -41,3 +41,26 @@
 이 API는 공유 잠금 또는 대기자가 있으면 소유권을 읽지 않는다는 소스로 원인을 확인했다. 비공개 배포 도구에서 그 정확한 미조회 응답만 최대 15초간 GET으로 기다리도록 최소 수정했다. 실제 busy/unknown 결과와 lifecycle·제어·보호파일 검사는 유지했다. 세 번째 전환에서는 미조회 표본 뒤 0.54초 만에 정상 유휴 표본을 얻었고 14:01:42 KST에 새 양 실행본을 검증했다. 제품 코드 수정은 0건이다. 브라우저 대표 검사 여섯 행은 모두 통과했고 최초 실패와 모든 전환·복구 원문은 비공개 영수증에 남겼다.
 
 **문서 게시 전 검사** · 실제 장비 브라우저 여섯 행 PASS, 관련 JavaScript 133개 PASS. macOS 전체 Python은 3,668개 실행, 실패 12·오류 112·skip 40이었다. 추가 오류 51개는 로컬 소켓 bind 권한 거절이었고 해당 51개만 통신이 가능한 환경에서 재검사해 전부 통과했다. 남은 실패·오류 73개의 이름은 이전 A1 macOS 회차와 정확히 같았다(`/proc` 및 교정 파일 소유권 가정 등). 전체 로컬 PASS로 표시하지 않는다. 지원 Linux 검증은 위 고정 코드 SHA의 CI 성공으로 구분한다. 이번 게시 변경은 A1 문서 네 파일뿐이다.
+
+
+## 여러 지도 검토 연결 준비 · 실행판 전환 전 연결 중단
+
+운영자는 두 입력이 같은 장소를 겹쳐 촬영한 실지도임을 확인했고, 현재 Mac 브라우저의 키체인 등록도 직접 승인했다. A1은 인증서 한 장을 해당 호스트 SSL 용도로 등록하고 macOS 신뢰 검증 성공을 확인했다. 장비에 새 비공개 검토 폴더·인증 저장소·읽기 전용 원본 사본 2개를 준비했다. 두 사본은 각각 86,785/127,882점이며 원본 내용 SHA가 일치했다. 새로운 catalogue ID/revision과 원본 ID/revision을 구분했다. 최초 sensor capture session/epoch는 null이다.
+
+최종 게시판 `7092851dca9561ca240462eaefc8282f2f892b80`은 별도 불변 release의 2,709파일, archive SHA256 `2063a9b0dffcca5c60e06444c191ed5b550f02cf9f46e21cd796d25780a6a66a`로 준비했다. 실제 장비 venv에서 ROS 초기화를 차단한 앱·브리지 import, source 경로, 두 검토 사본 조회, HTTPS 인증서/개인키 쌍, 공개 flags와 기존 준비/정지 API를 검증했다. 사전 검사 당시 기존 실행판은 `8c26c3f`, 원본 지도 보존 기준은 140파일이었다. 이 준비는 listener 실행이나 서비스 전환이 아니다.
+
+| 행 | 연결 중단 시 상태 |
+|---|---|
+| M00 정지·소유권 | 최초 정지·STOP 상태는 확인. 현재 연결 불가로 재조회 필요. |
+| M01 HTTPS | Mac 호스트별 인증서 신뢰 PASS, 직접 TLS 실행기 로컬 회귀 PASS. 장비 listener 미활성. |
+| M02 검토 세션 | 비공개 DB 준비, 로컬 TLS read/review·회수·만료 검사 PASS. 실제 장비 로그인 NOT_RUN. |
+| M03 실지도 catalogue | 사용자 같은 장소 확인, 원본 해시 동일 사본·신원 근거 준비, 장비 venv catalogue 조회 PASS. |
+| M04 정합·수락·전체 점 저장·재조회 | DEVICE_NOT_RUN. 계산·수락·저장 요청 0. |
+| M05 기존 HTTP/WS·대시보드·REPLAY·STOP | 새 실행판의 실제 장비 브라우저 회귀 NOT_RUN. |
+| M06 보존·복구 | 운영 selector·서비스 변경 0. 전환 직전 보존 재조회와 배포/복구는 연결 후 수행. |
+
+연결 불가 통보 이후 장비 접속을 중단했다. 운영 지도 선택·활성화, initial pose, goal, 추가 센서 세션, 실제 이동은 수행하지 않았다. A3 코드가 함께 게시됐지만 실험 준비·seed·goal은 이번 승인 범위가 아니며 실행하지 않았다. 미사용 초기 준비판 `b4998f2`와 실제 게시 후보를 구분해 증거를 남겼다.
+
+최종 결합 소스의 macOS 전체 Python 3,697건은 FAIL 12/ERROR 61/skip 40으로 기존 실패 이름 73개와 동일했다. A3 후속 상대 odometry 준비 보정까지 반영한 관련 100건, JavaScript 765건, 정적 검사 PASS다. 공개 Git에는 사본·인증서 개인키·로그인 코드·장비 주소를 넣지 않았다. 실제 접속 주소와 비공개 증거는 현장 인계 사본에 보존한다.
+
+고정 후보의 최종 [표준 CI](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41976977598)는 Ubuntu 22.04/Python 3.10, Ubuntu 24.04/Python 3.12, competition-offline 모두 SUCCESS이며 [I0 제품 CI](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41976977597)도 SUCCESS다. 이 결과는 `7092851` 소프트웨어 검증이고 장비 전환·실지도 정합 성공을 뜻하지 않는다.
