@@ -1,6 +1,8 @@
 # A1 실장비 기록 · 2026-11-05 KST
 
-**종료 상태** · 고정판 `dce1e88995e5989d63fab257ea55b8d7d2ab8e24`로 대시보드와 브리지 실행을 검증했다. 정지 FAST-LIO 관측 1회를 종료했다. 배터리 84%, Nav2·goal idle, lease inactive, deadman false, 명령 전축 0, 관측 서비스 inactive, 제어 브리지 active/authenticated였다. 이번 A1의 초기 위치·goal 전송, P1/P2 주행, 시험 녹색 클릭은 각각 0회다.
+**최신 종료 상태 · 14:02 KST** · 아래 후속 배포에서 양 실행판 `8c26c3f588f9f7f48e6325f5b5601c5e33d524f3`, REPLAY·USABILITY ON, 나머지 확장 flags OFF를 확인했다. SOFTWARE STOP 잠금 ON, 배터리 63%, Nav2·goal idle, lease inactive, deadman false, 명령·관측 속도 0, 관측 서비스 inactive, 제어 브리지 active/authenticated로 종료했다.
+
+**앞선 정지 센서 회차 · 11:15 KST** · 고정판 `dce1e88995e5989d63fab257ea55b8d7d2ab8e24`로 대시보드와 브리지 실행을 검증했다. 정지 FAST-LIO 관측 1회를 종료했다. 배터리 84%, Nav2·goal idle, lease inactive, deadman false, 명령 전축 0, 관측 서비스 inactive, 제어 브리지 active/authenticated였다. 이번 A1의 초기 위치·goal 전송, P1/P2 주행, 시험 녹색 클릭은 각각 0회다.
 
 | KST | 장비에서 확인한 근거 |
 |---|---|
@@ -20,3 +22,22 @@
 **복구** · 기존 release와 selector 백업은 장비에 남겼다. 첫 시도에서 구판 브리지 복구를 실증했다. 새 selector를 적용한 뒤의 전체 역전환은 미실행이다. 필요 시 운영자가 정지·제어권과 새 작업 부재를 확인하고 두 서비스의 정상 종료를 거친 뒤 정확한 기존 selector를 복원해 양쪽 source·HTTP·유휴·보호 해시를 다시 읽는다. A2 push 자동 배포는 설정하지 않았다.
 
 원본 현장 영수증 SHA256은 `17a8939e7288ebe2a95dac937e8a96f57fd1ae7487522e60450c85d332fc9b06`이다. 비공개 사본에 두 전환 시도, 시간·세션·서비스 영수증을 분리 보존했다.
+
+## REPLAY·사용 안내 후속 배포 · 13:54–14:02 KST
+
+사용자가 A2 채팅에서 요청한 `8c26c3f` 배포·메뉴·재생·기존 대시보드·STOP 검증 원문을 A1이 확인했다. 장비 작업은 A1 상위만 수행했다. 실제 이동·goal·관측 시작·지도/프리셋 변경·HTTPS/provider 연결은 추가하지 않았다. 기존 자동 preview는 서비스 재시작의 영향 범위였으며 별도 관측·mapping 세션을 시작하지 않았다. 후보의 정확한 SHA에 대한 표준 CI `41967399703`과 I0/C0 CI `41967399665` 성공 영수증을 인수했다.
+
+| 항목 | 결과와 범위 |
+|---|---|
+| 고정판·flags | DEVICE_STATIONARY PASS. archive SHA256 `88adf92758a15a7235efda030c5013467d7ee9469c11b5f8a9be41d017d1165b`, 2,690파일 검증. 장비 venv에서 ROS 초기화를 차단한 앱·브리지 import 후 양 프로세스·서명된 bridge release·HTTP 자산과 렌더 HTML을 대조했다. REPLAY=1, USABILITY=1, MULTIMAP=0, SCENE=0, RUNTIME=0. |
+| 확장 진입 | 실제 장비 HTTP에서 데스크톱 상단 링크, 모바일 390px 더 보기→확장 기능, Robot Scope 복귀 PASS. Navigation 화면과 기존 STOP 표시 확인. |
+| 로컬 재생·비교 | 장비가 제공한 제품 화면에서 로컬 합성 C6 파일 A/B를 선택했다. 원본 ns 시각, 조건 불일치 안내, 재생·일시정지·seek 및 관측 표시 PASS. 파일 업로드·재생 경로의 제어 요청 0. 실제 주행 기록 수집 성공을 뜻하지 않는다. |
+| 비활성 기능·안내 | 다섯 안내, 지도·Scene·콘의 FEATURE_DISABLED, private 지도/Scene/session GET 404 PASS. 인증서 신뢰·실측 producer·native 보호 검증은 미실행. |
+| SOFTWARE STOP | 실제 버튼 POST 1회, HTTP 200, latch=true, dashboard와 일치하는 bridge stop ACK(age 10 ms), SportModeState 속도 전축 0(age 5 ms) PASS. 이동 중 제동·P1 정밀 정지는 미실행. 잠금을 해제하지 않았다. |
+| 보존·종료·복구 | 직전 기준 지도 140파일·navigation 4파일·기타 설정 6파일 해시 일치. 앞선 회차 이후 늘어난 지도도 그대로 보존했다. 새 bridge 프로세스 nonzero_move/action 각각 0, 활성 목표·lease 없음, 관측 inactive. 직전판과 설정 백업 유지. |
+
+첫 전환은 변경 전에 OWNERSHIP 검사에서 중단됐고 두 PID와 selector는 그대로였다. 첫 거절 원문을 수집하지 못해 원인 미확정으로 남겼다. 진단 원문을 보존한 두 번째 전환에서는 새 프로세스 시작 직후 `pipeline_coordination / owners_not_sampled`가 관측돼 원복했다. 이전판을 재시작한 직후 같은 조회 거절로 복구 완료 판정도 중단됐지만, 별도 조회에서 이전판 양 실행본·인증·유휴·속도 0을 확인했고 다음 preflight에서 원래 selector 해시를 대조했다.
+
+이 API는 공유 잠금 또는 대기자가 있으면 소유권을 읽지 않는다는 소스로 원인을 확인했다. 비공개 배포 도구에서 그 정확한 미조회 응답만 최대 15초간 GET으로 기다리도록 최소 수정했다. 실제 busy/unknown 결과와 lifecycle·제어·보호파일 검사는 유지했다. 세 번째 전환에서는 미조회 표본 뒤 0.54초 만에 정상 유휴 표본을 얻었고 14:01:42 KST에 새 양 실행본을 검증했다. 제품 코드 수정은 0건이다. 브라우저 대표 검사 여섯 행은 모두 통과했고 최초 실패와 모든 전환·복구 원문은 비공개 영수증에 남겼다.
+
+**문서 게시 전 검사** · 실제 장비 브라우저 여섯 행 PASS, 관련 JavaScript 133개 PASS. macOS 전체 Python은 3,668개 실행, 실패 12·오류 112·skip 40이었다. 추가 오류 51개는 로컬 소켓 bind 권한 거절이었고 해당 51개만 통신이 가능한 환경에서 재검사해 전부 통과했다. 남은 실패·오류 73개의 이름은 이전 A1 macOS 회차와 정확히 같았다(`/proc` 및 교정 파일 소유권 가정 등). 전체 로컬 PASS로 표시하지 않는다. 지원 Linux 검증은 위 고정 코드 SHA의 CI 성공으로 구분한다. 이번 게시 변경은 A1 문서 네 파일뿐이다.

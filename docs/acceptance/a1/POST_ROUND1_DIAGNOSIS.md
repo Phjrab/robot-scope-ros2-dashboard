@@ -13,3 +13,5 @@
 | 접근/회전/정지/화면 | 지도 공간이 달라 목표를 보내지 않았다. 동작 결과·정지 오차·경사로 보정·렌더 연속성 측정값이 없다. | yaw·속도·progress·가중치·맵·교정 튜닝 없음. 다음 지도 현장에서 승인된 1회 시험으로 평가. |
 
 Humble rclpy 3.3.22의 take_message는 두 타임스탬프만 노출하고 일반 executor는 메시지만 콜백에 준다. 그래프의 GID를 메시지별 신원으로 승격하지 않았다. 새 경로는 비활성, URDF는 ADVISORY_ONLY다. [Humble native binding](https://github.com/ros2/rclpy/blob/3.3.22/rclpy/src/rclpy/subscription.cpp) · [executor](https://github.com/ros2/rclpy/blob/3.3.22/rclpy/rclpy/executors.py)
+
+후속 REPLAY 배포의 첫 OWNERSHIP 거절은 원문 누락으로 원인 미확정이다. 두 번째 전환과 원복 직후의 거절은 `system/ownership-readback`이 잠금/대기자 존재 시 `pipeline_coordination / owners_not_sampled`를 반환한 것이며 제품의 정상 보수적 동작이다. 배포 도구가 이 응답을 즉시 최종 실패로 판정한 문제가 있었다. 정확한 미조회 상태에만 제한 시간의 읽기 재시도를 추가하고 실제 busy/unknown·서비스 admission·정지·해시 검사를 유지했다. 세 번째 전환, 실제 브라우저 대표 검사, STOP 1회와 자산 보존이 통과했다. [시간·최초 실패·복구 근거](FIELD_SESSION.md#replay사용-안내-후속-배포--13541402-kst)

@@ -3,7 +3,7 @@
   "repo": "Phjrab/robot-scope-ros2-dashboard",
   "branch": "main",
   "round1_source": "dce1e88995e5989d63fab257ea55b8d7d2ab8e24",
-  "field_candidate_frozen": "dce1e88995e5989d63fab257ea55b8d7d2ab8e24",
+  "field_candidate_frozen": "8c26c3f588f9f7f48e6325f5b5601c5e33d524f3",
   "field_candidate_applied_by_a1": true,
   "field_loaded_source_evidence": "FIELD_SESSION.md",
   "ancestors_verified": [
@@ -26,8 +26,20 @@
   ],
   "auto_deploy_main": false,
   "original_loaded_source": "4ff0e47467f9d049706cd70ca49af6e3da805457",
-  "verified_field_release": "dce1e88995e5989d63fab257ea55b8d7d2ab8e24",
+  "verified_field_release": "8c26c3f588f9f7f48e6325f5b5601c5e33d524f3",
   "release_archive": {
+    "source": "8c26c3f588f9f7f48e6325f5b5601c5e33d524f3",
+    "tracked_blobs_verified": 2690,
+    "sha256": "88adf92758a15a7235efda030c5013467d7ee9469c11b5f8a9be41d017d1165b",
+    "size_bytes": 90726228,
+    "scope": "git source archive only"
+  },
+  "round1_json_sha256": "d9c035bddd6a2bee87ab2a55dd8b7439e4f22b538a925c3776de83533caeebb9",
+  "stationary_receipt_sha256": "17a8939e7288ebe2a95dac937e8a96f57fd1ae7487522e60450c85d332fc9b06",
+  "protected_map_manifest_sha256": "c871240eec16754e162b9506a4836825e12d704053221c8fd32fcb3dd2b760ce",
+  "end_selected_map": null,
+  "initial_field_candidate_frozen": "dce1e88995e5989d63fab257ea55b8d7d2ab8e24",
+  "initial_release_archive": {
     "source": "dce1e88995e5989d63fab257ea55b8d7d2ab8e24",
     "tree": "20c724cbebbfcc9646dcf8acdb849388ef8cb307",
     "tracked_blobs_verified": 2655,
@@ -35,8 +47,37 @@
     "size_bytes": 90654113,
     "scope": "git source archive only"
   },
-  "round1_json_sha256": "d9c035bddd6a2bee87ab2a55dd8b7439e4f22b538a925c3776de83533caeebb9",
-  "stationary_receipt_sha256": "17a8939e7288ebe2a95dac937e8a96f57fd1ae7487522e60450c85d332fc9b06",
-  "protected_map_manifest_sha256": "521068a337ca9a247841e7b636d93e045f8e88721100afdd908cefb2d9909430",
-  "end_selected_map": null
+  "replay_deployment": {
+    "completed_utc": "2026-11-05T05:02:46.721466+00:00",
+    "flags": {
+      "replay": true,
+      "usability": true,
+      "multimap": false,
+      "scene": false,
+      "runtime": false
+    },
+    "ci": [
+      {
+        "run": 41967399703,
+        "head_sha": "8c26c3f588f9f7f48e6325f5b5601c5e33d524f3",
+        "conclusion": "success"
+      },
+      {
+        "run": 41967399665,
+        "head_sha": "8c26c3f588f9f7f48e6325f5b5601c5e33d524f3",
+        "conclusion": "success"
+      }
+    ],
+    "private_receipt_sha256": "58e50358340e3ffcc74ce17f2c9108b3bd3019ec972a957900f06c9544cff245",
+    "protected_map_manifest_sha256": "c871240eec16754e162b9506a4836825e12d704053221c8fd32fcb3dd2b760ce",
+    "map_files": 140,
+    "navigation_files": 4,
+    "stop_latched": true,
+    "sensor_starts": 0,
+    "goals": 0,
+    "nonzero_moves": 0,
+    "local_replay_input": "SYNTHETIC",
+    "rollback_to_previous_release_observed": true
+  },
+  "initial_protected_map_manifest_sha256": "521068a337ca9a247841e7b636d93e045f8e88721100afdd908cefb2d9909430"
 }
