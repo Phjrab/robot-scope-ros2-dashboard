@@ -3,7 +3,7 @@
   "repo": "Phjrab/robot-scope-ros2-dashboard",
   "branch": "main",
   "round1_source": "dce1e88995e5989d63fab257ea55b8d7d2ab8e24",
-  "field_candidate_frozen": "7092851dca9561ca240462eaefc8282f2f892b80",
+  "field_candidate_frozen": "59714317c5abefca43b25fe8c78015f7843f387c",
   "field_candidate_applied_by_a1": true,
   "field_loaded_source_evidence": "FIELD_SESSION.md",
   "ancestors_verified": [
@@ -26,12 +26,12 @@
   ],
   "auto_deploy_main": false,
   "original_loaded_source": "4ff0e47467f9d049706cd70ca49af6e3da805457",
-  "verified_field_release": "7092851dca9561ca240462eaefc8282f2f892b80",
+  "verified_field_release": "59714317c5abefca43b25fe8c78015f7843f387c",
   "release_archive": {
-    "source": "7092851dca9561ca240462eaefc8282f2f892b80",
-    "tracked_blobs_verified": 2709,
-    "sha256": "2063a9b0dffcca5c60e06444c191ed5b550f02cf9f46e21cd796d25780a6a66a",
-    "size_bytes": 90770220,
+    "source": "59714317c5abefca43b25fe8c78015f7843f387c",
+    "tracked_blobs_verified": 2711,
+    "sha256": "cad58e80c9acb51a1ad4fc55827760f5103c1cfc6e33b70047db4e31ffc9bd68",
+    "size_bytes": 90788944,
     "scope": "git source archive only"
   },
   "round1_json_sha256": "d9c035bddd6a2bee87ab2a55dd8b7439e4f22b538a925c3776de83533caeebb9",
@@ -121,7 +121,7 @@
       }
     ]
   },
-  "previous_verified_field_release": "8c26c3f588f9f7f48e6325f5b5601c5e33d524f3",
+  "previous_verified_field_release": "7092851dca9561ca240462eaefc8282f2f892b80",
   "multimap_review_deployment": {
     "source": "7092851dca9561ca240462eaefc8282f2f892b80",
     "completed_kst": "2026-11-05T15:30:29+09:00",
@@ -153,5 +153,50 @@
     "originals_unchanged": true,
     "private_job_receipt_sha256": "c12abb0a1d7b2e65a4db6eee65f696dd128f5b6d51feaf52485232b8812439e9",
     "private_final_audit_sha256": "d6a30988d4cf7d4fbe8eddca25c1f1695b573e3dbea9c8a8ebffcc997db49259"
+  },
+  "previous_release_archive": {
+    "source": "7092851dca9561ca240462eaefc8282f2f892b80",
+    "tracked_blobs_verified": 2709,
+    "sha256": "2063a9b0dffcca5c60e06444c191ed5b550f02cf9f46e21cd796d25780a6a66a",
+    "size_bytes": 90770220,
+    "scope": "git source archive only"
+  },
+  "access_deployment": {
+    "source": "59714317c5abefca43b25fe8c78015f7843f387c",
+    "completed_kst": "2026-11-05T17:13:09+09:00",
+    "ci": [
+      {
+        "run": 41989057092,
+        "head_sha": "59714317c5abefca43b25fe8c78015f7843f387c",
+        "conclusion": "success"
+      },
+      {
+        "run": 41989057089,
+        "head_sha": "59714317c5abefca43b25fe8c78015f7843f387c",
+        "conclusion": "success"
+      }
+    ],
+    "initial_status_sha256": "ff45c8e4addefc1b97b169d2b21bfb2d1f9a204926ee7f92f3a7153c003bd567",
+    "final_audit_sha256": "0b8eca0eb1b3f26920f665ff24235cd0c14a636ec79f771d5da6ed18a33698b7",
+    "https_no_login_browser": "PASS",
+    "manual_stop_blocking": "PASS",
+    "manual_map_detail": "FAIL_FIRST_5_SECOND_ASSERTION",
+    "manual_map_followup": "BLOCKED_NETWORK_BEFORE_PAGE_LOAD_20261106",
+    "maps_preserved": 140,
+    "navigation_recursive_files_preserved": 287,
+    "other_configuration_files_preserved": 6,
+    "review_files_preserved": 6,
+    "startup_stop_latched": true,
+    "last_readback_utc": "2026-11-05T08:16:59.762502+00:00",
+    "last_stop_latched": false,
+    "stop_change_actor": "UNKNOWN_OPERATOR_ANSWER_PENDING",
+    "a1_stop_clear_requests": 0,
+    "sensor_starts": 0,
+    "initialposes": 0,
+    "goals": 0,
+    "nonzero_requests": 0,
+    "actions": 0,
+    "old_startup_log_lookup": "NOT_FOUND_IN_CHECKED_LOCATIONS",
+    "source_changes_this_round": 0
   }
 }

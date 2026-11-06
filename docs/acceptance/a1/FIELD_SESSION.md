@@ -1,6 +1,6 @@
 # A1 실장비 기록 · 2026-11-05 KST
 
-**마지막 완료 회차 종료 상태 · 14:02 KST** · 아래 후속 배포에서 양 실행판 `8c26c3f588f9f7f48e6325f5b5601c5e33d524f3`, REPLAY·USABILITY ON, 나머지 확장 flags OFF를 확인했다. SOFTWARE STOP 잠금 ON, 배터리 63%, Nav2·goal idle, lease inactive, deadman false, 명령·관측 속도 0, 관측 서비스 inactive, 제어 브리지 active/authenticated로 종료했다.
+**이전 회차 종료 상태 · 14:02 KST** · 아래 후속 배포에서 양 실행판 `8c26c3f588f9f7f48e6325f5b5601c5e33d524f3`, REPLAY·USABILITY ON, 나머지 확장 flags OFF를 확인했다. SOFTWARE STOP 잠금 ON, 배터리 63%, Nav2·goal idle, lease inactive, deadman false, 명령·관측 속도 0, 관측 서비스 inactive, 제어 브리지 active/authenticated로 종료했다.
 
 **앞선 정지 센서 회차 · 11:15 KST** · 고정판 `dce1e88995e5989d63fab257ea55b8d7d2ab8e24`로 대시보드와 브리지 실행을 검증했다. 정지 FAST-LIO 관측 1회를 종료했다. 배터리 84%, Nav2·goal idle, lease inactive, deadman false, 명령 전축 0, 관측 서비스 inactive, 제어 브리지 active/authenticated였다. 이번 A1의 초기 위치·goal 전송, P1/P2 주행, 시험 녹색 클릭은 각각 0회다.
 
@@ -85,3 +85,25 @@
 본문과 별도로 최초 접속 실패, 전환 거절, 첫 정합/모바일 시험 실패, 원문 job GET, 마지막 telemetry stale을 비공개 증거에 보존했다. 최초 A1 9행 결과표와 여러 지도 7행 상태표는 수정하지 않았다. 관측 서비스 inactive, Nav2 goal 없음, 운영 지도 미선택을 유지했다. UI 검사를 위한 세션 POST 외 로봇 제어 쓰기는 없었다.
 
 **현장 종료 문서 검사** · 게시 전 원격 main의 A3 격리 workflow/runner 2파일만 fast-forward로 인수했으며 장비는 7092851을 유지한다. A1 기존 Python 3.12.14 가상환경의 전체 3,697건은 FAIL 12/ERROR 61/skip 40, 실패 이름 73개는 앞선 Mac 기준과 동일하고 신규 이름은 없다. JavaScript 765건·secret scan·diff 형식 검사 PASS. 처음 두 검사 시도는 기본 Python 3.13 및 가상환경 밖 Python 3.12에서 의존성 부재로 각각 2,591건(FAIL 1/ERROR 161/skip 46), 2,661건(FAIL 16/ERROR 118/skip 57)이었고 원문을 보존했다. 필수 모듈 import를 확인한 기존 A1 가상환경으로 교정했으며 제품 소스 변경은 없다. 지원 Linux의 장비 코드 검증은 고정 7092851의 두 CI 성공이다.
+
+
+## 로그인 제거 고정판 적용·읽기 검증 · 2026-11-05 17:08–17:22 KST
+
+사용자의 배포 요청 원문을 확인하고 A1 상위만 장비를 조작했다. 후보 `59714317c5abefca43b25fe8c78015f7843f387c`의 [표준 CI](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41989057092)와 [I0 CI](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41989057089)가 모두 SUCCESS였다. 최초 7행 배포 상태표 SHA256 `ff45c8e4addefc1b97b169d2b21bfb2d1f9a204926ee7f92f3a7153c003bd567`을 전환 전에 고정했다.
+
+| 항목 | 실제 결과·한계 |
+|---|---|
+| U00 정지·소유권 | 첫 z속도 표본은 -0.0304 m/s로 전환하지 않았다. 조건을 유지하고 17:11의 fresh·제로 속도 5표본과 STOP ON·유휴를 확인했다. |
+| U01 불변 소스 | 2,711파일, archive 90,788,944 bytes, SHA256 `cad58e80c9acb51a1ad4fc55827760f5103c1cfc6e33b70047db4e31ffc9bd68`. 장비의 실제 의존성 import PASS, 이 단계에서는 ROS 초기화 금지. |
+| U02 전환 | 정상 bridge stop 완료 17:12:58, dashboard stop 17:13:01. selector의 release 한 줄만 교체, 17:13:09 양 프로세스의 정확한 새 release 검증. 원복 실행 없음. 기존 release·selector 백업 유지. |
+| U03 로그인 없는 확장 | 실제 Mac Chromium 정상 TLS, OWNER_POLICY, 사본 2개 신원·원본 SHA, 새 탭·새로고침·390px 모바일 PASS. session GET 404·cookie 0. 계산/수락/저장 없음. |
+| U04 실험·STOP | 실험 메뉴, STOP 안내, 준비·전송 비활성, can_start=false/software_stop_latched 확인 PASS. 현장 일치 checkbox는 선택하지 않았다. 지도 상세 로딩·주행 성공을 포함하지 않는다. |
+| U05 회귀·접근 경계 | 실제 HTTP/WS/WSS·합성 REPLAY 원본 ns·Scene 비활성 PASS. HTTP/잘못된 Origin/잘못된 Host는 403. 검사 클라이언트 TLS 오류와 후속 검증은 별도 보존. |
+| U06 보존 | 지도 140·navigation 재귀 287·selector 외 설정 6·검토/TLS 6파일 동일. navigation 287은 하위 runtime 자료를 포함해 조사 범위를 넓힌 수치이며 배포로 추가한 수치가 아니다. release 외 환경 설정은 동일. |
+| U06 마지막 STOP | 17:15 ON → 17:16:59 OFF. A1 clear 요청 0, 현장 조작 여부 INPUT_REQUIRED. 마지막 표본은 lease/goal 없음·명령 0·본체 속도 0/age 3ms·배터리 51%·nonzero/action 0. 시작 STOP 성공과 이후 상태를 구분한다. |
+
+검사 브라우저는 GET/HEAD 외 요청과 control WebSocket을 차단했다. 초기값·goal·추가 센서 시작·운영지도 교체는 각각 0건이다. A3 초기값 뒤 stale 중단의 원인을 고쳤다는 주장이 아니다. 17:22에 이전 최초 작업의 영구 기록을 읽었으나 조사한 ROS 로그 176개 중 해당 runtime PID 파일이 없었고 해당 job 폴더도 없었다. 지정한 시작 구간의 service journal은 `No entries`였다. 기록 소실 시점/이유는 확정하지 않았다.
+
+**지도 상세 별도 첫 결과와 11월 6일 후속** · 목록 36개가 표시된 뒤 map-info가 5초 동안 `2D 지도 필요`여서 첫 검사는 FAIL이다. 원래 검사를 덮어쓰지 않았다. 11월 6일 09:34 KST GET endpoint/상태/완료 시간/응답 크기를 기록하는 후속 브라우저는 페이지 접속 전에 `ERR_NETWORK_CHANGED`로 중단됐고 지도 GET은 0개였다. 후속은 BLOCKED_DEPENDENCY이며 단순 지연인지 제품 오류인지 아직 구분할 수 없다. 초기 브라우저 실행의 Mac 권한 오류도 별도 보존했다.
+
+**게시 전 검사** · 기존 A1 가상환경 전체 Python 3,698건: FAIL 12/ERROR 61/skip 40. 실패 이름 73개는 앞선 Mac 기준과 정확히 같고 신규 이름은 없다. JavaScript 765건 PASS. 제품 변경은 없으며 이번 게시 범위는 A1 기록 네 파일이다. Linux 제품 검증은 위 고정 SHA의 CI 성공으로 구분한다.

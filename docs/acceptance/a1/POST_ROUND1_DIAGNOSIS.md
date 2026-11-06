@@ -40,3 +40,15 @@ Humble rclpy 3.3.22의 take_message는 두 타임스탬프만 노출하고 일�
 Chromium 근거: [macOS trust 구현](https://chromium.googlesource.com/chromium/src/+/main/net/cert/internal/trust_store_mac.cc), [로컬 SSL 신뢰 설명](https://chromium.googlesource.com/chromium/src/+/main/net/data/ssl/chrome_root_store/faq.md). 인증서 신뢰 교정 뒤에는 실제 장비와 기존 브라우저 신뢰 저장소를 사용했고 응답 mock이나 TLS 오류 무시는 사용하지 않았다.
 
 종료 문서 검사의 두 초기 실패는 A1 전용 가상환경 미선택으로 fastapi/yaml/scipy 등의 모듈을 찾지 못한 환경 문제였다. 기존 가상환경과 정규 임시 경로에서 전체 3,697건을 실행하자 기존 Mac 실패 73개와 정확히 같았고 신규 실패 이름은 없었다. 검사를 통과시키기 위한 제품·안전 조건 변경은 없었다.
+
+
+## 5971431 배포 이후 추가 진단
+
+| 사건 | 원인·경계 | 처리 |
+|---|---|---|
+| 통신 검사 TLS | 실제 Mac 브라우저 HTTPS는 PASS. 별도 Node API 클라이언트는 Mac trust를 자동 사용하지 않아 self-signed 오류. 같은 leaf를 명시한 뒤 정상/HTTP/Origin 검증 PASS. 잘못된 Host를 준 Node 검사에서는 TLS 이름 확인이 HTTP보다 먼저 거부했다. | Python TLS에서 원래 접속 이름 검증을 유지하며 HTTP Host만 바꿔 403을 확인했다. TLS 무시·제품 정책 완화 없음. 최초 실패 보존. |
+| 수동 실험 지도 상세 | 목록 36개와 상세 표시는 별개다. 최초 5초 내 상세 표시 미완료. 당시 상세 GET의 응답·오류 계측이 없어 원인 미확정. | 후속 요청 계측은 다음 날 페이지 접속 전 ERR_NETWORK_CHANGED로 중단. FAIL을 PASS로 바꾸지 않는다. 지도/센서/서비스 변경 없음. |
+| STOP 상태 변경 | 시작/17:15 ON, 17:16 OFF. A1 clear 없음, A0도 clear 없음으로 보고. 변경 주체 미확정. | 사용자 확인 대기. 이후 제어·초기값·goal·서비스 변경 없음. 상태를 임의 복원하지 않았다. |
+| 이전 초기값 이후 중단 | 초기값 수락 뒤 localization inputs stale로 제어 비활성화. 기존 snapshot의 odometry stale_stamp=192는 누적 단서이며 첫 중단 시점의 직접 원인 증명이 아니다. 이후 별도 job의 정상 health와 합치지 않는다. | 최초 runtime PID 로그·job 폴더·지정 startup journal은 조사 범위에서 복구하지 못했다. 새 센서/seed/goal을 실행해 최초 사건을 덮지 않는다. source/시계/지연 원인은 추가 자료가 필요하다. |
+
+이번 회차는 배포·접속·보존 검사이며 정합 알고리즘·품질 기준·Nav2 파라미터·교정 수정은 없다. 최초 실지도 DISCONNECTED, 초기 배치/대응점 없음과 저장 차단을 유지한다.

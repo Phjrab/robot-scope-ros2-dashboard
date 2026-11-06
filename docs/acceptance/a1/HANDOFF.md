@@ -1,10 +1,12 @@
 # A1 주행 인계
 
-**현장 적용 · 2026-11-05 15:30 KST** · HTTPS·실지도 검토 연결을 고정판 `7092851dca9561ca240462eaefc8282f2f892b80`로 적용했다. 양 서비스 실행본·실제 Mac 브라우저의 정상 HTTPS·읽기/검토 로그인·사본 지도 2개 조회·기존 HTTP/WS·REPLAY·모바일 메뉴와 새로고침을 확인했다. MULTIMAP/REPLAY/USABILITY는 ON, SCENE/RUNTIME은 OFF다. A3 실험 준비·seed·goal은 실행하지 않았다.
+**마지막 검증 배포 · 2026-11-05 17:13 KST** · 대시보드와 브리지를 고정판 `59714317c5abefca43b25fe8c78015f7843f387c`로 전환했다. 실제 Mac 브라우저에서 정상 HTTPS·로그인 없는 사본 지도 2개 조회·새 탭/새로고침·기존 HTTP/WS/WSS·합성 REPLAY·모바일 화면을 확인했다. 현재 접근 절차는 [로그인 없는 대시보드 접근](../a2/DASHBOARD_ACCESS.md)을 따른다. MULTIMAP/REPLAY/USABILITY는 ON, SCENE/RUNTIME은 OFF이며 후속 main은 자동 배포하지 않는다.
 
-첫 실지도 정합 1회는 `DISCONNECTED`로 종료했다. 유효 겹침은 양방향 0.0086667, inlier 13, 거리 p95 5.2533 m였다. 수락·리뷰 PCD 저장은 BLOCKED_DEPENDENCY이며 저장본은 0개다. 운영자는 확인된 상대 배치/대응점이 없다고 답했다. 품질 조건·정합 알고리즘을 바꾸거나 반복 계산하지 않았다.
+시작 STOP ON과 준비 차단은 17:15에 확인했다. **17:16:59 마지막 조회에서는 STOP OFF**로 바뀌었다. A1은 해제 명령을 보내지 않았으며 현장 조작 여부는 확인 대기다. 해당 표본은 lease·goal 없음, fresh 본체 속도 0, 배터리 51%, bridge nonzero/action 요청 0이었다. 이 시각의 상태를 현재 상태로 간주하지 않는다. 지도 140파일, 프리셋·교정을 포함한 navigation 재귀 287파일, 기타 설정 6파일과 검토/TLS 6파일이 배포 전후 동일했다. 운영지도·초기값·goal·센서 세션은 변경하지 않았다.
 
-마지막 15:52 KST 조회에서 SOFTWARE STOP 잠금 ON, lease 없음, 제어 명령 전축 0, nonzero/action 요청 0을 확인했다. 다만 본체 telemetry가 13.297초 오래되어 bridge ready=false였으므로 **현재 물리 정지는 확인되지 않았다**. 원본 지도 140파일·navigation 4파일·기타 설정 6파일과 검토 사본 해시는 동일했다. 활성 goal·선택 운영지도·정지 관측 세션은 없다. 이전 FAST-LIO 정지 관측 기록은 유지하며, 이번 검토 연결은 초기화·P1/P2·경사로 성공을 추가하지 않는다.
+첫 실지도 정합은 `DISCONNECTED`, 유효 겹침 양방향 0.0086667, inlier 13, 거리 p95 5.2533 m였다. 운영자가 확인된 상대 배치/대응점은 없다고 답했다. 수락·리뷰 저장은 BLOCKED_DEPENDENCY이며 품질 조건 변경이나 추가 정합은 없다.
+
+A3 메뉴는 **실험 → 2D 수동 초기 위치 주행**이다. STOP ON에서 준비 차단 표시/API는 확인했지만, 별도 지도 상세 검사는 목록 36개 조회 후 5초 내 표시 미완료로 FAIL이다. 11월 6일 요청 계측은 페이지 접속 전 네트워크 오류로 중단돼 원인은 미확정이다. 이 검사를 지도 로딩 성공으로 합산하지 않는다.
 
 | 행 | 이번 회차 종료 판정 |
 |---|---|
@@ -15,13 +17,15 @@
 | D04–05 | 시험 녹색 early/double/stale·한 번당 다음 goal 1개 소프트웨어 PASS. P1 실측 정지·dwell, P2 출발·종료 BLOCKED_DEPENDENCY. |
 | D06 | 상승/정상/하강 운영 위치추정 BLOCKED_OPERATOR. |
 | D07 | 실제 정지 센서 graph + 로컬 재생 PASS. 격리 C4 native·새 장애물 costmap/planner/actuator BLOCKED_DEPENDENCY. |
-| D08 | 정지 세션 정리와 후속 배포 자산 보존 PASS. 지도 140파일·navigation 4파일·기타 설정 6파일 보존. SOFTWARE STOP 잠금 ON. 최종 본체 telemetry stale로 현재 물리 정지 UNKNOWN, 주행 후 측정 NOT_RUN. |
+| D08 | 정지 세션 정리·배포 자산 보존 PASS. 지도 140파일·navigation 재귀 287파일 보존. 마지막 17:16 표본은 STOP OFF, fresh 속도 0. STOP 변경 주체 INPUT_REQUIRED. 주행 후 정지 측정 NOT_RUN. |
 
-**다음 한 가지** · 보존한 `map1`/`map1_2D`의 실제 장소에서 현재 현장 범위와 X/Y/yaw 초안·정지 가정을 운영자가 확인한다. 현재 STOP 잠금의 해제는 다음 현장 절차에서 명시적으로 다룬다. 그다음 geometry → 정확한 관측 종료 → Nav2 → 명시 INITIAL POSE → 별도 match·지속 보정을 검증한다. 실제 이동 직전에 운영자·충전선 분리·배터리(20% 이하면 중단)·통로·회수/정지 수단·제어권·목표·횟수·시간을 새로 확인한다. 후속 main을 자동 배포하지 않는다.
+**다음 한 가지** · 마지막 STOP 상태 변경의 현장 조작 여부를 확인한다. 이후 보존한 `map1`/`map1_2D`의 실제 장소에서 현재 현장 범위와 X/Y/yaw 초안·정지 가정을 운영자가 확인한다. 현재 STOP·제어권은 새 시험창에서 다시 확인한다. 그다음 geometry → 정확한 관측 종료 → Nav2 → 명시 INITIAL POSE → 별도 match·지속 보정을 검증한다. 실제 이동 직전에 운영자·충전선 분리·배터리(20% 이하면 중단)·통로·회수/정지 수단·제어권·목표·횟수·시간을 새로 확인한다. 후속 main을 자동 배포하지 않는다.
 
 [첫 결과표](ROUND1_RESULTS.md) · [후속 진단](POST_ROUND1_DIAGNOSIS.md) · [현장 관측·복구](FIELD_SESSION.md) · [A2 입력](A2_INPUT_HANDOFF.md) · [소스 고정](SOURCE_LOCK.json)
 
-## 후속 여러 지도 검토 연결
+## 이전 여러 지도 검토 연결 · 7092851 기록
+
+아래 ReviewAccess·일회용 코드·DB·로그인 도우미는 이전판 절차다. 5971431에서는 로그인/코드 발급이 필요 없으며 기존 DB는 보존된 미사용 파일이다. 현재 사용법은 위 접근 문서를 따른다.
 
 사용자가 승인한 추가 범위는 직접 HTTPS·ReviewAccess·별도 사본 catalogue를 연결하고 실지도 2개 정합→후보 검토→리뷰 PCD 저장·재조회까지 확인하는 것이다. 두 지도는 동일 장소를 겹쳐 촬영한 실지도라고 운영자가 확인했다. 센서 수집 epoch와 최초 capture session은 확인되지 않아 null로 유지한다. REPLAY의 `source_epoch`는 원본 저장 파일 revision이며 센서 epoch라는 뜻이 아니다. frame은 보존된 map-family 선언, m 단위는 기존 mapping 산출 규약에 근거한다. 복사본은 자기 ID/revision을 사용하고 원본 ID/revision/내용 SHA를 acquisition에 따로 보존한다.
 
@@ -35,4 +39,4 @@
 
 ## A3 수동 2D 주행 격리 검증
 
-`4cebeed`를 ROS 2 Humble 격리 환경에서 실행했다. 비영점 odom 시드·직선 목표·이동 중 취소·비용지도 장애물 우회·odom 중단 후 정지·새 작업의 명시 재시드를 확인했다. 이 SHA는 초기값 수락 직후 Nav2 활성화가 끝나기 전에 목표가 거부될 수 있다. 별도 승인된 A3 현장 시험에서 `bt_navigator`의 `active` 상태를 읽은 뒤 목표를 명시 전송한다. A3 실장비 검증 상태는 `DEVICE_NOT_RUN`이다. [A3 절차와 측정값](../a3/HANDOFF.md) · [격리 실행 결과](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41983696807)
+`4cebeed`를 ROS 2 Humble 격리 환경에서 실행했다. 비영점 odom 시드·직선 목표·이동 중 취소·비용지도 장애물 우회·odom 중단 후 정지·새 작업의 명시 재시드를 확인했다. 이 SHA는 초기값 수락 직후 Nav2 활성화가 끝나기 전에 목표가 거부될 수 있다. 별도 승인된 A3 현장 시험에서 `bt_navigator`의 `active` 상태를 읽은 뒤 목표를 명시 전송한다. 이는 격리 시험의 결과다. 이후 사용자의 실장비 초기값 요청은 수락됐으나 입력 stale로 제어가 비활성화된 별도 사건이 있으며, P1/P2 성공을 입증하지 않는다. A1은 이번 배포 회차에서 초기값·goal을 보내지 않았다. [A3 절차와 측정값](../a3/HANDOFF.md) · [격리 실행 결과](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/41983696807)
