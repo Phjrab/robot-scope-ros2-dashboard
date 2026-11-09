@@ -283,6 +283,78 @@ class OperationalNavigationBundleTests(unittest.TestCase):
             self.manager.snapshot_for_job(self.navigation['id'], self.navigation['revision'], directory)
         self.assertFalse((directory / 'operational-3d.json').exists())
 
+    def operator_pair(self):
+        return {**{key: value for key, value in self.selection.items() if key != 'seed_pose'},
+                'pair_confirmation': 'derived_same_coordinates'}
+
+    def test_user_pair_without_lineage_preserves_geometry_calibration_and_job_binding(self):
+        calibration_bytes = (self.runtime_root / 'operational-calibration.json').read_bytes()
+        with patch.object(self.manager, '_family', side_effect=AssertionError('not operator evidence')):
+            state = self.manager.select_pair(self.operator_pair())
+            self.assertTrue(self.manager.status()['pair']['valid'])
+        bundle = state['selected']
+        self.assertEqual(state['pair']['binding_source'], 'operator_confirmed')
+        self.assertIsNone(state['pair']['family'])
+        self.assertIsNone(bundle['seed_geometry'])
+        self.assertFalse(state['pair']['can_start'])
+        self.assertEqual(bundle['navigation_2d']['origin'], [0.7, -0.3, 0.2])
+        self.assertEqual(bundle['calibration']['T_imu_base'], self.calibration['T_imu_base'])
+        self.assertEqual(bundle['policy'], self.calibration['policy'])
+        self.assertEqual(bundle['calibration']['T_nav_map_from_localization_map'], np.eye(4).tolist())
+        self.assertEqual((self.runtime_root / 'operational-calibration.json').read_bytes(), calibration_bytes)
+        with self.assertRaisesRegex(ValueError, 'INITIAL_HEIGHT_TILT_REQUIRED'):
+            self.manager.preflight(self.navigation['id'], self.navigation['revision'])
+        self.manager.seed_geometry({'generation': bundle['generation'], 'z': .4, 'roll': .01, 'pitch': -.02})
+        destination = self.job_directory('operator-job')
+        self.manager.snapshot_for_job(self.navigation['id'], self.navigation['revision'], destination)
+        persisted = json.loads((destination / 'operational-3d.json').read_text())
+        self.assertEqual(persisted['map_binding'], bundle['map_binding'])
+
+    def test_user_pair_is_explicit_and_still_fences_changed_maps_and_busy_pipeline(self):
+        pair = self.operator_pair()
+        for bad in (False, True, '', 'same_name', None):
+            with self.subTest(bad=bad), self.assertRaisesRegex(ValueError, 'MAP_PAIR_OPERATOR_CONFIRMATION_REQUIRED'):
+                self.manager.select_pair({**pair, 'pair_confirmation': bad})
+        with self.assertRaisesRegex(ValueError, 'MAP_PAIR_LINEAGE_MISMATCH'):
+            self.manager.select_pair({key: value for key, value in pair.items() if key != 'pair_confirmation'})
+        selected = self.manager.select_pair(pair)['selected']
+        self.jobs.state = 'running'
+        with self.assertRaisesRegex(ValueError, 'STOP_NAVIGATION'):
+            self.manager.select_pair(pair)
+        self.jobs.state = 'idle'
+        self.yaml.write_text(self.yaml.read_text().replace('0.05', '0.06'))
+        self.assertFalse(self.manager.status()['pair']['valid'])
+        with self.assertRaises(SavedMapError):
+            self.manager.select_pair(pair)
+        self.assertEqual(self.manager.selected, selected)
+
+    def test_user_pair_bundle_cannot_reuse_confirmation_for_other_pins_or_transform(self):
+        from robot_dashboard.relocalization.operational import validate_bundle
+        original = self.manager.select_pair(self.operator_pair())['selected']
+        for mutation in ('pin', 'generation', 'transform', 'confirmation'):
+            candidate = copy.deepcopy(original)
+            if mutation == 'pin':
+                candidate['navigation_2d']['revision'] = 'f' * 64
+            elif mutation == 'generation':
+                candidate['generation'] = 'f' * 32
+            elif mutation == 'transform':
+                candidate['calibration']['T_nav_map_from_localization_map'][0][3] = 1
+            else:
+                del candidate['map_binding']['operator_confirmation']
+            with self.subTest(mutation=mutation), self.assertRaisesRegex(ValueError, 'MAP_PAIR_OPERATOR_CONFIRMATION_INVALID'):
+                validate_bundle(candidate)
+
+    def test_user_pair_does_not_require_server_family_source_match(self):
+        self.pair_fixture()
+        second = self.maps / 'other.pcd'
+        write_pcd(second, self.points + .1)
+        other = next(item for item in self.catalog.list_snapshot()['maps'] if item['name'] == 'other')
+        pair = {**self.operator_pair(), 'map_id': other['id'], 'map_revision': other['revision']}
+        state = self.manager.select_pair(pair)
+        self.assertTrue(state['pair']['valid'])
+        self.assertIsNone(state['pair']['family'])
+        self.assertEqual(state['pair']['operator_confirmation']['localization_3d']['map_id'], other['id'])
+
     def pair_fixture(self):
         from robot_dashboard.map_lineage import build_family_document, serialize_family_document
         family = build_family_document(family_id='a' * 24, mapping_session_id='b' * 24,

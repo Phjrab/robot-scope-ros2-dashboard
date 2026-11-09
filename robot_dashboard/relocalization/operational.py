@@ -140,6 +140,20 @@ def validate_bundle(bundle):
         raise ValueError('BODY_AND_MAP_CALIBRATION_REQUIRED')
     for key in ('T_nav_map_from_localization_map', 'T_imu_base'):
         validate_transform(calibration[key])
+    binding = bundle.get('map_binding') or {}
+    if binding.get('source') == 'operator_confirmed' or calibration.get('map_transform_source') == 'operator_confirmed':
+        confirmation = binding.get('operator_confirmation') or {}
+        stamp = confirmation.get('confirmed_at')
+        if (binding.get('source') != 'operator_confirmed'
+                or calibration.get('map_transform_source') != 'operator_confirmed'
+                or binding.get('family') is not None
+                or confirmation.get('statement') != 'derived_same_coordinates'
+                or confirmation.get('generation') != bundle.get('generation')
+                or type(stamp) not in (int, float) or not math.isfinite(stamp) or stamp <= 0
+                or any(confirmation.get(name) != {key: bundle[name][key] for key in ('map_id', 'revision')}
+                       for name in ('localization_3d', 'navigation_2d'))
+                or not np.array_equal(calibration['T_nav_map_from_localization_map'], np.eye(4))):
+            raise ValueError('MAP_PAIR_OPERATOR_CONFIRMATION_INVALID')
     seed = bundle.get('seed_T_map_imu')
     if seed is None:
         if bundle.get('workflow') != STAGED_WORKFLOW:

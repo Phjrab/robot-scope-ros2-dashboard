@@ -136,7 +136,7 @@ async function fixture(page) {
     if (path.endsWith('/pair')) {
       state.selected = { workflow: 'staged_navigation_pair', generation: 'pairgen',
         localization_3d: { map_id: cloud.id, revision: cloud.revision }, navigation_2d: { map_id: grid.id, revision: grid.revision },
-        calibration: { verified: true }, seed_geometry: null };
+        calibration: { verified: true }, seed_geometry: null, map_binding: { source: 'operator_confirmed' } };
       state.pair = { can_start: false };
       inputs.pair = { generation: 'pairgen', valid: true, localization_3d: state.selected.localization_3d, navigation_2d: state.selected.navigation_2d };
     }
@@ -169,6 +169,7 @@ test('map selection is passive, missing geometry is explicit, retry resumes with
   await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
   expect(f.writes).toHaveLength(0);
   expect(await page.evaluate(() => window.fixtureActions)).toEqual([]);
+  await page.locator('[data-prep="pair-confirmation"]').check();
   await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
   await expect(page.getByRole('region', { name: '준비 상태·해결할 항목' })).toContainText('초기 높이·기울기 미확인');
   expect(await page.evaluate(() => window.preparation.canStart())).toBe(false);
@@ -191,15 +192,47 @@ test('map selection is passive, missing geometry is explicit, retry resumes with
   expect(await page.evaluate(() => window.fixtureActions)).toEqual([]);
 });
 
+test('user map confirmation is required, consumed and invalidated by revision changes', async ({ page }) => {
+  const f = await fixture(page);
+  await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
+  const consent = page.locator('[data-prep="pair-confirmation"]');
+  const apply = page.getByRole('button', { name: '① 지도 연결 확인·적용' });
+  await expect(consent).not.toBeChecked();
+  await expect(apply).toBeDisabled();
+  await consent.check();
+  await expect(apply).toBeEnabled();
+  await page.evaluate(() => {
+    window.fixtureContext.map.revision = 'e'.repeat(64);
+    window.preparation.render();
+  });
+  await expect(consent).not.toBeChecked();
+  await expect(apply).toBeDisabled();
+  expect(f.writes).toHaveLength(0);
+  await page.evaluate(revision => { window.fixtureContext.map.revision = revision; window.preparation.render(); }, grid.revision);
+  await consent.check();
+  await apply.click();
+  await expect.poll(() => f.writes.length).toBe(1);
+  expect(f.writes[0].body).toEqual({ map_id: cloud.id, map_revision: cloud.revision,
+    navigation_map_id: grid.id, navigation_map_revision: grid.revision, pair_confirmation: 'derived_same_coordinates' });
+  await expect(consent).not.toBeChecked();
+  await expect(page.locator('[data-prep="steps"]')).toContainText('사용자 확인에 따른 지도 연결');
+  expect(await page.evaluate(() => window.fixtureActions)).toEqual([]);
+  await page.reload(); await mount(page);
+  await expect(consent).not.toBeChecked();
+  expect(f.writes).toHaveLength(1);
+});
+
 test('server rejection stays visible and exact pair can be rechecked; active runtime locks maps', async ({ page }) => {
   const f = await fixture(page);
   await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
   f.reject(true);
+  await page.locator('[data-prep="pair-confirmation"]').check();
   await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
   await expect(page.getByRole('region', { name: '준비 상태·해결할 항목' })).toContainText('PAIR_COORDINATE_RELATION_UNVERIFIED');
   f.reject(false);
+  await page.locator('[data-prep="pair-confirmation"]').check();
   await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
-  await expect(page.locator('[data-prep="selected"]')).toContainText('서버 준비 구성: map1 / map1_2D');
+  await expect(page.locator('[data-prep="selected"]')).toContainText('적용한 준비 구성: map1 / map1_2D');
   await page.evaluate(() => { window.fixtureContext.navigation.pipeline.state = 'running'; window.preparation.render(); });
   await expect(page.getByLabel('3D 위치추정 지도')).toBeDisabled();
   await expect(page.getByRole('button', { name: '① 지도 연결 확인·적용' })).toBeDisabled();
@@ -213,6 +246,7 @@ test('server rejection stays visible and exact pair can be rechecked; active run
 test('initial receipt requires explicit match and ready receipt never sends a goal; stale remains visible', async ({ page }) => {
   const f = await fixture(page);
   await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
+  await page.locator('[data-prep="pair-confirmation"]').check();
   await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
   f.state.selected.seed_geometry = { z: .34, roll: 0, pitch: 0, source: 'operator', confirmed_at: 1793444400 };
   f.state.pair.can_start = true;
@@ -261,6 +295,7 @@ async function completeOperatorDraftForStageOne(page, fixture) {
 test('server checks invalidate only their dependent stages and current execution ignores a previous success', async ({ page }) => {
   const f = await fixture(page);
   await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
+  await page.locator('[data-prep="pair-confirmation"]').check();
   await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
   f.state.pair = { valid: false, can_start: false, restart_from_step: 1,
     checks: [{ code: 'MAP_PAIR_LINEAGE_CHANGED', current: '변환 계보가 변경됨', required: '현재 연결 검증', remedy: '①부터 다시 확인' }] };
@@ -291,6 +326,7 @@ test('server checks invalidate only their dependent stages and current execution
 test('automatic fresh status clears a recovered read failure without losing the current preparation step', async ({ page }) => {
   const f = await fixture(page);
   await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
+  await page.locator('[data-prep="pair-confirmation"]').check();
   await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
   await expect(page.locator('[data-prep="steps"] > li').nth(0)).toHaveAttribute('data-state', '사용자 입력 필요');
   await expect(page.locator('[data-prep="current"]')).toContainText('현재 단계: 1.');
@@ -318,6 +354,7 @@ test('pending apply visibly checks its step and later fresh reads retain action 
   const f = await fixture(page);
   await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
   f.holdWrites();
+  await page.locator('[data-prep="pair-confirmation"]').check();
   await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
   await expect(page.locator('[data-prep="current"]')).toHaveText('현재 단계: 1. 지도 연결·사용자 위치 초안 · 확인 중');
   await expect(page.getByRole('button', { name: '① 지도 연결 확인·적용' })).toBeDisabled();
@@ -334,6 +371,7 @@ test('pending apply visibly checks its step and later fresh reads retain action 
 test('sensor evidence and individual candidates are descriptive and never applied automatically', async ({ page }) => {
   const f = await fixture(page);
   await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
+  await page.locator('[data-prep="pair-confirmation"]').check();
   await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
   await expect(page.locator('[data-prep="observation-status"]')).toContainText('관측 상태: 정지');
   await expect(page.getByRole('button', { name: '센서 관측 시작' })).toBeEnabled();
@@ -397,8 +435,9 @@ const diagnosticSample = () => ({ schema: 'robot-scope.preparation-diagnostics.v
 async function diagnosticFixture(page) {
   const f = await fixture(page);
   await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
+  await page.locator('[data-prep="pair-confirmation"]').check();
   await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
-  await expect(page.locator('[data-prep="selected"]')).toContainText('서버 준비 구성: map1 / map1_2D');
+  await expect(page.locator('[data-prep="selected"]')).toContainText('적용한 준비 구성: map1 / map1_2D');
   return f;
 }
 
@@ -531,6 +570,7 @@ test('stale diagnostics and late responses cannot describe a changed map selecti
 test('observation rejection exposes bridge reason and does not retry or bypass the server', async ({ page }) => {
   const f = await fixture(page);
   await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
+  await page.locator('[data-prep="pair-confirmation"]').check();
   await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
   f.inputs.start_blockers.items = ['CONTROL_BRIDGE_NOT_INACTIVE', 'OWNER_BUSY:navigation'];
   await page.evaluate(() => window.preparation.refresh(true));
@@ -552,6 +592,7 @@ test('observation rejection exposes bridge reason and does not retry or bypass t
 async function proposalFixture(page, { expectReady = true } = {}) {
   const f = await fixture(page);
   await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
+  await page.locator('[data-prep="pair-confirmation"]').check();
   await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
   await page.getByRole('button', { name: '센서 관측 시작' }).click();
   await expect(page.getByRole('button', { name: '센서 관측 종료' })).toBeEnabled();
@@ -622,8 +663,9 @@ test('proposal rejection and late result never retry or restore invalid data', a
 test('one combined read clears prior readiness when its operational state is invalid', async ({ page }) => {
   const f = await fixture(page);
   await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
+  await page.locator('[data-prep="pair-confirmation"]').check();
   await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
-  await expect(page.locator('[data-prep="selected"]')).toContainText('서버 준비 구성: map1 / map1_2D');
+  await expect(page.locator('[data-prep="selected"]')).toContainText('적용한 준비 구성: map1 / map1_2D');
   f.state.selected.seed_geometry = { z: .34, roll: 0, pitch: 0 };
   f.state.pair.can_start = true;
   await page.evaluate(() => window.preparation.refresh(true));
@@ -1202,6 +1244,7 @@ test('active bridge proof enables proposal only while current control guards rem
 test('old active bridge explains missing inhibit capability and sends no implicit commands', async ({ page }) => {
   const f = await fixture(page);
   await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
+  await page.locator('[data-prep="pair-confirmation"]').check();
   await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
   f.inputs.start_blockers.items = ['CONTROL_BRIDGE_INHIBIT_UNSUPPORTED'];
   await page.evaluate(() => window.preparation.refresh(true));
