@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import copy
 import os
 import uuid
 import threading
@@ -35,6 +36,7 @@ class FastlioObservationSession:
         self._handoff_receipts = {}
         self._bridge_context = None
         self._safety_error = None
+        self._owner_failure = None
         self._bridge_start_dispatched = False
         self._bridge_start_uncertain = False
         self._bridge_session = None
@@ -92,6 +94,7 @@ class FastlioObservationSession:
                 result['bridge_guard'] = None
             result.update(
                 schema="robot-scope.fastlio-observation-session.v1",
+                owner_failure=copy.deepcopy(self._owner_failure),
                 limit_s=LIMIT_SECONDS,
                 can_start=self.enabled
                 and not self._closed
@@ -137,24 +140,38 @@ class FastlioObservationSession:
             return self._latch_safety('CONTROL_OWNER_UNKNOWN_DURING_OBSERVATION')
         return None
 
-    def _check_bridge_context(self):
+    async def _check_bridge_context(self):
         context = self._bridge_context
         if context is None:
             return
-        bridge = self.runtime.lifecycle.control_bridge_snapshot().get('systemd', {})
+        snapshot = await asyncio.to_thread(self.runtime.lifecycle.control_bridge_snapshot)
+        bridge = snapshot.get('systemd', {})
         expected = 'active' if context.get('token') else 'inactive'
         if (bridge.get('available') is not True or bridge.get('active_state') != expected
                 or (expected == 'active' and (bridge.get('available') is not True
                     or bridge.get('sub_state') != 'running'
                     or bridge.get('invocation_id') != context['invocation_id']))):
             self._latch_safety('CONTROL_BRIDGE_STATE_CHANGED_DURING_OBSERVATION')
+        # Native I/O runs in a worker; the bounded ownership copy stays on the
+        # event loop under pipeline_coordination_lock. Offloading this copy
+        # can turn an event-loop reader's RLock into a false unknown.
         owners = ownership_readback(self.runtime)
         allowed = {'fastlio_observation', 'legacy_alignment'}
         global_id = (owners.get('components', {}).get('global_observation') or {}).get('active_id')
         proposals = getattr(self.runtime, '_navigation_initialization_proposals', None)
         if proposals is not None and proposals.owns_observation_job(global_id, self._status.get('session_id')):
             allowed.add('global_observation')
-        if any(name not in allowed for name in owners['busy_components'] + owners['unknown_components']):
+        busy = [name for name in owners['busy_components'] if name not in allowed]
+        unknown = [name for name in owners['unknown_components'] if name not in allowed]
+        if busy or unknown:
+            with self._lock:
+                if self._owner_failure is None:
+                    self._owner_failure = dict(
+                        sampled_monotonic_s=owners['sampled_monotonic_s'],
+                        busy_components=busy,
+                        unknown_components=unknown,
+                        unknown_reasons={name: owners['components'][name].get('reason') for name in unknown},
+                    )
             self._latch_safety('OBSERVATION_OWNER_CHANGED_OR_UNKNOWN')
         self.bridge_safety_error()
 
@@ -243,7 +260,7 @@ class FastlioObservationSession:
                 elif self._bridge_session is not None and binding != self._bridge_session:
                     self._latch_safety('OBSERVATION_SESSION_CHANGED')
             if self._bridge_context and status.get('active'):
-                await asyncio.to_thread(self._check_bridge_context)
+                await self._check_bridge_context()
             if self._safety_error:
                 self._try_handoff_record("error")
             self._try_handoff_record("status", status=status)
@@ -316,7 +333,8 @@ class FastlioObservationSession:
         async with self.runtime.pipeline_coordination_lock, self._io_lock:
             return await self._refresh()
 
-    def _start_blockers(self) -> list[str]:
+    async def _start_blockers(self) -> list[str]:
+        bridge_snapshot = await asyncio.to_thread(self.runtime.lifecycle.control_bridge_snapshot)
         readback = ownership_readback(self.runtime)
         allowed = {"fastlio_observation", "legacy_alignment"}
         blockers = [
@@ -324,7 +342,7 @@ class FastlioObservationSession:
             for name in readback["busy_components"] + readback["unknown_components"]
             if name not in allowed
         ]
-        bridge = self.runtime.lifecycle.control_bridge_snapshot().get("systemd", {})
+        bridge = bridge_snapshot.get("systemd", {})
         error = bridge_admission_error(self.runtime, bridge)
         if error:
             blockers.append(error.lower())
@@ -338,7 +356,7 @@ class FastlioObservationSession:
                     "관측기가 이미 실행 중이거나 시작할 수 없는 상태입니다."
                 )
             self.runtime.lifecycle.require_idle()
-            blockers = await asyncio.to_thread(self._start_blockers)
+            blockers = await self._start_blockers()
             if blockers:
                 raise ObservationSessionConflict(
                     "다른 작업을 먼저 종료하세요: " + ", ".join(blockers)
@@ -347,12 +365,14 @@ class FastlioObservationSession:
                 self._pending = "start"
                 self._select_inputs = True
                 self._safety_error = None
+                self._owner_failure = None
                 self._bridge_start_dispatched = False
                 self._bridge_start_uncertain = False
                 self._bridge_session = None
                 self._bridge_stop_accepted = False
             try:
-                bridge = self.runtime.lifecycle.control_bridge_snapshot().get('systemd', {})
+                bridge_snapshot = await asyncio.to_thread(self.runtime.lifecycle.control_bridge_snapshot)
+                bridge = bridge_snapshot.get('systemd', {})
                 error = bridge_admission_error(self.runtime, bridge)
                 if error:
                     raise ObservationSessionConflict(error)
@@ -368,7 +388,7 @@ class FastlioObservationSession:
                         if proof['reason'] or time.monotonic() >= deadline:
                             raise ObservationSessionConflict(proof['reason'] or 'CONTROL_BRIDGE_INHIBIT_ACK_TIMEOUT')
                         await asyncio.sleep(.05)
-                await asyncio.to_thread(self._check_bridge_context)
+                await self._check_bridge_context()
                 if self._safety_error:
                     raise ObservationSessionConflict(self._safety_error)
             except BaseException:

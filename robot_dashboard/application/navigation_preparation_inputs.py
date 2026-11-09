@@ -16,7 +16,7 @@ from ..relocalization.observation_alignment import ObservationAlignmentError, pa
 SCHEMA = 'robot-scope.navigation-preparation-inputs.v1'
 
 
-def observation_start_blockers(runtime):
+def observation_start_blockers(runtime, *, bridge=None):
     """Advisory copy under pipeline_coordination_lock; admission rechecks independently."""
     from .ownership_readback import ownership_readback
 
@@ -33,7 +33,8 @@ def observation_start_blockers(runtime):
         items.extend('OWNER_BUSY:' + item for item in owners['busy_components'] if item not in allowed)
         items.extend('OWNER_UNKNOWN:' + item for item in owners['unknown_components'] if item not in allowed)
         # Fixed systemd read only: avoid the lifecycle snapshot's unrelated preflight callbacks.
-        bridge = runtime.lifecycle.control_bridge_lifecycle._read_systemd()
+        if bridge is None:
+            bridge = runtime.lifecycle.control_bridge_lifecycle._read_systemd()
         if bridge.get('available') is not True or bridge.get('active_state') == 'unknown':
             items.append('CONTROL_BRIDGE_STATE_UNKNOWN')
         else:

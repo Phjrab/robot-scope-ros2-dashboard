@@ -134,7 +134,11 @@ async def preparation_inputs(request: Request, response: Response):
     runtime = runtime_from_request(request)
     manager = require_component(runtime.operational_navigation, 'operational localization is not configured')
     async with runtime.pipeline_coordination_lock:
-        blockers = await asyncio.to_thread(observation_start_blockers, runtime)
+        try:
+            bridge = await asyncio.to_thread(runtime.lifecycle.control_bridge_lifecycle._read_systemd)
+        except Exception:
+            bridge = {'available': False}
+        blockers = observation_start_blockers(runtime, bridge=bridge)
     result = await asyncio.to_thread(collect, manager, runtime.fastlio_observation, runtime.agent)
     result['start_blockers'] = blockers
     return result
