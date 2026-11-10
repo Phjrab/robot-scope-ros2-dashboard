@@ -30,7 +30,7 @@ jobs:
           uname -a > "$RUNNER_TEMP/c3-evidence/runner.txt"
       - name: Materialize pinned D0 inputs and original sensor source (read only)
         run: |
-          git fetch --no-tags --depth=1 origin 83f4ee8d6971d00ab31b2de0eeebf329542dd5d6
+          git -c http.https://github.com/.extraheader= fetch --no-tags --depth=1 https://github.com/Phjrab/robot-scope-ros2-dashboard.git 83f4ee8d6971d00ab31b2de0eeebf329542dd5d6
           python3 experiments/competition_nav2/prepare_d0.py
       - name: Build Humble image (download phase)
         timeout-minutes: 12

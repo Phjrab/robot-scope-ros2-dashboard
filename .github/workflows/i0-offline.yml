@@ -47,7 +47,7 @@ jobs:
           python -c "import json; r=json.load(open('i0-timer.json')); assert r['result']=='NO_LEAK_OBSERVED', r"
       - name: Exact pinned offline diagnostic sources
         run: |
-          python -c "from robot_dashboard.expansion_diagnostics.dependencies import PINS; import subprocess; [subprocess.run(['git','fetch','--no-tags','--depth=1','origin',sha],check=True) for sha in PINS.values()]"
+          python -c "from robot_dashboard.expansion_diagnostics.dependencies import PINS; import subprocess; [subprocess.run(['git','-c','http.https://github.com/.extraheader=','fetch','--no-tags','--depth=1','https://github.com/Phjrab/robot-scope-ros2-dashboard.git',sha],check=True) for sha in PINS.values()]"
           python -m robot_dashboard.expansion_diagnostics prepare --repo . --output /tmp/i0-pinned
       - name: Baseline and bounded diagnostics without changing any limits
         run: |
