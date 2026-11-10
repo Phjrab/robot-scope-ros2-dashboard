@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { installDashboardBackend } from './dashboard_backend.mjs';
+import { syntheticCloudFrame } from './ui_redesign_fixture.mjs';
 
 async function openDashboard(page, backendOptions = {}, hash = 'overview') {
   const backend = await installDashboardBackend(page, backendOptions);
@@ -129,7 +130,9 @@ test('RealSense resolution selection survives polling and applies exactly once',
 });
 
 test('Cockpit enter, leave, resize, and 20 reentries keep one scene and one PointCloud owner', async ({ page }) => {
-  const backend = await openDashboard(page, {}, 'cockpit');
+  // Keep the socket live: silence deliberately triggers the production watchdog
+  // and would make connection counts depend on runner speed instead of ownership.
+  const backend = await openDashboard(page, { pointcloudFrame: syntheticCloudFrame }, 'cockpit');
   await expect(page.locator('#cockpitWorkspace')).toBeVisible();
   await expect(page.locator('#cockpitSceneCanvas')).toBeVisible();
   await expect(page.locator('.cockpit-scene-readout')).toHaveCount(0);

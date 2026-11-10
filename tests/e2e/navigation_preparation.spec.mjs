@@ -248,6 +248,9 @@ test('initial receipt requires explicit match and ready receipt never sends a go
   await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
   await page.locator('[data-prep="pair-confirmation"]').check();
   await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
+  // The click dispatches an async mutation and follow-up read. Let both settle
+  // before changing the fixture, so a queued old read cannot replace the seed.
+  await expect(page.locator('[data-prep="clear"]')).toBeEnabled();
   f.state.selected.seed_geometry = { z: .34, roll: 0, pitch: 0, source: 'operator', confirmed_at: 1793444400 };
   f.state.pair.can_start = true;
   await page.evaluate(() => window.preparation.refresh(true));

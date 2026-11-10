@@ -116,9 +116,6 @@ jobs:
       - name: Install Chromium for browser tests
         run: npx playwright install --with-deps chromium
 
-      - name: Run hardware-free browser E2E
-        run: npm run test:e2e:ci
-
       - name: Run mission real-API fixture E2E
         run: npx playwright test --config playwright.competition.config.mjs --reporter=line --output=competition-test-results
 
@@ -136,4 +133,52 @@ jobs:
             test-results/
             competition-test-results/
             manual-navigation-test-results/
+          if-no-files-found: ignore
+
+  # Keep the complete browser suite within the existing job budget on private
+  # runners. Test-level sharding balances large files; each shard still uses
+  # the configured single worker and unchanged assertions.
+  hardware-free-browser:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            python: "3.10"
+            shard: 1
+          - os: ubuntu-22.04
+            python: "3.10"
+            shard: 2
+          - os: ubuntu-24.04
+            python: "3.12"
+            shard: 1
+          - os: ubuntu-24.04
+            python: "3.12"
+            shard: 2
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch exact historical dependencies for Python fixtures
+        run: git -c http.https://github.com/.extraheader= fetch --no-tags https://github.com/Phjrab/robot-scope-ros2-dashboard.git 765622ecbe20dd29b40296dd2ad24fa508ac9443 380800ca9e211495769fe60ee8221e3f4fb40f16 9e9ebcc0cbc613d5b0a7f50a27a7b256c3f829bd
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install fixture dependencies
+        run: |
+          python -m pip install -r requirements.txt -r requirements-competition-offline.txt
+          npm ci --ignore-scripts
+          npx playwright install --with-deps chromium
+      - name: Run hardware-free browser E2E shard
+        run: npm run test:e2e:ci -- --fully-parallel --shard=${{ matrix.shard }}/2
+      - name: Preserve browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-evidence-${{ matrix.os }}-python-${{ matrix.python }}-shard-${{ matrix.shard }}
+          path: test-results/
           if-no-files-found: ignore
