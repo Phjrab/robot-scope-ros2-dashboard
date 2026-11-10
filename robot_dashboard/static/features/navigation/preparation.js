@@ -1,6 +1,6 @@
 /** Presentation only. Runtime admission remains authoritative for every command. */
 export const PREPARATION_STEPS = [
-  ['지도 선택·연결 확인', '3D·2D 지도 ID/revision, 변환 계보와 좌표 관계를 서버에서 확인'],
+  ['지도 선택·연결 확인', '사용자가 3D에서 변환한 2D 지도인지와 같은 좌표 기준인지를 확인하고 적용'],
   ['센서·교정·초기값 준비', '센서 관측과 출처·좌표 기준을 확인하고 지도 기준 초기 높이·기울기 준비'],
   ['Nav2 시작·노드와 TF 확인', '실행 source, 현재 점군·자세, Nav2 노드와 TF 입력 확인'],
   ['INITIAL POSE 지정·전송', '지도에서 지정한 현재 위치·방향의 실제 런타임 접수 확인'],
@@ -306,9 +306,9 @@ export function preparationModel({ state, navigation = {}, draft3d, draft2d, err
   for (const check of pairChecks) issues.push(issue(check.code || 'PAIR_CHECK_FAILED', check.current || '서버 검사 미충족', check.required || '서버 검증 통과', check.code === 'INITIAL_HEIGHT_TILT_REQUIRED' ? '②에서 초기 위치 제안을 계산해 감독 확인 후 적용하거나, 확인한 지도 기준 값을 직접 입력·저장하세요.' : check.remedy || '해당 단계를 다시 확인하세요.', geometryCodes.has(check.code) ? 2 : state.pair.restart_from_step || 1));
   if (!draft3d) issues.push(issue('MAP_3D_REQUIRED', '3D 지도 미선택', '위치추정용 저장 3D 지도', '3D 위치추정 지도에서 지도를 선택하세요.', 1));
   if (!draft2d) issues.push(issue('MAP_2D_REQUIRED', '2D 지도 미선택', '경로 계산용 2D 지도', '2D 경로 계산 지도를 선택하세요.', 1));
-  if (draft3d && draft2d && !matched) issues.push(issue('PAIR_NOT_APPLIED', '선택한 지도 조합이 서버 준비 구성과 다름', '정확한 ID·revision과 검증된 변환 계보', '① 지도 연결 확인·적용을 누르세요. 실행 중이면 먼저 STOP하세요.', 1));
+  if (draft3d && draft2d && !matched) issues.push(issue('PAIR_NOT_APPLIED', '선택한 지도 조합이 아직 적용되지 않았거나 변경됨', '사용자의 변환 관계·동일 좌표 기준 확인', '지도 조합 확인란을 체크하고 ① 지도 연결 확인·적용을 누르세요. 실행 중이면 먼저 STOP하세요.', 1));
   if (selected && !geometryReady && !geometryBlocked) issues.push(issue('INITIAL_GEOMETRY_REQUIRED', '초기 높이·기울기 미확인', '지도 좌표의 본체 높이(m)·roll/pitch(rad)', '②에서 초기 위치 제안을 계산해 감독 확인 후 적용하거나, 확인한 지도 기준 값을 직접 입력·저장하세요.', 2));
-  if (selected && selected.calibration?.verified !== true) issues.push(issue('CALIBRATION_REQUIRED', '검증된 교정 정보 없음', '본체·센서·TF와 지도 연결의 서버 검증', '교정·좌표 관계의 서버 검사 결과를 확인하세요.', 2));
+  if (selected && selected.calibration?.verified !== true) issues.push(issue('CALIBRATION_REQUIRED', '검증된 교정 정보 없음', '본체·센서·TF 교정 확인', '본체·센서 교정의 서버 검사 결과를 확인하세요.', 2));
   if (running && !applied) issues.push(issue('RUNTIME_SOURCE_MISMATCH', '실행 source 또는 지도·실행 세대 불일치', '선택한 구성과 동일한 실제 source', 'STOP 후 ①에서 지도 구성을 다시 확인하세요.', 3));
   if (applied && !nodesReady) {
     if (source.fresh !== true) issues.push(issue('RUNTIME_STATUS_STALE', '실행 상태 수신 오래됨', '신선한 센서·노드 검사 결과', '입력과 런타임 연결을 확인하고 ③부터 다시 확인하세요.', 3));
@@ -333,7 +333,7 @@ export function preparationModel({ state, navigation = {}, draft3d, draft2d, err
   if (tracking) statuses[5] = goalReady ? '완료' : '사용자 입력 필요';
   if (goalReady || currentGoal) statuses[6] = currentGoal?.state === 'succeeded' ? '완료' : ['failed', 'rejected'].includes(currentGoal?.state) ? '오류' : ['pending', 'active', 'canceling'].includes(currentGoal?.state) ? '확인 중' : '사용자 입력 필요';
   const checks = [
-    matched ? '서버가 준비한 지도 조합과 선택 ID·revision 일치' : '지도 선택 후 명시적 연결 검증 필요',
+    matched ? `${selected?.map_binding?.source === 'operator_confirmed' ? '사용자 확인에 따른 지도 연결 (좌표 관계 실측 아님)' : '기존 변환 계보에 따른 지도 연결'} · 선택 ID·revision 일치` : '지도 선택 후 사용자 확인·적용 필요',
     geometry?.source === 'proposal_confirmed' && !handoffReady ? '서버 가설이 있으나 현재 문맥과 관측 종료 확인이 필요합니다.' : geometry ? `${geometry.source === 'proposal_confirmed' ? '서버에 보관된 본체 가설' : '명시된 본체 값'} · 높이 ${geometry.z} m · roll ${geometry.roll} · pitch ${geometry.pitch} rad` : legacySeed ? '기존 명시적 3D 초기값과 교정 구성 사용' : '높이·기울기 값이 없으면 자동으로 0을 사용하지 않습니다.',
     nodesReady ? '이번 실행의 Nav2 초기 위치 접수 조건 확인' : 'Nav2 시작 후 실제 센서·노드·TF 상태를 확인합니다.',
     marker ? '실제 런타임 접수 확인 · 초기 위치 점 보존' : '사용자 초기 위치는 아직 확인되지 않았습니다.',
@@ -353,6 +353,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
   let state = null, busy = false, available = false, error = '', fetchError = '', checkedAt = 0, refreshing = false, draftTouched = false, actionStep = null;
   let draftContextEpoch = 0, draftContextConfirmed = false, draftRefreshPending = false, priorAckRevision = null, observationDraftPending = false, observationDraftAction = null;
   let lastContext = '', invalidated = '', selected3d = '', draft3dRevision = '', geometryGeneration = '';
+  let pairConsent = null;
   let inputs = null, inputsError = '', observationError = '', observationBusy = false, inputsRevision = 0, inputsRequestedAt = 0;
   let proposal = null, proposalError = '', proposalFailureDetail = '', proposalBusy = false, proposalEpoch = 0, proposalContext = null, proposalVerified = false, proposalCheckedAt = 0, proposalTimer = null, proposalExpiryTimer = null, proposalConsentBinding = null, proposalProofBinding = null;
   let cleanup = null, cleanupId = null, cleanupTimer = null, cleanupEpoch = 0, advisoryAfter = 0, advisoryRefreshPending = false;
@@ -361,6 +362,8 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
   const node = (tag, text, className) => { const el = document.createElement(tag); if (text !== undefined) el.textContent = text; if (className) el.className = className; return el; };
   host.innerHTML = `<div class="panel-header compact"><div><div class="eyebrow">STORED MAP NAVIGATION</div><h2>단계별 주행 준비</h2></div><button type="button" data-prep="refresh">현재 단계 다시 확인</button></div>
     <p data-prep="current"></p><p data-prep="selected"></p><p data-prep="applied"></p><p data-prep="invalidation" role="status"></p>
+    <label><input type="checkbox" data-prep="pair-confirmation"> 선택한 2D 지도가 선택한 3D 지도에서 만들어졌으며 같은 원점·축·미터 단위를 사용함을 직접 확인했습니다.</label>
+    <p>지도 조합과 좌표 관계는 사용자가 확인합니다. 서버는 변환 계보를 요구하지 않으며 파일·버전과 센서 교정은 계속 검사합니다. 크롭 후 원점이 보정된 지도는 같은 좌표를 유지할 수 있습니다. 회전 저장으로 벽의 좌표가 바뀐 지도는 좌표 변환을 맞추기 전에는 같은 좌표로 확인하지 마세요.</p>
     <div class="navigation-preparation-actions"><button type="button" data-prep="pair">① 지도 연결 확인·적용</button><button type="button" data-prep="clear">기존 2D 모드로 복구</button></div>
     <section aria-label="① 사용자 위치 초안"><h3>① 사용자 위치 초안</h3><p>아래 지도 조작부의 기존 INITIAL POSE 도구로 현재 위치와 방향을 그리세요. 미전송 사용자 가정이며 센서 측정이나 실제 위치 정확도가 아닙니다.</p>
     <p data-prep="prior-status" role="status"></p><p>새 초안의 후보 선택에는 서버 기본 검증 한도 위치 0.25 m · 방향 ±0.20 rad (약 ±11.5°)가 적용됩니다. 이 한도는 사용자 위치 불확실성 측정이나 실제 정확도의 보증이 아닙니다.</p>
@@ -377,6 +380,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     <section class="navigation-preparation-issues" aria-label="준비 상태·해결할 항목"><h3>준비 상태·해결할 항목</h3><div data-prep="issues" role="status"></div></section>
     <details><summary>기술 상세 · 현재 검사 수치와 실행 정보</summary><pre data-prep="details"></pre></details>`;
   const el = name => host.querySelector(`[data-prep="${name}"]`);
+  const pairConsentKey = (draft3d, map) => draft3d && map ? JSON.stringify([draft3d.id, draft3d.revision, map.id, map.revision]) : null;
   const selectors = node('div', undefined, 'navigation-preparation-map-selectors');
   for (const select of [map3dSelect, map2dSelect]) {
     const label = select.closest('label');
@@ -623,11 +627,13 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     viewSteps.forEach(step => { step.next = step.status === '완료'; });
     const nextStep = busy && actionStep ? viewSteps[actionStep > 4 ? actionStep - 2 : actionStep - 1] : viewSteps.find(step => step.status !== '완료') || viewSteps[5];
     el('current').textContent = model.enabled || busy ? `현재 단계: ${nextStep.number}. ${nextStep.title} · ${busy ? '확인 중' : nextStep.status}` : '현재 모드: 기존 2D · 저장 지도 위치추정은 3D 지도 선택 후 준비';
-    el('selected').textContent = `화면 선택: 3D ${draft3d?.name || '미선택'} / 2D ${map?.name || '미선택'} · 서버 준비 구성: ${selected ? `${mapName(selected.localization_3d)} / ${mapName(selected.navigation_2d)}` : '기존 2D 모드'}`;
+    el('selected').textContent = `화면 선택: 3D ${draft3d?.name || '미선택'} / 2D ${map?.name || '미선택'} · 적용한 준비 구성: ${selected ? `${mapName(selected.localization_3d)} / ${mapName(selected.navigation_2d)}` : '기존 2D 모드'}`;
     el('applied').textContent = source ? `실제 실행: ${source.source || 'source 미확인'} · 3D ${mapName({ map_id: source.localization_map_id, revision: source.localization_map_revision })} / 2D ${mapName(navigation.map)} · ${model.applied ? '준비 구성과 일치' : '구성 일치 미확인'} · ${model.tracking ? '추적 중' : '지도상 현재 위치 미확인'}` : '실제 실행: 저장 3D 지도 위치추정 미적용';
     el('invalidation').textContent = invalidated;
     map3dSelect.disabled = busy || navigationBusy || model.active;
-    el('pair').disabled = busy || navigationBusy || model.active || !draft3d || !map;
+    if (pairConsent !== pairConsentKey(draft3d, map)) { pairConsent = null; el('pair-confirmation').checked = false; }
+    el('pair-confirmation').disabled = busy || navigationBusy || model.active || !draft3d || !map;
+    el('pair').disabled = el('pair-confirmation').disabled || !pairConsent || !el('pair-confirmation').checked;
     el('clear').disabled = busy || navigationBusy || model.active || !selected;
     el('geometry').disabled = busy || navigationBusy || model.active || !selected;
     host.querySelectorAll('[data-geometry]').forEach(input => { input.disabled = busy || navigationBusy || model.active || !selected; });
@@ -923,9 +929,10 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
       handoffBusy = false; checkedAt = 0; render(); if (!refreshing && !busy) void refresh(true);
     }
   }
-  map3dSelect.addEventListener('change', () => { invalidateProposal(); clearHandoff(); draftTouched = true; selected3d = map3dSelect.value; draft3dRevision = current().draft3d?.revision || ''; error = ''; render(); onChange(); });
-  map2dSelect.addEventListener('change', () => { invalidateProposal(); clearHandoff(); draftTouched = true; error = ''; });
-  el('pair').onclick = () => { const { draft3d, map } = current(); if (!draft3d || !map) return; void run('/api/v1/navigation/operational-3d/pair', { map_id: draft3d.id, map_revision: draft3d.revision, navigation_map_id: map.id, navigation_map_revision: map.revision }); };
+  map3dSelect.addEventListener('change', () => { pairConsent = null; el('pair-confirmation').checked = false; invalidateProposal(); clearHandoff(); draftTouched = true; selected3d = map3dSelect.value; draft3dRevision = current().draft3d?.revision || ''; error = ''; render(); onChange(); });
+  map2dSelect.addEventListener('change', () => { pairConsent = null; el('pair-confirmation').checked = false; invalidateProposal(); clearHandoff(); draftTouched = true; error = ''; });
+  el('pair-confirmation').onchange = () => { const { draft3d, map } = current(); pairConsent = el('pair-confirmation').checked ? pairConsentKey(draft3d, map) : null; render(); };
+  el('pair').onclick = () => { const { draft3d, map } = current(); if (el('pair').disabled || !draft3d || !map || !pairConsent || pairConsent !== pairConsentKey(draft3d, map)) return; pairConsent = null; el('pair-confirmation').checked = false; void run('/api/v1/navigation/operational-3d/pair', { map_id: draft3d.id, map_revision: draft3d.revision, navigation_map_id: map.id, navigation_map_revision: map.revision, pair_confirmation: 'derived_same_coordinates' }); };
   el('clear').onclick = async () => { await run('/api/v1/navigation/operational-3d', undefined, 'DELETE'); if (!state?.selected) { map3dSelect.value = ''; draftTouched = true; render(); onChange(); } };
   el('geometry').onclick = () => {
     const values = Object.fromEntries([...host.querySelectorAll('[data-geometry]')].map(input => [input.dataset.geometry, input.value.trim() === '' ? null : Number(input.value)]));

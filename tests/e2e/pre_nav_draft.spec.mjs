@@ -85,7 +85,10 @@ test('pending pair mutation invalidates drafts until a fresh preparation read su
   if (failRead) return json({detail:'synthetic read failure'},503);
   return json({schema:'robot-scope.navigation-preparation-inputs.v1',pair,observation:{state:'STOPPED',active:false,can_start:false,can_stop:false},evidence:{valid:false,reason:'OBSERVATION_INACTIVE'},start_blockers:{items:['CONTROL_BRIDGE_NOT_INACTIVE']},candidates:{},operational_state:status,operational_state_error:null});
  });
+ await expect(page.locator('[data-prep="pair"]')).toBeDisabled();
+ await page.locator('[data-prep="pair-confirmation"]').check();
  await page.locator('[data-prep="pair"]').click();await expect.poll(()=>pairEntered).toBe(true);
+ await expect(page.locator('[data-prep="pair-confirmation"]')).not.toBeChecked();
  await expect(page.locator('#navigationPoseMode')).toHaveText('NO TOOL');await expect(page.locator('#navigationInitialPoseTool')).toBeDisabled();
  await page.locator('#navigationInitialPoseTool').dispatchEvent('click');await page.locator('#navigationPoseSend').dispatchEvent('click');
  releasePair();await expect.poll(()=>readEntered).toBe(true);await expect(page.locator('#navigationInitialPoseTool')).toBeDisabled();
@@ -113,7 +116,10 @@ test(`old preparation ${oldResult} cannot roll back state or revalidate a draft 
  });
  b.on('/api/v1/navigation/operational-3d/pair',({json})=>{pairEntered=true;selected.generation=pair.generation='b'.repeat(32);return json(status);});
  await page.locator('[data-prep="refresh"]').click();await expect.poll(()=>oldEntered).toBe(true);
+ await expect(page.locator('[data-prep="pair"]')).toBeDisabled();
+ await page.locator('[data-prep="pair-confirmation"]').check();
  await page.locator('[data-prep="pair"]').click();await expect.poll(()=>pairEntered).toBe(true);
+ await expect(page.locator('[data-prep="pair-confirmation"]')).not.toBeChecked();
  await expect(page.locator('#navigationPoseMode')).toHaveText('NO TOOL');await expect(page.locator('#navigationInitialPoseTool')).toBeDisabled();
  releaseOld();await expect.poll(()=>newEntered).toBe(true);await expect(page.locator('#navigationInitialPoseTool')).toBeDisabled();
  await expect.poll(async () => JSON.parse(await page.locator('[data-prep="details"]').textContent()).selected?.generation).toBe('b'.repeat(32));

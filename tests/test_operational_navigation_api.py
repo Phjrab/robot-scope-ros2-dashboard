@@ -188,6 +188,22 @@ class OperationalNavigationApiTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(code, 422)
         self.assertEqual(len(self.manager.calls), 2)
 
+    async def test_operator_pair_confirmation_transport_is_explicit_and_same_origin_idle_only(self):
+        pair = {k: v for k, v in selection().items() if k != 'seed_pose'}
+        pair['pair_confirmation'] = 'derived_same_coordinates'
+        for bad in (True, False, '', 'same_names', {}):
+            code, _ = await self.request('POST', URL + '/pair', body={**pair, 'pair_confirmation': bad})
+            self.assertEqual(code, 422)
+        code, _ = await self.request('POST', URL + '/pair', body=pair, origin='http://attacker.invalid')
+        self.assertEqual(code, 403)
+        self.nav_state['session_mode'] = 'navigation'
+        code, _ = await self.request('POST', URL + '/pair', body=pair)
+        self.assertEqual(code, 409)
+        self.nav_state['session_mode'] = 'idle'
+        code, _ = await self.request('POST', URL + '/pair', body=pair)
+        self.assertEqual(code, 200)
+        self.assertEqual(self.manager.calls[-1], ('pair', pair))
+
     async def test_explicit_match_requires_current_active_context_and_does_not_send_goal(self):
         body = {'map_id': 'a' * 24, 'map_revision': 'b' * 64,
                 'bundle_generation': 'c' * 32, 'localization_generation': 2,

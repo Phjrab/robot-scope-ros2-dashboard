@@ -151,6 +151,8 @@ class OperationalNavigation:
         return {'generation': bundle['generation'], 'localization_3d': copy.deepcopy(bundle['localization_3d']),
                 'navigation_2d': copy.deepcopy(bundle['navigation_2d']),
                 'family': copy.deepcopy(bundle['map_binding']['family']),
+                'binding_source': bundle['map_binding'].get('source', 'conversion_lineage'),
+                'operator_confirmation': copy.deepcopy(bundle['map_binding'].get('operator_confirmation')),
                 'calibration_sha256': bundle['map_binding']['calibration_sha256'],
                 'seed_geometry': copy.deepcopy(geometry), 'checks': checks,
                 'valid': not any(item['code'] not in {'INITIAL_HEIGHT_TILT_REQUIRED', 'INITIAL_GEOMETRY_RECONFIRM_REQUIRED'} for item in checks),
@@ -163,9 +165,12 @@ class OperationalNavigation:
                 raise ValueError('LOCALIZATION_MAP_REVISION_CHANGED')
             pin = bundle['navigation_2d']
             nav = self.catalog.resolve_navigation_map(pin['map_id'], pin['revision'])
-            family = self._family(source, nav)
-            if family != bundle['map_binding']['family']:
-                raise ValueError('MAP_PAIR_LINEAGE_CHANGED')
+            if bundle['map_binding'].get('source') == 'operator_confirmed':
+                validate_bundle(bundle)
+            else:
+                family = self._family(source, nav)
+                if family != bundle['map_binding']['family']:
+                    raise ValueError('MAP_PAIR_LINEAGE_CHANGED')
             calibration, sha = self._calibration()
             if sha != bundle['map_binding']['calibration_sha256']:
                 raise ValueError('CALIBRATION_CHANGED_REAPPLY_PAIR')
@@ -744,8 +749,13 @@ class OperationalNavigation:
 
     def _select(self, body, *, paired=False):
         allowed = {'map_id', 'map_revision', 'navigation_map_id', 'navigation_map_revision', 'seed_pose', 'course_region'}
+        if paired:
+            allowed.add('pair_confirmation')
         if not isinstance(body, dict) or set(body) - allowed:
             raise ValueError('INVALID_SELECTION_FIELDS')
+        operator_confirmed = 'pair_confirmation' in body
+        if operator_confirmed and body['pair_confirmation'] != 'derived_same_coordinates':
+            raise ValueError('MAP_PAIR_OPERATOR_CONFIRMATION_REQUIRED')
         with self.lock:
             self._idle()
             if not body:
@@ -766,19 +776,21 @@ class OperationalNavigation:
                     expected.update(navigation_map_id=nav.map_id, navigation_map_revision=nav.revision)
                 if any(calibration.get(k) != v for k, v in expected.items()):
                     raise ValueError('CALIBRATION_PROFILE_OR_MAP_MISMATCH')
-                family = self._family(source, nav, geometry=nav_geometry) if paired else None
+                family = self._family(source, nav, geometry=nav_geometry) if paired and not operator_confirmed else None
                 source_metadata = self.catalog.metadata(body['map_id'])
                 if source_metadata['revision'] != source['revision']:
                     raise ValueError('LOCALIZATION_MAP_REVISION_CHANGED')
                 if paired:
-                    # Reuse only the trusted body/TF/profile/quality calibration. Map-to-map
-                    # binding comes from the exact conversion document, not the old map pin.
+                    # Reuse only the trusted body/TF/profile/quality calibration.
+                    # Binding comes from conversion proof or an explicit operator declaration.
+                    # The latter is an assumption about shared coordinates, not measured proof.
                     root = source_metadata.get('origin') or source
                     calibration['localization_root'] = {key: root[key] for key in ('map_id', 'revision', 'sha256', 'frame_id', 'units')}
                     calibration.update(navigation_map_id=nav.map_id, navigation_map_revision=nav.revision)
-                    projection = family['frame_projection']
+                    projection = family['frame_projection'] if family else {'translation': [0, 0, 0], 'rotation_rpy': [0, 0, 0]}
                     calibration['T_nav_map_from_localization_map'] = from_translation_rpy(
                         projection['translation'], projection['rotation_rpy']).tolist()
+                    calibration['map_transform_source'] = 'operator_confirmed' if operator_confirmed else 'conversion_lineage'
                     seed = None
                 else:
                     pose = body['seed_pose']
@@ -798,6 +810,12 @@ class OperationalNavigation:
                 if paired:
                     bundle.update(workflow='staged_navigation_pair', seed_geometry=None,
                         map_binding={'family': family, 'calibration_sha256': calibration_sha})
+                    if operator_confirmed:
+                        bundle['map_binding'].update(source='operator_confirmed', operator_confirmation={
+                            'statement': 'derived_same_coordinates', 'confirmed_at': time.time(),
+                            'generation': bundle['generation'],
+                            'localization_3d': {'map_id': source['map_id'], 'revision': source['revision']},
+                            'navigation_2d': {'map_id': nav.map_id, 'revision': nav.revision}})
                     bundle['localization_3d']['name'] = source_metadata['name']
                     bundle['navigation_2d']['name'] = nav.name
                 course = body.get('course_region')

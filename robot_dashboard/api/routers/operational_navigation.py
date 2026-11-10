@@ -40,6 +40,11 @@ class Selection(PairSelection):
     course_region: dict | None = None
 
 
+class ConfirmedPairSelection(PairSelection):
+    # Omission keeps the conversion-lineage contract for existing API clients.
+    pair_confirmation: Literal['derived_same_coordinates'] | None = None
+
+
 class SeedGeometry(BaseModel):
     model_config = ConfigDict(extra='forbid', allow_inf_nan=False, strict=True)
     generation: str = Field(pattern=r'^[a-f0-9]{32}$')
@@ -129,7 +134,11 @@ async def preparation_inputs(request: Request, response: Response):
     runtime = runtime_from_request(request)
     manager = require_component(runtime.operational_navigation, 'operational localization is not configured')
     async with runtime.pipeline_coordination_lock:
-        blockers = await asyncio.to_thread(observation_start_blockers, runtime)
+        try:
+            bridge = await asyncio.to_thread(runtime.lifecycle.control_bridge_lifecycle._read_systemd)
+        except Exception:
+            bridge = {'available': False}
+        blockers = observation_start_blockers(runtime, bridge=bridge)
     result = await asyncio.to_thread(collect, manager, runtime.fastlio_observation, runtime.agent)
     result['start_blockers'] = blockers
     return result
@@ -246,9 +255,9 @@ async def clear(request: Request):
 
 
 @router.post('/api/v1/navigation/operational-3d/pair')
-async def select_pair(body: PairSelection, request: Request):
+async def select_pair(body: ConfirmedPairSelection, request: Request):
     require_same_origin(request)
-    return await select_idle(request, body.model_dump(), 'select_pair')
+    return await select_idle(request, body.model_dump(exclude_none=True), 'select_pair')
 
 
 @router.post('/api/v1/navigation/operational-3d/seed-geometry')

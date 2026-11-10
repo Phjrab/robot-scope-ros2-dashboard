@@ -20,13 +20,17 @@ SCHEMA = "robot-scope.ownership-readback.v1"
 _LOCK_TYPES = (type(threading.Lock()), type(threading.RLock()))
 
 
+class OwnerLockBusy(RuntimeError):
+    """A native read lock could not be acquired; ownership remains unknown."""
+
+
 @contextmanager
 def _locked(lock: Any):
     # Never wait behind native work, and never invoke a manager callback.
     if type(lock) not in _LOCK_TYPES:
         raise TypeError("unsupported owner lock")
     if not lock.acquire(blocking=False):
-        raise RuntimeError("owner lock busy")
+        raise OwnerLockBusy("owner lock busy")
     try:
         yield
     finally:
@@ -352,15 +356,19 @@ def ownership_readback(runtime: Any) -> dict[str, Any]:
     def sample(name: str, owner: Any, reader: Callable[[Any], dict[str, Any]], *, optional: bool = False):
         if owner is None:
             components[name] = dict(status="absent" if optional else "unknown", busy=None if not optional else False)
+            if not optional:
+                components[name]['reason'] = 'OWNER_UNAVAILABLE'
             return
         try:
             value = reader(owner)
             if type(value["busy"]) is not bool:
                 raise TypeError("invalid ownership observation")
             components[name] = dict(status="observed", **value)
+        except OwnerLockBusy:
+            components[name] = dict(status="unknown", busy=None, reason="OWNER_LOCK_BUSY")
         except Exception:
             # Do not expose exceptions, paths, lease tokens or application hooks.
-            components[name] = dict(status="unknown", busy=None)
+            components[name] = dict(status="unknown", busy=None, reason="OWNER_READ_UNAVAILABLE")
 
     sample("mapping", runtime.mapping, _mapping)
     sample("navigation", runtime.navigation, _navigation)
