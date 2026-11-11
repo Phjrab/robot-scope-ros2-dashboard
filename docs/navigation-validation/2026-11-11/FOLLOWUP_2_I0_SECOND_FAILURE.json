@@ -1,0 +1,15 @@
+{
+  "source_sha": "a3f50c7f448c06140f51a9c31f447f2975db0395",
+  "run_id": 43005433124,
+  "attempt": 2,
+  "job_id": 130473995378,
+  "result": "FAIL",
+  "artifact_id": 13848207781,
+  "failure_report_sha256": "b7a31bc9bb6255b2a15adc7c058f2f344c2ff7ed7cb808964b58c436ce118665",
+  "stage": "explicit_confirm_then_stop_real_receipt",
+  "confirmation_dom_observation": {
+    "status": "NOT_STARTED"
+  },
+  "root_cause": "CI timing unconfirmed; bounded polling miss reproduced separately",
+  "device": "NOT_RUN"
+}

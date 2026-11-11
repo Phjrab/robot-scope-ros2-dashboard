@@ -63,3 +63,25 @@ Ruff/mypy/pip check/diff 통과. 첫 환경 실패와 의도된 재현 exit 1은
 실행본·mode/profile/source·지도/교정·STOP/lease·물리 정지는 미확인이다.
 배포·서비스 전환·관측·Nav2 시작·INITIAL POSE·match·목표·이동은 전부 NOT_RUN.
 다음 한 작업: **현재 유효한 장비 접속 경로에서 읽기 전용 실행본/상태 인수**.
+
+
+### 후속 게시와 I0 probe 추가 수정
+
+첫 후속 commit `a3f50c7f448c06140f51a9c31f447f2975db0395` 정상 push/원격 일치.
+해당 CI [43005433103](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/43005433103)는
+**success / 7 jobs success**. I0 [43005433124](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/43005433124)는
+attempt 1·2 모두 full-app 준비 predicate에서 실패했으며 원본 artifact/hash를 보존했다.
+동일 SHA 로컬 component/full-app은 통과했다. 이 차이만으로 CI 원인을 확정하지 않는다.
+
+짧은 유효 상태를 기본 expect.poll이 놓치는 경로를 합성 DOM으로 별도 재현한 뒤,
+동일 predicate와 5000ms 한도를 유지하여 브라우저 RAF 관측 helper로 probe를 수정했다.
+신선한 상태를 만들거나 gate를 우회하는 코드가 아니다. 관측 실패·stale 거절을 포함한
+브라우저 3개 회귀를 추가했다. 후속 commit은 이 probe와 게시 영수증을 담는다.
+운영 gateway/health/preparation.js 변경은 여전히 없고 진행률 결함은 미수정이다.
+
+
+최종 probe 수정본 로컬 결과: Python **3,746 run / 3,711 passed / 35 skipped**,
+153.940초, failures/errors 0. JavaScript **765 passed**. 기존 8파일 + 새 probe 파일의
+브라우저 **130 passed**. C0 component/full-app 각각 PASS 및 소유 server 종료 확인.
+Ruff/mypy/diff 재확인 통과. 기존 1초 freshness와 검사 5초 제한, 운영 source는 그대로다.
+이 결과는 a3f50c7 + probe/문서 diff이며 후속 게시 commit의 CI와 구분한다.

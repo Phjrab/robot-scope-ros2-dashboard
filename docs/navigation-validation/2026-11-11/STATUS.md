@@ -67,3 +67,10 @@ selected pins/generation과 실제 실행 source를 대조한다.
 시도했으나 모두 timeout이었다. 장비 전원 상태·오프라인 여부를 판정할 수 없다.
 실제 mode/profile/source를 받지 못했으므로 2D/저장 3D/A3 어느 모드도 추정하지 않았다.
 [진행률 후속 조사](FOLLOWUP_2_PROGRESS_CONTEXT.md)와 아래 후속 실행 기록을 함께 읽는다.
+
+
+후속 게시 검사에서 추가 발견: a3f50c7 일반 CI 7 jobs success, I0는 동일 위치에서
+2회 failure. 로컬 동일 probe는 통과했지만 그 원격 실패를 없었던 것으로 취급하지 않는다.
+동일 predicate를 드물게 표본화해 짧은 유효 창을 놓치는 경로를 별도로 재현하여
+probe 관측 방식을 수정했다. ② 운영 조건/1초 freshness/2초 제품 poll/5초 검사 제한은
+바꾸지 않았다. 상세 증거와 후속 후보 결과는 TEST_RESULTS/HANDOFF 후속 절을 따른다.

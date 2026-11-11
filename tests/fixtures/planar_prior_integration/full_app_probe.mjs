@@ -4,6 +4,7 @@ import {writeFile} from 'node:fs/promises';
 import {pathToFileURL} from 'node:url';
 import assert from 'node:assert/strict';
 import {assertConditionalProof,assertConditionalConfirmation,assertExecutorEvidence,assertExactStopReceipt} from './contract_assertions.mjs';
+import {waitForProposalReadiness} from './readiness_wait.mjs';
 const root=process.env.PRIOR_SOURCE_ROOT,output=process.env.PRIOR_OUTPUT_DIR,run=process.env.PRIOR_RUN_LABEL;
 const require=createRequire(`${process.env.PRIOR_NODE_ROOT}/package.json`),{chromium}=require('playwright'),{expect}=require('@playwright/test');
 const {installDashboardBackend}=await import(pathToFileURL(`${root}/tests/e2e/dashboard_backend.mjs`));
@@ -49,7 +50,7 @@ try{
   proposal=Object.values(r.proposals)[0];const proof=assertConditionalProof(proposal,original,true);assert.equal(proof.bounds_source,'server_policy');assert.deepEqual(proof.effective_bounds,{xy_m:.25,yaw_rad:.20});assertExecutorEvidence(r);assert.equal(r.solver_calls,1);assert.equal(r.state.selected.seed_geometry,null);assert.deepEqual(backend.state.requests,[]);
  });
  await step('explicit_confirm_then_stop_real_receipt',async()=>{
-  await expect.poll(async()=>{const d=JSON.parse(await page.locator('[data-prep="details"]').textContent());return d.proposal_cleanup?.state==='SETTLED'&&d.proposal_display_valid===true;}).toBe(true);
+  await waitForProposalReadiness(page);
   // Read only the rendered controls from the first check; do not infer product gates.
   let domObserver;const markerErrors=[];
   try{

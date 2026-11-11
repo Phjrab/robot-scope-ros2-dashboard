@@ -1,0 +1,55 @@
+{
+  "source_sha": "a3f50c7f448c06140f51a9c31f447f2975db0395",
+  "run_id": 43005433124,
+  "attempt": 1,
+  "job_id": 130471621847,
+  "result": "FAIL",
+  "failed_step": "C0 exact-source ASGI preparation and full application flow",
+  "failed_probe_stage": "explicit_confirm_then_stop_real_receipt",
+  "assertion": "proposal_cleanup.state === SETTLED && proposal_display_valid === true",
+  "timeout_ms": 5000,
+  "confirmation_dom_observation": "NOT_STARTED",
+  "artifact_id": 13847977450,
+  "artifact_zip_sha256": "8ed3a5a9bd859dcf7c703761e5a618b8e43509c6c24b41683ba004bb9fba81e9",
+  "failure_report_sha256": "7f55f2dd6aefc3bb247dd91317c3f8392f4897487f83a15b716fc7fea38587bd",
+  "observed_proposal_responses": [
+    {
+      "state": "ready",
+      "cleanup": {
+        "state": "MONITORING",
+        "cancellation_requested": false
+      },
+      "pose_age_s": 0.02680477800001313
+    },
+    {
+      "state": "ready",
+      "cleanup": {
+        "state": "SETTLED",
+        "cancellation_requested": false,
+        "worker_active": false,
+        "terminal_state": "succeeded"
+      },
+      "pose_age_s": 0.025243658999983154
+    },
+    {
+      "state": "ready",
+      "cleanup": {
+        "state": "SETTLED",
+        "cancellation_requested": false,
+        "worker_active": false,
+        "terminal_state": "succeeded"
+      },
+      "pose_age_s": 0.029385906999976896
+    }
+  ],
+  "local_same_sha_probe": {
+    "component": "PASS",
+    "full_app": "PASS",
+    "source_unchanged": true,
+    "owned_server_stopped": true,
+    "report_sha256": "acf1761f1e84acd7b0baa5f30f1bd500a5e16981a9fe6f38ff3276be27539cdc"
+  },
+  "root_cause": "UNCONFIRMED",
+  "fixed": false,
+  "device": "NOT_RUN"
+}

@@ -1,0 +1,9 @@
+{
+  "source_sha": "a3f50c7f448c06140f51a9c31f447f2975db0395",
+  "archive_sha256": "cc3709b58f1ebee67acfb34015f94cc867c0f88fac41129476f57d0d99e211ec",
+  "files_verified": 2726,
+  "git_blob_identity_verified": true,
+  "archive_purpose": "validation source only; not a deployment candidate",
+  "deployed": false,
+  "native_verified": false
+}

@@ -193,3 +193,67 @@ Node 24 PATH + umask 022, C2_CROSS_REQUIRED=1 전체 재검사:
 로컬 원본 로그는 `/tmp/nav-python-corrected.log`, `/tmp/nav-js-unsandboxed.log`,
 `/tmp/nav-browser-final.log`; 실패 로그는 `/tmp/nav-python-final.log`와 구분한다.
 운영 소스 파일들은 기준 SHA와 동일하며, 새 A3/native 통과를 주장하지 않는다.
+
+
+### a3f50c7 exact-SHA 게시 후 검사와 새 I0 실패
+
+`a3f50c7f448c06140f51a9c31f447f2975db0395`을 정상 push했고 ls-remote main이 일치했다.
+clean exact SHA에서 재현을 재실행: **exit 1 / REPRODUCED / controls_ok=true**.
+[exact-SHA JSON](FOLLOWUP_2_EXACT_SHA_PROGRESS.json)의 실행 파일 hash와 case 결과는
+커밋 전 확장본과 일치한다. 검증용 source archive의 **2,726 파일**을 Git blob과
+전체 대조했다. [archive 영수증](FOLLOWUP_2_ARCHIVE_RECEIPT.json). 장비 배포 후보가 아니다.
+
+새 I0 [43005433124 attempt 1](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/43005433124/attempts/1)은 **failure**.
+C0 component PASS 후 full-app의 `explicit_confirm_then_stop_real_receipt`에서
+`proposal_cleanup.state === SETTLED && proposal_display_valid === true`의
+expect.poll이 기존 5초 안에 true를 관측하지 못했다. 확인 checkbox 조작 전 실패로
+confirmation DOM observation은 NOT_STARTED다. 이후 I0 단계는 skipped이며 통과가 아니다.
+[첫 실패 요약·hash](FOLLOWUP_2_I0_FIRST_FAILURE.json); 원본 artifact 13847977450을 보존했다.
+
+서버 응답은 ready/MONITORING 뒤 ready/SETTLED, pose age 약 .025~.029초를 포함한다.
+실패 후 DOM은 제안 freshness 만료를 표시한다. 실패 당시 렌더 내부 상태·poll별 관측이
+없으므로 scheduling/제품 경합/fixture의 구체 원인을 확정하지 않았다.
+제안 poll 2초와 유효 창 1초는 기존 구현이며 이번에 변경하지 않았다.
+
+동일 clean SHA의 로컬 명령:
+`PLAYWRIGHT_BROWSERS_PATH=/tmp/nav-browsers python3 scripts/check_c0_prior_integration.py --output /tmp/nav-c0-repro-1`
+(Node 24와 venv PATH, umask 022). **component PASS / full-app PASS**,
+전체 source hash 불변·소유 fixture server 종료 확인. 이 통과가 원격 첫 실패를 취소하지 않는다.
+재현 여부를 보기 위해 실패 job을 동일 SHA에서 **한 번만** 재실행했다.
+어떤 재실행 결과도 원인 수정 증거로 쓰지 않으며 assertion/timeout은 그대로다.
+
+
+### I0 재실행 결과와 probe 관측 수정
+
+`a3f50c7` 일반 CI [43005433103](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/43005433103)은
+**success / 7 jobs success**. I0 [attempt 2](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/43005433124/attempts/2)는
+**같은 assertion에서 failure**다. [두 번째 실패 영수증](FOLLOWUP_2_I0_SECOND_FAILURE.json).
+추가 rerun은 하지 않았다. I0 전체를 통과로 표시하지 않는다.
+
+CPU 4배 합성 지연과 읽기 전용 MutationObserver를 넣은 임시 probe도 로컬 full-app PASS였다.
+이 임시 계측은 `/tmp/nav-full-app-observed.mjs`/`/tmp/nav-check-c0-observed.py`에만 있고
+제품 코드나 실제 환경 성능 증거가 아니다. CI 원인은 여전히 완전히 계측되지 않았다.
+
+다만 같은 predicate와 기존 5초 제한에서 기본 expect.poll이 유효 창을 놓치는 경로를
+고정된 합성 DOM에서 재현했다. 1950~2750ms, 3950~4750ms만 SETTLED/valid=true로
+렌더했으나 실제 poll은 약 16/119/372/875/1878/2880/3883/4887ms에 false만 읽고 실패했다.
+[실제 표본](FOLLOWUP_2_POLL_ALIAS_REPRODUCTION.json). 이는 CI 타이밍의 원시 replay가 아니다.
+
+`tests/fixtures/planar_prior_integration/readiness_wait.mjs`는 동일한
+`cleanup.state === SETTLED && proposal_display_valid === true`를 브라우저의 RAF로
+관측한다. 제한은 **5000ms 그대로**이고 서버 조회·명령·신선도 연장·제품 timer 변경은 없다.
+full_app_probe의 해당 대기만 이 helper로 바꿨으며 나머지 확인·exact stop·INITIAL POSE·match
+assertion을 유지했다. 정상 짧은 유효 창, 두 조건의 동시 충족, SETTLED여도 stale이면
+기존 제한 내 실패하는 브라우저 회귀 3건을 추가했다.
+
+수정 후 로컬 `check_c0_prior_integration.py --output /tmp/nav-c0-probe-final`:
+**component PASS / full-app PASS / 전체 source 불변 / 소유 fixture server 정상 종료**.
+이번 수정은 검증 probe가 실제 렌더된 상태를 놓치는 경로의 수정이며, 운영 위치추정
+소비/장비 정합/진행률 계산이 수정됐다는 뜻이 아니다.
+
+
+최종 probe 수정본 로컬 결과: Python **3,746 run / 3,711 passed / 35 skipped**,
+153.940초, failures/errors 0. JavaScript **765 passed**. 기존 8파일 + 새 probe 파일의
+브라우저 **130 passed**. C0 component/full-app 각각 PASS 및 소유 server 종료 확인.
+Ruff/mypy/diff 재확인 통과. 기존 1초 freshness와 검사 5초 제한, 운영 source는 그대로다.
+이 결과는 a3f50c7 + probe/문서 diff이며 후속 게시 commit의 CI와 구분한다.
