@@ -1,5 +1,30 @@
 # C0 observation ownership sampling checkpoint
 
+## 2026-11-11 status-file I/O fix
+
+After restoring the native dependency link, release `5a28dd2` reported a running
+XT16 preview and one publisher each for `/velodyne_points` and `/imu/body`.
+Three idle ownership samples all identified the `jobs` lock, with concurrent
+`NavigationJobManager.snapshot()` / `_missing_prerequisites_locked()` frames at
+`path.lstat()`. This establishes a blocking filesystem operation inside the
+ownership lock, independently of any real navigation start.
+
+The advisory snapshot now probes constructor-configured prerequisite paths
+outside that lock, then copies current process state under the lock. Actual
+start admission still rechecks prerequisites under its lock. Missing files,
+permissions, closing state and parameter errors retain the same availability
+checks. No cached result or bypass of process ownership is introduced.
+
+A real-manager regression holds `Path.lstat()` in another thread. The old
+snapshot produces unknown navigation ownership; the new snapshot permits an
+idle ownership read, still reports a subsequently started process as busy, and
+returns the latest closing/process state after the file probe finishes.
+The old implementation failed this exact regression; the modified navigation
+manager suite passed all 19 tests. Full Python validation passed: 3,750 run,
+3,715 passed, 35 skipped in 148.790 seconds. Seven navigation JavaScript smoke
+files, Ruff, configured mypy, credential scan and whitespace checks also passed.
+Field verification of this fix is pending.
+
 ## 2026-11-11 native reader contention follow-up
 
 The user-authorized stationary dashboard trial deployed `00cdb7e` with verified

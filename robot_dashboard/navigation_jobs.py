@@ -481,8 +481,12 @@ class NavigationJobManager:
             return self._map_snapshot.map_id, self._map_snapshot.revision
 
     def snapshot(self, *, since_log_seq: int = 0) -> dict[str, Any]:
+        # These paths are fixed at construction. Filesystem metadata reads can
+        # block; an advisory reader must not hide live process ownership behind
+        # that I/O. Copy current state only after the probe. start() still checks
+        # prerequisites under its admission lock and never trusts this snapshot.
+        missing = self._missing_prerequisites()
         with self._lock:
-            missing = self._missing_prerequisites_locked()
             available = not missing and self._parameter_error is None and not self._closing
             progress = self._progress_snapshot_locked(
                 after=max(0, int(since_log_seq)),
@@ -672,7 +676,7 @@ class NavigationJobManager:
                 raise NavigationUnavailable("navigation manager is shutting down")
             if self._pipeline["state"] in {"starting", "running", "stopping"}:
                 raise NavigationBusy("navigation pipeline is already active")
-            missing = self._missing_prerequisites_locked()
+            missing = self._missing_prerequisites()
             if missing or self._parameter_error:
                 raise NavigationUnavailable("navigation prerequisites are unavailable")
             if parameters_revision != _parameter_revision(self._parameters):
@@ -906,7 +910,7 @@ class NavigationJobManager:
         except Exception:
             self._parameter_error = "generated navigation parameters are invalid"
 
-    def _missing_prerequisites_locked(self) -> list[str]:
+    def _missing_prerequisites(self) -> list[str]:
         missing: list[str] = []
         checks = {"base_parameters": self.base_parameters_file, **self.prerequisites}
         checks["launcher_executable"] = Path(self.start_command.argv[0])

@@ -77,6 +77,46 @@ class NavigationJobManagerTests(unittest.TestCase):
         options.update(overrides)
         return NavigationJobManager(**options)
 
+    def test_slow_status_file_probe_does_not_hide_current_process_ownership(self):
+        from test_ownership_readback import idle_runtime
+        from robot_dashboard.application.ownership_readback import ownership_readback
+        runtime = idle_runtime()
+        runtime.navigation._jobs = self.manager
+        entered, release = threading.Event(), threading.Event()
+        original = Path.lstat
+        snapshots = []
+
+        def slow_stat(path):
+            if path == self.manager.base_parameters_file:
+                entered.set()
+                if not release.wait(2):
+                    raise AssertionError('file probe release timed out')
+            return original(path)
+
+        with patch.object(Path, 'lstat', slow_stat):
+            worker = threading.Thread(target=lambda: snapshots.append(self.manager.snapshot()))
+            worker.start()
+            try:
+                self.assertTrue(entered.wait(1))
+                idle = ownership_readback(runtime)
+                self.assertEqual(idle['unknown_components'], [])
+                self.assertNotIn('navigation', idle['busy_components'])
+                with self.manager._lock:
+                    self.manager._pipeline['state'] = 'starting'
+                    self.manager._closing = True
+                busy = ownership_readback(runtime)
+                self.assertIn('navigation', busy['busy_components'])
+                self.assertEqual(busy['unknown_components'], [])
+            finally:
+                release.set()
+                worker.join(2)
+                self.manager._pipeline['state'] = 'idle'
+                self.manager._closing = False
+        self.assertFalse(worker.is_alive())
+        self.assertEqual(len(snapshots), 1)
+        self.assertEqual(snapshots[0]['pipeline']['state'], 'starting')
+        self.assertFalse(snapshots[0]['available'])
+
     def test_precision_candidate_preserves_custom_baseline_and_materializes_new_job(self):
         before = self.manager.parameters_snapshot()
         custom = self.manager.update_parameters(before['revision'], {'desired_linear_vel': .31, 'lookahead_time': 1.1})
