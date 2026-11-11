@@ -319,6 +319,31 @@ class ApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(response.status_code, 202, response.text)
         self.assertEqual(self.service.calls, ["start", "stop"])
 
+    async def test_old_active_signed_bridge_rejects_start_without_any_commands(self):
+        from test_observation_bridge_session import active_session
+        from robot_dashboard.application.navigation_preparation_inputs import observation_start_blockers
+
+        self.runtime, self.owner, self.service, link, _ = active_session()
+        self.app.state.runtime = self.runtime
+        await self.owner.refresh()
+        self.assertEqual(observation_start_blockers(self.runtime)["items"], [])
+        # Capability changes after the advisory read. Admission must sample
+        # again, independently of any UI refresh or previously enabled button.
+        status = link.payload()
+        status.pop("observation_inhibit")
+        link.status(status)
+        self.assertEqual(observation_start_blockers(self.runtime)["items"],
+                         ["CONTROL_BRIDGE_INHIBIT_UNSUPPORTED"])
+        response = await self.request(
+            "POST", "/api/v1/observations/fastlio/start", {"confirmed": True}
+        )
+        self.assertEqual(response.status_code, 409, response.text)
+        self.assertIn("control_bridge_inhibit_unsupported", response.text)
+        self.assertEqual(self.service.calls, [])
+        self.assertEqual(link.sent, [])
+        self.runtime.agent.set_sources.assert_not_called()
+        self.assertFalse(self.owner.snapshot()["active"])
+
 
 class LauncherTests(unittest.TestCase):
     @classmethod

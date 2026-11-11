@@ -351,6 +351,7 @@ export function preparationModel({ state, navigation = {}, draft3d, draft2d, err
 
 export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect, api, context, onChange, actions, getOperatorDraft = () => ({ status: 'none' }) }) {
   let state = null, busy = false, available = false, error = '', fetchError = '', checkedAt = 0, refreshing = false, draftTouched = false, actionStep = null;
+  let refreshTask = null, refreshRequested = false;
   let draftContextEpoch = 0, draftContextConfirmed = false, draftRefreshPending = false, priorAckRevision = null, observationDraftPending = false, observationDraftAction = null;
   let lastContext = '', invalidated = '', selected3d = '', draft3dRevision = '', geometryGeneration = '';
   let pairConsent = null;
@@ -644,7 +645,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     const inputsCurrent = Boolean(available && model.matched && selected && pair?.valid === true && pair.generation === selected.generation && samePin(pair.localization_3d, selected.localization_3d) && samePin(pair.navigation_2d, selected.navigation_2d));
     const blockers = inputs?.start_blockers?.items;
     if (proposalContext && !proposalContextMatches()) invalidateProposal();
-    el('observe-start').disabled = observationBusy || busy || navigationBusy || model.active || !inputsCurrent || observation?.can_start !== true || !Array.isArray(blockers) || blockers.length > 0;
+    el('observe-start').disabled = refreshing || observationBusy || busy || navigationBusy || model.active || !inputsCurrent || observation?.can_start !== true || !Array.isArray(blockers) || blockers.length > 0;
     el('observe-stop').disabled = observationBusy || observation?.can_stop !== true || !/^[a-f0-9]{32}$/.test(observation?.session_id || '');
     const sessionLabels = { UNAVAILABLE: '사용 불가', CHECKING: '확인 중', STOPPED: '정지', FAILED: '시작 실패 또는 종료', STARTING: '시작 중', WAITING_INPUTS: '입력 대기', READY: '입력 준비', STOPPING: '종료 중', UNKNOWN: '상태 미확인', INVALIDATED: '관측 무효화' };
     el('observation-status').textContent = inputsError ? '관측 입력 확인 실패 → 연결과 상태를 다시 확인하세요.' : `관측 상태: ${sessionLabels[observation?.state] || '확인 중'} · ${observation?.reason?.startsWith('CONTROL_') || observation?.reason?.startsWith('OBSERVATION_') ? inputReason(observation.reason) : observation?.reason || '서버 상태 확인 필요'} · 시작 사전 검사: ${Array.isArray(blockers) ? blockers.length ? blockers.map(inputReason).join(' · ') : '현재 차단 항목 없음' : inputReason('START_BLOCKERS_UNAVAILABLE')} · 사전 검사는 권고이며 서버의 최종 승인 보장이 아닙니다.`;
@@ -780,15 +781,39 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     el('details').textContent = JSON.stringify({ selected: selected ? { generation: selected.generation, localization_3d: selected.localization_3d, navigation_2d: selected.navigation_2d, seed_geometry: geometry } : null, pair: state?.pair, runtime: source, readiness: navigation.readiness, metrics: navigation.localization_health?.metrics, errors: model.issues.map(value => value.code), preparation_inputs: detailInputs, diagnostics_note: diagnostics ? '검사 당시 값이며 실시간이 아닙니다. phase_ms는 서버 구간 경과이며 네트워크 왕복이나 lock 전용시간이 아닙니다.' : undefined, preparation_inputs_error: inputsError, observation_error: observationError, initialization_proposal: proposal, proposal_cleanup: cleanup, proposal_display_valid: Boolean(validPoses), proposal_error: proposalError, proposal_failure_detail: proposalFailureDetail, initialization_handoff: handoff, handoff_error: handoffError, handoff_failure_detail: handoffFailureDetail }, null, 2);
     return model;
   }
-  async function refresh(force = false) {
-    if (refreshing || busy || (!force && Date.now() - checkedAt < 2500)) return;
+  function refresh(force = false) {
+    if (busy) {
+      if (force) advisoryRefreshPending = true;
+      return refreshTask || Promise.resolve();
+    }
+    if (refreshing) {
+      // A forced read must observe changes after the in-flight request took
+      // its snapshot. Coalesce requests, discard that older response, and let
+      // callers await the subsequent read as well.
+      if (force) refreshRequested = true;
+      return refreshTask;
+    }
+    if (!force && Date.now() - checkedAt < 2500) return Promise.resolve();
     refreshing = true;
+    render();
+    refreshTask = (async () => {
+      try {
+        do {
+          refreshRequested = false;
+          advisoryRefreshPending = false;
+          await readInputs();
+        } while (!busy && (refreshRequested || draftRefreshPending || (handoffAwaitingStatus && !handoffBusy) || advisoryRefreshPending));
+      } finally { refreshing = false; render(); onChange(); }
+    })();
+    return refreshTask;
+  }
+  async function readInputs() {
     const inputToken = ++inputsRevision, requestedAt = performance.now(), draftEpoch = draftContextEpoch;
     draftRefreshPending = false;
     let readValue = null;
     try {
       const value = readValue = await api('/api/v1/navigation/operational-3d/preparation-inputs', { signal: AbortSignal.timeout(10000) });
-      if (inputToken !== inputsRevision || draftEpoch !== draftContextEpoch || busy) return;
+      if (inputToken !== inputsRevision || draftEpoch !== draftContextEpoch || busy || refreshRequested) return;
       const status = value?.operational_state;
       if (value?.schema !== 'robot-scope.navigation-preparation-inputs.v1' || !status || value.operational_state_error
           || !Object.hasOwn(status, 'selected') || !Object.hasOwn(status, 'pair') || !['LEGACY_2D', 'NEXT_NAVIGATION_START'].includes(status.activation)) {
@@ -818,21 +843,21 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
         setTimeout(updateAge, 1000);
       }
     } catch (failure) {
-      if (inputToken === inputsRevision && draftEpoch === draftContextEpoch && !busy) { draftContextConfirmed = false; observationDraftPending = false; observationDraftAction = null; inputs = readValue?.observation ? { observation: readValue.observation } : null; state = null; available = false; inputsError = failure.message; fetchError = `상태 확인 실패: ${INPUT_REASONS[failure.message] || '연결 또는 서버 응답을 확인하세요.'}`; clearHandoff(); if (handoffAwaitingStatus) handoffError = '가설 확인 결과를 읽지 못했습니다. 재전송하지 않고 서버 상태를 확인하세요.'; handoffAwaitingStatus = false; }
-    } finally { checkedAt = Date.now(); refreshing = false; render(); onChange(); if (!busy && (draftRefreshPending || (handoffAwaitingStatus && !handoffBusy) || advisoryRefreshPending)) { advisoryRefreshPending = false; checkedAt = 0; queueMicrotask(() => { void refresh(true); }); } }
+      if (inputToken === inputsRevision && draftEpoch === draftContextEpoch && !busy && !refreshRequested) { draftContextConfirmed = false; observationDraftPending = false; observationDraftAction = null; inputs = readValue?.observation ? { observation: readValue.observation } : null; state = null; available = false; inputsError = failure.message; fetchError = `상태 확인 실패: ${INPUT_REASONS[failure.message] || '연결 또는 서버 응답을 확인하세요.'}`; clearHandoff(); if (handoffAwaitingStatus) handoffError = '가설 확인 결과를 읽지 못했습니다. 재전송하지 않고 서버 상태를 확인하세요.'; handoffAwaitingStatus = false; }
+    } finally { checkedAt = Date.now(); render(); onChange(); }
   }
   async function observe(action) {
     const session = inputs?.observation;
     const { model, busy: navigationBusy } = current();
     const pair = inputs?.pair;
     const blockers = inputs?.start_blockers?.items;
-    if (observationBusy || (action === 'start' ? busy || navigationBusy || model.active || !available || !model.matched || !state?.selected || pair?.valid !== true || pair.generation !== state.selected.generation || !samePin(pair.localization_3d, state.selected.localization_3d) || !samePin(pair.navigation_2d, state.selected.navigation_2d) || session?.can_start !== true || !Array.isArray(blockers) || blockers.length > 0 : session?.can_stop !== true || !/^[a-f0-9]{32}$/.test(session?.session_id || ''))) return;
+    if (observationBusy || (action === 'start' ? refreshing || busy || navigationBusy || model.active || !available || !model.matched || !state?.selected || pair?.valid !== true || pair.generation !== state.selected.generation || !samePin(pair.localization_3d, state.selected.localization_3d) || !samePin(pair.navigation_2d, state.selected.navigation_2d) || session?.can_start !== true || !Array.isArray(blockers) || blockers.length > 0 : session?.can_stop !== true || !/^[a-f0-9]{32}$/.test(session?.session_id || ''))) return;
     invalidateProposal(); observationDraftPending = true; observationDraftAction = action; observationBusy = true; observationError = ''; available = false; ++inputsRevision; render(); onChange();
     try {
       const result = await api(`/api/v1/observations/fastlio/${action}`, { method: 'POST', body: JSON.stringify({ confirmed: true, ...(action === 'stop' ? { session_id: session.session_id } : {}) }), signal: AbortSignal.timeout(12000) });
       inputs = { observation: result };
     } catch (failure) { observationError = `관측 ${action === 'start' ? '시작' : '종료'} 거절 또는 응답 실패: ${failure.message} · 자동 재시도하지 않습니다.`; inputs = null; }
-    finally { observationBusy = false; checkedAt = 0; if (refreshing) { render(); } else { await refresh(true); } }
+    finally { observationBusy = false; checkedAt = 0; if (refreshing) { advisoryRefreshPending = true; render(); } else { await refresh(true); } }
   }
   async function run(path, body, method = 'POST') {
     if (busy) return;

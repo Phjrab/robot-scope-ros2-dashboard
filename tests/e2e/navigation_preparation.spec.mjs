@@ -1259,6 +1259,91 @@ test('old active bridge explains missing inhibit capability and sends no implici
   expect(f.writes.filter(value => value.path.includes('/observations/'))).toHaveLength(0);
 });
 
+test('forced refresh after pairing supersedes a late startable observation snapshot', async ({ page }) => {
+  const f = await fixture(page);
+  await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
+  await page.locator('[data-prep="pair-confirmation"]').check();
+  const readCount = f.reads.length;
+  f.holdInputsRead();
+  await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
+  // The post-write GET has already captured an empty blocker list. Hold the
+  // response, not a timer, so this exercises the CI interleaving every time.
+  await expect.poll(() => f.reads.length).toBe(readCount + 1);
+  f.inputs.start_blockers.items = ['CONTROL_BRIDGE_INHIBIT_UNSUPPORTED'];
+  await page.evaluate(() => { window.forcedRefresh = window.preparation.refresh(true); });
+  f.releaseInputsRead();
+  await page.evaluate(() => window.forcedRefresh);
+  await expect(page.getByRole('button', { name: '센서 관측 시작' })).toBeDisabled();
+  await expect(page.locator('[data-prep="observation-status"]')).toContainText('관측용 명령 차단 계약을 지원하지 않습니다');
+  expect(f.reads.length).toBe(readCount + 2);
+  expect(f.writes.map(value => value.path)).toEqual(['/api/v1/navigation/operational-3d/pair']);
+  expect(await page.evaluate(() => window.fixtureActions)).toEqual([]);
+});
+
+test('exact observation stop remains available during a read and refreshes after the late response', async ({ page }) => {
+  const f = await fixture(page);
+  await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
+  await page.locator('[data-prep="pair-confirmation"]').check();
+  await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
+  await page.getByRole('button', { name: '센서 관측 시작' }).click();
+  const stop = page.getByRole('button', { name: '센서 관측 종료' });
+  await expect(stop).toBeEnabled();
+  await page.evaluate(() => window.preparation.refresh(true));
+  const readCount = f.reads.length;
+  f.holdInputsRead();
+  await page.evaluate(() => { window.pendingRead = window.preparation.refresh(true); });
+  await expect.poll(() => f.reads.length).toBe(readCount + 1);
+  await expect(stop).toBeEnabled();
+  await stop.click();
+  await expect.poll(() => f.writes.filter(value => value.path.endsWith('/fastlio/stop')).length).toBe(1);
+  await expect(page.locator('[data-prep="observation-status"]')).toContainText('관측 상태: 정지');
+  f.releaseInputsRead();
+  await page.evaluate(() => window.pendingRead);
+  await expect(page.getByRole('button', { name: '센서 관측 시작' })).toBeEnabled();
+  await expect(stop).toBeDisabled();
+  expect(f.reads.length).toBe(readCount + 2);
+  expect(f.writes.filter(value => value.path.includes('/observations/')).map(value => value.body)).toEqual([
+    { confirmed: true }, { confirmed: true, session_id: 'a'.repeat(32) },
+  ]);
+});
+
+for (const outcome of ['blocked', 'unblocked', 'read-failed']) {
+  test(`overlapping preparation refreshes coalesce and keep observation admission closed: ${outcome}`, async ({ page }) => {
+    const f = await fixture(page);
+    await page.getByLabel('3D 위치추정 지도').selectOption(cloud.id);
+    await page.locator('[data-prep="pair-confirmation"]').check();
+    await page.getByRole('button', { name: '① 지도 연결 확인·적용' }).click();
+    const start = page.getByRole('button', { name: '센서 관측 시작' });
+    await expect(start).toBeEnabled();
+    f.inputs.start_blockers.items = outcome === 'unblocked' ? ['CONTROL_BRIDGE_INHIBIT_UNSUPPORTED'] : [];
+    const readCount = f.reads.length;
+    f.holdInputsRead();
+    await page.evaluate(() => { window.firstRefresh = window.preparation.refresh(true); });
+    await expect.poll(() => f.reads.length).toBe(readCount + 1);
+    f.inputs.start_blockers.items = outcome === 'blocked' ? ['CONTROL_BRIDGE_INHIBIT_UNSUPPORTED'] : [];
+    if (outcome === 'read-failed') f.failReads(1);
+    await page.evaluate(() => {
+      window.refreshSettled = false;
+      window.forcedRefresh = Promise.all([window.preparation.refresh(true), window.preparation.refresh(true)])
+        .then(() => { window.refreshSettled = true; });
+    });
+    await expect(start).toBeDisabled();
+    expect(await page.evaluate(() => window.refreshSettled)).toBe(false);
+    // Exercise the handler guard as well as the native disabled button.
+    await start.dispatchEvent('click');
+    expect(f.writes.filter(value => value.path.includes('/observations/'))).toHaveLength(0);
+    f.releaseInputsRead();
+    await page.evaluate(() => window.forcedRefresh);
+    expect(f.reads.length).toBe(readCount + 2);
+    if (outcome === 'unblocked') await expect(start).toBeEnabled();
+    else await expect(start).toBeDisabled();
+    if (outcome === 'blocked') await expect(page.locator('[data-prep="observation-status"]')).toContainText('관측용 명령 차단 계약을 지원하지 않습니다');
+    if (outcome === 'read-failed') await expect(page.locator('[data-prep="observation-status"]')).toContainText('관측 입력 확인 실패');
+    expect(f.writes.map(value => value.path)).toEqual(['/api/v1/navigation/operational-3d/pair']);
+    expect(await page.evaluate(() => window.fixtureActions)).toEqual([]);
+  });
+}
+
 for (const [state, reason, guardState, message] of [
   ['STARTING', 'OBSERVATION_START_PENDING', 'WAITING', '실제 실행 세대를 기다립니다'],
   ['UNKNOWN', 'OBSERVATION_START_OUTCOME_UNKNOWN', 'INVALID', '시작 결과가 불명입니다'],
