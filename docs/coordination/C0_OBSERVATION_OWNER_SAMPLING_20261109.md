@@ -23,7 +23,16 @@ The old implementation failed this exact regression; the modified navigation
 manager suite passed all 19 tests. Full Python validation passed: 3,750 run,
 3,715 passed, 35 skipped in 148.790 seconds. Seven navigation JavaScript smoke
 files, Ruff, configured mypy, credential scan and whitespace checks also passed.
-Field verification of this fix is pending.
+Field verification on exact release `75dc81348c907d7c53def48b39ae8343940c7cae`:
+46 samples over 93.305 seconds were all `READY`, with no owner failure, signed
+bridge inhibit `HELD`, STOP latched, no control lease, and zero Move requests.
+Fresh paired `/Odometry` and `/cloud_registered` preparation evidence passed.
+The dashboard then stopped the exact session: `STOPPED`, inactive, not busy,
+no remaining bridge guard, STOP still latched, no lease and zero Move requests.
+This is a bounded stationary observation pass, not Nav2 or autonomous-driving
+acceptance. Map-relative height/tilt and the user's current pose still need
+confirmation. No INITIAL POSE, Nav2 start, goal, STOP clear or motion was sent.
+The separate small-first-feedback progress defect remains unrepaired.
 
 ## 2026-11-11 native reader contention follow-up
 

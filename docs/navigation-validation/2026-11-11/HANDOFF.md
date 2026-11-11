@@ -1,5 +1,29 @@
 # 주행 검증 인계 — 2026-11-11
 
+## 최신 현장 후속 — 정지 관측 통과, 실제 주행 미실행
+
+현재 장비 코드: `75dc81348c907d7c53def48b39ae8343940c7cae`.
+사용자가 적용·서비스 재시작·정지 재시험을 승인했다. 기존 실행본에서 순차
+전환했으며 구성·지도 등 보호 파일 462개의 내용/권한을 보존했다. 새 릴리스의
+ROS 빌드 연결 누락도 복구했다. 자세한 실패 이력과 수정은
+[소유권 조회 기록](../../coordination/C0_OBSERVATION_OWNER_SAMPLING_20261109.md)을 참조한다.
+
+- 최초 두 후보는 현장에서 관측 무효화가 재발했다. 성공으로 집계하지 않는다.
+- Nav2 상태 조회의 파일 검사(`lstat`)가 작업 상태 잠금을 점유하는 경로를
+  진단·재현했다. 읽기용 파일 검사를 잠금 밖으로 이동했고 실제 시작 검사는 유지했다.
+- 최종 정지 관측: 93.305초, 46개 표본 모두 READY, fresh pose/cloud 검사 통과,
+  owner failure 없음, 서명된 동작 차단 HELD, STOP 유지, lease 없음, Move 0건.
+- 정상 종료 후 STOPPED/inactive/not busy/guard 없음, STOP 유지, lease 없음, Move 0건.
+- 로컬 Python 3,750 run / 3,715 passed / 35 skipped, 관련 JS smoke 7파일 및 정적 검사 통과.
+- exact-SHA [I0](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/43017775401)는 success.
+  [일반 CI](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/43017775466)는 기록 시 진행 중.
+
+다음은 재시작으로 초기화된 **현재 사용자 위치·방향 초안의 재확인**과 지도 기준
+높이·기울기 제안 검증이다. 사용자 확인을 요청한 상태이며, 응답 없이 예전 좌표를
+현재 위치로 가정하지 않는다. INITIAL POSE·Nav2 시작·저장지도 정합·목표 전송·
+STOP 해제·실제 이동은 수행하지 않았다. 작은 첫 feedback 진행률 결함도 미수정이다.
+이 문서 커밋은 배포된 코드 SHA를 바꾸지 않는다. 아래는 이전 세션의 보존 이력이다.
+
 인수 원격 SHA: `4b244d4024327c070482cdd71f4732ea081962d7`. clean main에서 시작했다.
 작업은 main 단일 브랜치에서 직렬 수행했고 이전 역할 브랜치를 병합하지 않았다.
 
