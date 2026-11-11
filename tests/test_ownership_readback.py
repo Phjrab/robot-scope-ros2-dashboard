@@ -89,6 +89,34 @@ class OwnershipReadbackTests(unittest.TestCase):
     def setUp(self):
         self.runtime = idle_runtime()
 
+    def test_navigation_contention_identifies_each_lock_without_exposing_owner_data(self):
+        for site, lock in [('startup', self.runtime.navigation._state_lock),
+                           ('jobs', self.runtime.navigation._jobs._lock),
+                           ('gateway', self.runtime.agent._navigation_gateway._navigation_lock)]:
+            with self.subTest(site=site):
+                entered, release = threading.Event(), threading.Event()
+                def reader():
+                    with lock:
+                        entered.set()
+                        release.wait(2)
+                worker = threading.Thread(target=reader)
+                worker.start()
+                try:
+                    self.assertTrue(entered.wait(1))
+                    result = ownership_readback(self.runtime)
+                    value = result['components']['navigation']
+                    self.assertEqual(value['reason'], 'OWNER_LOCK_BUSY')
+                    self.assertEqual(value['lock_site'], site)
+                    self.assertIsNone(value['busy'])
+                    self.assertFalse(result['sampled_constraints_clear'])
+                    self.assertLessEqual(len(value['reader_frames']), 12)
+                    for location in value['reader_frames']:
+                        self.assertEqual(set(location), {'component', 'function', 'line'})
+                    self.assertNotIn('SECRET_TOKEN', json.dumps(result))
+                finally:
+                    release.set()
+                    worker.join(1)
+
     def test_clear_sample_is_advisory_and_preserves_preview_impact(self):
         value = ownership_readback(self.runtime)
         self.assertEqual(value["schema"], SCHEMA)

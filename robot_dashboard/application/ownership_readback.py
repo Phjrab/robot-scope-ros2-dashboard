@@ -11,6 +11,7 @@ import _thread as thread_native
 from contextlib import contextmanager
 import math
 import os
+import sys
 import threading
 import time
 from typing import Any, Callable
@@ -23,14 +24,18 @@ _LOCK_TYPES = (type(threading.Lock()), type(threading.RLock()))
 class OwnerLockBusy(RuntimeError):
     """A native read lock could not be acquired; ownership remains unknown."""
 
+    def __init__(self, site=None):
+        super().__init__("owner lock busy")
+        self.site = site
+
 
 @contextmanager
-def _locked(lock: Any):
+def _locked(lock: Any, site=None):
     # Never wait behind native work, and never invoke a manager callback.
     if type(lock) not in _LOCK_TYPES:
         raise TypeError("unsupported owner lock")
     if not lock.acquire(blocking=False):
-        raise OwnerLockBusy("owner lock busy")
+        raise OwnerLockBusy(site)
     try:
         yield
     finally:
@@ -137,7 +142,7 @@ def _mapping(owner: Any) -> dict[str, Any]:
 
 
 def _navigation(owner: Any) -> dict[str, Any]:
-    with _locked(owner._state_lock):
+    with _locked(owner._state_lock, "startup"):
         startup = _fields(owner._start, "pending", "mapping_owned", "phase", "terminal_cleanup")
         startup.update(token_retained=owner._start["token"] is not None,
                        mapping_job_retained=owner._start["mapping_job_id"] is not None,
@@ -146,12 +151,12 @@ def _navigation(owner: Any) -> dict[str, Any]:
         localization["token_retained"] = owner._localization_session["token"] is not None
         task_active = _task(owner._start_task)
     jobs = owner._jobs
-    with _locked(jobs._lock):
+    with _locked(jobs._lock, "jobs"):
         pipeline = _fields(jobs._pipeline, "state", "job_id")
         retained_process = (jobs._process is not None or jobs._pgid is not None
                             or jobs._map_snapshot is not None)
     gateway = owner._agent._navigation_gateway
-    with _locked(gateway._navigation_lock):
+    with _locked(gateway._navigation_lock, "gateway"):
         runtime = _fields(gateway._navigation, "active", "cleanup_required", "map")
         goal = _fields(gateway._navigation["goal"], "state", "goal_id")
         runtime_localization = _fields(gateway._localization_only, "active", "state")
@@ -344,6 +349,26 @@ def _route_planner(owner: Any) -> dict[str, Any]:
                 state=owner._state["state"], storage_unavailable=bool(owner._storage_error))
 
 
+def _navigation_reader_frames():
+    """Bounded code locations only; concurrent frames are not lock-owner proof."""
+    modules = {
+        'robot_dashboard.application.navigation_coordinator': 'startup',
+        'robot_dashboard.navigation_jobs': 'jobs',
+        'robot_dashboard.ros.navigation_gateway': 'gateway',
+    }
+    locations = []
+    for frame in sys._current_frames().values():
+        for _ in range(32):
+            if frame is None or len(locations) >= 12:
+                break
+            module = frame.f_globals.get('__name__')
+            if module in modules:
+                locations.append(dict(component=modules[module], function=frame.f_code.co_name,
+                                      line=frame.f_lineno))
+            frame = frame.f_back
+    return locations
+
+
 def ownership_readback(runtime: Any) -> dict[str, Any]:
     """Copy local constraints without publishing, expiry, probing, or cleanup.
 
@@ -364,8 +389,10 @@ def ownership_readback(runtime: Any) -> dict[str, Any]:
             if type(value["busy"]) is not bool:
                 raise TypeError("invalid ownership observation")
             components[name] = dict(status="observed", **value)
-        except OwnerLockBusy:
+        except OwnerLockBusy as exc:
             components[name] = dict(status="unknown", busy=None, reason="OWNER_LOCK_BUSY")
+            if name == 'navigation' and exc.site in {'startup', 'jobs', 'gateway'}:
+                components[name].update(lock_site=exc.site, reader_frames=_navigation_reader_frames())
         except Exception:
             # Do not expose exceptions, paths, lease tokens or application hooks.
             components[name] = dict(status="unknown", busy=None, reason="OWNER_READ_UNAVAILABLE")

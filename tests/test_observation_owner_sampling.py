@@ -119,6 +119,8 @@ class ObservationOwnerSamplingTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await owner.refresh())['state'], 'INVALIDATED')
         self.assertEqual(current['owner_failure']['unknown_components'], ['navigation'])
         self.assertEqual(current['owner_failure']['unknown_reasons'], {'navigation': 'OWNER_LOCK_BUSY'})
+        self.assertEqual(current['owner_failure']['navigation_lock_site'], 'startup')
+        self.assertIsInstance(current['owner_failure']['navigation_reader_frames'], list)
         failure = owner.snapshot()['owner_failure']
         failure['unknown_components'].clear()
         failure['unknown_reasons'].clear()

@@ -172,6 +172,10 @@ class FastlioObservationSession:
                         unknown_components=unknown,
                         unknown_reasons={name: owners['components'][name].get('reason') for name in unknown},
                     )
+                    navigation = owners['components'].get('navigation', {})
+                    if navigation.get('lock_site'):
+                        self._owner_failure['navigation_lock_site'] = navigation['lock_site']
+                        self._owner_failure['navigation_reader_frames'] = navigation.get('reader_frames', [])
             self._latch_safety('OBSERVATION_OWNER_CHANGED_OR_UNKNOWN')
         self.bridge_safety_error()
 

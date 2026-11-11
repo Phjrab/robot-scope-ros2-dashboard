@@ -23,8 +23,30 @@ retry, and loss of the bridge inhibit. The historical checkpoint below records
 the earlier immediate-rejection behavior. Local validation passed: all six
 focused regressions, Python 3,748 run / 3,713 passed / 35 skipped (149.284 s),
 JavaScript 765 passed, Ruff, configured mypy, tracked-source credential scan
-and whitespace checks. Field retest of this follow-up is still pending;
+and whitespace checks.
+
+Field retest of `b575b43` did **not** pass: it remained `WAITING_INPUTS`, then
+latched navigation `OWNER_LOCK_BUSY` after about 32 seconds of sampling. The
+bridge inhibit remained held. Exact-session stop completed with STOP latched,
+no lease and zero Move requests. This budget does not resolve the field issue.
+
+The diagnostic follow-up distinguishes the startup, process-manager and gateway
+locks, retaining the first failing lock plus at most 12 concurrent code locations
+from those three modules. Locations contain only component, function and line;
+no paths, thread locals, tokens or sensor payloads. Concurrent frames are clues,
+not proof of which thread owns a lock. Admission rules and the read budget stay
+unchanged. FAST-LIO input readiness remains a separate unresolved field issue;
 neither Nav2 localization nor autonomous driving is validated.
+
+The input wait was subsequently traced to a deployment omission: both new
+release directories lacked the original release's `workspaces` symlink to the
+existing native build. The XT16 bridge launcher therefore exited during startup;
+the dashboard saw no `/imu/body` publisher and no `/velodyne_points`. The follow-up
+deployment must preserve both `.venv` and `workspaces`, check the existing XT16
+executable, and verify preview health and both publishers after restart. This is
+a deployment repair, not a sensor calibration or estimator change. The diagnostic
+candidate passed Python 3,749 run / 3,714 passed / 35 skipped (149.677 s), five
+observation JavaScript smoke files, Ruff, mypy and tracked-source credential scan.
 
 Result ID: `C0-OBSERVATION-OWNER-SAMPLING-20261109-01`
 
