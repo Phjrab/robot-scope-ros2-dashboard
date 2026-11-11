@@ -41,3 +41,29 @@ selected pins/generation과 실제 실행 source를 대조한다.
 3. **action 성공 후 정지 방향 잔차:** 같은 날의 별도 현장 이력이다. SUCCEEDED와 물리 정지/정밀 도착은 별도다. 이번 yaw 설정 변경·시험 NOT_RUN.
 
 현재 전체의 첫 현장 미확인은 실행본·모드·지도·교정·정지 상태 인수다. 과거 시험창·목표·배포 승인과 과거 A3 native 결과는 이번 승인/통과로 재사용하지 않는다.
+
+
+## 후속 2회차 — 2026-11-11, 488d279 인수
+
+기준 `488d279b3a97300db80fd32843008b3e83344c5a`는 이번 인수 시 원격 main과
+일치했고 새 일반 main 체크아웃은 clean이었다. 상위 작업 폴더에 남아 있는 과거
+체크아웃과 미커밋 변경은 보존했다. branch/worktree/PR 생성·과거 역할 병합 없음.
+기준 CI 42998127916 및 I0 42998127664의 success를 GitHub에서 다시 확인했다.
+
+이번 변경은 **오프라인 진단 도구와 회귀 검사**다. 운영 gateway/health/UI의 진행률
+결함을 수정한 후보가 아니다. 표시/health 결함은 여전히 SOFTWARE_REPRODUCED다.
+실제 저속 정체와 action 성공 후 정지 yaw 잔차는 별도 미검증 항목으로 유지한다.
+
+| 화면 단계 | 구현 / 이번 단위·fixture | 실제 ROS/Nav2 | 현재 장비 정지 | 실제 목표 이동 | 이번 첫 미확인 / 다음 작업 |
+|---|---|---|---|---|---|
+| ① 지도 연결·사용자 위치 초안 | 기존 구현 유지; 기존 브라우저 회귀 대상 | NOT_RUN | UNKNOWN | NOT_RUN | 장비 실행본·실제 모드·지도 pins 읽기 |
+| ② 센서·교정·초기값 준비 | 090afc7 수정 유지; 강제 refresh·exact stop·unsupported admission 회귀 대상 | NOT_RUN | UNKNOWN | NOT_RUN | bridge capability·STOP·lease·센서 신선도 미확인 |
+| ③ Nav2 시작·노드와 TF 확인 | 기존 구현 유지; 전체 소프트웨어 회귀 대상 | NOT_RUN | UNKNOWN | NOT_RUN | native 노드/source/TF 미확인 |
+| ④ INITIAL POSE 접수·지도 정합 | 기존 명시 접수와 별도 match 기준 유지 | NOT_RUN | UNKNOWN | NOT_RUN | 이번 실행의 pose receipt와 정합 증거 없음 |
+| ⑤ 추정 위치·주행 준비 확인 | 기존 freshness·품질·소비·안전 gate 유지 | NOT_RUN | UNKNOWN | NOT_RUN | 지속 correction과 Nav2 소비 증거 없음 |
+| ⑥ 목표 전송·경로 진행 | 진단 확장: matching plan 뒤에도 재현, 짧은 정상 목표·큰 왕복 대조, 부분 재현 종료코드 수정 | NOT_RUN | UNKNOWN | NOT_RUN | feedback 생산자가 소비한 goal/plan 문맥 필요; 임의 baseline reset 미적용 |
+
+과거 인계의 장비 주소에 GET 1회와 host key 검증을 유지한 BatchMode SSH 1회를
+시도했으나 모두 timeout이었다. 장비 전원 상태·오프라인 여부를 판정할 수 없다.
+실제 mode/profile/source를 받지 못했으므로 2D/저장 3D/A3 어느 모드도 추정하지 않았다.
+[진행률 후속 조사](FOLLOWUP_2_PROGRESS_CONTEXT.md)와 아래 후속 실행 기록을 함께 읽는다.

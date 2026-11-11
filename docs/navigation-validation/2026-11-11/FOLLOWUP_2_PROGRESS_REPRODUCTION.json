@@ -1,0 +1,132 @@
+{
+  "source_head": "488d279b3a97300db80fd32843008b3e83344c5a",
+  "source_sha256": {
+    "robot_dashboard/ros/navigation_gateway.py": "adc636c2cfa530af456fec5207c2a3b9cd9c363568a924def6d4e201a62ceb95",
+    "robot_dashboard/localization_health.py": "63d3001eb8877e4ae71ad87be3d4a42b9739bd35068eb2f694559ba38e4cb820",
+    "robot_dashboard/static/app.js": "09eb2c8c387b6fd2b772ac604cead38974a72bda654615c5a5d181ec3e3f7910",
+    "tests/test_ros_navigation_gateway.py": "a8ef059ccfc7d98b723c0cac27958bb4270b2a9a0285534fe6c4dda1abc10fcd",
+    "robot_dashboard/goal_precision.py": "a1dd12e3a857d432efbeeeff56199da37fa650e29f53d5748164bd7ba665fbfc",
+    "scripts/reproduce_navigation_progress.py": "a67adbfddd142285284d6631102e1847790b5e2e3b5d58cd1b09207a04439727",
+    "tests/test_goal_precision.py": "78c21f5ba7efbcaab1d75be20d30b36d4fc6fa028a77ce25d3e92299e9ec2313"
+  },
+  "environment": {
+    "python": "3.12.3",
+    "profile": "go2-xt16-wired"
+  },
+  "evidence": "production callbacks and classifier; synthetic transport/times; display formula only",
+  "controls_ok": true,
+  "result": "REPRODUCED",
+  "reproduced_cases": [
+    "small_positive_then_approach",
+    "restart_small_positive_then_approach",
+    "accepted_goal_with_matching_plan"
+  ],
+  "cases": {
+    "small_positive_then_approach": {
+      "initial_distance_m": 0.042,
+      "remaining_distance_m": 0.49,
+      "display_fraction_formula": 0,
+      "progress_rate_mps": 0.0,
+      "baseline_state": "ready",
+      "health": "DEGRADED",
+      "reason": "GOAL_PROGRESS_TOO_LOW"
+    },
+    "normal_approach": {
+      "initial_distance_m": 0.838,
+      "remaining_distance_m": 0.49,
+      "display_fraction_formula": 0.41527446300715987,
+      "progress_rate_mps": 0.027777777777777627,
+      "baseline_state": "ready",
+      "health": "READY",
+      "reason": "HEALTHY"
+    },
+    "stationary": {
+      "initial_distance_m": 0.838,
+      "remaining_distance_m": 0.838,
+      "display_fraction_formula": 0,
+      "progress_rate_mps": 0.0,
+      "baseline_state": "ready",
+      "health": "DEGRADED",
+      "reason": "GOAL_PROGRESS_TOO_LOW"
+    },
+    "zero_only": {
+      "initial_distance_m": null,
+      "remaining_distance_m": null,
+      "display_fraction_formula": null,
+      "progress_rate_mps": null,
+      "baseline_state": "pending",
+      "health": "DEGRADED",
+      "reason": "GOAL_PROGRESS_TOO_LOW"
+    },
+    "bounded_noise": {
+      "initial_distance_m": 0.836,
+      "remaining_distance_m": 0.836,
+      "display_fraction_formula": 0,
+      "progress_rate_mps": 0.0,
+      "baseline_state": "ready",
+      "health": "DEGRADED",
+      "reason": "GOAL_PROGRESS_TOO_LOW"
+    },
+    "reverse": {
+      "initial_distance_m": 0.838,
+      "remaining_distance_m": 0.958,
+      "display_fraction_formula": 0,
+      "progress_rate_mps": 0.0,
+      "baseline_state": "ready",
+      "health": "DEGRADED",
+      "reason": "GOAL_PROGRESS_TOO_LOW"
+    },
+    "large_oscillation": {
+      "initial_distance_m": 0.838,
+      "remaining_distance_m": 0.838,
+      "display_fraction_formula": 0,
+      "progress_rate_mps": 0.0,
+      "baseline_state": "ready",
+      "health": "DEGRADED",
+      "reason": "GOAL_PROGRESS_TOO_LOW"
+    },
+    "legitimate_small_goal": {
+      "initial_distance_m": 0.042,
+      "remaining_distance_m": 0.008,
+      "display_fraction_formula": 0.8095238095238095,
+      "progress_rate_mps": 0.03500000000000199,
+      "baseline_state": "ready",
+      "health": "READY",
+      "reason": "HEALTHY"
+    },
+    "accepted_goal_with_matching_plan": {
+      "initial_distance_m": 0.042,
+      "remaining_distance_m": 0.49,
+      "display_fraction_formula": 0,
+      "progress_rate_mps": 0.0,
+      "baseline_state": "ready",
+      "health": "DEGRADED",
+      "reason": "GOAL_PROGRESS_TOO_LOW",
+      "plan_association": "OBSERVED_DURING_GOAL_NO_ACTION_UUID",
+      "plan_endpoint_error_m": 0.0,
+      "feedback_plan_binding": "UNAVAILABLE"
+    },
+    "cancel_ignores_feedback": true,
+    "new_goal_resets_baseline": true,
+    "old_callback_ignored_after_new_goal": true,
+    "new_goal_normal_feedback": {
+      "initial_distance_m": 0.838,
+      "remaining_distance_m": 0.681,
+      "display_fraction_formula": 0.18735083532219565,
+      "progress_rate_mps": 0.31399999999999983,
+      "baseline_state": "ready",
+      "health": "READY",
+      "reason": "HEALTHY"
+    },
+    "restart_resets_baseline": true,
+    "restart_small_positive_then_approach": {
+      "initial_distance_m": 0.042,
+      "remaining_distance_m": 0.49,
+      "display_fraction_formula": 0,
+      "progress_rate_mps": 0.0,
+      "baseline_state": "ready",
+      "health": "DEGRADED",
+      "reason": "GOAL_PROGRESS_TOO_LOW"
+    }
+  }
+}

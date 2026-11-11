@@ -34,3 +34,32 @@
 
 표시/health 진행률 결함, 실제 접근 정체, 정지 후 yaw 잔차는 서로 별개의 다음 문제다.
 이 후보는 주행 전체 현장 통과판이 아니다. 지도·교정·사용자 프리셋·STOP/lease/watchdog/Safe mode는 보존한다.
+
+
+## 후속 2회차 — 2026-11-11 재개
+
+인수 SHA `488d279b3a97300db80fd32843008b3e83344c5a`; 원격 main과 일치.
+기준 CI [42998127916](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/42998127916),
+I0 [42998127664](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/42998127664)
+success 재확인. 과거 체크아웃의 사용자 변경을 보존하고 새 일반 main 체크아웃에서 작업했다.
+
+실제 변경:
+- 재현 도구가 일부 재현을 exit 0으로 놓치던 집계를 수정하고 대조 실패를 INCONCLUSIVE로 분리.
+- 실제 gateway send/accept callback + matching endpoint 관측 후 거리열 재현 추가.
+- 정상 짧은 목표, 큰 왕복, goal generation/ID 각각의 거절, plan 단독 비소비, 진단 판정 회귀 5건.
+- 기존 4개 문서의 이력을 보존하여 이 회차를 append하고 후속 조사·JSON을 추가.
+
+운영 progress 계산은 **SOFTWARE_REPRODUCED / 미수정**이다. 현재 feedback에 소비 path
+식별자가 없어서 임의 baseline reset·최소거리 cutoff·timeout 완화를 채택하지 않았다.
+신선한 matching `/plan`도 소비 증거가 아님을 분리했다. 현재 변경은 배포 후보가 아닌
+진단·검증 변경이며 이전 090afc7 후보 archive 영수증을 대체하지 않는다.
+
+최종 로컬: Python **3,711 passed / 35 skipped (3,746 run)**,
+JS **765 passed**, browser 8파일 **127 passed**, syntax **135 modules**,
+Ruff/mypy/pip check/diff 통과. 첫 환경 실패와 의도된 재현 exit 1은 통과에 포함하지 않았다.
+정확한 명령·첫 실패·환경·skip은 [TEST_RESULTS.md](TEST_RESULTS.md)의 후속 절에 있다.
+
+장비 루트 GET과 검증된 known_hosts를 쓴 BatchMode SSH는 모두 timeout.
+실행본·mode/profile/source·지도/교정·STOP/lease·물리 정지는 미확인이다.
+배포·서비스 전환·관측·Nav2 시작·INITIAL POSE·match·목표·이동은 전부 NOT_RUN.
+다음 한 작업: **현재 유효한 장비 접속 경로에서 읽기 전용 실행본/상태 인수**.

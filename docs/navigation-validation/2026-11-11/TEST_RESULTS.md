@@ -109,3 +109,87 @@ python3 scripts/reproduce_navigation_progress.py
 ## 게시 코드 exact-SHA CI
 
 코드 `090afc7ecc24cd0db49374fa4865084bd52cb45d`의 [CI 42996364533](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/42996364533)는 **success / 7 jobs success**다. Ubuntu 22.04/Python 3.10, Ubuntu 24.04/Python 3.12의 Python 전체/JavaScript/정적·의존성/API fixture와 네 browser shard가 모두 성공했다. 별도 [I0 42996364303](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/42996364303)도 **success**다. 2026-11-11 18:46:56 KST 확인. 이들은 하드웨어 없는 검증이며 native/장비 통과가 아니다.
+
+
+## 후속 2회차 — 새로운 Ubuntu 환경에서 재검증
+
+인수 SHA `488d279b3a97300db80fd32843008b3e83344c5a` + 이번 진단/검사 diff.
+production gateway, health classifier, app.js, preparation.js 변경 없음.
+작업 디렉터리 `/home/desktop1/Documents/ChatGPT/robot/robot-scope-ros2-dashboard`.
+Ubuntu 24.04.5 x86_64, Python 3.12.3, Node 24.22.1, Playwright 1.62.1,
+Chromium 151.0.7922.34 (1234). ROS/rclpy 없음. venv는 `/tmp/nav-validation-venv`.
+requirements.txt/requirements-competition-offline.txt/requirements-quality.txt로 설치했고
+pip check 통과. numpy 1.26.4/scipy 1.11.4/PyYAML 6.0.1/Pillow 12.3.0/
+fastapi 0.162.4/pydantic 2.14.3을 사용했다.
+CI와 같은 고정 C2 비교 커밋 765622e/380800c/9e9ebcc를 fetch했다.
+
+### 첫 실패와 환경 조정 (통과에 포함하지 않음)
+
+1. 최초 재현은 pydantic 부재로 import 실패. sandbox pip도 DNS 제한으로 실패했다.
+   임시 venv에 필요한 의존성을 정상 네트워크 환경에서 설치한 뒤 원본 재현을 실행했다.
+2. sandbox 전체 unittest는 첫 비동기 시험에서 진행하지 않아 중단(exit 130).
+   별도 socket 생성 probe가 EPERM을 확인했다. 완료된 전체 suite 결과가 아니다.
+3. sandbox Node는 85개 파일 단위 종료만 보고했다. 이를 765개 assertion 통과로 쓰지 않고
+   정상 프로세스 환경에서 Node 24로 실행해 765 passed / 0 skipped를 확인했다.
+4. 첫 완료 Python 전체: 3,746 run / failures 1 / errors 1 / skipped 35, **실패**.
+   `expansion_c3.test_module`은 기본 Node 18.19.1의 ESM 해석 실패;
+   `test_https_listener...off_partial_origin_bind_and_key_guards`는 umask 0002에서
+   openssl이 생성한 cert의 group-write 권한 때문에 기존 보안 검사에서 거절됐다.
+   Node 24 PATH + umask 022에서 두 모듈 4 tests passed. 제품/검사 완화 없음.
+   PID 1/subreaper 문제를 가정하지 않았고, 이번에는 subreaper를 쓰지 않았다.
+5. 시스템 npm 부재로 첫 npm ci는 시작하지 못했다. bundled pnpm으로 `/tmp`에 npm 10을
+   준비하고 원래 package-lock 그대로 npm ci --ignore-scripts를 완료했다.
+   Chromium 다운로드는 완료됐으나 FFmpeg 다운로드가 ENETUNREACH로 지연되어 중단했다.
+   video=off인 기존 검사에 설치된 full Chromium(channel=chromium)을 사용했다.
+   timeout/assertion/worker를 늘리거나 줄이지 않았다.
+
+### 실제 명령
+
+```sh
+# 아래 PATH를 로컬 검사에 적용; 기존 기본 Node 18과 구분한다.
+export PATH=/tmp/nav-validation-venv/bin:/home/desktop1/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH
+umask 022
+C2_CROSS_REQUIRED=1 python3 -m unittest discover -s tests -v
+node --test tests/*.mjs
+node scripts/check_frontend_syntax.mjs
+python3 -m ruff check robot_dashboard scripts
+python3 -m mypy --config-file mypy.ini
+python3 scripts/check_repository_secrets.py
+python3 -m pip check
+git diff --check
+```
+
+브라우저 명령은 이전 8파일을 그대로 사용했다. `/tmp/nav-playwright.config.mjs`는
+기존 playwright.config.mjs를 import하고 testDir/webServer.cwd를 절대경로로 지정하며
+use.channel만 chromium으로 지정했다. 나머지 기존 timeout/worker/expect 설정 유지.
+
+```sh
+PLAYWRIGHT_BROWSERS_PATH=/tmp/nav-browsers node node_modules/playwright/cli.js test --config=/tmp/nav-playwright.config.mjs tests/e2e/navigation_preparation.spec.mjs tests/e2e/pre_nav_draft.spec.mjs tests/e2e/operational_navigation.spec.mjs tests/e2e/navigation_health.spec.mjs tests/e2e/navigation_event_safety.spec.mjs tests/e2e/navigation_goal_urdf.spec.mjs tests/e2e/navigation_presets.spec.mjs tests/e2e/goal_precision.spec.mjs --reporter=line --output=/tmp/nav-browser-final
+```
+
+**127 passed (2.8m)**. UNKNOWN/OCCUPIED와 강제 refresh·unsupported 관측·exact stop
+회귀를 포함한다. 실제 로봇/ROS 연결은 아니다.
+JS **765 passed**, JS syntax **135 modules**, Ruff/mypy(4 source files)/pip check/diff 통과.
+새 진단 검사 **5 passed**. source secret scan은 staging 후에도 다시 수행한다.
+
+### 진행률 별도 진단
+
+`python3 scripts/reproduce_navigation_progress.py`:
+원본과 확장본 모두 **exit 1 / REPRODUCED / controls_ok=true**.
+확장본 세 재현(기존/재시작/수락 goal+matching plan) 모두 initial=.042m,
+remaining=.490m, 표시 공식 0%, rate=0, DEGRADED/GOAL_PROGRESS_TOO_LOW.
+[후속 JSON](FOLLOWUP_2_PROGRESS_REPRODUCTION.json)은 인수 HEAD + 진단 diff 실행이며
+각 실행 파일의 SHA256을 포함한다. 아직 게시된 exact commit 실행으로 해석하지 않는다.
+별도 정상 짧은 목표·큰 왕복·generation/ID 분리·부분 재현/대조 실패 판정 검사를 추가했다.
+임시 메모리 mutant(증가 때 baseline reset)는 왕복 검사 1건에서 실패하여 거절했다.
+이 의도된 mutant 실패와 재현 exit 1은 정상 회귀 통과 수에 포함하지 않는다.
+
+
+### 후속 최종 로컬 결과
+
+Node 24 PATH + umask 022, C2_CROSS_REQUIRED=1 전체 재검사:
+**3,746 run / 3,711 passed / 35 skipped / failures 0 / errors 0**, 150.213초.
+35 skip의 사유/개수는 위 최초 회차의 최종 skip 목록과 같으며 통과에서 제외했다.
+로컬 원본 로그는 `/tmp/nav-python-corrected.log`, `/tmp/nav-js-unsandboxed.log`,
+`/tmp/nav-browser-final.log`; 실패 로그는 `/tmp/nav-python-final.log`와 구분한다.
+운영 소스 파일들은 기준 SHA와 동일하며, 새 A3/native 통과를 주장하지 않는다.
