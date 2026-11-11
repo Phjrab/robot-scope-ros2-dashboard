@@ -155,7 +155,7 @@ class FastlioObservationSession:
         # Native I/O runs in a worker; the bounded ownership copy stays on the
         # event loop under pipeline_coordination_lock. Offloading this copy
         # can turn an event-loop reader's RLock into a false unknown.
-        owners = ownership_readback(self.runtime)
+        owners = await self._read_observation_owners(allow_proposal=True)
         allowed = {'fastlio_observation', 'legacy_alignment'}
         global_id = (owners.get('components', {}).get('global_observation') or {}).get('active_id')
         proposals = getattr(self.runtime, '_navigation_initialization_proposals', None)
@@ -174,6 +174,34 @@ class FastlioObservationSession:
                     )
             self._latch_safety('OBSERVATION_OWNER_CHANGED_OR_UNKNOWN')
         self.bridge_safety_error()
+
+    async def _read_observation_owners(self, *, allow_proposal=False):
+        """Finish a fresh ownership read across brief navigation reader contention.
+
+        The caller retains pipeline_coordination_lock. No start is dispatched
+        while sampling; an active observation retains its signed motion inhibit.
+        Only navigation's native lock contention is retryable, never observed
+        work, missing owners or failed reads. No cached idle result is accepted.
+        Yield on the event loop so a worker holding the lock can finish without
+        blocking callbacks or moving the ownership copy to a foreign thread.
+        """
+        deadline = time.monotonic() + 0.1
+        while True:
+            owners = ownership_readback(self.runtime)
+            allowed = {'fastlio_observation', 'legacy_alignment'}
+            global_id = (owners.get('components', {}).get('global_observation') or {}).get('active_id')
+            proposals = getattr(self.runtime, '_navigation_initialization_proposals', None)
+            if (allow_proposal and proposals is not None
+                    and proposals.owns_observation_job(global_id, self._status.get('session_id'))):
+                allowed.add('global_observation')
+            retryable = (
+                not any(name not in allowed for name in owners['busy_components'])
+                and owners['unknown_components'] == ['navigation']
+                and owners['components']['navigation'].get('reason') == 'OWNER_LOCK_BUSY'
+            )
+            if not retryable or self.bridge_safety_error() or time.monotonic() >= deadline:
+                return owners
+            await asyncio.sleep(min(0.01, max(0., deadline - time.monotonic())))
 
     async def _finish_bridge_inhibit(self):
         context = self._bridge_context
@@ -335,7 +363,7 @@ class FastlioObservationSession:
 
     async def _start_blockers(self) -> list[str]:
         bridge_snapshot = await asyncio.to_thread(self.runtime.lifecycle.control_bridge_snapshot)
-        readback = ownership_readback(self.runtime)
+        readback = await self._read_observation_owners()
         allowed = {"fastlio_observation", "legacy_alignment"}
         blockers = [
             name

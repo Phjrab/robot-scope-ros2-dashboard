@@ -1,5 +1,31 @@
 # C0 observation ownership sampling checkpoint
 
+## 2026-11-11 native reader contention follow-up
+
+The user-authorized stationary dashboard trial deployed `00cdb7e` with verified
+release contents and preserved configuration/map files. Observation still
+invalidated: the retained first failure was navigation `OWNER_LOCK_BUSY`, with
+no observed busy component. Exact-session stop completed and the signed bridge
+reported STOP latched, no lease, and zero Move requests. This identifies lock
+contention; it does not prove which native reader held the lock.
+
+Observation admission and monitoring now give that specific read collision a
+100 ms acquisition budget, yielding between fresh copies on the event loop.
+The shared pipeline admission lock remains held and an active session retains
+its bridge inhibit. No new start or cached idle result is accepted while the
+owner is unknown. Actual busy owners, other unreadable owners, bridge guard
+loss, and contention that outlasts the budget still fail closed. A latched
+failure still requires exact-session cleanup; this is not automatic recovery.
+
+Real-thread regressions cover brief contention at both start and refresh,
+event-loop responsiveness, persistent contention, busy work appearing during
+retry, and loss of the bridge inhibit. The historical checkpoint below records
+the earlier immediate-rejection behavior. Local validation passed: all six
+focused regressions, Python 3,748 run / 3,713 passed / 35 skipped (149.284 s),
+JavaScript 765 passed, Ruff, configured mypy, tracked-source credential scan
+and whitespace checks. Field retest of this follow-up is still pending;
+neither Nav2 localization nor autonomous driving is validated.
+
 Result ID: `C0-OBSERVATION-OWNER-SAMPLING-20261109-01`
 
 The preparation UI's “stored 3D localization not applied” message is an execution

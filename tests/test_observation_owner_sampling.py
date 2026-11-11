@@ -2,6 +2,7 @@
 import asyncio
 import json
 import threading
+import time
 import unittest
 from unittest.mock import patch
 
@@ -12,6 +13,68 @@ from test_observation_bridge_session import active_session
 
 
 class ObservationOwnerSamplingTests(unittest.IsolatedAsyncioTestCase):
+    async def test_brief_native_reader_contention_allows_fresh_start_and_refresh(self):
+        for phase in ('start', 'refresh'):
+            with self.subTest(phase=phase):
+                runtime, owner, service, link, _ = active_session()
+                if phase == 'refresh':
+                    await owner.start()
+                entered, release = threading.Event(), threading.Event()
+
+                def reader():
+                    with runtime.agent._navigation_gateway._navigation_lock:
+                        entered.set()
+                        release.wait(2)
+
+                worker = threading.Thread(target=reader)
+                worker.start()
+                self.assertTrue(await asyncio.to_thread(entered.wait, 1))
+                # Release on the event loop: a blocking lock acquisition would
+                # prevent this callback and fail the bounded test.
+                asyncio.get_running_loop().call_later(.025, release.set)
+                try:
+                    current = await (owner.start() if phase == 'start' else owner.refresh())
+                    self.assertEqual(current['state'], 'READY', current)
+                    self.assertEqual(current['bridge_guard']['state'], 'HELD')
+                    self.assertIsNone(current['owner_failure'])
+                finally:
+                    release.set()
+                    await asyncio.to_thread(worker.join, 1)
+                await owner.stop(current['session_id'])
+                self.assertEqual(service.calls, ['start', 'stop'])
+                self.assertTrue(all(p['type'] == 'observation_inhibit' for p in link.sent))
+
+    async def test_retry_never_accepts_a_busy_owner_or_lost_motion_inhibit(self):
+        from robot_dashboard.application.ownership_readback import ownership_readback
+        for failure in ('busy', 'inhibit'):
+            with self.subTest(failure=failure):
+                runtime, owner, service, link, _ = active_session()
+                current = await owner.start()
+                reads = 0
+
+                def sample(value):
+                    nonlocal reads
+                    reads += 1
+                    result = ownership_readback(value)
+                    if reads == 1:
+                        result['unknown_components'] = ['navigation']
+                        result['components']['navigation'] = dict(status='unknown', busy=None, reason='OWNER_LOCK_BUSY')
+                        if failure == 'busy':
+                            runtime.navigation._start['pending'] = True
+                        else:
+                            link.transport.set_unready('test inhibit loss')
+                            link.status()
+                    return result
+
+                with patch('robot_dashboard.application.fastlio_observation.ownership_readback', side_effect=sample):
+                    rejected = await owner.refresh()
+                self.assertEqual(rejected['state'], 'INVALIDATED')
+                self.assertTrue(rejected['can_stop'])
+                self.assertLessEqual(reads, 2)
+                runtime.navigation._start['pending'] = False
+                await owner.stop(current['session_id'])
+                self.assertEqual(service.calls, ['start', 'stop'])
+
     async def test_event_loop_read_lock_does_not_invalidate_start_or_refresh(self):
         runtime, owner, service, link, _ = active_session()
         # An event-loop reader holds the reentrant state lock, without changing
@@ -45,7 +108,9 @@ class ObservationOwnerSamplingTests(unittest.IsolatedAsyncioTestCase):
         worker.start()
         try:
             self.assertTrue(await asyncio.to_thread(entered.wait, 2))
+            started = time.monotonic()
             current = await owner.refresh()
+            self.assertLess(time.monotonic() - started, .5)
             self.assertEqual(current['state'], 'INVALIDATED')
             self.assertTrue(current['can_stop'])
         finally:
