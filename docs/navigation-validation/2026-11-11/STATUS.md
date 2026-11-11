@@ -1,0 +1,43 @@
+# 주행 탭 검증 상태 — 2026-11-11 (KST)
+
+범위는 `#navigation`의 **주행 → Nav2 자율주행** 전체와 지도·위치추정·Nav2·제어 공통 백엔드다.
+`#experiments` A3는 제외한다. 자동 미션·녹색 출발·새 경로 계획 기능·확장 메뉴·VSLAM·새 odometry·강화학습을 선행 과제로 추가하지 않는다.
+
+인수 기준은 최신 `origin/main` **4b244d4024327c070482cdd71f4732ea081962d7**이다.
+처음 인수한 main은 clean이었으며 참고 SHA보다 최신 커밋은 없었다. 브랜치/worktree/PR을 만들지 않았다.
+지도 연결·관측 소유권 변경은 이미 통합된 현재 구현을 사용한다.
+
+## 화면 6단계 (내부 7개 검사를 화면 순서로 합침)
+
+`구현 있음`은 현장 완료 판정이 아니다. 이 세션에서 장비 상태를 읽지 않았으므로 **현재 로봇 단계는 미확인**이다.
+아래 native·정지·이동 열은 모두 **이번 세션, 이 후보 소스** 기준이다.
+
+| 화면 단계 | 구현 완료 여부 | 단위/fixture 검증 | 실제 ROS/Nav2 | 현재 장비 정지 검증 | 실제 목표 이동 | 첫 미확인/실패와 다음 작업 |
+|---|---|---|---|---|---|---|
+| ① 지도 연결·사용자 위치 초안 | 기존 구현 있음: 명시 좌표관계 확인, ID/revision 고정, 초안 무효화 | 준비/초안 브라우저, map pair·API 회귀. UNKNOWN/OCCUPIED는 현재 실패 아님 | NOT_RUN | NOT_RUN | NOT_RUN | 실제 실행본·mode/profile·선택 지도·교정 hash부터 읽는다. 사용자 좌표관계 확인은 실측 정합이 아님 |
+| ② 센서·교정·초기값 준비 | 기존 구현 + 이번 강제 refresh 유실/늦은 응답 수정 | UI 차단·명령 POST 없음·실제 ASGI admission 409, 정확한 session 종료 회귀 | NOT_RUN | NOT_RUN | NOT_RUN | 장비의 bridge capability·소유권·STOP·센서 출처/신선도 미확인. 승인된 정지 관측 창에서 확인 |
+| ③ Nav2 시작·노드와 TF 확인 | 기존 source/job/세대·readiness 검사 있음 | gateway·coordinator·준비/health/event safety 회귀 | NOT_RUN | NOT_RUN | NOT_RUN | 실제 실행본에서 노드 lifecycle, source·TF 시각/방향·유일 publisher 확인 |
+| ④ INITIAL POSE 접수·지도 정합 | 기존 명시 접수/별도 match 및 품질 검사 있음 | 운영 위치추정·handoff·늦은 receipt/다른 세대 거절 회귀 | NOT_RUN | NOT_RUN | NOT_RUN | 명시 위치의 이번 실행 접수 후 별도 저장지도 정합. HTTP 200·마커·MATCH_ARMED만으로 완료 금지 |
+| ⑤ 추정 위치·주행 준비 확인 | 기존 지속 보정·품질·Nav2 소비·안전 gate 있음 | runtime/gateway·stale·source mismatch 회귀 | NOT_RUN | NOT_RUN | NOT_RUN | 신선한 연속 correction과 동일 실행의 Nav2 TF 소비 확인. 모의 TF를 native 통과로 사용하지 않음 |
+| ⑥ 목표 전송·경로 진행 | 기존 전송·취소·STOP 있음. **작은 양의 첫 feedback 진행률 결함 미해결** | 최신 gateway 실행 재현, 정상/정체/zero/noise/reverse/새 goal/취소/재시작 대조 | NOT_RUN | NOT_RUN | NOT_RUN | 새 goal과 그 내부 plan/feedback의 연결 근거를 보강해야 함. 이후 승인된 짧은 목표·취소/STOP·측정 정지·정지 후 XY/yaw·다음 명시 목표 순서 |
+
+구체 실행 결과와 환경 한계는 [TEST_RESULTS.md](TEST_RESULTS.md), 현장 순서는 [FIELD_PLAN.md](FIELD_PLAN.md)에 있다.
+
+## 모드 구분
+
+장비의 `GET /api/v1/navigation`에서 `mode`, `pipeline.mode`, `session_mode`,
+`bindings.navigation_profile`, 실제 `operational_localization`을 함께 읽는다.
+`GET /api/v1/navigation/operational-3d/preparation-inputs`의 `operational_state.activation`,
+selected pins/generation과 실제 실행 source를 대조한다.
+
+- 기존 2D: 준비 선택의 `LEGACY_2D`만으로 현재 실행을 단정하지 않는다. 실제 standard mode/profile/source를 함께 확인한다.
+- 저장 3D: 선택의 `NEXT_NAVIGATION_START`는 다음 시작용 구성이다. 실행된 `STORED_PCD_FASTLIO`, 지도 revision, job/bundle/localization/runtime 세대가 일치해야 실제 적용으로 기록한다.
+- `manual_seeded_2d`/A3이면 이번 검증에서 멈추고 범위 밖으로 기록한다. 다른 모드로 자동 전환하지 않는다.
+
+## 서로 다른 미해결 문제
+
+1. **진행률/health 계산:** 최신 소스에서 소프트웨어 재현됨. `.0416856`을 즉시 baseline으로 채택하면 이후 `.838 → … → .490`에도 표시 계산이 0이다. 수치가 증가했다는 이유만으로 baseline을 reset하거나 stall 제한을 늘리지 않았다.
+2. **실제 저속 접근 정체:** 10월 30일 별도 현장 이력이다. 이번 장비 재현 NOT_RUN. 표시 결함이 실제 접근을 중단시켰다고 주장하지 않는다.
+3. **action 성공 후 정지 방향 잔차:** 같은 날의 별도 현장 이력이다. SUCCEEDED와 물리 정지/정밀 도착은 별도다. 이번 yaw 설정 변경·시험 NOT_RUN.
+
+현재 전체의 첫 현장 미확인은 실행본·모드·지도·교정·정지 상태 인수다. 과거 시험창·목표·배포 승인과 과거 A3 native 결과는 이번 승인/통과로 재사용하지 않는다.
