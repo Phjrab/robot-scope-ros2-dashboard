@@ -150,6 +150,9 @@ footer { flex-wrap: wrap; gap: 8px 20px; }
 .camera-media-toolbar { grid-template-columns: minmax(0, 1fr); }
 .camera-media-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .camera-media-actions label { min-width: 0; }
+.page-view:not(.cockpit-page) .camera-media-actions select {
+  height: 40px; min-height: 40px; padding-block: 8px;
+}
 .camera-media-readout small, .realsense-profile-copy small {
   max-width: none; white-space: normal; overflow-wrap: anywhere;
 }

@@ -1,6 +1,41 @@
-# 원본 저장소 반영 대기 — 2026-11-10
+# 2026-11-10 작업의 원본 통합 기록
 
-## 보관 목적
+## 2026-11-11 원본 main 통합
+
+사용자의 원본 저장소 push 요청에 따라 아래 네 커밋을 원본 `main`에 통합한다.
+원본의 최신 `9b7dc8d272d5f142141613f96d6429b2211ae8d2`
+(`fix(ui): preserve camera and map editor control spacing`)를 함께 병합해
+카메라·지도 편집기 CSS 변경을 보존했다. 기존 커밋을 재작성하지 않는다.
+
+| 커밋 | 내용 |
+|---|---|
+| `8eb2305` | 지도 확인·관측 소유권 수정 및 기존 브라우저 실패 세 건 수정 |
+| `982b45a` | 원본 반영 대기 목록과 이관 절차 |
+| `b1eaaeb` | 고정 비교 커밋을 원본 공개 저장소에서 읽는 CI 설정 |
+| `e93d716` | 테스트 준비 보완 및 브라우저 검사의 두 shard 분할 |
+
+`e93d716`의 최종 Linux 검증은 Python·JavaScript·정적/의존성 검사,
+미션·수동 2D API 연동, 대회 오프라인 및 I0 제품 통합을 통과했다.
+브라우저 첫 shard는 두 환경 모두 성공했고, 두 번째 shard는 환경별
+168 passed / 1 failed였다. 아래 실패는 이번 게시 범위에서도 미해결이다.
+
+- Ubuntu 22.04 / Python 3.10: `pre-draft rejects occupied map cells`.
+- Ubuntu 24.04 / Python 3.12: `pre-draft rejects unknown map cells`.
+- `tests/e2e/pre_nav_draft.spec.mjs:60`에서 UNKNOWN/OCCUPIED 대신
+  `START NAV2가 위치추정 센서와 Nav2를 순서대로 준비합니다.`가 표시됐다.
+- 전체 CI: https://github.com/deahfst/robot-scope-ros2-dashboard/actions/runs/42806081714
+- I0 통합: https://github.com/deahfst/robot-scope-ros2-dashboard/actions/runs/42806081402
+
+11월 11일 통합 사본에서 JavaScript 단위 테스트 765건, 문법 검사 135개 모듈,
+추적 파일 자격증명 검사가 통과했다. 원본 CSS 두 파일도 `9b7dc8d`와 동일하다.
+Python 전체 테스트는 Windows에서 import 오류가 발생해 중단했고,
+집중 검사에서 Linux 전용 `resource` 모듈 부재를 확인했다.
+이번 통합 사본의 Python 전체 검증을 통과로 집계하지 않는다.
+
+GitHub 소스 게시와 장비 배포는 별개다. 이 통합 작업은 Jetson 서비스나
+지도·주행 상태를 변경하지 않는다. 아래 대기·이관 절차는 11월 10일의 보관 이력이다.
+
+## 최초 보관 목적 (2026-11-10)
 
 사용자 요청에 따라 변경을 `deahfst/robot-scope-ros2-dashboard` 비공개
 저장소에 보관하고, `Phjrab/robot-scope-ros2-dashboard` 반영은 나중에 진행한다.
@@ -32,7 +67,7 @@ HEAD와 로컬 HEAD 대조로 확인한다.
   cockpit 재진입 테스트는 합성 점군을 계속 공급해 정상 watchdog 재연결이
   소유권 검증에 섞이지 않게 했다. 기존 assertion과 제품 시간 제한은 유지한다.
 
-## 검증과 남은 작업
+## 최초 로컬 검증과 당시 남은 작업 (2026-11-10)
 
 - JavaScript 단위 테스트 765건, 문법 검사 135개 모듈 통과.
 - Ruff, 설정된 mypy 범위, 추적 파일 자격증명 검사 통과.
@@ -44,7 +79,7 @@ HEAD와 로컬 HEAD 대조로 확인한다.
 
 자세한 범위와 실행 환경은 [통합 기록](C0_MAIN_INTEGRATION_20261110.md)을 참조한다.
 
-## 나중에 원본으로 옮기기
+## 최초 이관 절차 (이력)
 
 1. 원본 쓰기 권한과 최신 `origin/main`을 확인한다. 작업 폴더의 미커밋 변경을 보존한다.
 2. 개인 보관 저장소에서 `backup/main`을 fetch하고 아래 범위의 커밋을 검토한다.
