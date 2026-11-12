@@ -117,9 +117,40 @@ read-only process/dependency verification, exact old release/selector recovery
 details and current-session deployment approval are still required. Preserve both
 `.venv` and `workspaces` links, maps and settings. Do not deploy from mutable main.
 
-Next operational task: obtain authorization for normal exact-session termination
-of the invalidated user-started observation, then verify inactive/guard released,
-STOP still latched and no lease. Do not clear STOP to make proposal calculation
-available. Subsequent observation or movement needs its own current scope.
+At 18:44:40 KST a fresh GET readback showed STOPPED, inactive, not busy,
+guard=null, STOP still latched, no lease and bridge Move count zero. The agent
+sent no stop command; the ending action was external to the agent. The original
+raw-capture failure remained retained. This is not physical-stop evidence.
+
+Next task: establish authenticated read-only SSH access and verify the actual
+dashboard process/release and its recovery selector/dependency links before
+requesting deployment of the tested candidate. Do not clear STOP to make proposal
+calculation available. Subsequent observation or movement needs its own current scope.
 The small-first-feedback progress defect remains unfixed. No autonomous-driving
 or saved-map localization acceptance was performed.
+
+## Candidate publication and Linux verification
+
+Code candidate `8d541acc0b8ed1fa581389a78d37e8f860500cfa` was committed and
+pushed normally to origin/main. The following follow-up documentation does not
+change the code candidate or claim that it was deployed.
+
+- Linux Python 3.10 and 3.12 each ran 3,752 tests: 3,717 passed and 35 skipped,
+  with zero failures/errors (239.345 s and 204.357 s). Both new real-thread
+  regressions are present and passed in those full-suite logs.
+- Both Linux hardware-free jobs passed their 765 JavaScript tests, static
+  checks and real-API browser fixtures.
+- Exact-candidate [CI](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/43193099446):
+  success, all 7 jobs successful; final run status re-read at 18:49:53 KST.
+- Exact-candidate [I0](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/43193099462): success.
+- Source archive created with `git -c core.autocrlf=false archive --format=tar`
+  against the exact candidate: 2,734 files, every content blob matched Git;
+  SHA256 `eac36da8ac560ce6502cd451f10ab08c7a193232d8a3442179fac6c44b7b06a1`.
+  The first Windows-default archive had 2,304 byte mismatches due to autocrlf;
+  it was rejected and marked REJECTED-CRLF, never sent to the device. Repository
+  or global Git settings were not changed. Neither source archive contains the
+  device's `.venv` or `workspaces`; those still require actual dependency checks.
+
+Windows full-suite attempt was bounded at 120 seconds and terminated without
+completion; this remains an environment failure, not a local full-suite pass.
+Successful Linux CI is separate evidence and does not erase that failed attempt.
