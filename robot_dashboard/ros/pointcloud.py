@@ -43,7 +43,11 @@ class PointCloudHub:
         self.stream_id = secrets.token_urlsafe(12)
         self.last_processed = 0.0
         self.observation_identity = ObservationIdentity()
-        self._raw_capture = RawPointCloudCaptureLatch(lock)
+        # Ownership reads must not contend with unrelated telemetry/pointcloud
+        # readers on the hub lock. Source-sensitive request/begin/finish/reset
+        # still hold the hub lock before this latch lock; never reverse that
+        # order. The latch itself serializes every record/in-flight mutation.
+        self._raw_capture = RawPointCloudCaptureLatch(threading.RLock())
         self._raw_context: Dict[str, Any] = {"topic": "", "frame_id": "", "observation": {}}
 
     def request_raw_capture(

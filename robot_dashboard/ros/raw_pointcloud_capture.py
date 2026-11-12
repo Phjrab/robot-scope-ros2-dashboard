@@ -153,7 +153,10 @@ class CaptureTicket:
 
 
 class RawPointCloudCaptureLatch:
-    """Own one pending/copying/ready capture, sharing the PointCloudHub lock.
+    """Own one pending/copying/ready capture under a dedicated reentrant lock.
+
+    PointCloudHub holds its context lock before entering this latch when source
+    identity must be atomic. This latch never acquires the hub's context lock.
 
     Cancellation immediately suppresses publication. A copying callback keeps
     the slot until it returns so repeated cancellation cannot multiply buffers.

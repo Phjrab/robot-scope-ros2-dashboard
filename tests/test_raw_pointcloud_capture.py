@@ -1,5 +1,8 @@
 from array import array
+import copy
 import hashlib
+import importlib.util
+from pathlib import Path
 from types import SimpleNamespace
 import threading
 import time
@@ -32,6 +35,16 @@ def message(points=None, *, datatype=8, endian="<", width=None, height=1, paddin
 
 def decode(captured):
     return np.frombuffer(captured["xyz_bytes"], dtype="<f8").reshape(-1, 3)
+
+
+def ownership_reader():
+    # Load the pure readback module without application/__init__'s Linux native
+    # lifecycle imports. The real ownership function and locks are unchanged.
+    path = Path(__file__).resolve().parents[1] / 'robot_dashboard/application/ownership_readback.py'
+    spec = importlib.util.spec_from_file_location('raw_capture_ownership_readback', path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 class RawXYZDecoderTests(unittest.TestCase):
@@ -248,6 +261,60 @@ class HubRawCaptureTests(unittest.TestCase):
                    "robot_pose_in_frame": lambda _: {"unverified": True}}
         options.update(changes)
         return self.hub.process("/cloud", value or message(), self.clock[0], **options)
+
+    def test_context_reader_does_not_hide_raw_capture_ownership(self):
+        _raw_capture = ownership_reader()._raw_capture
+
+        agent = SimpleNamespace(_pointcloud_hub=self.hub)
+        for pending in (False, True):
+            with self.subTest(pending=pending):
+                request = self.hub.request_raw_capture("/cloud") if pending else None
+                entered, release = threading.Event(), threading.Event()
+                original = copy.deepcopy
+
+                def held_copy(value, *args, **kwargs):
+                    if value is self.hub._raw_context:
+                        entered.set()
+                        if not release.wait(3):
+                            raise AssertionError("context reader was not released")
+                    return original(value, *args, **kwargs)
+
+                with patch('robot_dashboard.ros.pointcloud.copy.deepcopy', side_effect=held_copy):
+                    worker = threading.Thread(target=self.hub.raw_context_snapshot)
+                    worker.start()
+                    try:
+                        self.assertTrue(entered.wait(1))
+                        current = _raw_capture(agent)
+                        self.assertEqual(current['busy'], pending)
+                        if pending:
+                            self.assertEqual(current['record']['capture_id'], request['capture_id'])
+                    finally:
+                        release.set()
+                        worker.join(1)
+                self.assertFalse(worker.is_alive())
+                if request:
+                    self.hub.cancel_raw_capture(request['capture_id'])
+
+    def test_raw_capture_lock_contention_still_reports_unknown(self):
+        reader = ownership_reader()
+
+        entered, release = threading.Event(), threading.Event()
+
+        def holder():
+            with self.hub._raw_capture._lock:
+                entered.set()
+                release.wait(3)
+
+        worker = threading.Thread(target=holder)
+        worker.start()
+        try:
+            self.assertTrue(entered.wait(1))
+            with self.assertRaises(reader.OwnerLockBusy):
+                reader._raw_capture(SimpleNamespace(_pointcloud_hub=self.hub))
+        finally:
+            release.set()
+            worker.join(1)
+        self.assertFalse(worker.is_alive())
 
     def test_no_request_has_no_raw_decoder_copy_or_timer_and_ui_behavior_is_preserved(self):
         with patch("robot_dashboard.ros.pointcloud.capture_xyz") as raw, \
