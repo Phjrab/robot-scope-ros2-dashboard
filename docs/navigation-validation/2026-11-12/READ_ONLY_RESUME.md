@@ -6,7 +6,7 @@ CI and I0 were re-read as successful. No branch, worktree or PR was created.
 The supplied prompt pack and current AGENTS.md were read. Historical stationary
 acceptance is not evidence of the current reboot, physical stop or localization.
 
-## Current-session observations
+## Initial read-only phase (before the later supervised trial)
 
 - Read-only HTTP access and the user's in-app browser were available. No page
   reload, observation POST, INITIAL POSE, Nav2 start, match, goal, STOP clear,
@@ -154,3 +154,80 @@ change the code candidate or claim that it was deployed.
 Windows full-suite attempt was bounded at 120 seconds and terminated without
 completion; this remains an environment failure, not a local full-suite pass.
 Successful Linux CI is separate evidence and does not erase that failed attempt.
+
+## Later proposal report and explicitly approved stationary trial
+
+The following supersedes the earlier no-observation-POST statement only for the
+explicitly approved trial. Deployment and service restarts remain unapproved.
+
+### User-triggered calculation before the trial
+
+The latest user-triggered global job `10ab357c4894f6d301ff4bc4` completed in
+15.744 seconds with `state=succeeded`, no worker failure and no cancellation.
+It retained 11 candidates and `AMBIGUOUS_ALTERNATIVES` /
+`AMBIGUOUS_UNVERIFIED_ESTIMATE`. Worker success is not accepted localization,
+nor proof that the UI accepted a conditional candidate.
+
+At 18:53:13 KST the UI had already discarded the proposal with the generic
+map/observation-context-changed message, while the unsent draft was stale and
+its stationary attestation was unchecked. A later proposal GET returned
+`OPERATOR_PRIOR_EXPIRED`; this later expiry cannot explain the earlier event.
+The UI deliberately invalidates a draft-linked proposal when the draft, pair,
+source epochs or observation session changes. Blur/hidden-page suspension is
+one possible trigger, but the user did not recall changing focus and no
+contemporaneous focus event was captured. Its role in this field failure is
+UNCONFIRMED. The existing local browser blur regression passed; that establishes
+the software mechanism, not the user's actual event sequence.
+
+By 18:57:37 KST that observation, `1e238ac6ca784462925b577f02421674`, was
+INVALIDATED with `CONTROL_OWNER_UNKNOWN_DURING_OBSERVATION`. This later latched
+failure is separate from the first generic proposal-discard message.
+
+### Authorized retry and cleanup
+
+The user explicitly confirmed current on-site stop supervision and authorized
+exact-session observation stop, one new observation with STOP maintained, and
+one proposal calculation. INITIAL POSE, Nav2, STOP release and motion were
+excluded. The user was to set and attest a fresh current draft directly.
+
+- At 19:01:14 KST the old exact session was re-read as INVALIDATED, active/busy,
+  guard HELD. The agent used the normal observation-stop UI once. By 19:02:52,
+  readback was STOPPED, inactive, not busy, guard absent, STOP latched, no lease,
+  bridge Move count zero.
+- The agent used the normal observation-start UI once. New session
+  `908ba5fee65949df976341e4a9dbfb3b` was READY with guard HELD at 19:03:18.
+  Pair generation remained `0a69d2f8551b414a88253261a96fab00`, with the same
+  confirmed `map_20261109_1` / `map_20261109_1_edited` revisions. No coordinates
+  were restored or attested by the agent. Calculation remained disabled because
+  the old draft was stale and its checkbox unchecked.
+- At 19:05:15.501 the sampled DOM changed to INVALIDATED. The retained first
+  failure was `OBSERVATION_OWNER_CHANGED_OR_UNKNOWN`, monotonic
+  `2550.137716078`, no busy components, unknown component `raw_capture`, reason
+  `OWNER_LOCK_BUSY`. This reproduces the raw-capture failure on the existing
+  device setup; the candidate lock fix has not been deployed or field-validated.
+- No proposal calculation was submitted in this trial. The failed session was
+  cleaned up with one normal exact-session stop. At 19:05:46 the UI showed
+  STOPPED, inactive, not busy; the API confirmed guard=null and retained the
+  failure diagnostic. Final control readback retained STOP=true, lease=false,
+  Move count zero, signed bridge release `75dc81348c907d7c53def48b39ae8343940c7cae`.
+  These are software readbacks, not measurements of physical stop.
+
+The user's later response that they would enter the draft arrived after cleanup;
+they were informed that observation had failed and calculation could not proceed.
+No second start, INITIAL POSE, Nav2, goal, STOP release, device deployment or
+service restart was performed. Code candidate remains
+`8d541acc0b8ed1fa581389a78d37e8f860500cfa`; full dashboard process identity remains
+unverified without authenticated SSH.
+
+Next single task: establish authenticated read-only access to verify the actual
+dashboard release and both `.venv`/`workspaces` links and recovery selector,
+then present the exact tested candidate and recovery plan for deployment approval.
+Do not repeat observation to work around the unresolved ownership failure.
+
+For this documentation-only follow-up, related JavaScript tests passed 19/19
+and `git diff --check` passed. The full Windows unittest command was rerun:
+test-loader errors appeared and the worker test stalled; the 120-second bound
+expired without a suite result. The attempted process-tree cleanup was denied
+inside the sandbox, and a subsequent permitted process inventory confirmed no
+Python processes remained. This attempt is not a pass or a skip. The unchanged
+code candidate's successful Linux CI above remains separate evidence.
