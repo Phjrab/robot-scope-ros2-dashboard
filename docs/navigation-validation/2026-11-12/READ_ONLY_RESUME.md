@@ -231,3 +231,74 @@ expired without a suite result. The attempted process-tree cleanup was denied
 inside the sandbox, and a subsequent permitted process inventory confirmed no
 Python processes remained. This attempt is not a pass or a skip. The unchanged
 code candidate's successful Linux CI above remains separate evidence.
+
+## Authenticated read-only deployment preflight
+
+Subsequent user-provided login information enabled read-only SSH inspection.
+No credential was written into this repository or a command-line argument.
+The current address's ED25519 fingerprint matched the already stored robot host
+key before the new address was accepted; host-key verification was not disabled.
+Only `192.168.0.30` was contacted. The old alias was not used as a destination.
+
+Actual process evidence resolves the earlier process-identity uncertainty:
+
+- `robot-scope.service` PID 1014 and `robot-scope-control-bridge.service` PID
+  2863 both run with cwd and `ROBOT_SCOPE_DIR` set to
+  `/home/unitree/robot-scope-releases/75dc81348c907d7c53def48b39ae8343940c7cae`.
+  Both services are active/running. The on-disk pointcloud, raw capture,
+  preparation.js and app.js hashes exactly match that Git revision. This is
+  process/path and selected-file evidence, not a full in-memory module audit.
+- The service WorkingDirectory and launch scripts instead reference
+  `/home/unitree/robot-scope`, an older checkout at `d7807de`. That checkout's
+  HEAD must not be reported as the current application code. The environment
+  selector controls the actual application root.
+- Active `.venv` points through release `5a28dd27191098c4d8670fa2d5336283f45754ff`
+  and resolves to `/home/unitree/robot-scope/.venv`. Its Python is executable.
+  Active `workspaces` points to `/home/unitree/robot-scope/workspaces`.
+  Both XT16 bridge executables exist and are executable under
+  `ws/xt16_bridge_ws/install/lib/robot_scope_xt16_bridge`; setup.bash is readable.
+- The persistent selector is the single `ROBOT_SCOPE_DIR` entry in
+  `/home/unitree/.config/robot-scope/robot-scope.env` (mode 0600).
+  Both services read this file, then control.env. Only whitelisted path/safety
+  settings were printed; full environment contents were not exported.
+  Persistent startup STOP is `ROBOT_SCOPE_CONTROL_START_STOPPED=1` and both
+  running processes have that value. Profile remains `go2-onboard`.
+- Maps, runtime and datasets are outside the release under
+  `/home/unitree/robot-scope-data`. The operational profile is also external at
+  `/home/unitree/.config/robot-scope/go2-onboard-operational3d.json`.
+  No map, profile, config or service was changed.
+- The candidate directory does not yet exist on the robot. The local exact-Git
+  LF archive checksum was rechecked and still matches the checksum above.
+  Readback remained STOP=true, lease=false, Move=0, observation STOPPED,
+  inactive/not busy, guard=null. No observation was started in this preflight.
+
+### Concrete deployment and recovery proposal (NOT EXECUTED)
+
+1. With current-session deployment/restart approval, re-read STOP, lease,
+   observation and ownership. UNKNOWN or unexpected activity blocks deployment.
+2. Transfer the verified exact `8d541acc0b8ed1fa581389a78d37e8f860500cfa` LF
+   archive, verify its SHA256 on the robot, and extract to a new immutable
+   release directory. Verify source contents. Preserve the previous release.
+   Link the new `.venv` directly to `/home/unitree/robot-scope/.venv` and
+   `workspaces` to `/home/unitree/robot-scope/workspaces`; validate both links
+   and the XT16 executables before changing the selector.
+3. Make a permission-preserving local-on-robot backup of robot-scope.env; never
+   export or commit it. Change only its existing ROBOT_SCOPE_DIR value, retaining
+   startup STOP and all external map/runtime/profile settings. Restart the
+   dashboard and control bridge within the explicitly approved maintenance
+   scope so both use the same candidate. Do not start observation or navigation.
+4. Verify both new process roots, relevant code hashes, service health and
+   signed bridge release; require STOP=true, no lease, no new Move request,
+   observation inactive/not busy and guard absent. Compare bridge counters with
+   process lifetime in mind: a restart can reset them and zero is not a complete
+   history proof. Read-only checks do not certify physical stop or navigation.
+5. If installation or postflight fails, restore the exact saved selector file
+   (mode 0600) to `75dc81348c907d7c53def48b39ae8343940c7cae`, restart only the
+   approved services, and repeat the same readbacks. Keep the failed candidate
+   for diagnosis; do not modify maps, shared dependencies or robot state to
+   force a pass.
+
+This plan and recovery are prepared; device deployment/restart approval is still
+required under the user's explicit execution boundary. The earlier observation
+trial approval does not cover them. A new observation/calculation trial would
+also need its own scope; it is not part of this deployment proposal.
