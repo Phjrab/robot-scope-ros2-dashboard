@@ -302,3 +302,75 @@ This plan and recovery are prepared; device deployment/restart approval is still
 required under the user's explicit execution boundary. The earlier observation
 trial approval does not cover them. A new observation/calculation trial would
 also need its own scope; it is not part of this deployment proposal.
+
+## Approved deployment completed at 20:06 KST
+
+The user explicitly approved the proposed deployment, dashboard/control-bridge
+restart and read-only postflight. This supersedes the preceding pending-approval
+status for exactly that scope. No new observation, INITIAL POSE, Nav2, goal,
+STOP release or movement was authorized or performed in this deployment phase.
+
+Preflight re-read STOP=true, lease=false, Move=0, observation STOPPED/inactive/
+not busy/guard=null. Ownership readback had no busy or unknown components;
+it remained advisory and not globally atomic. Existing map preview was running
+and could be interrupted by the approved dashboard restart.
+
+- Uploaded the exact LF tar; robot-side SHA256 matched
+  `eac36da8ac560ce6502cd451f10ab08c7a193232d8a3442179fac6c44b7b06a1`.
+  All 2,734 extracted files matched archive contents. Archive entries were
+  checked to contain only regular files/directories with safe relative paths.
+- Created `/home/unitree/robot-scope-releases/8d541acc0b8ed1fa581389a78d37e8f860500cfa`.
+  Both shared dependency links and both XT16 executables were checked before
+  activation. Existing release and shared dependencies were retained.
+- Saved an exact mode-0600 on-device backup at
+  `/home/unitree/.config/robot-scope/robot-scope.env.before-8d541ac-20261112T110639Z`.
+  No environment contents or credentials were exported. After stopping the
+  dashboard and bridge, changed only the exact ROBOT_SCOPE_DIR line using an
+  atomic replacement. Started the bridge and restarted the dashboard.
+- Both services became active/running with NRestarts=0. Dashboard PID 125699
+  and bridge PID 125678 had cwd at the new exact release. Both changed source
+  file hashes matched candidate Git blobs. Signed bridge status reported
+  `8d541acc0b8ed1fa581389a78d37e8f860500cfa`.
+- Immediate postflight passed STOP=true, lease=false, observation STOPPED,
+  inactive/not busy, guard=null and zero Move requests in the **new bridge
+  process lifetime**. Pre-restart Move=0 is a separate observation; counters
+  across restart are not treated as a continuous motion history.
+- Eight read-only samples from 20:07:40.442 to 20:08:04.059 KST retained those
+  control/observation conditions. Seven ownership samples were clear. At
+  20:07:47.213 one sample reported busy `pipeline_coordination` and unknown
+  `owners_not_sampled`; this sample is UNKNOWN, not clear. Subsequent samples
+  and the 20:09:08.978 read were clear. The diagnostic endpoint returns this
+  result when it cannot acquire its coordination lock; it is not a raw-capture
+  failure and does not prove observation stability. No rollback was needed for
+  the deployment checks, and no field acceptance for the lock fix is claimed.
+
+On-device non-secret receipts:
+
+- `/home/unitree/robot-scope-deploy/8d541ac-deployment-20261112T110639Z.json`
+- `/home/unitree/robot-scope-deploy/8d541ac-postflight-samples.json`
+
+The browser reconnected and retained the two displayed map choices. Applied
+preparation selection/pair and the unsent pose draft were absent, with
+`PAIR_NOT_APPLIED`, so observation/proposal buttons were disabled. This matches
+the explicit restart behavior in `OperationalNavigation.__init__`: execution
+selection and seed are never restored across dashboard restarts. No map files
+were deleted or changed by this deployment and no old pose or pair was silently
+reapplied. The UI showed pipeline/goal IDLE and localization UNINITIALIZED.
+
+Next single task: reconfirm and apply the displayed 3D/2D map pair in the current
+session, then arrange a separately scoped supervised observation/proposal trial
+with a fresh user-entered position/direction and stationary attestation.
+Autonomous driving, map alignment accuracy, the earlier proposal-discard cause,
+and the small-first-feedback progress defect remain unvalidated/unresolved.
+
+Final read at 20:11:10.170 KST retained exact candidate bridge release, STOP=true,
+lease=false, current-process Move=0, observation STOPPED/inactive/not busy,
+guard=null and no busy/unknown ownership components. The SSH session was closed.
+
+Before the deployment-record commit, related JavaScript tests passed 19/19 and
+diff whitespace checks passed. The required full Windows unittest command was
+run again; loader errors and the same stalled worker prevented completion, so
+the 120-second limit terminated it. This is not a full-suite pass. The exact
+code candidate's CI and I0 were rechecked successful before activation; the
+unchanged-code preflight documentation commit `704ae94` also had successful CI
+and I0. No device test suite, observation session or motion trial was run.
