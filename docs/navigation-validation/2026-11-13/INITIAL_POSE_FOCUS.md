@@ -217,7 +217,7 @@ input's source pin. No service deployment/restart was used for preservation.
 
 - Input source stamp: `1794565465844563961`.
 - Scan: 336 XYZ points, 8,064 bytes, SHA256
-  `970656f4ad489ee943cbde73fd4cbe6aa4be9d00079c9b5febef6c457b353fc1d`.
+  `970656f4ad489ee943cbde73fd4cbe6a4be9d00079c9b5febef6c457b353fc1d`.
 - Map: 32,387 XYZ points, 777,288 bytes, SHA256
   `5faf3f82b91150b2e4bd0b2ff8ab726ded8d0eba3c3ed056981d2b02a1f904dd`.
 - Input JSON: SHA256
@@ -234,4 +234,5 @@ actually changed from `626c5b397c8c4bc68215ba63ca14925b` to
 `7201f30957ef4b46811cf6af893156e2`. The agent did not change that session and did not
 apply/send the proposal. A retained ready response with its complete pose/proof
 was not captured, so this is not localization acceptance. Offline comparison of
-this preserved input is deferred at the user's explicit request.
+this preserved input was subsequently completed in
+[SESSION_AND_CANDIDATE_COMPARISON.md](SESSION_AND_CANDIDATE_COMPARISON.md).
