@@ -96,3 +96,67 @@ Local checks before publication:
 
 Linux CI results are separate evidence and must be checked against the exact
 published code candidate. No local Python or full browser-suite pass is claimed.
+
+## Candidate and maintenance preparation
+
+Published code candidate: `30b9caa95ac2aba3ad43d523d8aa935891c3a74d`.
+The LF Git archive contains 2,735 files; every archived file matched its Git
+blob. Archive SHA256:
+`716293d44cfa950e219f657ccf4a5b373cd20264baaf719a4b5fc391cefc1c22`.
+This archive is local only; no candidate release was uploaded or activated.
+
+Read-only preflight on November 13 found dashboard PID 1030 and bridge PID 2858
+both running from the exact `8d541acc0b8ed1fa581389a78d37e8f860500cfa` release.
+The persistent selector also names that release and retains startup STOP.
+Shared `.venv` and `workspaces` resolve to `/home/unitree/robot-scope/.venv` and
+`/home/unitree/robot-scope/workspaces`. The candidate release directory is absent.
+At 18:47:38 KST, signed control reported that same release, STOP=true, no lease
+and Move=0 within the current bridge process lifetime. Observation session
+`c55cb93cd9ba4c58ba2cf2ccb32f7626` was READY/active, guard HELD, owner_failure=null.
+This is a timestamped software readback, not physical-stop confirmation.
+
+The edited 2D map's family metadata links the current 3D revision through
+`planar_xy_identity`; original and edited 2D metadata retain the same origin,
+resolution and dimensions. This supports their declared coordinate provenance,
+but does not measure the user's real position or validate the registration.
+
+After successful exact-candidate CI, a separately approved maintenance scope
+would cover ending the exact currently active observation, verifying STOP and
+lease/ownership, deploying the verified archive while preserving both shared
+links and XT16 executables, and restarting dashboard/control bridge. Back up the
+mode-0600 selector on-device, change only ROBOT_SCOPE_DIR, and verify both process
+roots, signed release, STOP, no lease and inactive observation after restart.
+Unexpected activity or UNKNOWN blocks activation. Restore the saved selector to
+the exact `8d541ac` release and restart the same services if postflight fails.
+Preserve old release, maps and dependencies. The restart clears applied pair and
+unsent draft by design; reconnecting the pair and any new observation/calculation
+are separate steps. No INITIAL POSE, Nav2 start, goal or STOP release is included.
+
+Documentation pre-commit checks repeated the required Windows full unittest
+command: the same loader errors and stalled worker led to the 120-second limit,
+not a pass. Related JavaScript tests passed 14/14 and diff whitespace passed.
+
+## Exact-candidate CI and final readback
+
+Both workflows completed successfully for code candidate
+`30b9caa95ac2aba3ad43d523d8aa935891c3a74d`:
+
+- [CI 43403431523](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/43403431523):
+  all seven jobs successful. Ubuntu 22.04/Python 3.10 and Ubuntu 24.04/Python 3.12
+  each ran 3,754 Python tests: 3,719 passed and 35 skipped, coverage 79%. Each
+  environment passed 766 JavaScript tests, 349 browser tests (175 + 174 shards),
+  10 mission fixture E2E tests and one manual 2D fixture E2E test. These are
+  hardware-free checks, not robot navigation evidence.
+- [I0 43403431463](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/43403431463):
+  product-and-capacity successful. The slower browser shard completed in 12.1
+  minutes; no rerun or relaxed assertion was used to obtain the pass.
+
+Final device read at 18:55:15.700 KST still reported exact release `8d541ac`,
+STOP=true, lease=false, current-process Move=0, the same observation session
+READY/active, guard HELD and owner_failure=null. The read-only SSH session was
+closed. No observation start/stop, proposal calculation, INITIAL POSE, Nav2,
+goal, STOP release, deployment or service restart was performed in this phase.
+
+Next single action: obtain the separate maintenance approval for the verified
+candidate and recovery plan above. Re-read the current observation/session and
+control state at execution time; this final readback is not a future admission.
