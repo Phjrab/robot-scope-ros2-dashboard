@@ -45,6 +45,59 @@ Reproduction and validation:
 This is a local software fix. It has not yet been deployed and does not authorize
 another service restart, observation, calculation, INITIAL POSE or movement.
 
+## Initial candidate and maintenance boundary
+
+Code candidate: `4d736299a13fb627e7de5c96e07bf8934970044e`.
+The LF archive `nav2-candidate-4d73629-lf.tar` was prepared outside the repository.
+Its 2,736 regular files matched the candidate Git blobs; archive SHA256 is
+`3a0411a891f2700b3e5c933c615b6ac1fba2fd1fb305ceeaf364a008f44087db`.
+It has not been uploaded or selected on the robot. This initial archive is not
+deployment-ready: its complete CI found the browser fixture omission below.
+
+The rollback release is the currently deployed
+`/home/unitree/robot-scope-releases/30b9caa95ac2aba3ad43d523d8aa935891c3a74d`.
+A future approved deployment must preserve both shared `.venv` and `workspaces`
+links, back up the current selector, and re-read the exact observation session
+before stopping it. Dashboard and control-bridge restart are separate from Git
+publication. Keep STOP latched, check lease/move evidence and release identities
+after restart, and inspect the browser after loading the new frontend. On failed
+release verification, restore the selector to the existing release and verify
+both services again; do not start observation or motion as part of recovery.
+If session termination or safety readback cannot be verified, stop maintenance
+instead of treating UNKNOWN as clear. This plan is prepared, not executed.
+
+At 2026-11-13 19:42:31 +09:00, read-only control/observation responses showed:
+bridge release `30b9caa95ac2aba3ad43d523d8aa935891c3a74d`, STOP latched, lease
+inactive, bridge Move request count 0; observation
+`7201f30957ef4b46811cf6af893156e2` READY, active/busy, guard HELD and no
+owner_failure. These are timestamped software readbacks, not physical-stop or
+localization-accuracy evidence.
+
+## Initial candidate CI and browser fixture correction
+
+For exact `4d736299a13fb627e7de5c96e07bf8934970044e`,
+[CI run 43410384965](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/43410384965)
+passed the full Python suite on Ubuntu 22.04/Python 3.10 and Ubuntu 24.04/Python
+3.12: 3,754 tests per environment, 35 skipped, zero failures. Both passed all
+774 JavaScript tests, 10 mission API-fixture browser cases and one manual-2D
+API-fixture browser case. The independent competition integration job passed.
+[I0 run 43410384941](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/43410384941)
+also passed; its expansion JS group had two explicit skips (84 passed).
+
+The complete browser suite did not pass: each OS had 347 passed and four failed.
+All four failures were in `navigation_event_safety.spec.mjs`: the isolated
+registration fixture omitted the newly extracted `pausePreNavigationPlacement`
+definition and raised ReferenceError before registering the listeners. This
+fixture issue was missed by the earlier two-file local browser run, which did
+not include that file. It is not counted as an environment failure or ignored.
+
+The follow-up includes the real helper in that browser fixture, exercises both
+completed and interrupted drafts, and verifies that the native EventTarget
+reports exactly the injected consent/render/suspend error after the expected
+fail-safe calls. Production JavaScript is unchanged by this follow-up.
+After correction, the local native-event browser suite plus pre-navigation
+draft suite passed 27/27; the event-safety Node suite passed 15/15.
+
 ## Preserved input evidence for later analysis
 
 Before this priority change, the user authorized exact input preservation and
