@@ -160,3 +160,76 @@ goal, STOP release, deployment or service restart was performed in this phase.
 Next single action: obtain the separate maintenance approval for the verified
 candidate and recovery plan above. Re-read the current observation/session and
 control state at execution time; this final readback is not a future admission.
+
+## Approved deployment completed, November 13
+
+The user's subsequent “진행” approved the proposed exact-observation cleanup,
+candidate deployment, dashboard/control-bridge restart and read-only postflight.
+No new observation, proposal calculation, INITIAL POSE, Nav2, goal or STOP release
+was included or performed. This supersedes the pending maintenance approval above.
+
+Preflight found a changed observation state: session
+`c55cb93cd9ba4c58ba2cf2ccb32f7626` had reached its 1,800-second service limit.
+Native systemd state was failed/timeout, MainPID=0, no control group and no pending
+job. The dashboard showed FAILED/inactive but busy with signed inhibit HELD and
+latched `CONTROL_OWNER_UNKNOWN_DURING_OBSERVATION`. Its `owner_failure` was null;
+current ownership readback was clear. The exact origin/time of that latched
+control-owner exception was not captured and remains unresolved.
+
+The stop API rejects inactive sessions, and `_finish_bridge_inhibit` deliberately
+requires an accepted stop after a dispatched start. No fabricated stop receipt,
+guard release or forced state edit was used. After checking the same native
+InvocationID and absence of processes, a fixed-service systemd stop was issued.
+The timeout result and guard remained. Approved maintenance then stopped the
+dashboard and bridge in order, confirming both inactive with MainPID=0 and no
+control group/job before activation. This is maintenance recovery, not proof that
+normal timeout cleanup or the earlier owner-unknown condition has been fixed.
+
+Deployment evidence:
+
+- Robot-side archive SHA256 matched the prepared LF archive; all 2,735 extracted
+  regular files matched it. Safe relative paths and regular-file/directory-only
+  entries were checked before extraction. Candidate directory:
+  `/home/unitree/robot-scope-releases/30b9caa95ac2aba3ad43d523d8aa935891c3a74d`.
+- Shared `.venv` and `workspaces` links and both XT16 executables were preserved
+  and verified before activation. Previous release, dependencies and map files
+  were retained.
+- The exact mode-0600 selector backup is
+  `/home/unitree/.config/robot-scope/robot-scope.env.before-30b9caa-20261113T100128Z`.
+  Only ROBOT_SCOPE_DIR changed, by atomic replacement; startup STOP remains 1.
+  No credentials or environment contents were exported or committed.
+- Bridge PID 64779 and dashboard PID 64791 both became active/running from the
+  exact candidate directory, NRestarts=0. Signed bridge release matched `30b9caa`.
+  The served preparation.js bytes matched the candidate file, SHA256
+  `a69916a6316871b5466838594ad1d062b99b4979a6826db6c2f0df2f02cdca5b`.
+- Immediate postflight at 19:03:02 KST had STOP=true, no lease, bridge ready and
+  Move=0 in the new bridge process lifetime. Observation was inactive/not busy,
+  guard=null. Its state still reads FAILED/result=timeout from the previous
+  service invocation; this was not relabeled STOPPED or reset to hide history.
+- Six samples from 19:03:46.962 to 19:04:03.710 KST retained those control and
+  observation conditions. At 19:04:00.339 the advisory ownership read returned
+  busy pipeline_coordination / unknown owners_not_sampled. This sample is UNKNOWN,
+  not clear. The other five, including the following sample, were clear. No
+  rollback was required for the deployment checks; this is not field localization
+  or autonomous-driving acceptance.
+
+Non-secret on-device records are under `/home/unitree/robot-scope-deploy/`:
+`30b9caa-deployment.json`, `30b9caa-postflight.json` and
+`30b9caa-postflight-samples.json`.
+
+Preparation readback confirms selected/pair/handoff/initial-pose confirmation are
+null, evidence OBSERVATION_INACTIVE and MAP_PAIR_REQUIRED. This is the deliberate
+restart behavior; no old pair or pose was automatically restored. Next single
+step: refresh the dashboard and reconfirm the intended current 3D/2D map pair.
+A fresh supervised observation/calculation is a separate scope and is still
+needed to obtain real candidate distance/yaw diagnostics. The root cause of the
+field PRIOR_NO_MATCH and the small-first-feedback defect remain unresolved.
+
+Final readback at 19:06:10.030 KST retained exact candidate release, both services
+active/running with NRestarts=0, STOP=true, lease=false, current-process Move=0,
+observation FAILED/timeout but inactive/not busy/guard=null, and clear current
+ownership readback. SSH was closed. Before the deployment-record commit, related
+JavaScript tests passed 14/14 and diff whitespace passed. The required full
+Windows unittest command was repeated and again hit the existing loader errors
+and stalled worker, terminating at 120 seconds (not a pass). The unchanged exact
+deployed code candidate's successful Linux CI/I0 remains the full-suite evidence.
