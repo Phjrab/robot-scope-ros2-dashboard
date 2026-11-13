@@ -21,7 +21,9 @@ from ..relocalization.v031_observation_compat import SELECTION_POLICY, _ambiguit
 
 
 class PriorRejected(ValueError):
-    pass
+    def __init__(self, reason, *, diagnostics=None):
+        super().__init__(reason)
+        self.diagnostics = deepcopy(diagnostics)
 
 
 # These are the defaults of the hash-pinned v031 SE3Config used by this
@@ -151,7 +153,28 @@ def select_candidates(observation, context, prior, *, nav_from_localization, odo
             matched_retained += 1
             matching_members.append((index, p))
     if len(matches) != 1:
-        raise PriorRejected('PRIOR_NO_MATCH' if not matches else 'PRIOR_MULTIPLE_MATCHES')
+        # Explain the exact already-validated comparison, never choose a fallback
+        # or turn a rejected candidate into a geometry/command authorization.
+        comparisons = [{'candidate_index': i, 'duplicate_of': marker,
+            'pose': {key: p[key] for key in ('x', 'y', 'yaw')},
+            'xy_distance_m': distance, 'absolute_wrapped_yaw_rad': angle,
+            'within_xy_bound': distance <= bounds['xy_m'],
+            'within_yaw_bound': angle <= bounds['yaw_rad']}
+            for i, marker, _, distance, angle, _, p in eligible_candidates]
+        diagnostics = None
+        if all(math.isfinite(v) for c in comparisons
+               for v in [*c['pose'].values(), c['xy_distance_m'], c['absolute_wrapped_yaw_rad']]):
+            diagnostics = {'schema': 'robot-scope.prior-rejection-diagnostics.v1',
+                'qualification': 'HISTORICAL_PRIOR_COMPARISON_ONLY',
+                'frame': 'map', 'pose_reference': 'base_link', 'units': 'metres_radians',
+                'projection_basis': 'NAV_LOCALIZATION_CAPTURE_TO_PRIOR_ODOM_IMU_BASE',
+                'prior_pose': deepcopy(prior['pose']), 'bounds_source': bounds_source,
+                'effective_bounds': dict(bounds), 'retained_candidate_count': retention['count'],
+                'eligible_candidate_count': len(eligible_candidates),
+                'matching_hypothesis_count': len(matches), 'candidates': comparisons,
+                'global_uniqueness_verified': False, 'absolute_accuracy_m': None}
+        raise PriorRejected('PRIOR_NO_MATCH' if not matches else 'PRIOR_MULTIPLE_MATCHES',
+                            diagnostics=diagnostics)
     index, distance, angle = matches[0]
     representative_pose = matching_members[0][1]
     def delta(a, b):

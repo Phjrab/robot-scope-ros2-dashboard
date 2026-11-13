@@ -349,6 +349,41 @@ export function preparationModel({ state, navigation = {}, draft3d, draft2d, err
   };
 }
 
+/** Bounded, historical display data only. Never used by admission or handoff. */
+export function priorRejectionDiagnostics(value) {
+  const poseValid = p => p && ['x', 'y', 'yaw'].every(k => typeof p[k] === 'number' && Number.isFinite(p[k]));
+  if (value?.schema !== 'robot-scope.prior-rejection-diagnostics.v1'
+      || value.qualification !== 'HISTORICAL_PRIOR_COMPARISON_ONLY'
+      || value.frame !== 'map' || value.pose_reference !== 'base_link' || value.units !== 'metres_radians'
+      || value.projection_basis !== 'NAV_LOCALIZATION_CAPTURE_TO_PRIOR_ODOM_IMU_BASE'
+      || !poseValid(value.prior_pose) || !['server_policy', 'operator_prior'].includes(value.bounds_source)
+      || value.global_uniqueness_verified !== false || value.absolute_accuracy_m !== null) return null;
+  const b = value.effective_bounds, rows = value.candidates;
+  if (!b || !Number.isFinite(b.xy_m) || !Number.isFinite(b.yaw_rad) || b.xy_m < .1 || b.xy_m > 3 || b.yaw_rad < Math.PI / 180 || b.yaw_rad > Math.PI / 2
+      || value.bounds_source === 'server_policy' && (b.xy_m !== .25 || b.yaw_rad !== .20)
+      || !Number.isInteger(value.retained_candidate_count) || value.retained_candidate_count < 6 || value.retained_candidate_count > 18
+      || !Array.isArray(rows) || rows.length > value.retained_candidate_count || value.eligible_candidate_count !== rows.length
+      || !Number.isInteger(value.matching_hypothesis_count) || value.matching_hypothesis_count < 0 || value.matching_hypothesis_count > rows.length) return null;
+  const indices = new Set();
+  for (const c of rows) {
+    if (!Number.isInteger(c?.candidate_index) || c.candidate_index < 0 || c.candidate_index >= value.retained_candidate_count || indices.has(c.candidate_index)
+        || !(c.duplicate_of === null || Number.isInteger(c.duplicate_of) && indices.has(c.duplicate_of)) || !poseValid(c.pose)
+        || !Number.isFinite(c.xy_distance_m) || !Number.isFinite(c.absolute_wrapped_yaw_rad) || c.xy_distance_m < 0 || c.absolute_wrapped_yaw_rad < 0 || c.absolute_wrapped_yaw_rad > Math.PI
+        || c.within_xy_bound !== (c.xy_distance_m <= b.xy_m) || c.within_yaw_bound !== (c.absolute_wrapped_yaw_rad <= b.yaw_rad)) return null;
+    const delta = c.pose.yaw - value.prior_pose.yaw;
+    if (Math.abs(Math.hypot(c.pose.x - value.prior_pose.x, c.pose.y - value.prior_pose.y) - c.xy_distance_m) > 1e-8
+        || Math.abs(Math.abs(Math.atan2(Math.sin(delta), Math.cos(delta))) - c.absolute_wrapped_yaw_rad) > 1e-8) return null;
+    indices.add(c.candidate_index);
+  }
+  if (rows.filter(c => c.duplicate_of === null && c.within_xy_bound && c.within_yaw_bound).length !== value.matching_hypothesis_count) return null;
+  return { prior_pose: { x: value.prior_pose.x, y: value.prior_pose.y, yaw: value.prior_pose.yaw },
+    effective_bounds: { xy_m: b.xy_m, yaw_rad: b.yaw_rad }, bounds_source: value.bounds_source,
+    matching_hypothesis_count: value.matching_hypothesis_count,
+    candidates: rows.map(c => ({ candidate_index: c.candidate_index, duplicate_of: c.duplicate_of,
+      pose: { x: c.pose.x, y: c.pose.y, yaw: c.pose.yaw }, xy_distance_m: c.xy_distance_m,
+      absolute_wrapped_yaw_rad: c.absolute_wrapped_yaw_rad, within_xy_bound: c.within_xy_bound, within_yaw_bound: c.within_yaw_bound })) };
+}
+
 export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect, api, context, onChange, actions, getOperatorDraft = () => ({ status: 'none' }) }) {
   let state = null, busy = false, available = false, error = '', fetchError = '', checkedAt = 0, refreshing = false, draftTouched = false, actionStep = null;
   let refreshTask = null, refreshRequested = false;
@@ -358,6 +393,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
   let inputs = null, inputsError = '', observationError = '', observationBusy = false, inputsRevision = 0, inputsRequestedAt = 0;
   let proposal = null, proposalError = '', proposalFailureDetail = '', proposalBusy = false, proposalEpoch = 0, proposalContext = null, proposalVerified = false, proposalCheckedAt = 0, proposalTimer = null, proposalExpiryTimer = null, proposalConsentBinding = null, proposalProofBinding = null;
   let cleanup = null, cleanupId = null, cleanupTimer = null, cleanupEpoch = 0, advisoryAfter = 0, advisoryRefreshPending = false;
+  let proposalRejectionHistory = null, rejectionDetailsOpen = false;
   let handoff = null, handoffReadAt = 0, handoffEpoch = 0, handoffTimer = null, handoffClock = null, handoffReading = false, handoffBusy = false, handoffError = '', handoffFailureDetail = '', handoffAwaitingStatus = false;
   const invalidHandoffs = new Map();
   const node = (tag, text, className) => { const el = document.createElement(tag); if (text !== undefined) el.textContent = text; if (className) el.className = className; return el; };
@@ -367,7 +403,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     <p>지도 조합과 좌표 관계는 사용자가 확인합니다. 서버는 변환 계보를 요구하지 않으며 파일·버전과 센서 교정은 계속 검사합니다. 크롭 후 원점이 보정된 지도는 같은 좌표를 유지할 수 있습니다. 회전 저장으로 벽의 좌표가 바뀐 지도는 좌표 변환을 맞추기 전에는 같은 좌표로 확인하지 마세요.</p>
     <div class="navigation-preparation-actions"><button type="button" data-prep="pair">① 지도 연결 확인·적용</button><button type="button" data-prep="clear">기존 2D 모드로 복구</button></div>
     <section aria-label="① 사용자 위치 초안"><h3>① 사용자 위치 초안</h3><p>아래 지도 조작부의 기존 INITIAL POSE 도구로 현재 위치와 방향을 그리세요. 미전송 사용자 가정이며 센서 측정이나 실제 위치 정확도가 아닙니다.</p>
-    <p data-prep="prior-status" role="status"></p><p>새 초안의 후보 선택에는 서버 기본 검증 한도 위치 0.25 m · 방향 ±0.20 rad (약 ±11.5°)가 적용됩니다. 이 한도는 사용자 위치 불확실성 측정이나 실제 정확도의 보증이 아닙니다.</p>
+    <p data-prep="prior-status" role="status"></p><p>다른 창·탭으로 이동하면 위치 초안은 미확인 상태가 되어 다시 지정·확인이 필요합니다. 계산의 거절 사유는 아래 이전 계산 기록에서 확인할 수 있습니다.</p><p>새 초안의 후보 선택에는 서버 기본 검증 한도 위치 0.25 m · 방향 ±0.20 rad (약 ±11.5°)가 적용됩니다. 이 한도는 사용자 위치 불확실성 측정이나 실제 정확도의 보증이 아닙니다.</p>
     <label><input type="checkbox" data-prep="prior-stationary"> 이 초안이 현재 지도에서 정지 중인 로봇의 위치·방향에 대한 제 가정임을 확인합니다. 실제 정지나 정확도를 측정한 증거는 아닙니다.</label></section>
     <section class="navigation-preparation-observation" aria-label="② 센서 관측과 초기값"><h3>② 센서 관측과 초기값</h3><p>관측은 정지 상태의 센서 입력 확인 전용입니다. 시작 조건은 서버가 다시 검사하며, 지도 선택이나 후보 확인만으로 정합·주행을 시작하지 않습니다.</p>
     <div class="navigation-preparation-actions"><button type="button" data-prep="observe-start">센서 관측 시작</button><button type="button" data-prep="observe-stop">센서 관측 종료</button></div>
@@ -543,6 +579,15 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
   function cleanupSettled() { return cleanup?.state === 'SETTLED' && cleanup.worker_active === false; }
   function recordCleanup(result, id) {
     if (result?.schema !== 'robot-scope.navigation-initialization-proposal.v1' || result.proposal_id !== id) return false;
+    if (result.state === 'rejected' && result.operational_application === 'NOT_RUN'
+        && /^[a-f0-9]{24}$/.test(id) && typeof result.reason === 'string' && result.reason.length <= 128) {
+      proposalRejectionHistory = { proposal_id: id, reason: result.reason,
+        received_at: proposalRejectionHistory?.proposal_id === id ? proposalRejectionHistory.received_at : new Date().toISOString(),
+        bundle_generation: result.pair?.generation, observation_session_id: result.observation_session_id,
+        navigation_map_id: result.pair?.navigation_2d?.map_id, navigation_map_revision: result.pair?.navigation_2d?.revision,
+        navigation_map_name: typeof result.pair?.navigation_2d?.name === 'string' ? result.pair.navigation_2d.name.slice(0, 120) : null,
+        diagnostics: priorRejectionDiagnostics(result.prior_rejection_diagnostics) };
+    }
     const wasSettled = cleanupId === id && cleanupSettled();
     const value = result.cleanup;
     cleanupId = id;
@@ -741,6 +786,19 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     if (Array.isArray(blockers) && blockers.includes('OWNER_BUSY:global_observation')) proposalNodes.push(node('p', '전역 관측 작업이 사용 중입니다 → 종료와 점유 해제를 기다리세요.'));
     else if (!Array.isArray(blockers) || blockers.includes('OWNER_UNKNOWN:global_observation')) proposalNodes.push(node('p', '전역 관측 점유 상태를 확인하지 못했습니다.'));
     el('proposal-result').replaceChildren(...proposalNodes);
+    if (proposalRejectionHistory) {
+      const h = proposalRejectionHistory, d = h.diagnostics;
+      el('proposal-result').append(node('p', `이전 계산 거절 · 수신 ${new Date(h.received_at).toLocaleTimeString()} · 지도 ${h.navigation_map_name || h.navigation_map_id?.slice(0, 8) || '미확인'}: ${inputReason(h.reason)} 당시 입력의 기록이며 현재 제안·실제 위치·실행 승인이 아닙니다.`));
+      if (d) {
+        const detail = node('details'); detail.append(node('summary', '거절 당시 후보별 위치·방향 차이'));
+        detail.open = rejectionDetailsOpen;
+        detail.addEventListener('toggle', () => { if (detail.isConnected) rejectionDetailsOpen = detail.open; });
+        detail.append(node('p', `초안 당시 map → base_link 기준 · 초안 X ${d.prior_pose.x.toFixed(3)} m / Y ${d.prior_pose.y.toFixed(3)} m / yaw ${d.prior_pose.yaw.toFixed(3)} rad · 검증 한도 ${d.effective_bounds.xy_m} m / ${d.effective_bounds.yaw_rad} rad · 일치 후보 그룹 ${d.matching_hypothesis_count}개`));
+        for (const c of d.candidates) detail.append(node('p', `후보 #${c.candidate_index}${c.duplicate_of === null ? '' : ` (#${c.duplicate_of}와 같은 그룹)`} · X ${c.pose.x.toFixed(3)} / Y ${c.pose.y.toFixed(3)} m / yaw ${c.pose.yaw.toFixed(3)} rad · 위치 차이 ${c.xy_distance_m.toFixed(3)} m (${c.within_xy_bound ? '범위 안' : '범위 밖'}) · 방향 차이 ${c.absolute_wrapped_yaw_rad.toFixed(3)} rad (${c.within_yaw_bound ? '범위 안' : '범위 밖'})`));
+        detail.append(node('p', '보존된 후보와 당시 초안의 비교이며 실제 위치 정확도를 보장하지 않습니다. 후보 좌표를 자동 입력하거나 거절 조건을 완화하지 않습니다.'));
+        el('proposal-result').append(detail);
+      }
+    }
     const handoffStates = { CONFIRMED_OBSERVATION_ACTIVE: '가설 확인됨 · 관측 종료를 별도로 요청하세요', STOP_PENDING: '관측 종료 요청 진행 중 · 종료 확인 대기', OBSERVATION_STOPPED: '정확한 관측 세대의 종료 확인', SNAPSHOTTED: '새 실행에 가설 예약됨', INITIAL_POSE_ACCEPTED: '초기 위치 접수됨 · 정합은 별도 시작', MATCH_ARMED: '정합 요청 접수 · 실제 보정과 운영 준비는 별도 확인', INVALID: '가설 사용 불가', EXPIRED: '가설 사용 시간 만료', OUTCOME_UNKNOWN: '가설 상태 불확실' };
     const receiptStates = { NOT_REQUESTED: '종료 요청 없음', DISPATCH_PENDING: '종료 요청 처리 중', DISPATCH_ACCEPTED: '종료 요청 접수 · 종료 미확인', INACTIVE_CONFIRMED: '관측 비활성 확인', OUTCOME_UNKNOWN: '종료 결과 불확실' };
     const handoffNodes = [node('p', '감독 확인은 측정된 정지나 위치 정확도의 증거가 아닙니다. 관측과 새 실행 사이의 센서 공백은 측정되지 않습니다.')];
@@ -778,7 +836,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     el('issues').replaceChildren(...(issueNodes.length ? issueNodes : [node('p', model.enabled ? '현재 확인된 필수 항목 충족. 다음 단계 버튼으로 진행하세요.' : '3D 지도를 선택하면 단계별 저장 지도 위치추정 준비가 시작됩니다. 기존 2D 모드의 상태는 아래에서 확인하세요.')]));
     const detailInputs = inputs ? { ...inputs, evidence: inputs.evidence ? { ...inputs.evidence } : inputs.evidence } : null;
     if (detailInputs?.evidence) { delete detailInputs.evidence.diagnostics; if (diagnostics) detailInputs.evidence.diagnostics = diagnostics; }
-    el('details').textContent = JSON.stringify({ selected: selected ? { generation: selected.generation, localization_3d: selected.localization_3d, navigation_2d: selected.navigation_2d, seed_geometry: geometry } : null, pair: state?.pair, runtime: source, readiness: navigation.readiness, metrics: navigation.localization_health?.metrics, errors: model.issues.map(value => value.code), preparation_inputs: detailInputs, diagnostics_note: diagnostics ? '검사 당시 값이며 실시간이 아닙니다. phase_ms는 서버 구간 경과이며 네트워크 왕복이나 lock 전용시간이 아닙니다.' : undefined, preparation_inputs_error: inputsError, observation_error: observationError, initialization_proposal: proposal, proposal_cleanup: cleanup, proposal_display_valid: Boolean(validPoses), proposal_error: proposalError, proposal_failure_detail: proposalFailureDetail, initialization_handoff: handoff, handoff_error: handoffError, handoff_failure_detail: handoffFailureDetail }, null, 2);
+    el('details').textContent = JSON.stringify({ selected: selected ? { generation: selected.generation, localization_3d: selected.localization_3d, navigation_2d: selected.navigation_2d, seed_geometry: geometry } : null, pair: state?.pair, runtime: source, readiness: navigation.readiness, metrics: navigation.localization_health?.metrics, errors: model.issues.map(value => value.code), preparation_inputs: detailInputs, diagnostics_note: diagnostics ? '검사 당시 값이며 실시간이 아닙니다. phase_ms는 서버 구간 경과이며 네트워크 왕복이나 lock 전용시간이 아닙니다.' : undefined, preparation_inputs_error: inputsError, observation_error: observationError, initialization_proposal: proposal, proposal_cleanup: cleanup, proposal_rejection_history: proposalRejectionHistory, proposal_display_valid: Boolean(validPoses), proposal_error: proposalError, proposal_failure_detail: proposalFailureDetail, initialization_handoff: handoff, handoff_error: handoffError, handoff_failure_detail: handoffFailureDetail }, null, 2);
     return model;
   }
   function refresh(force = false) {
@@ -910,7 +968,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
       calibration_sha256: pair.calibration_sha256, session_id: session.session_id, source: proposalSource(inputs.evidence) };
     if (!globalThis.crypto?.getRandomValues) { proposalError = '안전한 요청 식별자를 만들 수 없습니다.'; render(); return; }
     const requestId = [...globalThis.crypto.getRandomValues(new Uint8Array(16))].map(value => value.toString(16).padStart(2, '0')).join('');
-    clearTimeout(proposalTimer); clearTimeout(proposalExpiryTimer); clearTimeout(cleanupTimer); ++cleanupEpoch; cleanup = null; cleanupId = null; const token = ++proposalEpoch;
+    clearTimeout(proposalTimer); clearTimeout(proposalExpiryTimer); clearTimeout(cleanupTimer); ++cleanupEpoch; cleanup = null; cleanupId = null; proposalRejectionHistory = null; rejectionDetailsOpen = false; const token = ++proposalEpoch;
     if (proposalContext || proposal || proposalProofBinding || proposalConsentBinding) { el('supervision').checked = false; el('conditional-ack').checked = false; }
     proposalProofBinding = null; proposalConsentBinding = null;
     proposal = null; proposalError = ''; proposalFailureDetail = ''; proposalContext = ctx; proposalVerified = false; proposalBusy = true; render();

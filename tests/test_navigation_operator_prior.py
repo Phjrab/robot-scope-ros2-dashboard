@@ -82,6 +82,16 @@ class ConditionalProposalTests(unittest.TestCase):
             rejected=fixture.case.coordinator.get(started['proposal_id'])
             self.assertEqual((rejected['state'],rejected['reason']),('rejected','PRIOR_NO_MATCH'))
             self.assertIsNone(rejected['navigation_geometry_candidate'])
+            self.assertIsNone(rejected['body_candidate'])
+            self.assertEqual(rejected['operational_application'],'NOT_RUN')
+            diagnostic=rejected['prior_rejection_diagnostics']
+            self.assertEqual(diagnostic['prior_pose'],far['pose'])
+            self.assertEqual(diagnostic['matching_hypothesis_count'],0)
+            self.assertGreater(diagnostic['candidates'][0]['xy_distance_m'],100.)
+            fixture.case.coordinator._records[started['proposal_id']]['prior_anchor']['expires_monotonic_s']=time.monotonic()-1
+            expired=fixture.case.coordinator.get(started['proposal_id'])
+            self.assertEqual(expired['reason'],'OPERATOR_PRIOR_EXPIRED')
+            self.assertNotIn('prior_rejection_diagnostics',expired)
         finally: fixture.doCleanups()
 
     def test_request_id_prior_change_fails(self):

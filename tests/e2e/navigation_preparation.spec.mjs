@@ -32,6 +32,7 @@ async function fixture(page) {
   let invalidOperationalState = false;
   let proposalState = 'ready', proposalReason = null, proposalRejected = false, wrongProposalSource = false, ambiguousProposal = false, geometryPreview = 'valid', proofMode = 'valid', proposalReads = null, releaseProposalReads = null, heldProposalReadCount = 0;
   let proposalCleanup = { state: 'SETTLED', cancellation_requested: false, worker_active: false, terminal_state: 'succeeded' };
+  let rejectionDiagnostics = null;
   let confirmedGeometry = { z: .84, roll: .11, pitch: .12 }, currentPrior = null, proposalCount = 0, distinctProposalIds = false, nextProposalRunsOnce = false, currentProposalId = 'f'.repeat(24);
   let handoff = null, confirmMode = 'success', heldConfirm = null, releaseConfirm = null, heldHandoffRead = null, releaseHandoffRead = null;
   let heldInputsRead = null, releaseInputsRead = null;
@@ -128,6 +129,7 @@ async function fixture(page) {
         delete result.classification; delete result.operator_prior_resolution; delete result.current_vs_prior;
       }
       if (method === 'GET' && proofMode === 'group-new-id') result.proposal_id = 'e'.repeat(24);
+      if (method === 'GET' && proposalState === 'rejected' && rejectionDiagnostics) result.prior_rejection_diagnostics = rejectionDiagnostics;
       return json(result, method === 'POST' ? 202 : 200);
     }
     if (method === 'GET' && failingReads > 0) { failingReads--; return json({ detail: 'SYNTHETIC_READ_TIMEOUT' }, 503); }
@@ -149,6 +151,7 @@ async function fixture(page) {
   return { state, inputs, observation, writes, reads, reject(value) { reject = value; }, rejectObservation(value) { rejectObservation = value; }, failReads(count) { failingReads = count; }, invalidStatus(value) { invalidOperationalState = value; },
     proposalStatus(value, reason = null) { proposalState = value; proposalReason = reason; }, rejectProposal(value) { proposalRejected = value; }, wrongProposalSource(value) { wrongProposalSource = value; }, ambiguousProposal(value) { ambiguousProposal = value; }, geometryPreview(value) { geometryPreview = value; }, proofMode(value) { proofMode = value; },
     cleanup(value) { proposalCleanup = value; },
+    rejectionDiagnostics(value) { rejectionDiagnostics = value; },
     handoff() { return handoff; }, confirmMode(value) { confirmMode = value; }, confirmedGeometry(value) { confirmedGeometry = value; },
     holdConfirm() { heldConfirm = new Promise(resolve => { releaseConfirm = resolve; }); },
     releaseConfirm() { releaseConfirm?.(); heldConfirm = null; releaseConfirm = null; },
@@ -1221,6 +1224,49 @@ for (const reason of ['PRIOR_NO_MATCH', 'PRIOR_MULTIPLE_MATCHES']) {
   expect(f.writes.filter(v=>v.path.endsWith('/confirm-geometry'))).toHaveLength(0);
  });
 }
+
+for (const delayed of [false, true]) {
+ test(`historical rejection survives suspended draft without enabling actions (delayed=${delayed})`, async ({page}) => {
+  const f=await proposalFixture(page); f.proposalStatus('rejected','PRIOR_NO_MATCH');
+  if (delayed) f.holdProposalReads();
+  await page.getByRole('button',{name:'초기 위치 제안 계산'}).click();
+  if (delayed) await expect.poll(()=>f.reads.filter(p=>p.includes('/initialization-proposals/')).length).toBeGreaterThan(0);
+  else await expect(page.locator('[data-prep="proposal-result"]')).toContainText('서버 검증 한도 안에 조건을 충족하는 후보가 없습니다');
+  await page.evaluate(()=>{window.fakeOperatorDraft.status='stale';window.preparation.render();});
+  if (delayed) f.releaseProposalReads();
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('이전 계산 거절');
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('서버 검증 한도 안에 조건을 충족하는 후보가 없습니다');
+  await expect(page.getByRole('button',{name:'초기 위치 제안 계산'})).toBeDisabled();
+  await expect(page.getByRole('button',{name:'제안값 확인·②에 적용'})).toBeDisabled();
+  const details=JSON.parse(await page.locator('[data-prep="details"]').textContent());
+  expect(details.initialization_proposal).toBeNull();
+  expect(details.proposal_rejection_history.proposal_id).toBe('f'.repeat(24));
+  expect(f.writes.filter(v=>v.path.endsWith('/initialization-proposals'))).toHaveLength(1);
+  expect(f.writes.filter(v=>/confirm-geometry|seed-geometry|\/navigation\/start|initial-pose|\/match|\/goal/.test(v.path))).toHaveLength(0);
+ });
+}
+
+test('rejection numbers explain both bounds and are cleared by a new explicit calculation', async ({page}) => {
+ const f=await proposalFixture(page); f.proposalStatus('rejected','PRIOR_NO_MATCH');
+ f.rejectionDiagnostics({schema:'robot-scope.prior-rejection-diagnostics.v1',qualification:'HISTORICAL_PRIOR_COMPARISON_ONLY',
+   frame:'map',pose_reference:'base_link',units:'metres_radians',projection_basis:'NAV_LOCALIZATION_CAPTURE_TO_PRIOR_ODOM_IMU_BASE',
+   prior_pose:{x:1.2,y:2.3,yaw:.4},bounds_source:'server_policy',effective_bounds:{xy_m:.25,yaw_rad:.2},
+   retained_candidate_count:6,eligible_candidate_count:1,matching_hypothesis_count:0,global_uniqueness_verified:false,absolute_accuracy_m:null,
+   candidates:[{candidate_index:0,duplicate_of:null,pose:{x:2.2,y:2.3,yaw:.5},xy_distance_m:1,absolute_wrapped_yaw_rad:.1,within_xy_bound:false,within_yaw_bound:true}]});
+ await page.getByRole('button',{name:'초기 위치 제안 계산'}).click();
+ await page.getByText('거절 당시 후보별 위치·방향 차이',{exact:true}).click();
+ await expect(page.locator('[data-prep="proposal-result"]')).toContainText('위치 차이 1.000 m (범위 밖)');
+ await expect(page.locator('[data-prep="proposal-result"]')).toContainText('방향 차이 0.100 rad (범위 안)');
+ await page.evaluate(()=>window.preparation.render());
+ await expect(page.locator('[data-prep="proposal-result"] details')).toHaveAttribute('open','');
+ await expect(page.getByRole('button',{name:'제안값 확인·②에 적용'})).toBeDisabled();
+ await page.locator('[data-prep="proposal-result"]').screenshot({path:'test-results/prior-rejection-diagnostics.png'});
+ f.proposalStatus('running');
+ await page.getByRole('button',{name:'초기 위치 제안 계산'}).click();
+ await expect(page.locator('[data-prep="proposal-result"]')).not.toContainText('이전 계산 거절');
+ expect(JSON.parse(await page.locator('[data-prep="details"]').textContent()).proposal_rejection_history).toBeNull();
+ expect(f.writes.filter(v=>/confirm-geometry|seed-geometry|\/navigation\/start|initial-pose|\/match|\/goal/.test(v.path))).toHaveLength(0);
+});
 
 test('active bridge proof enables proposal only while current control guards remain clear', async ({ page }) => {
   const f = await proposalFixture(page);

@@ -3,8 +3,26 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 const text = readFileSync(new URL('../robot_dashboard/static/features/navigation/preparation.js', import.meta.url), 'utf8');
-const { preparationModel, operationalPoseContextMatches } = await import(`data:text/javascript;base64,${Buffer.from(text).toString('base64')}`);
+const { preparationModel, operationalPoseContextMatches, priorRejectionDiagnostics } = await import(`data:text/javascript;base64,${Buffer.from(text).toString('base64')}`);
 const nav = createRequire(import.meta.url)('../robot_dashboard/static/navigation.js');
+
+test('rejection comparisons are bounded historical data with verified frame, distances and flags', () => {
+  const d = {schema:'robot-scope.prior-rejection-diagnostics.v1',qualification:'HISTORICAL_PRIOR_COMPARISON_ONLY',
+    frame:'map',pose_reference:'base_link',units:'metres_radians',projection_basis:'NAV_LOCALIZATION_CAPTURE_TO_PRIOR_ODOM_IMU_BASE',
+    prior_pose:{x:1,y:2,yaw:Math.PI-.1},bounds_source:'server_policy',effective_bounds:{xy_m:.25,yaw_rad:.2},
+    retained_candidate_count:6,eligible_candidate_count:1,matching_hypothesis_count:0,global_uniqueness_verified:false,absolute_accuracy_m:null,
+    candidates:[{candidate_index:0,duplicate_of:null,pose:{x:2,y:2,yaw:-Math.PI+.05},xy_distance_m:1,absolute_wrapped_yaw_rad:.15,within_xy_bound:false,within_yaw_bound:true}]};
+  const clean = priorRejectionDiagnostics(d);
+  assert.equal(clean.candidates[0].xy_distance_m,1);
+  assert.equal(clean.candidates[0].within_yaw_bound,true);
+  for (const change of [v=>v.frame='body',v=>v.units='degrees',v=>v.prior_pose.x=NaN,
+    v=>v.effective_bounds.xy_m=3,v=>v.matching_hypothesis_count=1,v=>v.candidates[0].xy_distance_m=.1,
+    v=>v.candidates[0].within_xy_bound=true,v=>v.candidates[0].duplicate_of=0,v=>v.candidates.push(...Array(19).fill(v.candidates[0]))]) {
+    const bad=structuredClone(d);change(bad);assert.equal(priorRejectionDiagnostics(bad),null);
+  }
+  d.candidates[0].pose.x=999;
+  assert.equal(clean.candidates[0].pose.x,2);
+});
 
 function fixture() {
   const draft3d = { id: '3d', revision: '3rev', kind: 'pointcloud3d', name: 'map1' };

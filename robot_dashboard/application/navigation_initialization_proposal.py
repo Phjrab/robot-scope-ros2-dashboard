@@ -141,14 +141,16 @@ class NavigationInitializationProposals:
         return {key: session.get(key) for key in ('session_id', 'started_monotonic_s')}
 
     @staticmethod
-    def _empty(record, state, reason=None):
+    def _empty(record, state, reason=None, *, prior_rejection_diagnostics=None):
         with record['gate_lock']:
             cleanup = copy.deepcopy(record['cleanup'])
         return {'schema': SCHEMA, 'proposal_id': record['job_id'], 'state': state, 'reason': reason,
                 'pair': copy.deepcopy(record['pair']), 'observation_session_id': record['session']['session_id'],
                 'imu_hypothesis': None, 'body_candidate': None, 'navigation_geometry_candidate': None,
                 'quality': None, 'provenance': None,
-                'absolute_accuracy_m': None, 'operational_application': 'NOT_RUN', 'cleanup': cleanup}
+                'absolute_accuracy_m': None, 'operational_application': 'NOT_RUN', 'cleanup': cleanup,
+                **({'prior_rejection_diagnostics': copy.deepcopy(prior_rejection_diagnostics)}
+                   if state == 'rejected' and prior_rejection_diagnostics is not None else {})}
 
     def _watch(self, record):
         """Invalidate and cancel only our exact global job if its context ends.
@@ -444,7 +446,8 @@ class NavigationInitializationProposals:
                             odom_from_imu_at_prior=anchor['T_odom_imu'], imu_from_base=record['T_imu_base'],
                             allow_ambiguous=owner.provider_status()['allow_ambiguous'])
                     except PriorRejected as exc:
-                        return self._empty(record, 'rejected', str(exc))
+                        return self._empty(record, 'rejected', str(exc),
+                            prior_rejection_diagnostics=exc.diagnostics)
                     selected = observation['candidates'][resolution['candidate_index']]
                     _, current_pose, odom_now, now = current_imu(self.runtime.agent, context)
                     map_imu = validate_transform(selected['map_from_scan']) @ inverse(validate_transform(captured['T_odom_imu'])) @ odom_now
