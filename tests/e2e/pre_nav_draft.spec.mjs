@@ -208,12 +208,43 @@ test('stage one displays the draft and expected observation startup does not dis
  expect(b.state.requests.filter(r=>/\/navigation\/(initial-pose|goal|start)$/.test(r.path))).toEqual([]);
 });
 
-test('blur keeps the old point visibly unconfirmed without send or implicit reactivation', async ({page})=>{
- const {b}=await fixture(page);await stage(page);const before=(await page.locator('#navigationPoseCoordinates').textContent()).split(' · ').slice(0,3).join(' · ');
+test('completed draft survives blur while stationary consent must be explicitly renewed', async ({page})=>{
+ const {b,pair,status}=await fixture(page,0,'c'.repeat(64));
+ b.on('/api/v1/navigation/operational-3d/preparation-inputs',({json})=>json({schema:'robot-scope.navigation-preparation-inputs.v1',pair,
+  observation:{state:'READY',active:true,can_start:false,can_stop:true,session_id:'a'.repeat(32)},
+  evidence:{valid:true,reason:null,cloud:{observer_id:'1'.repeat(32),publisher_epoch:'2'.repeat(32),source_stamp_ns:'123'},pose:{observer_id:'1'.repeat(32),publisher_epoch:'3'.repeat(32),source_stamp_ns:'123'}},
+  start_blockers:{items:[]},candidates:{},operational_state:status,operational_state_error:null}));
+ await page.locator('[data-prep="refresh"]').click();await stage(page);
+ const before=(await page.locator('#navigationPoseCoordinates').textContent()).split(' · ').slice(0,3).join(' · ');
+ const ack=page.getByLabel(/이 초안이 현재 지도에서 정지/),calculate=page.getByRole('button',{name:'초기 위치 제안 계산',exact:true});
+ await ack.check();await expect(calculate).toBeEnabled();
  await page.evaluate(()=>window.dispatchEvent(new Event('blur')));
- await expect(page.locator('#navigationPoseMode')).toContainText('미확인');await expect(page.locator('#navigationPoseCoordinates')).toContainText(before);
+ await expect(page.locator('#navigationPoseMode')).toHaveText('INITIAL · 미전송 로컬 초안');
+ await expect(page.locator('#navigationPoseCoordinates')).toContainText(before);await expect(ack).not.toBeChecked();await expect(calculate).toBeDisabled();
+ await calculate.dispatchEvent('click');await page.locator('#navigationPoseSend').dispatchEvent('click');
+ await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await expect(ack).not.toBeChecked();await expect(calculate).toBeDisabled();
+ await ack.scrollIntoViewIfNeeded();await page.screenshot({path:'test-results/draft-focus-preserved.png'});
+ await ack.check();await expect(calculate).toBeEnabled();await expect(page.locator('#navigationPoseSend')).toBeDisabled();
+ expect(b.state.requests.filter(r=>/\/(initialization-proposals|initial-pose|goal|start)$/.test(r.path))).toEqual([]);
+});
+
+test('blur during an unfinished drag never makes it a completed draft', async ({page})=>{
+ const {b}=await fixture(page);await page.locator('#navigationInitialPoseTool').click();
+ const canvas=page.locator('#navigationMapCanvas');await canvas.scrollIntoViewIfNeeded();const box=await canvas.boundingBox();
+ await page.mouse.move(box.x+box.width*.5,box.y+box.height*.5);await page.mouse.down();await page.mouse.move(box.x+box.width*.58,box.y+box.height*.43);
+ await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.mouse.up();
+ await expect(page.locator('#navigationPoseMode')).toContainText('미확인');await expect(page.locator('#navigationPoseSend')).toBeDisabled();
+ await expect(page.locator('[data-prep="prior-status"]')).not.toContainText('미전송 사용자 초안');
+ expect(b.state.requests.filter(r=>/\/(initialization-proposals|initial-pose|goal|start)$/.test(r.path))).toEqual([]);
+});
+
+test('hidden page preserves completed coordinates without retaining stationary consent', async ({page})=>{
+ const {b}=await fixture(page);await stage(page);const before=(await page.locator('#navigationPoseCoordinates').textContent()).split(' · ').slice(0,3).join(' · ');
+ const ack=page.getByLabel(/이 초안이 현재 지도에서 정지/);await ack.check();
+ await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,get:()=>true});document.dispatchEvent(new Event('visibilitychange'));});
+ await expect(page.locator('#navigationPoseMode')).toHaveText('INITIAL · 미전송 로컬 초안');await expect(page.locator('#navigationPoseCoordinates')).toContainText(before);await expect(ack).not.toBeChecked();
  await expect(page.locator('#navigationPoseSend')).toBeDisabled();await page.locator('#navigationPoseSend').dispatchEvent('click');
- await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await expect(page.locator('#navigationPoseMode')).toContainText('미확인');
+ await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,get:()=>false});document.dispatchEvent(new Event('visibilitychange'));});await expect(ack).not.toBeChecked();
  expect(b.state.requests.filter(r=>/\/navigation\/(initial-pose|goal|start)$/.test(r.path))).toEqual([]);
 });
 

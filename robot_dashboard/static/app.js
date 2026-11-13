@@ -3593,6 +3593,15 @@ const preNavigationDraft = createPreNavigationDraftController({
 const currentPreNavigationDraftBinding = () => preNavigationDraft.current();
 const invalidatePreNavigationDraft = () => preNavigationDraft.invalidate();
 const getOperatorDraft = () => operatorDraftSnapshot({ staged: navigationStagedPose, pointer: navigationPointer, toolBinding: navigationPreDraftToolBinding, currentBinding: currentPreNavigationDraftBinding(), revision: navigationDraftRevision });
+function pausePreNavigationPlacement() {
+  if (!(navigationPointer?.preBinding || navigationStagedPose?.preBinding || navigationPreDraftToolBinding)) return;
+  // Losing focus interrupts placement and consent, not completed local geometry.
+  // A partial drag must never become a completed pose when pointerup arrives late.
+  if (navigationPointer?.preBinding) preNavigationDraft.suspend();
+  else { navigationMapTool = ''; navigationPreDraftToolBinding = null; }
+  navigationPreparation?.draftChanged('화면을 벗어나 정지 가정 확인이 해제됐습니다. 현재 위치·방향을 확인한 뒤 다시 체크하세요.');
+  renderNavigationPoseSelection(); scheduleNavigationMapDraw();
+}
 function navigationPosePlacementAllowed(mode) {
   return navigationPoseToolAllowed(mode) || (mode === 'initial' && Boolean(currentPreNavigationDraftBinding()));
 }
@@ -6731,8 +6740,8 @@ document.addEventListener('visibilitychange', () => {
   }
   syncCameraTransport();
 });
-window.addEventListener('blur', () => { if (navigationPointer?.preBinding || navigationStagedPose?.preBinding || navigationPreDraftToolBinding) { preNavigationDraft.suspend(); renderNavigationPoseSelection(); scheduleNavigationMapDraw(); } });
-document.addEventListener('visibilitychange', () => { if (document.hidden && (navigationPointer?.preBinding || navigationStagedPose?.preBinding || navigationPreDraftToolBinding)) { preNavigationDraft.suspend(); renderNavigationPoseSelection(); scheduleNavigationMapDraw(); } });
+window.addEventListener('blur', pausePreNavigationPlacement);
+document.addEventListener('visibilitychange', () => { if (document.hidden) pausePreNavigationPlacement(); });
 window.addEventListener('pagehide', () => {
   if (controlArmBusy) invalidatePendingArm();
   if (controlLeaseId) failSafeDisarm('page_hidden');

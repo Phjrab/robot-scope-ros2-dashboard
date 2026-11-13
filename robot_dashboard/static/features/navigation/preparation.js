@@ -403,7 +403,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     <p>지도 조합과 좌표 관계는 사용자가 확인합니다. 서버는 변환 계보를 요구하지 않으며 파일·버전과 센서 교정은 계속 검사합니다. 크롭 후 원점이 보정된 지도는 같은 좌표를 유지할 수 있습니다. 회전 저장으로 벽의 좌표가 바뀐 지도는 좌표 변환을 맞추기 전에는 같은 좌표로 확인하지 마세요.</p>
     <div class="navigation-preparation-actions"><button type="button" data-prep="pair">① 지도 연결 확인·적용</button><button type="button" data-prep="clear">기존 2D 모드로 복구</button></div>
     <section aria-label="① 사용자 위치 초안"><h3>① 사용자 위치 초안</h3><p>아래 지도 조작부의 기존 INITIAL POSE 도구로 현재 위치와 방향을 그리세요. 미전송 사용자 가정이며 센서 측정이나 실제 위치 정확도가 아닙니다.</p>
-    <p data-prep="prior-status" role="status"></p><p>다른 창·탭으로 이동하면 위치 초안은 미확인 상태가 되어 다시 지정·확인이 필요합니다. 계산의 거절 사유는 아래 이전 계산 기록에서 확인할 수 있습니다.</p><p>새 초안의 후보 선택에는 서버 기본 검증 한도 위치 0.25 m · 방향 ±0.20 rad (약 ±11.5°)가 적용됩니다. 이 한도는 사용자 위치 불확실성 측정이나 실제 정확도의 보증이 아닙니다.</p>
+    <p data-prep="prior-status" role="status"></p><p>다른 창·탭으로 이동해도 완성한 위치·방향은 보존됩니다. 돌아오면 현재 위치·방향을 확인하고 정지 가정 확인을 다시 체크하세요. 드래그 도중 중단하거나 지도·실행 상태가 바뀐 초안은 다시 지정해야 합니다. 계산의 거절 사유는 아래 이전 계산 기록에서 확인할 수 있습니다.</p><p>새 초안의 후보 선택에는 서버 기본 검증 한도 위치 0.25 m · 방향 ±0.20 rad (약 ±11.5°)가 적용됩니다. 이 한도는 사용자 위치 불확실성 측정이나 실제 정확도의 보증이 아닙니다.</p>
     <label><input type="checkbox" data-prep="prior-stationary"> 이 초안이 현재 지도에서 정지 중인 로봇의 위치·방향에 대한 제 가정임을 확인합니다. 실제 정지나 정확도를 측정한 증거는 아닙니다.</label></section>
     <section class="navigation-preparation-observation" aria-label="② 센서 관측과 초기값"><h3>② 센서 관측과 초기값</h3><p>관측은 정지 상태의 센서 입력 확인 전용입니다. 시작 조건은 서버가 다시 검사하며, 지도 선택이나 후보 확인만으로 정합·주행을 시작하지 않습니다.</p>
     <div class="navigation-preparation-actions"><button type="button" data-prep="observe-start">센서 관측 시작</button><button type="button" data-prep="observe-stop">센서 관측 종료</button></div>
@@ -1037,6 +1037,6 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
   return { render() { const result = render(); const next = current().draft3d; if (selected3d && next?.id === selected3d && draft3dRevision && next.revision !== draft3dRevision) invalidated = '3D 지도 revision이 변경됐습니다. ①부터 다시 확인하세요.'; return result; }, refresh,
     canStart: () => { const value = current(); return !busy && !handoffBusy && !handoffAwaitingStatus && !observationBusy && value.model.canStart && (state?.selected?.seed_geometry?.source !== 'proposal_confirmed' || value.handoffInfo.unexpired && handoff?.state === 'OBSERVATION_STOPPED' && state?.pair?.can_start === true); }, permitsGoal: () => available && (!current().model.enabled || current().model.tracking),
     state: () => state,
-    draftChanged: () => { priorAckRevision = null; el('prior-stationary').checked = false; invalidateProposal('사용자 초안이 바뀌어 이전 제안을 사용할 수 없습니다.'); render(); },
+    draftChanged: (reason = '사용자 초안이 바뀌어 이전 제안을 사용할 수 없습니다.') => { priorAckRevision = null; el('prior-stationary').checked = false; invalidateProposal(reason); render(); },
     draftContext: () => ({ state, epoch: draftContextEpoch, observing: observationBusy || observationDraftPending, observationAction: observationDraftAction, available: available && draftContextConfirmed && !busy }) };
 }
