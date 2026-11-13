@@ -98,6 +98,42 @@ fail-safe calls. Production JavaScript is unchanged by this follow-up.
 After correction, the local native-event browser suite plus pre-navigation
 draft suite passed 27/27; the event-safety Node suite passed 15/15.
 
+## Follow-up candidate and later readback
+
+The corrected candidate is `8234fcdb3d79b69c8b942d9bb42bfc25e57b141c`.
+Its prepared LF archive contains 2,736 files verified against the Git blobs;
+SHA256 is `0ec09da1376938b806d11144c9df98b06a3918cb5f306bba05de6913ce7b0825`.
+The archive remains local; the device still reports `30b9caa`.
+
+At 2026-11-13 19:56:10 +09:00, the same observation session was FAILED with
+`result=timeout`, `limit_s=1800`, active=false, busy=true and can_stop=false.
+Its guard was INVALID/CONTROL_BRIDGE_INHIBIT_UNREADY; owner_failure was null.
+The control response still showed STOP latched, no lease and zero bridge Move
+requests. No stop/start/restart or proposal request was issued during this fix.
+This is not a clean STOPPED observation, and the leftover busy/guard state must
+not be treated as clear. Read-only evidence is retained locally. Any approved
+maintenance must re-read the state and verify actual observation-unit cleanup
+before changing releases; no new observation is included in this fix's scope.
+The final read-only check at 20:03:32 +09:00 returned the same release,
+session/failure/guard state, STOP latched, no lease and zero Move requests.
+
+Final exact-candidate results for `8234fcdb3d79b69c8b942d9bb42bfc25e57b141c`:
+
+- [CI 43412313905](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/43412313905): success.
+  Each Linux environment passed 3,754 Python tests with 35 explicit skips
+  (3,719 executed passes), all 774 JavaScript tests, 357 full browser cases
+  (179 + 178 shards), 10 mission API-fixture browser cases and one manual-2D
+  API-fixture browser case. The competition offline integration job passed.
+- [I0 43412314055](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/43412314055): success.
+- The previously failing native-event browser fixture now passes in both OS
+  environments. No disabled checks or relaxed product admission were used.
+
+The following documentation-only publication records those results; it does not
+change the tested application's code or the prepared deployment archive.
+Actual device deployment and field verification of the new focus behavior remain
+NOT_RUN, pending current-session maintenance authorization. The next action is
+that scoped maintenance decision, not a new proposal calculation or motion test.
+
 ## Preserved input evidence for later analysis
 
 Before this priority change, the user authorized exact input preservation and
