@@ -134,6 +134,77 @@ Actual device deployment and field verification of the new focus behavior remain
 NOT_RUN, pending current-session maintenance authorization. The next action is
 that scoped maintenance decision, not a new proposal calculation or motion test.
 
+## Approved deployment and actual browser load
+
+The user subsequently approved the stated maintenance scope with "진행해":
+clean up the timed-out observation service, deploy the verified candidate,
+restart dashboard/control bridge and inspect the loaded dashboard. This
+supersedes the pending deployment authorization above. No new observation,
+proposal calculation, INITIAL POSE, Nav2, goal or STOP release was authorized
+or issued by the agent in this maintenance turn.
+
+Preflight confirmed both actual process working directories were the old
+`30b9caa` release. Observation InvocationID remained
+`7201f30957ef4b46811cf6af893156e2`, failed/timeout, MainPID=0, no control group
+and no pending job. Control had STOP latched, no lease and Move=0. Current
+ownership readback had no busy/unknown components. A fixed-service native stop
+was issued only after checking this exact inactive invocation. Its timeout
+record remained; no accepted-stop receipt or guard release was fabricated.
+
+Deployment verification:
+
+- Robot-side archive SHA256 and all 2,736 extracted files matched the verified
+  candidate. Shared `.venv` and `workspaces` links and both XT16 executables were
+  checked before activation. Previous releases, dependencies and map data remain.
+- Both services were stopped and verified inactive, MainPID=0, no control group
+  and no job before changing the selector. The mode-0600 backup is
+  `/home/unitree/.config/robot-scope/robot-scope.env.before-8234fcd-20261113T111017Z`.
+  Only ROBOT_SCOPE_DIR changed, by atomic replacement; startup STOP remained 1
+  and the later control.env had no override for either setting.
+- Exact deployed release:
+  `/home/unitree/robot-scope-releases/8234fcdb3d79b69c8b942d9bb42bfc25e57b141c`.
+  Dashboard PID 149139 and bridge PID 149123 were active/running from that path,
+  both NRestarts=0. Signed bridge release matched the candidate.
+- At 20:12:33 KST, STOP=true, lease=false, bridge ready and new-process Move=0.
+  Observation was FAILED/timeout but inactive/not busy/guard=null. Current
+  ownership readback was clear. This is maintenance recovery, not a fix or pass
+  for normal observation timeout cleanup.
+- Served app.js bytes matched the deployed source, SHA256
+  `a8c283a77ee86f9fc52893780db860733b1b066115762dfd7e47832dc9e7eea62`;
+  preparation.js SHA256
+  `bbd319af10ec25ad909883124ba125839917c49c29460d0437cc330bdce94b966`.
+- The user's existing in-app dashboard was reloaded and opened at #navigation.
+  The new completed-draft preservation/help text was visibly present. Screenshot
+  is retained outside Git as `../nav2-deployed-8234fcd.png`. No pose coordinates
+  were restored or entered. At that check the 3D selection/pair were unset, the
+  existing 2D map was selected, and there was no draft. This verifies code/UI
+  deployment, not a new real-device completed-draft blur trial.
+
+During later read-only verification a new observation appeared:
+`e3bf63aac2cf4e9e834ebd8cd46accb9`, READY/active, guard HELD, owner_failure=null.
+The agent did not issue its start and did not stop or otherwise alter it. The
+first postflight sampling assertion expecting inactivity failed on this changed
+session; it is not counted as a successful inactive sample. A separate six-read
+series from 20:14:38.940 to 20:14:54.670 KST recorded the actual new READY session,
+candidate release, STOP=true, no lease and Move=0 throughout. Three advisory
+ownership reads were UNKNOWN (pipeline_coordination/owners_not_sampled), not
+clear; the other three reported observation work, including global work in two.
+No global calculation was issued by the agent. Both services remained active
+with unchanged PIDs and NRestarts=0. No rollback was needed.
+
+Non-secret deployment, immediate postflight and later sample records are in
+`/home/unitree/robot-scope-deploy/8234fcd-{deployment,postflight,postflight-samples}.json`.
+The focus behavior has passed the software tests above and its exact code is
+now deployed. A user-drawn draft's real browser focus transition remains the
+next focused check; cloud/map numerical analysis remains deferred.
+
+Before this deployment-record commit, event-safety JS tests passed 15/15 and
+diff whitespace passed. The required full Windows unittest was repeated; it
+again encountered the existing loader errors and worker stall and was terminated
+at 120 seconds, not a pass. No executable code changed in this documentation
+update. The exact deployed candidate's successful Linux CI/I0 remains the full
+suite evidence.
+
 ## Preserved input evidence for later analysis
 
 Before this priority change, the user authorized exact input preservation and
