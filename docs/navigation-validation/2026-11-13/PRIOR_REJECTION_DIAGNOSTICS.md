@@ -233,3 +233,65 @@ JavaScript tests passed 14/14 and diff whitespace passed. The required full
 Windows unittest command was repeated and again hit the existing loader errors
 and stalled worker, terminating at 120 seconds (not a pass). The unchanged exact
 deployed code candidate's successful Linux CI/I0 remains the full-suite evidence.
+
+## First field diagnostic values after deployment
+
+The user reconnected the same map revisions with new pair generation
+`c1db892918ff471b952414dcd7440ee8`. During read-only inspection, a new observation
+`a3334c974f3647c79f0c924de0c1bb27` and two calculations appeared from user operation;
+the agent issued no observation/calculation POST. Profile remained go2-onboard,
+controller odom `/robot_scope/nav/controller_odom_fastlio`, code `30b9caa`.
+
+Both calculations used prior X=3.9848961407774457, Y=4.090434340366109 m,
+yaw=-3.041301336172877 rad, server bounds 0.25 m / 0.20 rad. Both global workers
+succeeded but proposals were rejected PRIOR_NO_MATCH, matching groups=0,
+cleanup SETTLED, operational_application NOT_RUN and all actionable poses null.
+
+| Job | Worker wall time | Input points | Retained candidates | Nearest candidate to prior | XY difference | Wrapped yaw difference |
+| --- | ---: | ---: | ---: | --- | ---: | ---: |
+| `47d7847be1d1f256fe92b708` | 17.890 s | 335 | 11 | #6: (2.697, 3.907), yaw -2.959 | 1.300921 m | 0.082591 rad (4.732 degrees) |
+| `395230fe923ab031b2777a89` | 16.278 s | 336 | 10 | #2: (-0.179, 0.667), yaw 0.233 | 5.390430 m | 3.009003 rad (172.403 degrees) |
+
+Every candidate in the first calculation was outside the XY bound; #6 was inside
+the yaw bound. These are exact server comparisons at the prior anchor time in
+map/base_link, not raw scan-time IMU comparisons. They are **candidate-to-prior
+differences**, not measured robot displacement or distances to walls/chairs.
+
+The user described the physical robot as near the top and right walls, in front
+of a chair, and corrected the impression that it was physically that far away.
+This qualitative report is compatible with the prior's general map region but
+does not establish a measured pose. Do not move the robot or edit the prior to
+match a rejected candidate. No physical distance or exact heading was inferred.
+
+Both retained sets have AMBIGUOUS_ALTERNATIVES. Candidate rmse_m ranges were
+0.257853–0.348003 m and 0.212132–0.381716 m. These residuals are not absolute pose
+accuracy and were not the PRIOR_NO_MATCH rejection gate. A later read-only cloud
+sample had source_points=sent_points=335, topic /cloud_registered, frame
+camera_init, one laser_mapping graph publisher. Thus this sample was not reduced
+by the dashboard display limit. It is a different sample, not the historical
+worker input, and point count alone does not prove why registration failed.
+The worker's temporary input directory is cleaned after completion; historical
+scan geometry is not reconstructed from a newer cloud or invented transform.
+
+The open browser still lacked the new proposal_rejection_history field despite
+the server running the candidate. Reloading it loaded the new field/help text;
+the exact applied pair and READY observation remained. The unsent local draft
+was cleared and was not automatically restored. No server setting, geometry,
+INITIAL POSE, Nav2, goal, STOP release or motion was changed by this inspection.
+
+The backend diagnostic response is now verified on real hardware. Persistence
+of a new rejection in the refreshed browser still needs a subsequent calculation;
+the two observed rejections ran with the old already-loaded frontend. The field
+registration cause remains unresolved; neither prior error nor sensor failure
+has been established. Next diagnostic step is to compare a preserved exact scan
+with the map at the operator's independently checked position/direction, without
+weakening prior bounds or treating a rejected candidate as ground truth.
+
+At 19:16:45 KST, the final read found a different user-created observation session
+`626c5b397c8c4bc68215ba63ca14925b`, READY/active, guard HELD, owner_failure=null,
+STOP=true, lease=false, current-process Move=0, bridge release `30b9caa`. Do not
+attribute the preceding two calculation results to this later session. The agent
+did not start, stop or restart either session. Before this evidence-only commit,
+related JavaScript tests passed 14/14 and diff whitespace passed; required full
+Windows unittest again had the existing loader errors and worker stall and was
+terminated at 120 seconds, not a successful run. No executable code changed.
