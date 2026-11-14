@@ -1,0 +1,67 @@
+{
+  "scope": "Stationary dashboard preparation; no goal or robot motion validation",
+  "operator_prior": {"x_m": -2.154, "y_m": 1.842, "yaw_rad": 0.086},
+  "same_stamp_input_check": {
+    "sensor_stamp_ns": "1794652821252204895",
+    "registered_query_rows": 350,
+    "dense_body_rows": 10096,
+    "maximum_xyz_difference_after_exact_odometry_inverse_m": 5.001e-7,
+    "dense_offline_fit": {
+      "x_m": -2.344376,
+      "y_m": 1.818360,
+      "yaw_degrees": 16.1112,
+      "full_cloud_rmse_m": 0.0745379,
+      "qualification": "Diagnostic local fit, not independent physical position truth"
+    }
+  },
+  "formal_proposals": [
+    {
+      "id": "ac09c621201429eed05be5d3",
+      "outcome": "Conditional candidate found before freshness repair",
+      "rmse_m": 0.0790155,
+      "prior_xy_delta_m": 0.19654538479,
+      "prior_yaw_delta_rad": 0.196095358,
+      "applied": false
+    },
+    {
+      "id": "c50de9cd6f4a497e8c157def",
+      "sensor_stamp_ns": "1794655289654634952",
+      "registered_query_rows": 352,
+      "outcome": "PRIOR_NO_MATCH",
+      "candidate_inlier_rmse_range_m": [0.275, 0.295],
+      "applied": false
+    },
+    {
+      "id": "cfe722929ed2b541f3b1d15b",
+      "sensor_stamp_ns": "1794655951455642461",
+      "registered_query_rows": 351,
+      "outcome": "Six retained candidates in one conditional group; geometry confirmed; exact observation stop confirmed; subsequent start blocked",
+      "rmse_m": 0.07865700910076458,
+      "overlap": 0.9971509971509972,
+      "handoff_id": "f0af1372c1904bc6979a640cd0a1bc55",
+      "handoff_failure": "OBSERVATION_SESSION_CHANGED",
+      "navigation_started": false
+    }
+  ],
+  "findings": [
+    "Global search sometimes misses the low-residual basin on sparse registered scans; an earlier nearby candidate was nearly inverted. Candidate distance alone was not physical position-error evidence.",
+    "Fresh-pose preview age previously included slow pre-pose map validation; repaired in b64de0b and deployed as 0d759881.",
+    "A stopped observation snapshot older than six seconds becomes UNKNOWN. The handoff gate previously permanently recorded OBSERVATION_SESSION_CHANGED even when identity and inactivity were unchanged.",
+    "The latter defect was reproduced with the real observation/handoff classes in an isolated synthetic regression. The live failure did not preserve its exact intermediate snapshot, so the regression establishes a reachable defect, not a complete live timing trace."
+  ],
+  "handoff_repair_contract": {
+    "unknown_inactive_same_session": "Blocks admission as OUTCOME_UNKNOWN until fresh status is available; preserves the exact accepted stop receipt",
+    "observed_different_session": "Permanently invalidates, including when that snapshot is stale",
+    "ttl_seconds": 120,
+    "prior_xy_bound_m": 0.25,
+    "prior_yaw_bound_rad": 0.2,
+    "operational_rmse_limit_m": 0.1,
+    "limits_changed": false
+  },
+  "regression_validation": {
+    "before_fix": "New stale-stop regression failed with OBSERVATION_SESSION_CHANGED",
+    "after_fix": "23 handoff-stop contract tests passed on Linux",
+    "javascript_navigation_tests": "16 passed",
+    "raw_inputs": "Preserved outside Git; no raw maps, point clouds, credentials, or environment files included"
+  }
+}

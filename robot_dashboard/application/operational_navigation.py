@@ -73,6 +73,7 @@ class OperationalNavigation:
             if handoff and pair and any(item['code'] not in {'INITIAL_HEIGHT_TILT_REQUIRED', 'INITIAL_GEOMETRY_RECONFIRM_REQUIRED',
                             'HANDOFF_EXPIRED', 'HANDOFF_ALREADY_USED', 'HANDOFF_OBSERVATION_STOP_REQUIRED',
                             'HANDOFF_STOP_OUTCOME_UNKNOWN', 'HANDOFF_WORKER_NOT_SETTLED', 'HANDOFF_MONITOR_PENDING',
+                            'HANDOFF_OBSERVATION_STATUS_UNCONFIRMED',
                             'SOURCE_OR_CONTEXT_CHANGED', 'HANDOFF_MONITOR_UNAVAILABLE', 'OBSERVATION_SESSION_CHANGED'} for item in pair['checks']):
                 handoff.update(state='INVALID', reason='MAP_PAIR_CHANGED', geometry=None, initial_pose_reference=None)
         return {'selected': copy.deepcopy(self.selected), 'pair': pair,
@@ -483,8 +484,14 @@ class OperationalNavigation:
         if record['watch_state'] != 'STOP_BOUNDARY':
             raise ValueError('HANDOFF_MONITOR_PENDING')
         current = record['observation'].snapshot()
+        same_session = current.get('session_id') in (None, record['session_id'])
+        if current.get('state') == 'UNKNOWN' and same_session and current.get('active') is False:
+            # A stale monitor read is not evidence that a different session ran.
+            # Keep every admission blocked until a fresh STOPPED sample arrives,
+            # without permanently destroying the exact accepted stop receipt.
+            raise ValueError('HANDOFF_OBSERVATION_STATUS_UNCONFIRMED')
         if (current.get('active') is not False or current.get('state') != 'STOPPED'
-                or current.get('session_id') not in (None, record['session_id'])):
+                or not same_session):
             record['invalid'] = 'OBSERVATION_SESSION_CHANGED'
             raise ValueError(record['invalid'])
         try:
@@ -602,6 +609,7 @@ class OperationalNavigation:
                 state = ('EXPIRED' if reason == 'HANDOFF_EXPIRED' else
                          'OUTCOME_UNKNOWN' if reason in {'HANDOFF_STOP_OUTCOME_UNKNOWN', 'HANDOFF_JOB_CONTEXT_UNCONFIRMED',
                             'HANDOFF_JOB_STARTING', 'HANDOFF_JOB_STOPPING', 'HANDOFF_MONITOR_PENDING',
+                            'HANDOFF_OBSERVATION_STATUS_UNCONFIRMED',
                             'HANDOFF_MATCH_CURRENT_UNCONFIRMED'} else 'INVALID')
             return {'schema': 'robot-scope.proposal-geometry-handoff.v1', 'handoff_id': handoff_id,
                 'proposal_id': record['proposal_id'], 'state': state, 'reason': reason,

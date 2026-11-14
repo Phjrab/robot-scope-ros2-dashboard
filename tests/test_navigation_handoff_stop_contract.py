@@ -221,6 +221,51 @@ class StopContractTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.service.calls,['stop'])
         self.assertNotEqual(self.observation.handoff_receipt(hid)['state'],'INACTIVE_CONFIRMED')
 
+    async def test_stale_stopped_observation_blocks_without_poisoning_handoff(self):
+        hid = self.confirm()['handoff_id']
+        await self.observation.stop(self.service.session_id)
+        self.service.stopped()
+        await self.observation.refresh()
+        await self.wait_stop_boundary(hid)
+        receipt = self.observation.handoff_receipt(hid)
+        # Slow map reads can hold the shared admission lock past the six-second
+        # monitor freshness bound. Expiry must still block all command gates.
+        self.observation._updated_at = time.monotonic() - 6.1
+        self.assertEqual(self.observation.snapshot()['state'], 'UNKNOWN')
+        for check in (
+            lambda: self.manager.preflight(self.map_id, self.map_revision),
+            lambda: self.manager.snapshot_for_job(self.map_id, self.map_revision,
+                                                 self.fixture.job_directory('stale-stop-job')),
+        ):
+            with self.assertRaisesRegex(ValueError, 'HANDOFF_OBSERVATION_STATUS_UNCONFIRMED'):
+                check()
+        status = self.manager.status()['initialization_handoff']
+        self.assertEqual((status['state'], status['reason']),
+                         ('OUTCOME_UNKNOWN', 'HANDOFF_OBSERVATION_STATUS_UNCONFIRMED'))
+        self.assertIsNone(status['geometry'])
+        self.assertEqual(self.observation.handoff_receipt(hid), receipt)
+        await self.observation.refresh()
+        self.assertEqual(self.manager.handoff_status(hid)['state'], 'OBSERVATION_STOPPED')
+        self.manager.preflight(self.map_id, self.map_revision)
+        self.assertEqual(self.service.calls, ['stop'])
+
+    async def test_different_session_after_stale_read_still_permanently_invalidates(self):
+        hid = self.confirm()['handoff_id']
+        await self.observation.stop(self.service.session_id)
+        self.service.stopped()
+        await self.observation.refresh()
+        await self.wait_stop_boundary(hid)
+        self.observation._updated_at = time.monotonic() - 6.1
+        self.assertEqual(self.manager.handoff_status(hid)['state'], 'OUTCOME_UNKNOWN')
+        self.service.stopped(session_id='f' * 32, started=self.service.started + 1)
+        await self.observation.refresh()
+        # Even a stale read retains positive evidence of the changed identity.
+        self.observation._updated_at = time.monotonic() - 6.1
+        self.assertEqual(self.manager.handoff_status(hid)['reason'], 'OBSERVATION_SESSION_CHANGED')
+        self.service.stopped()
+        await self.observation.refresh()
+        self.assertEqual(self.manager.handoff_status(hid)['reason'], 'OBSERVATION_SESSION_CHANGED')
+
     async def test_another_session_after_dispatch_never_confirms_old_receipt(self):
         hid=self.confirm()['handoff_id']
         self.service.after_dispatch={**self.service.ready(),'session_id':'c'*32,'started_monotonic_s':self.service.started+1}

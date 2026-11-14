@@ -104,6 +104,7 @@ const INPUT_REASONS = {
   HANDOFF_CONTINUITY_UNVERIFIED: '감독 확인 또는 전환 근거가 부족합니다 → 현재 확인 내용을 점검하세요.',
   HANDOFF_RUNTIME_CHANGED: '실행 세대가 바뀌었습니다 → 현재 상태를 확인하세요.',
   HANDOFF_MONITOR_PENDING: '관측 종료 경계를 가설 감시기가 확인 중입니다 → 확인이 끝날 때까지 기다리세요.',
+  HANDOFF_OBSERVATION_STATUS_UNCONFIRMED: '관측 종료 상태의 최신 조회가 필요합니다 → 새 상태를 확인한 뒤 현재 단계를 다시 진행하세요.',
   HANDOFF_MONITOR_UNAVAILABLE: '가설 감시 상태가 유실됐거나 확인되지 않습니다 → 가설을 다시 확인하세요.',
   HANDOFF_JOB_CONTEXT_UNCONFIRMED: '현재 실행 또는 지도 증거가 부족합니다 → 서버 상태를 다시 확인하세요.',
   HANDOFF_JOB_STARTING: '새 실행이 시작 중입니다 → 실행과 지도 확인을 기다리세요.',
@@ -289,7 +290,7 @@ export function preparationModel({ state, navigation = {}, draft3d, draft2d, err
   const running = navigation.pipeline?.state === 'running';
   const geometry = selected?.seed_geometry;
   const pairChecks = Array.isArray(state?.pair?.checks) ? state.pair.checks : [];
-  const geometryCodes = new Set(['INITIAL_HEIGHT_TILT_REQUIRED', 'INITIAL_GEOMETRY_RECONFIRM_REQUIRED', 'INITIAL_GEOMETRY_PROVENANCE_REQUIRED', 'HANDOFF_OBSERVATION_STOP_REQUIRED', 'HANDOFF_STOP_OUTCOME_UNKNOWN', 'HANDOFF_WORKER_NOT_SETTLED', 'HANDOFF_EXPIRED', 'HANDOFF_ALREADY_USED', 'HANDOFF_CONTINUITY_UNVERIFIED', 'HANDOFF_RUNTIME_CHANGED', 'HANDOFF_MATCH_CURRENT_UNCONFIRMED', 'HANDOFF_MONITOR_PENDING', 'HANDOFF_MONITOR_UNAVAILABLE', 'SOURCE_OR_CONTEXT_CHANGED']);
+  const geometryCodes = new Set(['INITIAL_HEIGHT_TILT_REQUIRED', 'INITIAL_GEOMETRY_RECONFIRM_REQUIRED', 'INITIAL_GEOMETRY_PROVENANCE_REQUIRED', 'HANDOFF_OBSERVATION_STOP_REQUIRED', 'HANDOFF_STOP_OUTCOME_UNKNOWN', 'HANDOFF_WORKER_NOT_SETTLED', 'HANDOFF_EXPIRED', 'HANDOFF_ALREADY_USED', 'HANDOFF_CONTINUITY_UNVERIFIED', 'HANDOFF_RUNTIME_CHANGED', 'HANDOFF_MATCH_CURRENT_UNCONFIRMED', 'HANDOFF_MONITOR_PENDING', 'HANDOFF_OBSERVATION_STATUS_UNCONFIRMED', 'HANDOFF_MONITOR_UNAVAILABLE', 'SOURCE_OR_CONTEXT_CHANGED']);
   const geometryBlocked = pairChecks.some(check => geometryCodes.has(check.code));
   const legacySeed = selected && selected.workflow !== 'staged_navigation_pair' && Array.isArray(selected.seed_T_map_imu);
   const geometryReady = Boolean(!geometryBlocked && (legacySeed || geometry && ['z', 'roll', 'pitch'].every(key => finite(geometry[key])) && (geometry.source !== 'proposal_confirmed' || handoffReady)));
