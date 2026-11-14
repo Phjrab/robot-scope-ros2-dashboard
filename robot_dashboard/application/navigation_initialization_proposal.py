@@ -375,6 +375,7 @@ class NavigationInitializationProposals:
 
     def get(self, proposal_id):
         """Read result; detected invalidation can trigger asynchronous owned-job cleanup."""
+        request_started_at = time.monotonic()
         with self._lock:
             record = self._records.get(proposal_id)
             if record is None:
@@ -449,6 +450,7 @@ class NavigationInitializationProposals:
                         return self._empty(record, 'rejected', str(exc),
                             prior_rejection_diagnostics=exc.diagnostics)
                     selected = observation['candidates'][resolution['candidate_index']]
+                    pose_read_started_at = time.monotonic()
                     _, current_pose, odom_now, now = current_imu(self.runtime.agent, context)
                     map_imu = validate_transform(selected['map_from_scan']) @ inverse(validate_transform(captured['T_odom_imu'])) @ odom_now
                     angles = [math.degrees(v) for v in _rpy(map_imu[:3, :3])]
@@ -475,6 +477,7 @@ class NavigationInitializationProposals:
                 else:
                     if observation.get('selected_candidate') is None:
                         return self._empty(record, 'rejected', 'GLOBAL_CANDIDATE_REJECTED')
+                    pose_read_started_at = time.monotonic()
                     proposal = owner.anchor_proposal(proposal_id)
                     proposal_read_at = time.monotonic()
                     if proposal.get('ambiguity_unresolved') is not False:
@@ -528,6 +531,11 @@ class NavigationInitializationProposals:
                     'qualification': 'GLOBAL_HYPOTHESIS_ONLY_NOT_OPERATIONAL_QUALITY',
                     'ambiguity_unresolved': ambiguous if resolution is not None else False},
                     provenance={'source_contract': copy.deepcopy(record['source_contract']),
+                    # This interval ends BEFORE reading the current pose. It is
+                    # not pose age and may be removed from the client's full
+                    # request RTT. All network/queue time and work after this
+                    # boundary remain conservatively charged to freshness.
+                    'pre_pose_processing_s': max(0., pose_read_started_at - request_started_at),
                     'capture_stamp_ns': proposal['capture_stamp_ns'], 'proposal_stamp_ns': proposal['proposal_stamp_ns'],
                     'pose_age_s': pose_age, 'capture_age_s': max(0., time.monotonic() - scan['received_monotonic_s']),
                     'receipt_clock': 'OBSERVER_HOST_MONOTONIC', 'source_clock_verified': False,

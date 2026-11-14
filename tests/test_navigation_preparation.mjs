@@ -3,8 +3,26 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 const text = readFileSync(new URL('../robot_dashboard/static/features/navigation/preparation.js', import.meta.url), 'utf8');
-const { preparationModel, operationalPoseContextMatches, priorRejectionDiagnostics } = await import(`data:text/javascript;base64,${Buffer.from(text).toString('base64')}`);
+const { preparationModel, operationalPoseContextMatches, priorRejectionDiagnostics, proposalAgeBaseline } = await import(`data:text/javascript;base64,${Buffer.from(text).toString('base64')}`);
 const nav = createRequire(import.meta.url)('../robot_dashboard/static/navigation.js');
+
+test('slow map validation before a fresh pose does not prematurely expire its preview', () => {
+  const requested = 1000, received = 2600;
+  const value = {provenance:{pre_pose_processing_s:1.4,pose_age_s:.1}};
+  const baseline = proposalAgeBaseline(value, requested, received);
+  assert.equal(baseline, 2400);
+  const age = now => value.provenance.pose_age_s + (now-baseline)/1000;
+  assert.ok(age(received) < 1, 'fresh result survives slow validation');
+  assert.ok(age(3401) > 1, 'network time and subsequent elapsed time still expire it');
+  assert.ok(age(3600) > 1, 'timing must not rejuvenate delayed delivery');
+});
+
+test('absent or invalid server timing cannot reduce the freshness budget', () => {
+  for (const timing of [undefined,null,'1.4',-1,NaN,Infinity,1.601]) {
+    assert.equal(proposalAgeBaseline({provenance:{pre_pose_processing_s:timing}},1000,2600),1000);
+  }
+  assert.equal(proposalAgeBaseline({},1000,2600),1000);
+});
 
 test('rejection comparisons are bounded historical data with verified frame, distances and flags', () => {
   const d = {schema:'robot-scope.prior-rejection-diagnostics.v1',qualification:'HISTORICAL_PRIOR_COMPARISON_ONLY',

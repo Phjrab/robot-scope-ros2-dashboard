@@ -32,6 +32,7 @@ async function fixture(page) {
   let invalidOperationalState = false;
   let proposalState = 'ready', proposalReason = null, proposalRejected = false, wrongProposalSource = false, ambiguousProposal = false, geometryPreview = 'valid', proofMode = 'valid', proposalReads = null, releaseProposalReads = null, heldProposalReadCount = 0;
   let proposalCleanup = { state: 'SETTLED', cancellation_requested: false, worker_active: false, terminal_state: 'succeeded' };
+  let proposalPrePoseMs = 0;
   let rejectionDiagnostics = null;
   let confirmedGeometry = { z: .84, roll: .11, pitch: .12 }, currentPrior = null, proposalCount = 0, distinctProposalIds = false, nextProposalRunsOnce = false, currentProposalId = 'f'.repeat(24);
   let handoff = null, confirmMode = 'success', heldConfirm = null, releaseConfirm = null, heldHandoffRead = null, releaseHandoffRead = null;
@@ -103,6 +104,7 @@ async function fixture(page) {
       if (method === 'POST') { currentPrior = body?.operator_prior || null; currentProposalId = (++proposalCount > 1 && distinctProposalIds ? 'e' : 'f').repeat(24); }
       if (method === 'POST' && proposalRejected) return json({ detail: 'GLOBAL_BACKEND_UNAVAILABLE' }, 503);
       if (method === 'GET' && proposalReads) { heldProposalReadCount++; await proposalReads; }
+      if (method === 'GET' && proposalPrePoseMs) await new Promise(resolve => setTimeout(resolve, proposalPrePoseMs));
       const pose = { x: 1, y: 2, z: .4, roll: .1, pitch: .2, yaw: .3 };
       const proof = currentPrior ? makeProof(currentPrior) : null;
       if (proof && proofMode === 'policy-missing') delete proof.bounds_source;
@@ -130,6 +132,7 @@ async function fixture(page) {
       }
       if (method === 'GET' && proofMode === 'group-new-id') result.proposal_id = 'e'.repeat(24);
       if (method === 'GET' && proposalState === 'rejected' && rejectionDiagnostics) result.prior_rejection_diagnostics = rejectionDiagnostics;
+      if (result.provenance && proposalPrePoseMs) result.provenance.pre_pose_processing_s = proposalPrePoseMs / 1000;
       return json(result, method === 'POST' ? 202 : 200);
     }
     if (method === 'GET' && failingReads > 0) { failingReads--; return json({ detail: 'SYNTHETIC_READ_TIMEOUT' }, 503); }
@@ -161,6 +164,7 @@ async function fixture(page) {
     releaseInputsRead() { releaseInputsRead?.(); heldInputsRead = null; releaseInputsRead = null; },
     async reload() { await page.reload(); await mount(page); },
     holdProposalReads() { proposalReads = new Promise(resolve => { releaseProposalReads = resolve; }); },
+    slowPrePoseRead(ms) { proposalPrePoseMs = ms; },
     heldProposalReadCount() { return heldProposalReadCount; }, distinctProposalIds() { distinctProposalIds = true; }, runNextProposalOnce() { nextProposalRunsOnce = true; },
     releaseProposalReads() { releaseProposalReads?.(); proposalReads = null; releaseProposalReads = null; },
     holdWrites() { heldWrites = new Promise(resolve => { releaseWrite = resolve; }); },
@@ -617,6 +621,21 @@ async function proposalFixture(page, { expectReady = true } = {}) {
   } else await expect(page.getByRole('button', { name: '초기 위치 제안 계산' })).toBeDisabled();
   return f;
 }
+
+test('fresh pose remains confirmable after slow map validation and still expires after one second', async ({ page }) => {
+  const f = await proposalFixture(page);
+  f.slowPrePoseRead(1400);
+  await page.getByRole('button', { name: '초기 위치 제안 계산' }).click();
+  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('본체 위치 후보 (정보성)');
+  await page.getByLabel(/현장 정지 상태를 직접 감독/).check();
+  await page.getByLabel(/사용자 초안과 서버 검증 한도에 조건부로/).check();
+  const confirm = page.getByRole('button', { name: '제안값 확인·②에 적용' });
+  await expect(confirm).toBeEnabled();
+  f.holdProposalReads();
+  await expect(confirm).toBeDisabled({ timeout: 2000 });
+  expect(f.writes.filter(v => v.path.endsWith('/confirm-geometry'))).toHaveLength(0);
+  f.releaseProposalReads();
+});
 
 test('explicit proposal is read-only, distinguishes IMU and body units, and invalidates when the source changes', async ({ page }) => {
   const f = await proposalFixture(page);

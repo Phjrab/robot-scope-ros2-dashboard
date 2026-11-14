@@ -1,4 +1,14 @@
 /** Presentation only. Runtime admission remains authoritative for every command. */
+export function proposalAgeBaseline(result, requestedAt, receivedAt) {
+  const beforePose = result?.provenance?.pre_pose_processing_s;
+  const elapsed = receivedAt - requestedAt;
+  // Only subtract a server-measured interval that ended before pose sampling.
+  // Missing, malformed or impossible timing keeps the old conservative RTT.
+  if (typeof beforePose !== 'number' || !Number.isFinite(beforePose) || beforePose < 0
+      || !Number.isFinite(elapsed) || elapsed < 0 || beforePose * 1000 > elapsed) return requestedAt;
+  return requestedAt + beforePose * 1000;
+}
+
 export const PREPARATION_STEPS = [
   ['지도 선택·연결 확인', '사용자가 3D에서 변환한 2D 지도인지와 같은 좌표 기준인지를 확인하고 적용'],
   ['센서·교정·초기값 준비', '센서 관측과 출처·좌표 기준을 확인하고 지도 기준 초기 높이·기울기 준비'],
@@ -945,14 +955,16 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
       if (result.state === 'ready' && !['observer_id', 'cloud_epoch', 'pose_epoch'].every(key => result.provenance?.source_contract?.[key] === ctx.source?.[key])) {
         invalidateProposal('제안의 센서 출처가 현재 관측과 달라 사용할 수 없습니다.'); render(); return;
       }
-      proposal = result; proposalVerified = true; proposalCheckedAt = requestedAt; clearTimeout(proposalExpiryTimer);
+      proposal = result; proposalVerified = true;
+      proposalCheckedAt = proposalAgeBaseline(result, requestedAt, performance.now());
+      clearTimeout(proposalExpiryTimer);
       const readyKey = proposalConsentKey(), validBinding = proposalPoseValid(true);
       if (proposalProofBinding && (!validBinding || readyKey !== proposalProofBinding)) { invalidateProposal('제안 증명이나 현재 문맥이 바뀌어 이전 동의를 사용할 수 없습니다.'); render(); return; }
       if (ctx.operatorPrior && validBinding) proposalProofBinding = readyKey;
       render();
       if (result.state === 'ready') {
         const age = result.provenance?.pose_age_s;
-        if (finite(age) && age >= 0) proposalExpiryTimer = setTimeout(() => { if (token === proposalEpoch) render(); }, Math.max(0, 1001 - age * 1000 - (performance.now() - requestedAt)));
+        if (finite(age) && age >= 0) proposalExpiryTimer = setTimeout(() => { if (token === proposalEpoch) render(); }, Math.max(0, 1001 - age * 1000 - (performance.now() - proposalCheckedAt)));
       }
       if (['capturing', 'running', 'ready'].includes(result.state) || !cleanupSettled()) proposalTimer = setTimeout(() => { void pollProposal(token, ctx, id); }, 2000);
     } catch (failure) {

@@ -135,6 +135,29 @@ class ProposalTests(unittest.TestCase):
         self.assertEqual(duplicate['proposal_id'], started['proposal_id'])
         self.assertEqual(self.runner.calls, 1)
 
+    def test_response_timing_excludes_only_work_before_fresh_pose_read(self):
+        started = self.coordinator.start('timing-boundary', self.generation, self.session_id)
+        self.complete(started)
+        selected = self.coordinator._selected
+        anchor = self.global_owner.anchor_proposal
+        boundaries = {}
+        def slow_selected(*args):
+            time.sleep(.04)
+            return selected(*args)
+        def sampled_anchor(*args):
+            boundaries['pose_start'] = time.monotonic()
+            value = anchor(*args)
+            time.sleep(.04)
+            return value
+        before = time.monotonic()
+        with patch.object(self.coordinator, '_selected', side_effect=slow_selected), patch.object(
+                self.global_owner, 'anchor_proposal', side_effect=sampled_anchor):
+            result = self.coordinator.get(started['proposal_id'])
+        self.assertEqual(result['state'], 'ready', result)
+        duration = result['provenance']['pre_pose_processing_s']
+        self.assertGreaterEqual(duration, .04)
+        self.assertLessEqual(duration, boundaries['pose_start'] - before)
+        self.assertGreater(time.monotonic() - before - duration, .04)
     def test_real_catalog_pair_global_coordinator_and_nonidentity_calibration(self):
         case = bundle_fixture.OperationalNavigationBundleTests()
         case.setUp(); self.addCleanup(case.doCleanups)
