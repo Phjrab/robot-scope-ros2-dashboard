@@ -795,6 +795,10 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     if (cleanupId) proposalNodes.push(node('p', `이전 제안 작업: ${cleanupLabels[cleanup?.state] || '작업 정리 상태 미확인'}.`));
     if (Array.isArray(blockers) && blockers.includes('OWNER_BUSY:global_observation')) proposalNodes.push(node('p', '전역 관측 작업이 사용 중입니다 → 종료와 점유 해제를 기다리세요.'));
     else if (!Array.isArray(blockers) || blockers.includes('OWNER_UNKNOWN:global_observation')) proposalNodes.push(node('p', '전역 관측 점유 상태를 확인하지 못했습니다.'));
+    // Native details.open changes before the queued toggle event. A render in
+    // between must copy that live state before replacing the detached element.
+    const previousRejectionDetail = el('proposal-result').querySelector('details');
+    if (proposalRejectionHistory && previousRejectionDetail) rejectionDetailsOpen = previousRejectionDetail.open;
     el('proposal-result').replaceChildren(...proposalNodes);
     if (proposalRejectionHistory) {
       const h = proposalRejectionHistory, d = h.diagnostics;

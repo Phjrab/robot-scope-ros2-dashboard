@@ -1276,7 +1276,16 @@ test('rejection numbers explain both bounds and are cleared by a new explicit ca
  await page.getByText('거절 당시 후보별 위치·방향 차이',{exact:true}).click();
  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('위치 차이 1.000 m (범위 밖)');
  await expect(page.locator('[data-prep="proposal-result"]')).toContainText('방향 차이 0.100 rad (범위 안)');
- await page.evaluate(()=>window.preparation.render());
+ // Reproduce replacement before the browser dispatches its asynchronous toggle.
+ await page.evaluate(()=>{
+   document.querySelector('[data-prep="proposal-result"] details').open=false;
+   window.preparation.render();
+ });
+ await expect(page.locator('[data-prep="proposal-result"] details')).not.toHaveAttribute('open');
+ await page.evaluate(()=>{
+   document.querySelector('[data-prep="proposal-result"] details').open=true;
+   window.preparation.render();
+ });
  await expect(page.locator('[data-prep="proposal-result"] details')).toHaveAttribute('open','');
  await expect(page.getByRole('button',{name:'제안값 확인·②에 적용'})).toBeDisabled();
  await page.locator('[data-prep="proposal-result"]').screenshot({path:'test-results/prior-rejection-diagnostics.png'});
