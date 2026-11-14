@@ -68,6 +68,16 @@ class ProposalHandoffTests(unittest.TestCase):
     def confirm(self, request='request'):
         return self.manager.confirm_proposal(self.owner, self.session, 'b'*24, request, self.generation, self.session_id)
 
+    def select_operator_confirmed_pair(self):
+        # The navigation UI sends this explicit confirmation; the default
+        # fixture above exercises the separate conversion-lineage path.
+        state = self.manager.select_pair(self.case.operator_pair())
+        self.generation = state['selected']['generation']
+        self.proposal['pair'] = {key: copy.deepcopy(state['pair'][key]) for key in
+                                ('generation', 'localization_3d', 'navigation_2d', 'calibration_sha256')}
+        self.proposal['provenance']['bundle_generation'] = self.generation
+        self.assertEqual(state['selected']['map_binding']['source'], 'operator_confirmed')
+
     def finish_stop(self, identifier):
         self.session._handoff_record('dispatch', session_id=self.session_id)
         self.session._handoff_record('accepted', session_id=self.session_id)
@@ -108,6 +118,67 @@ class ProposalHandoffTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'INITIAL_POSE_CANDIDATE_MISMATCH'):
             self.manager.check_initial_pose(self.map_id, self.revision, {**reference, 'x': reference['x']+.3})
         with self.assertRaisesRegex(ValueError, 'INITIAL_GEOMETRY_RECONFIRM_REQUIRED'):
+            self.manager.preflight(self.map_id, self.revision)
+
+    def test_operator_pair_confirms_active_geometry_before_stop_but_cannot_start(self):
+        self.select_operator_confirmed_pair()
+        result = self.confirm()
+        identifier = result['handoff_id']
+        self.assertEqual((result['state'], result['reason']), ('CONFIRMED_OBSERVATION_ACTIVE', None))
+        self.assertIsNotNone(result['geometry'])
+        geometry = copy.deepcopy(self.manager.selected['seed_geometry'])
+        self.assertEqual((geometry['handoff']['stop_nonce'], geometry['handoff']['stop_state']), ('', 'NOT_REQUESTED'))
+        self.assertEqual(self.manager.handoff_status(identifier)['state'], 'CONFIRMED_OBSERVATION_ACTIVE')
+        status = self.manager.status()
+        self.assertEqual(status['initialization_handoff']['state'], 'CONFIRMED_OBSERVATION_ACTIVE')
+        self.assertEqual(status['initialization_handoff']['geometry'], result['geometry'])
+        self.assertEqual(status['selected']['seed_geometry'], geometry)
+        self.assertEqual([item['code'] for item in status['pair']['checks']], ['HANDOFF_OBSERVATION_STOP_REQUIRED'])
+        self.assertFalse(status['pair']['can_start'])
+        with self.assertRaisesRegex(ValueError, 'INITIAL_GEOMETRY_PROVENANCE_REQUIRED'):
+            validate_handoff(geometry, self.manager.selected)
+        with self.assertRaisesRegex(ValueError, 'HANDOFF_OBSERVATION_STOP_REQUIRED'):
+            self.manager.preflight(self.map_id, self.revision)
+
+        self.finish_stop(identifier)
+        stopped = self.manager.handoff_status(identifier)
+        self.assertEqual((stopped['state'], stopped['reason']), ('OBSERVATION_STOPPED', None))
+        actual = self.manager.selected['seed_geometry']
+        self.assertEqual(actual['handoff']['stop_state'], 'INACTIVE_CONFIRMED')
+        self.assertRegex(actual['handoff']['stop_nonce'], r'^[a-f0-9]{32}$')
+        # Separating map checks must not remove the execution geometry gate.
+        saved_height = actual['z']
+        actual['z'] = math.nan
+        with self.assertRaisesRegex(ValueError, 'INITIAL_HEIGHT_TILT_REQUIRED'):
+            self.manager.preflight(self.map_id, self.revision)
+        actual['z'] = saved_height
+        self.manager.preflight(self.map_id, self.revision)
+        directory = self.case.job_directory()
+        self.manager.snapshot_for_job(self.map_id, self.revision, directory)
+        runtime = load_bundle(directory / 'params.yaml')
+        self.addCleanup(runtime.pool.shutdown)
+        self.assertIsNone(runtime.seed)
+        self.assertEqual(runtime.reason, 'WAITING_EXPLICIT_INITIAL_POSE')
+
+    def test_operator_pair_active_handoff_still_validates_map_confirmation(self):
+        self.select_operator_confirmed_pair()
+        result = self.confirm()
+        self.assertEqual(result['state'], 'CONFIRMED_OBSERVATION_ACTIVE')
+        self.manager.selected['map_binding']['operator_confirmation']['generation'] = 'f' * 32
+        status = self.manager.handoff_status(result['handoff_id'])
+        self.assertEqual((status['state'], status['reason']), ('INVALID', 'MAP_PAIR_OPERATOR_CONFIRMATION_INVALID'))
+        self.assertIsNone(status['geometry'])
+        with self.assertRaisesRegex(ValueError, 'MAP_PAIR_OPERATOR_CONFIRMATION_INVALID'):
+            self.manager.preflight(self.map_id, self.revision)
+
+    def test_operator_pair_stopped_handoff_still_requires_exact_stop_nonce(self):
+        self.select_operator_confirmed_pair()
+        result = self.confirm()
+        self.assertEqual(result['state'], 'CONFIRMED_OBSERVATION_ACTIVE')
+        self.finish_stop(result['handoff_id'])
+        self.assertEqual(self.manager.handoff_status(result['handoff_id'])['state'], 'OBSERVATION_STOPPED')
+        self.manager.selected['seed_geometry']['handoff']['stop_nonce'] = 'f' * 32
+        with self.assertRaisesRegex(ValueError, 'HANDOFF_STOP_OUTCOME_UNKNOWN'):
             self.manager.preflight(self.map_id, self.revision)
 
     def test_unknown_stop_wrong_generation_and_expiry_block(self):

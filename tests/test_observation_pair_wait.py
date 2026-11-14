@@ -49,6 +49,58 @@ class PairWaitTests(unittest.TestCase):
         self.assertEqual(source['pair_method'], 'FASTLIO_OUTPUT_STAMP_EXACT')
         self.assertEqual(source['source_delta_ns'], '0')
 
+    def test_exact_pose_arriving_between_history_and_latest_read_is_not_missed(self):
+        for subscription in (False, True):
+            for newer in (False, True):
+                with self.subTest(subscription=subscription, newer=newer):
+                    agent, clock, start = self.fixture(subscription=subscription)
+                    cloud = copy.deepcopy(agent.cloud)
+                    exact = copy.deepcopy(agent.pose)
+                    exact['observation']['source_stamp_ns'] = cloud['observation']['source_stamp_ns']
+                    available, lookups = [], []
+
+                    def lookup(observation, **kwargs):
+                        lookups.append(copy.deepcopy(observation))
+                        self.assertEqual(kwargs, {'provenance_mode': 'subscription_observation'} if subscription else {})
+                        return copy.deepcopy(exact) if available else None
+
+                    def latest_pose():
+                        # Simulate a callback committing the exact pose after
+                        # the unsuccessful history lookup but before this read.
+                        available.append(True)
+                        latest = copy.deepcopy(exact)
+                        if newer:
+                            latest['observation']['source_stamp_ns'] = str(int(exact['observation']['source_stamp_ns']) + 1)
+                        return latest
+
+                    agent.observation_pose_near = lookup
+                    agent.pose_snapshot = latest_pose
+                    mode = 'subscription_observation' if subscription else 'native_publisher'
+                    result = self.run_pair(agent, clock, start + .15, mode)
+                    self.assertEqual(result, exact)
+                    self.assertEqual(lookups, [cloud['observation'], cloud['observation']])
+                    self.assertEqual(agent.cloud, cloud)
+                    self.assertEqual(clock[0], start)
+                    _, _, provenance = project_query(cloud, result, clock[0], provenance_mode=mode)
+                    self.assertEqual(provenance['source_delta_ns'], '0')
+
+    def test_missing_exact_pose_recheck_is_bounded_and_does_not_wait(self):
+        for newer in (False, True):
+            with self.subTest(newer=newer):
+                agent, clock, start = self.fixture()
+                target = agent.cloud['observation']['source_stamp_ns']
+                agent.pose['observation']['source_stamp_ns'] = str(int(target) + int(newer))
+                lookups = []
+
+                def missing(observation):
+                    lookups.append(copy.deepcopy(observation))
+                    return None
+
+                agent.observation_pose_near = missing
+                self.assertIsNone(self.run_pair(agent, clock, start + .6))
+                self.assertEqual(lookups, [agent.cloud['observation']] * 2)
+                self.assertEqual(clock[0], start)
+
     def test_wait_never_extends_receipt_window_or_remaining_compute_budget(self):
         for budget, limit in [(.6, .15), (.035, .035)]:
             agent, clock, start = self.fixture(arrival=.2)

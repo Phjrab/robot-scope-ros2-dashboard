@@ -341,9 +341,12 @@ def paired_pose(agent, cloud, body, deadline):
             latest_cloud = agent.pointcloud_binary_snapshot()
             if observed_key(latest_cloud, provenance_mode=mode, now=now) != observed_key(cloud, provenance_mode=mode, now=now):
                 raise ObservationAlignmentError("SOURCE_CHANGED")
-            # A newer pose means the exact sample was missed, not merely pending.
+            # A callback may commit the exact pose between the history lookup
+            # and this latest-pose read. Recheck the original cloud once before
+            # declaring its sample missed; do not wait for or select a new stamp.
             if int(current["observation"]["source_stamp_ns"]) >= int(observation["source_stamp_ns"]):
-                return None
+                return (agent.observation_pose_near(observation, provenance_mode=mode)
+                        if mode == "subscription_observation" else agent.observation_pose_near(observation))
             received = observation.get("received_monotonic_s")
             if type(received) not in {int, float} or not math.isfinite(received) or now < received:
                 return None

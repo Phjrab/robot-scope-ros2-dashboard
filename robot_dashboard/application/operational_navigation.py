@@ -13,7 +13,7 @@ import uuid
 import time
 
 from ..relocalization.experimental_se3 import from_translation_rpy, validate_transform
-from ..relocalization.operational import SCHEMA, digest, validate_bundle, display_pose
+from ..relocalization.operational import SCHEMA, digest, validate_bundle, validate_seed_geometry, display_pose
 from ..relocalization.handoff_policy import POLICY_ID, CONDITIONAL_POLICY_ID, TTL_S, MAX_XY_M, MAX_YAW_RAD, process_identity, validate_handoff, validate_candidate, resolution_bounds
 from ..saved_maps import SavedMapError
 from .runtime_health_sample import RuntimeHealthSample
@@ -166,7 +166,14 @@ class OperationalNavigation:
             pin = bundle['navigation_2d']
             nav = self.catalog.resolve_navigation_map(pin['map_id'], pin['revision'])
             if bundle['map_binding'].get('source') == 'operator_confirmed':
-                validate_bundle(bundle)
+                # Asset readback is also required while the confirmed observation
+                # is still active. Its stop receipt belongs to the later execution
+                # gate, not to map/calibration validation. Never mutate the saved
+                # geometry or weaken validation of operator-entered geometry.
+                asset_bundle = bundle
+                if (bundle.get('seed_geometry') or {}).get('source') == 'proposal_confirmed':
+                    asset_bundle = {**bundle, 'seed_geometry': None}
+                validate_bundle(asset_bundle)
             else:
                 family = self._family(source, nav)
                 if family != bundle['map_binding']['family']:
@@ -616,6 +623,7 @@ class OperationalNavigation:
         self._handoff_gate(record)
         if record['snapshotted']:
             raise ValueError('HANDOFF_ALREADY_USED')
+        validate_seed_geometry(geometry)
 
     def check_initial_pose(self, map_id, revision, pose):
         with self.lock:
