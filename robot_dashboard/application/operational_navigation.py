@@ -443,12 +443,17 @@ class OperationalNavigation:
                         record['watch_last'] = time.monotonic()
             threading.Event().wait(.1)
 
-    def _handoff_gate(self, record, *, require_stopped=True):
+    def _handoff_gate(self, record, *, require_stopped=True, refresh_stopped=False):
+        # A fresh service read must not hold the source watcher's short lock.
+        read_stop = getattr(record['observation'], 'handoff_stop_snapshot', None)
+        current = (read_stop(record['geometry']['handoff']['handoff_id'])
+                   if refresh_stopped and callable(read_stop) else None)
         # The watcher uses its own short lock, independent of slow map reads.
         with self._handoff_watch_lock:
-            return self._handoff_gate_locked(record, require_stopped=require_stopped)
+            return self._handoff_gate_locked(record, require_stopped=require_stopped,
+                                            observation_snapshot=current)
 
-    def _handoff_gate_locked(self, record, *, require_stopped=True):
+    def _handoff_gate_locked(self, record, *, require_stopped=True, observation_snapshot=None):
         geometry = record['geometry']
         proof = geometry['handoff']
         if record['invalid']:
@@ -483,9 +488,12 @@ class OperationalNavigation:
             return receipt
         if record['watch_state'] != 'STOP_BOUNDARY':
             raise ValueError('HANDOFF_MONITOR_PENDING')
-        current = record['observation'].snapshot()
-        same_session = current.get('session_id') in (None, record['session_id'])
-        if current.get('state') == 'UNKNOWN' and same_session and current.get('active') is False:
+        current = record['observation'].snapshot() if observation_snapshot is None else observation_snapshot
+        same_session = (current.get('session_id') in (None, record['session_id'])
+                        and current.get('started_monotonic_s') in (None, 0, record['session_started']))
+        if (same_session and current.get('active') is False
+                and (current.get('state') == 'UNKNOWN' or current.get('busy') is True
+                     or current.get('job_pending') is True)):
             # A stale monitor read is not evidence that a different session ran.
             # Keep every admission blocked until a fresh STOPPED sample arrives,
             # without permanently destroying the exact accepted stop receipt.
@@ -622,13 +630,13 @@ class OperationalNavigation:
                 'geometry': ({k: geometry[k] for k in ('z','roll','pitch')} if reason is None else None),
                 'initial_pose_reference': (copy.deepcopy(proof['reference']) if reason is None else None), 'operational_application': 'NOT_RUN'}
 
-    def _check_proposal_geometry(self, geometry):
+    def _check_proposal_geometry(self, geometry, *, refresh_stopped=False):
         if geometry.get('source') != 'proposal_confirmed':
             return
         record = self._handoffs.get(geometry.get('handoff', {}).get('handoff_id'))
         if not record:
             raise ValueError('HANDOFF_RUNTIME_CHANGED')
-        self._handoff_gate(record)
+        self._handoff_gate(record, refresh_stopped=refresh_stopped)
         if record['snapshotted']:
             raise ValueError('HANDOFF_ALREADY_USED')
         validate_seed_geometry(geometry)
@@ -910,7 +918,7 @@ class OperationalNavigation:
                     raise ValueError('INITIAL_HEIGHT_TILT_REQUIRED')
                 if self.used_geometry == (bundle['generation'], geometry['confirmed_at']):
                     raise ValueError('INITIAL_GEOMETRY_RECONFIRM_REQUIRED')
-                self._check_proposal_geometry(geometry)
+                self._check_proposal_geometry(geometry, refresh_stopped=True)
 
     def snapshot_for_job(self, map_id, revision, destination, navigation_snapshot=None):
         with self.lock:
@@ -924,7 +932,7 @@ class OperationalNavigation:
                         raise ValueError('INITIAL_HEIGHT_TILT_REQUIRED')
                     if self.used_geometry == (bundle['generation'], bundle['seed_geometry']['confirmed_at']):
                         raise ValueError('INITIAL_GEOMETRY_RECONFIRM_REQUIRED')
-                    self._check_proposal_geometry(self.selected['seed_geometry'])
+                    self._check_proposal_geometry(self.selected['seed_geometry'], refresh_stopped=True)
                     bundle['seed_geometry'] = copy.deepcopy(self.selected['seed_geometry'])
                 if (bundle['navigation_2d']['map_id'], bundle['navigation_2d']['revision']) != (map_id, revision):
                     raise ValueError('SELECTED_3D_BUNDLE_REQUIRES_ITS_PINNED_2D_MAP')
@@ -963,7 +971,7 @@ class OperationalNavigation:
                     target.unlink()
                     raise ValueError('LOCALIZATION_REFERENCE_HASH_CHANGED')
                 if bundle.get('workflow') == 'staged_navigation_pair':
-                    self._check_proposal_geometry(self.selected['seed_geometry'])
+                    self._check_proposal_geometry(self.selected['seed_geometry'], refresh_stopped=True)
                     bundle['seed_geometry'] = copy.deepcopy(self.selected['seed_geometry'])
                 output = destination / 'operational-3d.json'
                 if (bundle.get('seed_geometry') or {}).get('source') == 'proposal_confirmed':
@@ -973,7 +981,7 @@ class OperationalNavigation:
                 try:
                     if bundle.get('workflow') == 'staged_navigation_pair':
                         self._revalidate_pair(self.selected, references=self._selected_records)
-                        self._check_proposal_geometry(self.selected['seed_geometry'])
+                        self._check_proposal_geometry(self.selected['seed_geometry'], refresh_stopped=True)
                 except Exception:
                     output.unlink(missing_ok=True)
                     target.unlink(missing_ok=True)

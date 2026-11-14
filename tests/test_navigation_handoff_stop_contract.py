@@ -232,13 +232,14 @@ class StopContractTests(unittest.IsolatedAsyncioTestCase):
         # monitor freshness bound. Expiry must still block all command gates.
         self.observation._updated_at = time.monotonic() - 6.1
         self.assertEqual(self.observation.snapshot()['state'], 'UNKNOWN')
-        for check in (
-            lambda: self.manager.preflight(self.map_id, self.map_revision),
-            lambda: self.manager.snapshot_for_job(self.map_id, self.map_revision,
-                                                 self.fixture.job_directory('stale-stop-job')),
-        ):
-            with self.assertRaisesRegex(ValueError, 'HANDOFF_OBSERVATION_STATUS_UNCONFIRMED'):
-                check()
+        with patch.object(self.service, 'status', side_effect=ObservationServiceError('unavailable')):
+            for check in (
+                lambda: self.manager.preflight(self.map_id, self.map_revision),
+                lambda: self.manager.snapshot_for_job(self.map_id, self.map_revision,
+                                                     self.fixture.job_directory('stale-stop-job')),
+            ):
+                with self.assertRaisesRegex(ValueError, 'HANDOFF_OBSERVATION_STATUS_UNCONFIRMED'):
+                    check()
         status = self.manager.status()['initialization_handoff']
         self.assertEqual((status['state'], status['reason']),
                          ('OUTCOME_UNKNOWN', 'HANDOFF_OBSERVATION_STATUS_UNCONFIRMED'))
@@ -247,6 +248,45 @@ class StopContractTests(unittest.IsolatedAsyncioTestCase):
         await self.observation.refresh()
         self.assertEqual(self.manager.handoff_status(hid)['state'], 'OBSERVATION_STOPPED')
         self.manager.preflight(self.map_id, self.map_revision)
+        self.assertEqual(self.service.calls, ['stop'])
+
+    async def test_admission_refreshes_stopped_service_without_renewing_monitor_cache(self):
+        hid = self.confirm()['handoff_id']
+        await self.observation.stop(self.service.session_id)
+        self.service.stopped()
+        await self.observation.refresh()
+        await self.wait_stop_boundary(hid)
+        expires = self.manager.selected['seed_geometry']['handoff']['expires_monotonic_s']
+        self.observation._updated_at = time.monotonic() - 6.1
+        cached_at = self.observation._updated_at
+        # Exactly the admission mutex that prevents the normal monitor refresh.
+        async with self.runtime.pipeline_coordination_lock:
+            with patch.object(self.service, 'status', wraps=self.service.status) as read:
+                self.manager.preflight(self.map_id, self.map_revision)
+                self.manager.snapshot_for_job(self.map_id, self.map_revision,
+                                             self.fixture.job_directory('fresh-stop-job'))
+                self.assertGreaterEqual(read.call_count, 2)
+        self.assertEqual(self.observation._updated_at, cached_at)
+        self.assertEqual(self.observation.snapshot()['state'], 'UNKNOWN')
+        self.assertEqual(self.manager.selected['seed_geometry']['handoff']['expires_monotonic_s'], expires)
+        self.assertEqual(self.service.calls, ['stop'])
+
+    async def test_fresh_stop_read_never_overrides_pending_transition_or_busy_service(self):
+        hid = self.confirm()['handoff_id']
+        await self.observation.stop(self.service.session_id)
+        self.service.stopped()
+        await self.observation.refresh()
+        await self.wait_stop_boundary(hid)
+        self.observation._updated_at = time.monotonic() - 6.1
+        self.service.current.update(job_pending=True, busy=True)
+        with self.assertRaisesRegex(ValueError, 'HANDOFF_OBSERVATION_STATUS_UNCONFIRMED'):
+            self.manager.preflight(self.map_id, self.map_revision)
+        self.service.stopped()
+        original_status = self.service.status
+        with patch.object(self.service, 'status', side_effect=lambda: (
+                setattr(self.observation, '_pending', 'start') or original_status())):
+            with self.assertRaises(ValueError):
+                self.manager.preflight(self.map_id, self.map_revision)
         self.assertEqual(self.service.calls, ['stop'])
 
     async def test_different_session_after_stale_read_still_permanently_invalidates(self):

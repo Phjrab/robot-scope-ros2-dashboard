@@ -41,6 +41,15 @@
       "handoff_id": "f0af1372c1904bc6979a640cd0a1bc55",
       "handoff_failure": "OBSERVATION_SESSION_CHANGED",
       "navigation_started": false
+    },
+    {
+      "id": "eecce0d00f9fd681a3e0cfaf",
+      "release": "a937dede7a603a0a7ae6d8ab8bbd8679861e836f",
+      "outcome": "Geometry and exact stop confirmed; stale read became recoverable as intended, but repeated admission-time staleness exhausted the unchanged TTL",
+      "rmse_m": 0.0782598997960522,
+      "overlap": 0.9971590909090908,
+      "handoff_failure": "HANDOFF_EXPIRED after HANDOFF_OBSERVATION_STATUS_UNCONFIRMED",
+      "navigation_started": false
     }
   ],
   "findings": [
@@ -52,6 +61,7 @@
   "handoff_repair_contract": {
     "unknown_inactive_same_session": "Blocks admission as OUTCOME_UNKNOWN until fresh status is available; preserves the exact accepted stop receipt",
     "observed_different_session": "Permanently invalidates, including when that snapshot is stale",
+    "admission_refresh": "When the confirmed inactive monitor cache is stale, preflight and job snapshot admission read actual service status without a service command or cache timestamp renewal. Pending transitions, bridge ownership, changed monitor samples and changed stop receipts fence the read. Status-only requests retain the normal monitor path.",
     "ttl_seconds": 120,
     "prior_xy_bound_m": 0.25,
     "prior_yaw_bound_rad": 0.2,
@@ -60,7 +70,7 @@
   },
   "regression_validation": {
     "before_fix": "New stale-stop regression failed with OBSERVATION_SESSION_CHANGED",
-    "after_fix": "23 handoff-stop contract tests passed on Linux",
+    "after_fix": "25 handoff-stop contract tests passed on Linux, including service read failure, pending start, busy service and unchanged TTL/cache age",
     "javascript_navigation_tests": "16 passed",
     "raw_inputs": "Preserved outside Git; no raw maps, point clouds, credentials, or environment files included"
   }

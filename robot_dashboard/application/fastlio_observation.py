@@ -263,6 +263,33 @@ class FastlioObservationSession:
             item = self._handoff_receipts.get(handoff_id)
             return dict(item) if item else {"state": "OUTCOME_UNKNOWN"}
 
+    def handoff_stop_snapshot(self, handoff_id):
+        """Fresh read-only stop evidence for an admission holding the pipeline lock.
+
+        The normal monitor cannot acquire that lock during slow Nav2 preflight.
+        Never renew its cache or infer inactivity from an old accepted receipt.
+        A concurrent monitor update or transition fences this separate read.
+        """
+        with self._lock:
+            cached = self.snapshot()
+            receipt = self.handoff_receipt(handoff_id)
+            if (cached.get('state') != 'UNKNOWN' or cached.get('active') is not False
+                    or receipt.get('state') != 'INACTIVE_CONFIRMED'
+                    or cached.get('session_id') not in (None, receipt.get('session_id'))
+                    or self._pending or self._bridge_context is not None or self._closed):
+                return cached
+            updated_at = self._updated_at
+        try:
+            current = self.service.status()
+        except Exception:
+            return cached
+        with self._lock:
+            if (self._updated_at != updated_at or self._pending
+                    or self._bridge_context is not None or self._closed
+                    or self.handoff_receipt(handoff_id) != receipt):
+                return self.snapshot()
+            return dict(current)
+
     def _handoff_record(self, event, *, status=None, session_id=None):
         # Pure bounded memory update: never call services, user callbacks, or await.
         with self._lock:
