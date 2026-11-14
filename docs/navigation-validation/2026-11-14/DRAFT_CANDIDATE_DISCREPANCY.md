@@ -17,8 +17,9 @@ separate extraction from map and scan; it is **not independent physical evidence
 because this is the same scan used for the fit.
 
 The operator now reports the chair behind the robot and wall distances
-"220 230 정도", interpreted provisionally as roughly 2.2 and 2.3 m. Wall order,
-measurement method, and exact physical origin remain unconfirmed. Neither the
+"220 230 정도", interpreted provisionally as roughly 2.2 and 2.3 m. A subsequent
+clarification specifies **body centre to the outermost physical walls**. Wall
+order, measurement method and body-centre-to-IMU offset remain unconfirmed. Neither the
 draft nor the candidate exactly agrees with those rough ranges. Therefore this
 investigation does not establish which pose is physically correct or adopt a pose.
 
@@ -42,6 +43,19 @@ at least one original 3D map point projected directly into the same XY cell:
 XY distance is median 0.01299 m, p95 0.02649 m, maximum 0.03421 m; all below
 the 0.03536 m cell half-diagonal. This strongly rejects a uniform 1.409 m
 stored 3D-to-2D offset, but does not establish correspondence to the physical room.
+
+After the outermost-wall clarification, the current family API was read. It links
+this exact 3D revision to this exact 2D revision using `planar_xy_identity`,
+height slice **-0.2 to +0.8 m**, 0.1 m XY density bins and a minimum of 10 points
+across the 3 x 3 neighbouring bins (`noise_radius=0.1`; not an exact radial test).
+Offline replay of the production pure projection/pixel functions on preserved
+points reproduces 300 x 181 and the origin within 3e-12 m. All 4,541 occupied
+cells are identical. The only difference is 49,759 UNKNOWN cells changed to FREE.
+Thus no effective crop or occupied-wall removal occurred relative to that
+conversion. The 2D footprint still does not represent every height or every
+physical outer wall: 32,387 source points become 14,422 after height filtering
+and 13,179 after density filtering. This distinction matters when identifying
+which physical surface a displayed boundary represents.
 
 Stored calibration's navigation-map and IMU-to-base transforms are identity.
 Its base origin is an existing approximate convention, not a new body-centre
@@ -73,6 +87,18 @@ the physical wall. No strong extracted plane at 2.2 or 2.3 m was found. In the
 corresponding body-side directions, +/-0.10 m slabs at either reported distance
 contain no points. This cannot distinguish occlusion, a different wall/direction,
 an approximate measurement, sensor geometry, or an incorrect wall association.
+
+The outermost-wall follow-up also removed all previous map ROI/height limits.
+Only 103 / 53 / 25 of 32,387 map points lie more than 0.1 / 0.3 / 0.7 m beyond
+the selected upper plane; corresponding right-plane counts are 34 / 28 / 20.
+Farther 0.1 m projection bins contain at most 29 upper / 5 right points, with no
+additional broad parallel wall identified. In the full body scan only seven
+unique points lie over 0.1 m beyond the upper plane (all below the IMU); none
+lie over 0.1 m beyond the right plane at any height. These are near the outer
+envelope of **observed supported structures**, not proven building outer walls.
+An opaque internal partition could hide the outer wall from LiDAR. Treating a
+displayed boundary as the physical outer wall is therefore an unresolved
+correspondence hypothesis, not an established operator error or sensor fault.
 
 If 2.2 / 2.3 m are assigned to these same upper/right planes and the IMU origin,
 the conditional XY is `(3.691, 3.893)`, 0.777 m from the fit. Swapping their order
@@ -133,10 +159,11 @@ Evidence and helper scripts remain outside Git under
 `body-plane-connected-support.json`, `rough-distance-support-audit.json`,
 `rough-wall-distance-hypotheses.json`, `rough-wall-distance-hypotheses.png`,
 `current-fixed-xy-sensitivity.json`, `current-map2d-map3d-alignment.json`,
-`current-2d-map-data.json`, `discrepancy-*.json` and test logs. Raw input hashes
+`current-map-projection-footprint.json`, `current-2d-map-data.json`,
+`current-2d-metadata.json`, `current-2d-family.json`, `discrepancy-*.json` and test logs. Raw input hashes
 were checked and originals preserved. No raw map/cloud or map image is committed.
 
-Next one task: identify the two physical surfaces and measure distances from a
-defined robot/IMU reference point, then compare with the preserved body cloud's
-1.496 / 1.974 m surfaces. Do not auto-recalculate or apply a candidate merely
+Next one task: identify the two LiDAR-visible surfaces relative to the user's
+outermost walls, accounting for the body-centre/IMU reference, then compare with
+the preserved body cloud's 1.496 / 1.974 m surfaces. Do not auto-recalculate or apply a candidate merely
 because its point-to-map residual is low.
