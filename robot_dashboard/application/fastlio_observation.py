@@ -16,7 +16,7 @@ from ..observation_service import (
     ObservationServiceError,
     inputs_ready,
 )
-from .ownership_readback import ownership_readback, _control
+from .ownership_readback import ownership_readback, _control, OwnerLockBusy
 from .observation_bridge import bridge_admission_error
 
 
@@ -126,7 +126,7 @@ class FastlioObservationSession:
         if context is None:
             return None
         try:
-            if _control(self.runtime.agent)['busy']:
+            if _control(self.runtime.agent, lock_timeout_s=.1)['busy']:
                 return self._latch_safety('CONTROL_OWNER_CHANGED_DURING_OBSERVATION')
             if context.get('token'):
                 state = self._transport().observation_inhibit_status(context['token'])
@@ -136,7 +136,18 @@ class FastlioObservationSession:
                     return self._latch_safety(state['reason'] or 'CONTROL_BRIDGE_INHIBIT_LOST')
                 if state['reason']:
                     return self._latch_safety(state['reason'])
-        except Exception:
+        except Exception as exc:
+            # Preserve the first failed fresh read without exposing owner data.
+            # Both control locks have been released before taking this lock.
+            with self._lock:
+                if self._owner_failure is None:
+                    self._owner_failure = dict(
+                        sampled_monotonic_s=time.monotonic(), busy_components=[],
+                        unknown_components=['control'],
+                        unknown_reasons={'control': 'OWNER_LOCK_BUSY' if isinstance(exc, OwnerLockBusy)
+                                         else 'OWNER_READ_UNAVAILABLE'},
+                        control_lock_site=exc.site if isinstance(exc, OwnerLockBusy) else None,
+                    )
             return self._latch_safety('CONTROL_OWNER_UNKNOWN_DURING_OBSERVATION')
         return None
 
@@ -184,7 +195,7 @@ class FastlioObservationSession:
 
         The caller retains pipeline_coordination_lock. No start is dispatched
         while sampling; an active observation retains its signed motion inhibit.
-        Only navigation's native lock contention is retryable, never observed
+        Only navigation/control native lock contention is retryable, never observed
         work, missing owners or failed reads. No cached idle result is accepted.
         Yield on the event loop so a worker holding the lock can finish without
         blocking callbacks or moving the ownership copy to a foreign thread.
@@ -200,10 +211,18 @@ class FastlioObservationSession:
                 allowed.add('global_observation')
             retryable = (
                 not any(name not in allowed for name in owners['busy_components'])
-                and owners['unknown_components'] == ['navigation']
-                and owners['components']['navigation'].get('reason') == 'OWNER_LOCK_BUSY'
+                and bool(owners['unknown_components'])
+                and set(owners['unknown_components']) <= {'navigation', 'control'}
+                and all(owners['components'][name].get('reason') == 'OWNER_LOCK_BUSY'
+                        for name in owners['unknown_components'])
             )
-            if not retryable or self.bridge_safety_error() or time.monotonic() >= deadline:
+            if not retryable or self._safety_error or time.monotonic() >= deadline:
+                return owners
+            # Do not synchronously wait for the same contended control lock on
+            # the event loop. Yield, then sample every owner again. The caller
+            # still checks the signed inhibit before admitting/retaining work;
+            # an unresolved owner at the deadline remains unknown and blocks.
+            if 'control' not in owners['unknown_components'] and self.bridge_safety_error():
                 return owners
             await asyncio.sleep(min(0.01, max(0., deadline - time.monotonic())))
 

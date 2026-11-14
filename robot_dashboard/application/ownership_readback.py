@@ -30,11 +30,14 @@ class OwnerLockBusy(RuntimeError):
 
 
 @contextmanager
-def _locked(lock: Any, site=None):
-    # Never wait behind native work, and never invoke a manager callback.
+def _locked(lock: Any, site=None, *, deadline=None):
+    # Advisory reads never wait; the observation guard can supply one bounded
+    # deadline. Neither path invokes a manager callback.
     if type(lock) not in _LOCK_TYPES:
         raise TypeError("unsupported owner lock")
-    if not lock.acquire(blocking=False):
+    acquired = (lock.acquire(blocking=False) if deadline is None else
+                lock.acquire(timeout=max(0., deadline - time.monotonic())))
+    if not acquired:
         raise OwnerLockBusy(site)
     try:
         yield
@@ -219,10 +222,17 @@ def _slam(owner: Any) -> dict[str, Any]:
                 external_broker_readback_required=camera is not None)
 
 
-def _control(agent: Any) -> dict[str, Any]:
+def _control(agent: Any, *, lock_timeout_s=0.) -> dict[str, Any]:
     transport = agent._control_transport
     manager = transport.manager
-    with _locked(transport.operation_lock), _locked(manager._lock):
+    # General ownership reads stay nonblocking. The observation guard may wait
+    # briefly for a fresh copy, sharing one deadline across both native locks.
+    # Never substitute a cached idle result or call snapshot/drain/publish here.
+    if not 0. <= lock_timeout_s <= .1:
+        raise ValueError('invalid control read deadline')
+    deadline = time.monotonic() + lock_timeout_s if lock_timeout_s else None
+    with _locked(transport.operation_lock, 'operation', deadline=deadline), \
+            _locked(manager._lock, 'manager', deadline=deadline):
         # An expired but retained lease still blocks. Do not expire it or drain
         # queued outputs to make this observation look idle.
         lease = (_fields(manager._lease, "input_source", "heartbeat_at")

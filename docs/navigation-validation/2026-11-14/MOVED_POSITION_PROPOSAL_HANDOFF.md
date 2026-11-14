@@ -101,3 +101,71 @@ Raw inputs, packets, CDRs and complete API responses remain outside Git under
 `../nav2-live-analysis-20261114/`. The two pre-fix archives have SHA256
 `07ca7262ee1356c801d4e738db0ab3f55a12a9d292d0505eaac5e5f59e02b34d`
 and `8ac6710092edf85d987a6d407bd8588758b36e9fb03a14dc9e912e7a624a577f`.
+
+## Published fix and first post-deployment trial
+
+Commit `d13fdfb9b204e2ac8c96b9de24ce13643e48910d` passed exact-commit CI
+[43574818650](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/43574818650)
+and I0 [43574818696](https://github.com/Phjrab/robot-scope-ros2-dashboard/actions/runs/43574818696).
+The Python 3.12 job ran 3,759 tests (35 skips), all passing, and 774 JavaScript
+tests passed. Both Linux Python matrix jobs and all four browser shards passed.
+An additional Windows browser run passed 116/122; six Python-backed fixtures
+could not invoke the Windows `python3` alias. This local run is not all-green.
+
+The dashboard and control bridge were restarted onto this release at 17:26 KST.
+Both actual process working directories and the signed bridge release matched.
+The release preserves both shared dependency links; tracked UTF-8 text was
+normalized to LF for deployment, with before/after hashes retained outside Git.
+The previous 8234fcd release and configuration rollback remain available.
+The same confirmed map revisions were selected again after restart.
+
+One observation start created `414117809f9b4aa19edbb2d0bfa39a33`. One proposal
+request created `d8cf1faf281dcaa48bd71299`, which was cancelled before ready as
+`stale / OBSERVATION_SESSION_CHANGED`; worker cleanup was SETTLED. No confirmation
+request followed. This reason also covers a same-ID session that is temporarily
+not READY; it is not evidence that the ID changed. Pre/post records retained the
+same ID and READY, so the exact first transient condition remains unconfirmed.
+No original worker files were copied before cancellation; the job's captured
+metadata is preserved, not mislabelled as preserved original input bytes.
+
+At 17:30, 50 subsequent samples had the same ID but were INVALIDATED with
+`CONTROL_OWNER_UNKNOWN_DURING_OBSERVATION`, signed guard HELD, owner_failure null.
+The service invocation matched the ID and NRestarts was zero. This later sticky
+failure cannot retroactively explain the earlier transient cancellation.
+The exact session was then stopped normally: STOPPED/inactive/not busy, no guard,
+STOP=true, no lease and Move=0. No automatic recalculation or reapplication ran.
+
+## Control-owner contention reproduced separately
+
+Native RLock tests reproduce the later guard failure without commands: a normal
+reader briefly holding the control operation or manager lock caused the direct
+guard's nonblocking copy to latch UNKNOWN permanently. The actual field lock
+holder was not captured. General ownership readback remains nonblocking.
+Only the observation guard may acquire a fresh control copy within one shared
+100 ms deadline across both locks. No cached idle state, output draining, lease
+expiry or command publication is used. Deadline failure, malformed ownership,
+actual work and lost inhibit still invalidate; the first control failure site is
+now retained. This is a bound on the control copy, not the entire snapshot call.
+
+The coordinated async monitor also retries control-only/native-navigation lock
+contention within its existing 100 ms budget, yielding before fresh full-owner
+reads. It does not synchronously wait for the same control lock on the event loop.
+The signed inhibit is still checked before admission/retention, and unresolved
+unknown ownership still blocks. Tests include an event-loop-released reader and
+inhibit loss during that wait. This is separate from the earlier navigation jobs
+lock fix and is not counted as a field pass before a fresh trial succeeds.
+
+The direct guard regressions failed on the previous code (four failing cases,
+two missing-diagnostic errors); the separate monitor regression failed in both
+healthy contention cases before its change. The final candidate passed 81 related
+Python tests and 39 JavaScript tests. Full isolated Linux unittest ran 3,587 tests
+in 281.620 seconds, with the same two Git-dependent failures, two missing-Node
+errors, three missing-Git errors and 50 skips. Exact-commit CI supplies the complete
+repository/dependency environment before activation.
+
+The operator subsequently requested completion of the current software work,
+then planned to perform observation through proposal application personally.
+No further observation start, calculation or confirmation is to be issued as
+part of this handoff. Deployment and final read-only checks remain in scope.
+The next field attempt must use a fresh current-location assumption and retain
+its valid session/proof; step 2 field success remains unverified at this point.
