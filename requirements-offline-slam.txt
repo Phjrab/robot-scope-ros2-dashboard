@@ -1,0 +1,3 @@
+# Separate analysis environment; no change to the robot runtime requirements.
+-r requirements.txt
+scipy>=1.11,<2

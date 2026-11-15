@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Robot Scope · 오프라인 지도 보정</title><link rel="stylesheet" href="./style.css"></head>
+<body><header><span class="brand">ROBOT SCOPE / OFFLINE LAB</span><span class="tag">운영 적용 없음</span></header>
+<main><h1>기록된 주행으로 지도를 다시 정렬합니다.</h1>
+<p class="intro">키프레임 기록을 불러와 3D 루프를 검증하고, 보정 전후를 비교한 뒤 새 지도를 저장하세요.</p>
+<section class="controls"><label>1. 주행 기록 JSON <input id="file" type="file" accept=".json,application/json"></label>
+<label>저장된 세션 <select id="sessions"><option value="">선택</option></select></label><button id="refresh">목록 새로고침</button></section>
+<details><summary>실제 주행 기록 방법</summary><p>ROS 2 환경에서 기존 FAST-LIO가 실행 중일 때 아래 읽기 전용 기록기를 별도로 실행합니다. 종료는 Ctrl+C입니다.</p>
+<pre>python -m robot_dashboard.offline_slam.record --live --calibration-id 교정파일해시 --sensor-origin-body X Y Z --output run.json</pre>
+<p>이미 기록한 rosbag은 ROS 토픽으로 재생하지 않고 직접 읽습니다.</p>
+<pre>python -m robot_dashboard.offline_slam.record --bag BAG_DIRECTORY --calibration-id 교정파일해시 --sensor-origin-body X Y Z --output run.json</pre>
+<p>X Y Z에는 교정된 body 좌표계의 LiDAR 원점 위치(m)를 입력합니다. 2D 지도 광선의 시작점에 사용합니다.</p>
+<p>입력은 같은 원본 시각의 /cloud_registered와 /Odometry입니다. 원시 LiDAR 전체 기록은 아니며, 로컬 좌표로 복원한 FAST-LIO 처리 점군을 저장합니다.</p></details>
+<section class="settings"><label>후보 반경 (m)<input id="search_radius" type="number" value="3" min="0.2" max="10" step="0.1"></label>
+<label>최소 프레임 간격<input id="min_separation" type="number" value="15" min="3" max="399"></label>
+<label>최대 정합 오차 (m)<input id="max_rmse" type="number" value="0.12" min="0.005" max="0.5" step="0.005"></label>
+<label>최소 중첩률<input id="min_overlap" type="number" value="0.55" min="0.3" max="1" step="0.05"></label>
+<label>2D 최소 높이 (m)<input id="min_height" type="number" value="0.15" min="-5" max="5" step="0.05"></label>
+<label>2D 최대 높이 (m)<input id="max_height" type="number" value="1.8" min="-5" max="5" step="0.05"></label></section>
+<p class="note">높이는 기록의 기준 좌표계 기준입니다. 경사·다층 환경의 2D 결과는 주행 지도로 별도 검증해야 합니다.</p>
+<section class="controls"><button id="run" disabled>2. 루프 검색·최적화</button><button id="cancel" disabled>작업 취소</button>
+<button id="save" disabled>3. 새 지도 저장</button><a id="download" hidden>지도 묶음 내려받기</a>
+<label>보기 <select id="view"><option value="iso">3D 사선</option><option value="xy">XY 평면</option><option value="xz">XZ 높이</option></select></label></section>
+<p id="status" role="status" aria-live="polite">주행 기록을 선택하세요.</p><p id="error" role="alert"></p>
+<div class="comparison"><section><h2>보정 전</h2><canvas id="before" aria-label="보정 전 점군과 궤적"></canvas></section>
+<section><h2>보정 후</h2><canvas id="after" aria-label="보정 후 점군과 궤적"></canvas></section></div>
+<p class="note">두 화면은 같은 축척입니다. 파랑: 기록 궤적 · 초록: 보정 궤적 · 노랑 점선: 채택한 루프 · 흰 점: 고정 노드</p>
+<section><h2>계산 결과</h2><div id="metrics" class="metrics"></div><p class="note">끝점 간격은 출발점으로 돌아온 기록에서만 폐루프 오차로 해석합니다. 잔차 감소는 절대 위치 정확도의 증명이 아닙니다.</p>
+<table><thead><tr><th>연결 노드</th><th>판정</th><th>중첩률</th><th>오차 (m)</th></tr></thead><tbody id="loops"></tbody></table></section>
+<footer>새 지도 묶음: 원본 키프레임 · 보정 그래프 · 3D PCD · 2D PGM/YAML · 파일 해시. 기존 지도, TF, Nav2, 경로와 POI는 변경하지 않습니다.</footer>
+</main><script type="module" src="./dashboard.js"></script></body></html>
