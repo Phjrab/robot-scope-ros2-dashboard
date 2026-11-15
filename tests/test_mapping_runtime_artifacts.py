@@ -215,7 +215,10 @@ class Xt16BridgeArtifactTests(unittest.TestCase):
         self.assertAlmostEqual(float(output["time"][0]), 0.0, places=6)
         self.assertGreater(float(output["time"][-1]), 0.09)
         self.assertTrue(np.isfinite(output["x"]).all())
-        self.assertEqual(set(np.unique(output["ring"])), set(range(0, 16, 4)))
+        self.assertEqual(set(np.unique(output["ring"])), set(range(16)))
+        counts = np.bincount(output["ring"], minlength=16)
+        self.assertLessEqual(int(counts.max() - counts.min()), 1)
+        self.assertTrue(np.all(np.diff(output["time"]) >= 0))
         self.assertEqual(converted.stamp_sec, 1_000)
         self.assertGreater(converted.stamp_nanosec, 90_000_000)
         self.assertLess(converted.stamp_nanosec, 110_000_000)
@@ -242,6 +245,30 @@ class Xt16BridgeArtifactTests(unittest.TestCase):
                 received_s=1_000.2,
                 clock=bridge.ClockOffsetTracker(),
             )
+
+    def test_decimation_preserves_all_rings_with_grouped_input_order(self):
+        message = raw_cloud()
+        records = bridge._raw_records(message).copy()
+        records["ring"] = np.repeat(np.arange(16, dtype=np.uint16), len(records) // 16)
+        message.data = records.tobytes()
+        converted = bridge.convert_xt16_cloud(
+            message, received_s=1_000.2, received_monotonic_s=10.0,
+            clock=prime_clock(bridge.ClockOffsetTracker(), next_scan_start=1_000.0, offset=0.1),
+        )
+        output = np.frombuffer(converted.data, dtype=bridge.OUTPUT_DTYPE)
+        self.assertEqual(len(output), len(records) // 4)
+        self.assertEqual(set(output["ring"]), set(range(16)))
+        self.assertTrue(np.all(np.diff(output["time"]) >= 0))
+        self.assertAlmostEqual(converted.scan_duration_s, 0.1)
+
+    def test_invalid_ring_is_rejected_even_if_flat_stride_would_skip_it(self):
+        message = raw_cloud()
+        records = bridge._raw_records(message).copy()
+        records["ring"][1] = 16
+        message.data = records.tobytes()
+        with self.assertRaisesRegex(bridge.BridgeContractError, "ring must be in 0..15"):
+            bridge.convert_xt16_cloud(message, received_s=1_000.2,
+                                     clock=bridge.ClockOffsetTracker())
 
     def test_sustained_callback_backlog_is_rejected_without_clock_rebase(self):
         clock = prime_clock(

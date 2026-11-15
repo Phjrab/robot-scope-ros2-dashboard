@@ -91,7 +91,7 @@ PointCloud2 raw_cloud(double scan_start)
       message.data, base + 16, static_cast<std::uint16_t>(index % 16));
     robot_scope_xt16_bridge::write_value(
       message.data, base + 18,
-      scan_start + 0.1 * static_cast<double>(index) / 3996.0);
+      scan_start + 0.1 * static_cast<double>(index) / (points - 1));
   }
   return message;
 }
@@ -136,6 +136,20 @@ void test_exact_conversion_contract()
   check(std::abs(value_at<float>(output.data, 8) - 0.75F) < 1e-6F, "z value changed");
   check(value_at<float>(output.data, 16) == 0.0F, "first relative time must be zero");
   check(value_at<std::uint16_t>(output.data, 20) == 0, "ring value changed");
+  std::array<std::size_t, 16> rings{};
+  float previous_time = -1.0F;
+  for (std::size_t index = 0; index < output.width; ++index) {
+    const auto base = index * output.point_step;
+    const auto ring = value_at<std::uint16_t>(output.data, base + 20);
+    check(ring < rings.size(), "output ring out of bounds");
+    if (ring < rings.size()) { ++rings[ring]; }
+    const auto stamp = value_at<float>(output.data, base + 16);
+    check(stamp >= previous_time, "source timestamp order changed");
+    previous_time = stamp;
+  }
+  for (const auto count : rings) {
+    check(count >= 62 && count <= 63, "decimation lost an elevation channel");
+  }
 
   auto next = raw_cloud(104.0);
   contract.convert(next, 114.1, 5.0);
@@ -152,6 +166,10 @@ void test_exact_conversion_contract()
 void test_invalid_inputs_fail_closed()
 {
   CloudContract contract;
+  auto bad_ring = raw_cloud(199.0);
+  robot_scope_xt16_bridge::write_value<std::uint16_t>(bad_ring.data, 16, 16);
+  expect_contract_error(
+    [&]() {contract.convert(bad_ring, 209.1, 1.0);}, "ring must be in 0..15");
   auto wrong_frame = raw_cloud(200.0);
   wrong_frame.header.frame_id = "camera_init";
   expect_contract_error(

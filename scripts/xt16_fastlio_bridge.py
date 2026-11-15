@@ -38,6 +38,7 @@ RAW_MIN_POINTS = 4_000
 RAW_MAX_POINTS = 100_000
 OUTPUT_MIN_POINTS = 1_000
 CLOUD_DECIMATION = 4
+LASER_CHANNELS = 16
 RAW_MIN_POINT_STEP = 26
 OUTPUT_POINT_STEP = 22
 MAX_SCAN_DURATION_S = 0.25
@@ -414,7 +415,15 @@ def convert_xt16_cloud(
 ) -> ConvertedCloud:
     """Convert one exact Hesai cloud to the FAST-LIO Velodyne layout."""
 
-    source = _raw_records(message)[::CLOUD_DECIMATION]
+    source = _raw_records(message)
+    if np.any(source["ring"] >= LASER_CHANNELS):
+        raise BridgeContractError("XT16 ring must be in 0..15")
+    # A flat stride aliases the interleaved Hesai channel order. Keep one in
+    # four occurrences of every ring, retaining source order and timestamps.
+    selected = np.zeros(len(source), dtype=bool)
+    for ring in range(LASER_CHANNELS):
+        indices = np.flatnonzero(source["ring"] == ring)
+        selected[indices[ring % CLOUD_DECIMATION::CLOUD_DECIMATION]] = True
     timestamps = source["timestamp"].astype(np.float64, copy=False)
     finite = (
         np.isfinite(source["x"])
@@ -423,12 +432,13 @@ def convert_xt16_cloud(
         & np.isfinite(timestamps)
         & (timestamps > 0)
     )
-    source = source[finite]
-    timestamps = timestamps[finite]
-    if len(source) < OUTPUT_MIN_POINTS:
+    if int(np.count_nonzero(finite & selected)) < OUTPUT_MIN_POINTS:
         raise BridgeContractError("too few finite decimated XT16 points remain")
-    scan_start = float(np.min(timestamps))
-    scan_end = float(np.max(timestamps))
+    # Scan bounds must not depend on which points survived decimation.
+    scan_start = float(np.min(timestamps[finite]))
+    scan_end = float(np.max(timestamps[finite]))
+    source = source[finite & selected]
+    timestamps = timestamps[finite & selected]
     duration = scan_end - scan_start
     if not math.isfinite(duration) or duration < 0 or duration > MAX_SCAN_DURATION_S:
         raise BridgeContractError("XT16 scan duration is outside the supported range")

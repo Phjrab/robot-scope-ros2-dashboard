@@ -53,6 +53,7 @@ constexpr std::size_t kRawMinPoints = 4'000;
 constexpr std::size_t kRawMaxPoints = 100'000;
 constexpr std::size_t kOutputMinPoints = 1'000;
 constexpr std::size_t kCloudDecimation = 4;
+constexpr std::size_t kLaserChannels = 16;
 constexpr std::size_t kRawMinPointStep = 26;
 constexpr std::size_t kOutputPointStep = 22;
 constexpr double kMaxScanDurationS = 0.25;
@@ -349,7 +350,8 @@ public:
     selected.reserve((points + kCloudDecimation - 1) / kCloudDecimation);
     double scan_start = std::numeric_limits<double>::infinity();
     double scan_end = -std::numeric_limits<double>::infinity();
-    for (std::size_t index = 0; index < points; index += kCloudDecimation) {
+    std::array<std::size_t, kLaserChannels> ring_counts{};
+    for (std::size_t index = 0; index < points; ++index) {
       const std::size_t base = index * message.point_step;
       SelectedPoint point{
         read_value<float>(message.data, base),
@@ -359,6 +361,14 @@ public:
         read_value<std::uint16_t>(message.data, base + 16),
         read_value<double>(message.data, base + 18),
       };
+      if (point.ring >= kLaserChannels) {
+        throw ContractError("XT16 ring must be in 0..15");
+      }
+      // Hesai interleaves rings. A flat stride of four discards twelve of
+      // sixteen elevation channels. Decimate within each ring instead, with
+      // staggered phases and original point order/timestamps preserved.
+      const bool keep = ring_counts[point.ring]++ % kCloudDecimation ==
+        point.ring % kCloudDecimation;
       if (!std::isfinite(point.x) || !std::isfinite(point.y) ||
         !std::isfinite(point.z) || !std::isfinite(point.timestamp) ||
         point.timestamp <= 0.0)
@@ -367,7 +377,9 @@ public:
       }
       scan_start = std::min(scan_start, point.timestamp);
       scan_end = std::max(scan_end, point.timestamp);
-      selected.push_back(point);
+      if (keep) {
+        selected.push_back(point);
+      }
     }
     if (selected.size() < kOutputMinPoints) {
       throw ContractError("too few finite decimated XT16 points remain");
