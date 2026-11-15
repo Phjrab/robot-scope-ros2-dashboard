@@ -60,6 +60,9 @@ COSTMAP_MIN_OBSTACLE_HEIGHT = -1.0
 COSTMAP_MAX_OBSTACLE_HEIGHT = 3.0
 STRICT_CONTROLLER_ODOM_TOPIC = "/utlidar/robot_odom"
 FASTLIO_CONTROLLER_ODOM_TOPIC = "/robot_scope/nav/controller_odom_fastlio"
+# Supervised Go2 trials translated at 0.20 m/s but stepped in place at
+# 0.09/0.16 m/s. This is an approach preference, never a new velocity cap.
+GO2_APPROACH_LINEAR_VELOCITY = 0.20
 COMPETITION_FASTLIO_NAVIGATION_PROFILE = (
     "go2-xt16-wireless-competition-fastlio"
 )
@@ -876,6 +879,18 @@ class NavigationJobManager:
                 self.max_parameter_bytes,
             )
             payload = yaml.safe_load(content.decode("utf-8"))
+            runtime = self._at(payload, "robot_scope_navigation_runtime", "ros__parameters")
+            if runtime.get("controller_odom_mode") == "fastlio_body":
+                # These are release-owned policy fields, not saved user tuning.
+                # Import the previous release's 27 values, then bind policy to
+                # this release. start() always writes a new private job YAML;
+                # no persisted BT filename is executed or made authoritative.
+                follow = self._at(payload, "controller_server", "ros__parameters", "FollowPath")
+                speed = self._normalize_parameter("desired_linear_vel", follow.get("desired_linear_vel"))
+                follow["min_approach_linear_velocity"] = min(GO2_APPROACH_LINEAR_VELOCITY, speed)
+                self._at(payload, "bt_navigator", "ros__parameters")["default_nav_to_pose_bt_xml"] = str(
+                    Path(__file__).resolve().parents[1] / "config" / "robot_scope_go2_replan.xml"
+                )
             try:
                 self._parameters = self._extract_parameters(
                     payload,
@@ -1097,6 +1112,13 @@ class NavigationJobManager:
 
         bt["odom_topic"] = controller_odom_topic
         bt["plugin_lib_names"] = list(HUMBLE_BT_PLUGIN_LIBRARIES)
+        if controller_odom_mode == "fastlio_body":
+            # Recovery cmd_vel is deliberately isolated by the Go2 launcher.
+            # Humble's default recovery tree would nevertheless clear maps and
+            # repeatedly restart FollowPath after its progress checker failed.
+            bt["default_nav_to_pose_bt_xml"] = str(
+                Path(__file__).resolve().parents[1] / "config" / "robot_scope_go2_replan.xml"
+            )
         controller.update(
             {
                 "odom_topic": controller_odom_topic,
@@ -1130,6 +1152,13 @@ class NavigationJobManager:
                 "angular_dist_threshold": values["angular_dist_threshold"],
             }
         )
+        if controller_odom_mode == "fastlio_body":
+            # Humble RPP takes min(other-constrained velocity, approach velocity)
+            # and still clamps to desired_linear_vel. Collision checks, external
+            # speed limits and zero commands therefore retain their authority.
+            follow["min_approach_linear_velocity"] = min(
+                GO2_APPROACH_LINEAR_VELOCITY, values["desired_linear_vel"]
+            )
         progress["required_movement_radius"] = values["required_movement_radius"]
         goal["xy_goal_tolerance"] = values["xy_goal_tolerance"]
         goal["yaw_goal_tolerance"] = values["yaw_goal_tolerance"]
@@ -1323,6 +1352,14 @@ class NavigationJobManager:
             "inflation_layer",
         )
         fixed_checks = (
+            controller_odom_mode != "fastlio_body" or
+            follow.get("min_approach_linear_velocity") == min(
+                GO2_APPROACH_LINEAR_VELOCITY, normalized["desired_linear_vel"]
+            ),
+            controller_odom_mode != "fastlio_body" or
+            cls._at(document, "bt_navigator", "ros__parameters").get(
+                "default_nav_to_pose_bt_xml"
+            ) == str(Path(__file__).resolve().parents[1] / "config" / "robot_scope_go2_replan.xml"),
             controller.get("odom_topic") == controller_odom_topic,
             controller.get("progress_checker_plugin") == "progress_checker",
             "progress_checker_plugins" not in controller,

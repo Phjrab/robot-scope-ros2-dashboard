@@ -164,6 +164,102 @@ class NavigationJobManagerTests(unittest.TestCase):
         self.assertEqual(self.manager.parameters_snapshot()["values"], before["values"])
         self.assertIsNone(self.manager._parameter_error)
 
+    def test_onboard_goal_failure_is_not_retried_by_default_recovery_tree(self):
+        import xml.etree.ElementTree as ET
+        self.manager.close()
+        self.manager = self.make_manager(navigation_profile="go2-onboard",
+                                         controller_odometry_source="fastlio_body")
+        before = self.manager.parameters_snapshot()
+        self.manager.start(map_id=MAP_ID, map_revision=MAP_REVISION,
+                           parameters_revision=before["revision"])
+        document = yaml.safe_load((self.manager._job_dir / "nav2_params.yaml").read_text())
+        tree_path = Path(document["bt_navigator"]["ros__parameters"]["default_nav_to_pose_bt_xml"])
+        tree = ET.parse(tree_path)
+        pipeline = tree.find("./BehaviorTree/PipelineSequence")
+        self.assertIsNotNone(pipeline)
+        self.assertEqual([node.tag for node in pipeline], ["RateController", "FollowPath"])
+        self.assertEqual(pipeline.find("RateController").attrib, {"hz": "1.0"})
+        self.assertEqual(pipeline.find("FollowPath").attrib["goal_checker_id"], "goal_checker")
+        self.assertFalse(any(node.tag in {"RecoveryNode", "RoundRobin", "RetryUntilSuccessful",
+                                         "Spin", "BackUp", "Wait", "ClearEntireCostmap"}
+                             for node in tree.iter()))
+        controller = document["controller_server"]["ros__parameters"]
+        self.assertEqual(controller["progress_checker"]["movement_time_allowance"], 10.0)
+        self.assertEqual(controller["progress_checker"]["required_movement_radius"],
+                         before["values"]["required_movement_radius"])
+        self.assertEqual(controller["goal_checker"]["xy_goal_tolerance"],
+                         before["values"]["xy_goal_tolerance"])
+        self.assertEqual(self.manager.parameters_snapshot()["values"], before["values"])
+        # A persisted default recovery tree cannot silently re-enter this profile.
+        document["bt_navigator"]["ros__parameters"]["default_nav_to_pose_bt_xml"] = "old-recovery.xml"
+        with self.assertRaises(NavigationParameterError):
+            self.manager._extract_parameters(document,
+                controller_odom_topic="/robot_scope/nav/controller_odom_fastlio",
+                controller_odom_mode="fastlio_body")
+
+    def test_go2_approach_floor_respects_lower_speed_cap_and_other_guards(self):
+        self.manager.close()
+        self.manager = self.make_manager(navigation_profile="go2-onboard",
+                                         controller_odometry_source="fastlio_body")
+        for speed, floor in ((.05, .05), (.20, .20), (.30, .20)):
+            with self.subTest(speed=speed):
+                before = self.manager.parameters_snapshot()
+                updated = self.manager.update_parameters(before["revision"],
+                                                         {"desired_linear_vel": speed})
+                document = yaml.safe_load(self.manager.generated_parameters_file.read_text())
+                controller = document["controller_server"]["ros__parameters"]
+                follow = controller["FollowPath"]
+                self.assertEqual(follow["desired_linear_vel"], speed)
+                self.assertEqual(follow["min_approach_linear_velocity"], floor)
+                base = yaml.safe_load(self.manager.base_parameters_file.read_text())
+                original = base["controller_server"]["ros__parameters"]
+                for key in ("use_collision_detection", "max_allowed_time_to_collision_up_to_carrot",
+                            "approach_velocity_scaling_dist", "regulated_linear_scaling_min_speed",
+                            "use_regulated_linear_velocity_scaling", "use_cost_regulated_linear_velocity_scaling"):
+                    self.assertEqual(follow.get(key), original["FollowPath"].get(key), key)
+                self.assertEqual(controller["progress_checker"]["movement_time_allowance"], 10.)
+                for key in ("xy_goal_tolerance", "yaw_goal_tolerance"):
+                    self.assertEqual(controller["goal_checker"][key], before["values"][key])
+                self.assertEqual(updated["values"]["desired_linear_vel"], speed)
+                follow["min_approach_linear_velocity"] = floor + .01
+                with self.assertRaises(NavigationParameterError):
+                    self.manager._extract_parameters(document,
+                        controller_odom_topic="/robot_scope/nav/controller_odom_fastlio",
+                        controller_odom_mode="fastlio_body")
+
+    def test_go2_release_upgrade_preserves_saved_tuning_and_rebinds_policy(self):
+        self.manager.close()
+        self.manager = self.make_manager(navigation_profile="go2-onboard",
+                                         controller_odometry_source="fastlio_body")
+        before = self.manager.parameters_snapshot()
+        custom = self.manager.update_parameters(before["revision"], {
+            "desired_linear_vel": .20, "xy_goal_tolerance": .05,
+            "yaw_goal_tolerance": .10, "required_movement_radius": .05})
+        path = self.manager.generated_parameters_file
+        document = yaml.safe_load(path.read_text())
+        for old_tree in (None, "/previous-release/config/robot_scope_go2_replan.xml"):
+            with self.subTest(old_tree=old_tree):
+                bt = document["bt_navigator"]["ros__parameters"]
+                bt.pop("default_nav_to_pose_bt_xml", None)
+                if old_tree:
+                    bt["default_nav_to_pose_bt_xml"] = old_tree
+                document["controller_server"]["ros__parameters"]["FollowPath"].pop(
+                    "min_approach_linear_velocity", None)
+                self.manager.close()
+                path.write_text(yaml.safe_dump(document))
+                self.manager = self.make_manager(navigation_profile="go2-onboard",
+                                                 controller_odometry_source="fastlio_body")
+                self.assertIsNone(self.manager._parameter_error)
+                self.assertEqual(self.manager.parameters_snapshot()["values"], custom["values"])
+                self.manager.start(map_id=MAP_ID, map_revision=MAP_REVISION,
+                                   parameters_revision=custom["revision"])
+                fresh = yaml.safe_load((self.manager._job_dir / "nav2_params.yaml").read_text())
+                self.assertEqual(fresh["controller_server"]["ros__parameters"]["FollowPath"][
+                    "min_approach_linear_velocity"], .20)
+                self.assertEqual(fresh["bt_navigator"]["ros__parameters"]["default_nav_to_pose_bt_xml"],
+                                 str(self.project / "config/robot_scope_go2_replan.xml"))
+                self.manager.stop()
+
     @staticmethod
     def snapshot_map(map_id, revision, destination):
         yaml_path = destination / "map.yaml"
