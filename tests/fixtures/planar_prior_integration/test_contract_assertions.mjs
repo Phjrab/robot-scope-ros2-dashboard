@@ -2,20 +2,20 @@ import test from 'node:test';import assert from 'node:assert/strict';import {ass
 const make=()=>{
  const prior={frame:'map',pose_reference:'base_link',units:'metres_radians',pose:{x:1,y:2,yaw:.1},bounds:{xy_m:.5,yaw_rad:.3},source:'OPERATOR_CURRENT_MAP_DRAFT',stationary_current_pose_confirmed:true,navigation_map_id:'a'.repeat(24),navigation_map_revision:'b'.repeat(64),calibration_sha256:'c'.repeat(64)};
  const body={bundle_generation:'d'.repeat(32),observation_session_id:'e'.repeat(32),operator_prior:prior};const loc={map_id:'f'.repeat(24),revision:'1'.repeat(64)},nav={map_id:prior.navigation_map_id,revision:prior.navigation_map_revision};
- return {body,response:{state:'ready',classification:'CONDITIONAL_ON_OPERATOR_PRIOR',quality:{ambiguity_unresolved:true},pair:{localization_3d:loc,navigation_2d:nav},operator_prior_resolution:{schema:'robot-scope.operator-prior-resolution.v1',prior_id:'2'.repeat(32),operator_prior:structuredClone(prior),accepted_monotonic_s:1,expires_monotonic_s:121,prior_anchor_stamp_ns:'123',bundle_generation:body.bundle_generation,observation_session_id:body.observation_session_id,calibration_sha256:prior.calibration_sha256,localization_3d:loc,navigation_2d:nav,source_contract_sha256:'3'.repeat(64),original_observation_sha256:'4'.repeat(64),candidate_index:0,retained_candidate_count:2,eligible_candidate_count:2,matching_candidate_count:1,projection_basis:'NAV_LOCALIZATION_CAPTURE_TO_PRIOR_ODOM_IMU_BASE',classification:'CONDITIONAL_ON_OPERATOR_PRIOR',original_ambiguity_preserved:true,original_ambiguity_unresolved:true,global_uniqueness_verified:false,absolute_accuracy_m:null,candidate_vs_prior:{xy_distance_m:.1,absolute_wrapped_yaw_rad:.1,within_existing_handoff_reference:true}}}};
+ return {body,response:{state:'ready',classification:'CONDITIONAL_ON_OPERATOR_PRIOR',quality:{ambiguity_unresolved:true},pair:{localization_3d:loc,navigation_2d:nav},operator_prior_resolution:{schema:'robot-scope.operator-prior-resolution.v1',prior_id:'2'.repeat(32),operator_prior:structuredClone(prior),accepted_monotonic_s:1,expires_monotonic_s:301,prior_anchor_stamp_ns:'123',bundle_generation:body.bundle_generation,observation_session_id:body.observation_session_id,calibration_sha256:prior.calibration_sha256,localization_3d:loc,navigation_2d:nav,source_contract_sha256:'3'.repeat(64),original_observation_sha256:'4'.repeat(64),candidate_index:0,retained_candidate_count:2,eligible_candidate_count:2,matching_candidate_count:1,projection_basis:'NAV_LOCALIZATION_CAPTURE_TO_PRIOR_ODOM_IMU_BASE',classification:'CONDITIONAL_ON_OPERATOR_PRIOR',original_ambiguity_preserved:true,original_ambiguity_unresolved:true,global_uniqueness_verified:false,absolute_accuracy_m:null,candidate_vs_prior:{xy_distance_m:.1,absolute_wrapped_yaw_rad:.1,within_existing_handoff_reference:true}}}};
 };
 test('matching conditional proof and explicit bounded acknowledgement',()=>{const {body,response}=make();assertConditionalProof(response,body,true);assertConditionalConfirmation({confirmed:true,stationary_supervision_acknowledged:true,conditional_prior_acknowledged:true});});
 test('producer deadline is accepted when subtraction rounds above the TTL',()=>{
  const {body,response}=make(),p=response.operator_prior_resolution;
- p.accepted_monotonic_s=8.000000000000016;p.expires_monotonic_s=p.accepted_monotonic_s+120;
- assert.equal(p.expires_monotonic_s,128.00000000000003);assert.ok(p.expires_monotonic_s-p.accepted_monotonic_s>120);
+ p.accepted_monotonic_s=255.99999999999994;p.expires_monotonic_s=p.accepted_monotonic_s+300;
+ assert.equal(p.expires_monotonic_s,556);assert.ok(p.expires_monotonic_s-p.accepted_monotonic_s>300);
  assertConditionalProof(response,body,true);
 });
 test('the next binary64 value above the producer deadline is rejected',()=>{
  const {body,response}=make(),p=response.operator_prior_resolution;
- p.accepted_monotonic_s=8.000000000000016;const deadline=p.accepted_monotonic_s+120;
+ p.accepted_monotonic_s=255.99999999999994;const deadline=p.accepted_monotonic_s+300;
  const bits=new DataView(new ArrayBuffer(8));bits.setFloat64(0,deadline);bits.setBigUint64(0,bits.getBigUint64(0)+1n);
- p.expires_monotonic_s=bits.getFloat64(0);assert.equal(p.expires_monotonic_s,128.00000000000006);assert.ok(p.expires_monotonic_s>deadline);
+ p.expires_monotonic_s=bits.getFloat64(0);assert.equal(p.expires_monotonic_s,556.0000000000001);assert.ok(p.expires_monotonic_s>deadline);
  assert.throws(()=>assertConditionalProof(response,body,true),{code:'ERR_ASSERTION'});
 });
 test('changed proof binding, expiry, candidate count, ambiguity and accuracy fail closed',()=>{
