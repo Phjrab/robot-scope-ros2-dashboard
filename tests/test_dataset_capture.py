@@ -112,6 +112,40 @@ class DatasetCaptureTests(unittest.TestCase):
         )
         return manager, cameras
 
+    def test_disk_capacity_read_does_not_hold_ownership_lock(self):
+        from robot_dashboard.application.ownership_readback import _dataset
+
+        with tempfile.TemporaryDirectory() as root:
+            manager, _ = self.make_manager(root)
+            entered, release = threading.Event(), threading.Event()
+            snapshots = []
+
+            def disk_read():
+                entered.set()
+                if not release.wait(3):
+                    raise AssertionError('disk read was not released')
+                return 12345
+
+            with patch.object(manager, '_free_bytes', side_effect=disk_read):
+                reader = threading.Thread(target=lambda: snapshots.append(manager.snapshot()))
+                reader.start()
+                try:
+                    self.assertTrue(entered.wait(1))
+                    self.assertFalse(_dataset(manager)['busy'])
+                    # Ownership must still be read from current state, not from
+                    # an idle snapshot taken before the disk read began.
+                    with manager._lock:
+                        manager._export_active = True
+                    self.assertTrue(_dataset(manager)['busy'])
+                finally:
+                    release.set()
+                    reader.join(2)
+            self.assertFalse(reader.is_alive())
+            self.assertEqual(snapshots[0]['free_bytes'], 12345)
+            self.assertTrue(snapshots[0]['export_active'])
+            manager._export_active = False
+            manager.close()
+
     def test_single_and_dual_capture_publish_atomic_samples_and_gallery(self):
         with tempfile.TemporaryDirectory() as temporary:
             manager, cameras = self.make_manager(temporary)

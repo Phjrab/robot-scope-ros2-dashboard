@@ -266,7 +266,7 @@ class DatasetCaptureManager:
         except OSError:
             return 0
 
-    def _snapshot_locked(self) -> Dict[str, Any]:
+    def _snapshot_locked(self, *, free_bytes: Optional[int] = None) -> Dict[str, Any]:
         workers_alive = self._workers_alive_locked()
         elapsed = self._terminal_elapsed_s
         if self._started_monotonic and (self._state in ACTIVE_STATES or workers_alive):
@@ -290,7 +290,7 @@ class DatasetCaptureManager:
             "dropped_samples": dropped_total,
             "drop_counts": dict(self._dropped),
             "bytes_written": self._bytes_written,
-            "free_bytes": self._free_bytes(),
+            "free_bytes": self._free_bytes() if free_bytes is None else free_bytes,
             "session_quota_bytes": self._session_quota_bytes,
             "minimum_free_bytes": self._minimum_free_bytes,
             "output_path": str(self._session_dir or self.root),
@@ -301,8 +301,11 @@ class DatasetCaptureManager:
         }
 
     def snapshot(self) -> Dict[str, Any]:
+        # Disk capacity is advisory telemetry. Do not hold the ownership lock
+        # across filesystem I/O while an observation guard needs fresh state.
+        free_bytes = self._free_bytes()
         with self._lock:
-            return self._snapshot_locked()
+            return self._snapshot_locked(free_bytes=free_bytes)
 
     def _workers_alive_locked(self) -> bool:
         return any(

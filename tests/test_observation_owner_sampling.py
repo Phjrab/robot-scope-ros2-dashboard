@@ -13,6 +13,43 @@ from test_observation_bridge_session import active_session
 
 
 class ObservationOwnerSamplingTests(unittest.IsolatedAsyncioTestCase):
+    async def test_dataset_reader_contention_requires_a_fresh_idle_read(self):
+        for outcome in ('idle', 'export', 'persistent'):
+            with self.subTest(outcome=outcome):
+                runtime, owner, service, _, _ = active_session()
+                state = await owner.start()
+                entered, release = threading.Event(), threading.Event()
+
+                def reader():
+                    with runtime.dataset_capture._lock:
+                        entered.set()
+                        release.wait(2)
+                        if outcome == 'export':
+                            runtime.dataset_capture._export_active = True
+
+                worker = threading.Thread(target=reader)
+                worker.start()
+                self.assertTrue(await asyncio.to_thread(entered.wait, 1))
+                if outcome != 'persistent':
+                    asyncio.get_running_loop().call_later(.025, release.set)
+                try:
+                    started = time.monotonic()
+                    current = await owner.refresh()
+                    self.assertLess(time.monotonic() - started, .5)
+                    self.assertEqual(current['state'], 'READY' if outcome == 'idle' else 'INVALIDATED')
+                    if outcome == 'persistent':
+                        self.assertEqual(current['owner_failure']['unknown_reasons'], {'dataset': 'OWNER_LOCK_BUSY'})
+                    elif outcome == 'export':
+                        self.assertEqual(current['owner_failure']['busy_components'], ['dataset'])
+                finally:
+                    release.set()
+                    await asyncio.to_thread(worker.join, 1)
+                runtime.dataset_capture._export_active = False
+                if outcome != 'idle':
+                    self.assertEqual((await owner.refresh())['state'], 'INVALIDATED')
+                await owner.stop(state['session_id'])
+                self.assertEqual(service.calls, ['start', 'stop'])
+
     async def test_brief_native_reader_contention_allows_fresh_start_and_refresh(self):
         for phase in ('start', 'refresh'):
             with self.subTest(phase=phase):

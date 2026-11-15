@@ -195,7 +195,7 @@ class FastlioObservationSession:
 
         The caller retains pipeline_coordination_lock. No start is dispatched
         while sampling; an active observation retains its signed motion inhibit.
-        Only navigation/control native lock contention is retryable, never observed
+        Only navigation/control/dataset native lock contention is retryable, never observed
         work, missing owners or failed reads. No cached idle result is accepted.
         Yield on the event loop so a worker holding the lock can finish without
         blocking callbacks or moving the ownership copy to a foreign thread.
@@ -212,7 +212,7 @@ class FastlioObservationSession:
             retryable = (
                 not any(name not in allowed for name in owners['busy_components'])
                 and bool(owners['unknown_components'])
-                and set(owners['unknown_components']) <= {'navigation', 'control'}
+                and set(owners['unknown_components']) <= {'navigation', 'control', 'dataset'}
                 and all(owners['components'][name].get('reason') == 'OWNER_LOCK_BUSY'
                         for name in owners['unknown_components'])
             )
