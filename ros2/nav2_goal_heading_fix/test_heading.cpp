@@ -261,6 +261,18 @@ TEST_F(Heading, ShortPathStillHandsOffAndInvalidInitialTFNeverFallsThrough)
   EXPECT_THROW(command(), nav2_core::PlannerException);
   EXPECT_EQ(spy->calls, calls);
 }
+
+TEST_F(Heading, InitialRotationCollisionUsesControllerStopException)
+{
+  inputs(99.94, 99.94, 1.0);
+  path.poses.back().pose.position.x = 0;
+  path.poses.back().pose.position.y = 1;
+  shim.setPlan(path);
+  std::fill(costmap->getCostmap()->getCharMap(),
+    costmap->getCostmap()->getCharMap() + 200 * 200, nav2_costmap_2d::LETHAL_OBSTACLE);
+  EXPECT_THROW(command(), nav2_core::PlannerException);
+  EXPECT_EQ(spy->calls, 0);
+}
 #endif
 
 TEST_F(Heading, CollisionDuringFinalRotation)

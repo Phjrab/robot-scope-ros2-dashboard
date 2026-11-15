@@ -95,7 +95,7 @@
    rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr dyn_params_handler_;
 --- a/nav2_rotation_shim_controller/src/nav2_rotation_shim_controller.cpp
 +++ b/nav2_rotation_shim_controller/src/nav2_rotation_shim_controller.cpp
-@@ -202,30 +202,30 @@
+@@ -202,30 +202,35 @@
      std::lock_guard<std::mutex> lock_reinit(mutex_);
 +    geometry_msgs::msg::PoseStamped sampled_pt;
      try {
@@ -130,8 +130,13 @@
 -          "Robot is not within the new path's rough heading, rotating to heading...");
          in_rotation_ = true;
 -        auto cmd_vel = computeRotateToHeadingCommand(angular_distance_to_heading, pose, velocity);
-+        auto cmd_vel = computeRotateToHeadingCommand(
-+          angular_distance_to_heading, aligned.first, velocity);
++        geometry_msgs::msg::TwistStamped cmd_vel;
++        try {
++          cmd_vel = computeRotateToHeadingCommand(
++            angular_distance_to_heading, aligned.first, velocity);
++        } catch (const std::runtime_error & e) {
++          throw nav2_core::PlannerException(e.what());
++        }
          last_angular_vel_ = cmd_vel.twist.angular.z;
          return cmd_vel;
 -      } else {
