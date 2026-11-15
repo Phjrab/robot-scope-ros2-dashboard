@@ -217,6 +217,52 @@ TEST_F(Heading, NewPathReplacesFinalYaw)
   EXPECT_EQ(spy->calls, 0);
 }
 
+TEST_F(Heading, ReplanWithDelayedTFDoesNotWaitOneControlPeriod)
+{
+  for (double delay : {0.007, 0.04, 0.06}) {
+    inputs(100 - delay, 100 - delay, 1.0);
+    shim.setPlan(path);  // Exercise the initial-heading branch on every replan.
+    auto start = std::chrono::steady_clock::now();
+    const auto cmd = command();
+    const double elapsed = std::chrono::duration<double>(
+      std::chrono::steady_clock::now() - start).count();
+    RecordProperty("replan_delay_" + std::to_string(delay), std::to_string(elapsed));
+    EXPECT_DOUBLE_EQ(cmd.twist.linear.x, 0.25);
+#ifdef ROBOT_SCOPE_FIXED
+    EXPECT_LT(elapsed, 0.05);
+#else
+    EXPECT_GE(elapsed, 0.09);  // Upstream waits for a future wall-clock TF.
+#endif
+  }
+}
+
+#ifdef ROBOT_SCOPE_FIXED
+TEST_F(Heading, InitialHeadingUsesAlignedRobotAndDoesNotSkipTurn)
+{
+  inputs(99.94, 99.99, 1.0);
+  path.poses.back().pose.position.x = 0;
+  path.poses.back().pose.position.y = 1;
+  shim.setPlan(path);
+  auto cmd = command();
+  EXPECT_EQ(spy->calls, 0);
+  EXPECT_DOUBLE_EQ(cmd.twist.linear.x, 0);
+  EXPECT_GT(cmd.twist.angular.z, 0);
+  EXPECT_EQ(rclcpp::Time(cmd.header.stamp).nanoseconds(), 99940000000LL);
+}
+
+TEST_F(Heading, ShortPathStillHandsOffAndInvalidInitialTFNeverFallsThrough)
+{
+  inputs(99.94, 99.94, 0.3);
+  shim.setPlan(path);
+  EXPECT_DOUBLE_EQ(command().twist.linear.x, 0.25);
+  const auto calls = spy->calls;
+  inputs(99, 99, 1.0);
+  shim.setPlan(path);
+  EXPECT_THROW(command(), nav2_core::PlannerException);
+  EXPECT_EQ(spy->calls, calls);
+}
+#endif
+
 TEST_F(Heading, CollisionDuringFinalRotation)
 {
   std::fill(costmap->getCostmap()->getCharMap(),

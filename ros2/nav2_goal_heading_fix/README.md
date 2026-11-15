@@ -23,6 +23,16 @@ through the existing ControllerServer exception/zero-command path instead of
 silently falling through to the primary controller. A clock rewind requires a
 new plan. Valid approach still calls the configured primary controller.
 
+The same-time patch also covers initial heading after each new path. The pinned
+upstream sampler stamps a path point with wall-clock now, then waits up to a
+control period for TF that has not arrived. With delayed measured TF this repeats
+at every replan. The patched sampler preserves the path and computes the point
+relative to the robot at the same bounded common time without waiting. Missing
+or stale transforms and rotation collisions propagate to the controller's stop
+path. A short remaining path still hands off to the primary controller. The
+command watchdog, transform freshness bounds, speeds and goal tolerances are
+unchanged. Native tests cover delayed replans, required turns and short paths.
+
 `final-rotation-collision.patch` is separate so the TF-only outcome is measurable.
 It prevents the initial-heading handoff threshold from skipping footprint checks
 for a short final yaw rotation. The initial-heading sweep is unchanged. This

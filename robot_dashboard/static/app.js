@@ -3426,6 +3426,9 @@ async function syncNavigationMapOptions() {
     navigationMapSourceCanvas
   ) {
     navigationSelectedMapMeta = selected;
+    // A refreshed exact catalog match also recovers a previously rejected
+    // selection when its decoded map is reused. Rendering can report a new error.
+    navigationMapError = '';
     drawNavigationMap();
     renderNavigationStatus();
     return true;

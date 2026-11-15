@@ -93,3 +93,66 @@
    // Dynamic parameters handler
    std::mutex mutex_;
    rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr dyn_params_handler_;
+--- a/nav2_rotation_shim_controller/src/nav2_rotation_shim_controller.cpp
++++ b/nav2_rotation_shim_controller/src/nav2_rotation_shim_controller.cpp
+@@ -202,30 +202,30 @@
+     std::lock_guard<std::mutex> lock_reinit(mutex_);
++    geometry_msgs::msg::PoseStamped sampled_pt;
+     try {
+-      geometry_msgs::msg::Pose sampled_pt_base = transformPoseToBaseFrame(getSampledPathPt());
+-
+-      double angular_distance_to_heading =
+-        std::atan2(sampled_pt_base.position.y, sampled_pt_base.position.x);
+-
+-      double angular_thresh =
++      sampled_pt = getSampledPathPt();
++    } catch (const std::runtime_error &) {
++      // A short remaining path legitimately has no initial-heading sample.
++      path_updated_ = false;
++    }
++    if (path_updated_) {
++      // Query the fixed path geometry and robot at one fresh supported time.
++      // A wall-clock-now query can block a full control period on every replan.
++      // Missing/stale TF must reject, never fall through to a nonzero primary.
++      const auto aligned = robot_scope_heading::commonTimePoses(
++        *tf_, pose, sampled_pt, costmap_ros_->getBaseFrameID(),
++        clock_->now(), costmap_ros_->getTransformTolerance());
++      tf2::Transform robot_in_frame;
++      tf2::fromMsg(aligned.first.pose, robot_in_frame);
++      const auto & point = aligned.second.pose.position;
++      const auto point_base = robot_in_frame.inverse() * tf2::Vector3(point.x, point.y, point.z);
++      const double angular_distance_to_heading = std::atan2(point_base.y(), point_base.x());
++      const double angular_thresh =
+         in_rotation_ ? angular_disengage_threshold_ : angular_dist_threshold_;
+       if (abs(angular_distance_to_heading) > angular_thresh) {
+-        RCLCPP_DEBUG(
+-          logger_,
+-          "Robot is not within the new path's rough heading, rotating to heading...");
+         in_rotation_ = true;
+-        auto cmd_vel = computeRotateToHeadingCommand(angular_distance_to_heading, pose, velocity);
++        auto cmd_vel = computeRotateToHeadingCommand(
++          angular_distance_to_heading, aligned.first, velocity);
+         last_angular_vel_ = cmd_vel.twist.angular.z;
+         return cmd_vel;
+-      } else {
+-        RCLCPP_DEBUG(
+-          logger_,
+-          "Robot is at the new path's rough heading, passing to controller");
+-        path_updated_ = false;
+       }
+-    } catch (const std::runtime_error & e) {
+-      RCLCPP_DEBUG(
+-        logger_,
+-        "Rotation Shim Controller was unable to find a sampling point,"
+-        " a rotational collision was detected, or TF failed to transform"
+-        " into base frame! what(): %s", e.what());
+       path_updated_ = false;
+@@ -256,5 +256,5 @@
+     if (hypot(dx, dy) >= forward_sampling_distance_) {
+-      current_path_.poses[i].header.frame_id = current_path_.header.frame_id;
+-      current_path_.poses[i].header.stamp = clock_->now();  // Get current time transformation
+-      return current_path_.poses[i];
++      auto point = current_path_.poses[i];
++      point.header.frame_id = current_path_.header.frame_id;
++      return point;
+     }
