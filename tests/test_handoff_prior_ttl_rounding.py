@@ -33,17 +33,25 @@ class PriorTTLBoundaryTests(unittest.TestCase):
 
     def test_generated_exact_ttl_can_round_up_in_subtraction(self):
         for accepted, expected_expiry, now, deadline in (
-                (127.99999999999999, 248., 128., 200.),
-                (8.000000000000016, 128.00000000000003, 8.5, 100.)):
+                (255.99999999999994, 556., 256., 500.),
+                (511.99999999999994, 812., 512., 700.)):
             with self.subTest(accepted=accepted):
-                expiry = accepted + 120.
+                expiry = accepted + 300.
                 self.assertEqual(expiry, expected_expiry)
-                self.assertEqual(expiry - accepted, 120.00000000000001)
+                self.assertEqual(expiry - accepted, 300.00000000000006)
                 self.validate_at(accepted, expiry, deadline, now)
+
+    def test_five_minute_review_window_does_not_refresh_deadline(self):
+        self.assertEqual(handoff_policy.TTL_S, 300.)
+        # A four-minute operator review now fits; five minutes still expires.
+        self.validate_at(100., 400., 400., now=340.)
+        self.validate_at(100., 400., 400., now=399.99)
+        with self.assertRaisesRegex(ValueError, 'HANDOFF_EXPIRED'):
+            self.validate_at(100., 400., 400., now=400.)
 
     def test_future_overlong_and_outliving_handoff_remain_blocked(self):
         accepted = 127.99999999999999
-        expiry = accepted + 120.
+        expiry = accepted + 300.
         cases = [
             ('one_ulp_over', accepted, math.nextafter(expiry, math.inf), 200., 128.),
             ('accepted_future', 129., 249., 200., 128.),
@@ -74,7 +82,7 @@ class PriorTTLBoundaryTests(unittest.TestCase):
         with fixture.h.session._lock:
             fixture.h.session._handoff_receipts[proof['handoff_id']]['started'] = started
         proof['operator_prior_resolution']['accepted_monotonic_s'] = accepted
-        proof['operator_prior_resolution']['expires_monotonic_s'] = accepted + 120.
+        proof['operator_prior_resolution']['expires_monotonic_s'] = accepted + 300.
         proof['expires_monotonic_s'] = 200.
         clock = SimpleNamespace(monotonic=lambda: 128.)
         with patch.object(handoff_policy, 'time', clock), patch.object(operational_navigation, 'time', clock):

@@ -1,4 +1,5 @@
 /** Presentation only. Runtime admission remains authoritative for every command. */
+const INITIALIZATION_TTL_S = 300; // Matches the server's handoff policy, not sensor freshness.
 export function proposalAgeBaseline(result, requestedAt, receivedAt) {
   const beforePose = result?.provenance?.pre_pose_processing_s;
   const elapsed = receivedAt - requestedAt;
@@ -252,7 +253,7 @@ function validConditionalResolution(proof, ctx) {
     && proof.original_ambiguity_preserved === true && typeof proof.original_ambiguity_unresolved === 'boolean' && proof.global_uniqueness_verified === false && proof.absolute_accuracy_m === null
     && /^[a-f0-9]{32}$/.test(proof.prior_id || '') && /^[a-f0-9]{64}$/.test(proof.source_contract_sha256 || '') && /^[a-f0-9]{64}$/.test(proof.original_observation_sha256 || '')
     && /^[1-9][0-9]{0,19}$/.test(proof.prior_anchor_stamp_ns || '') && finite(proof.accepted_monotonic_s) && finite(proof.expires_monotonic_s)
-    && proof.accepted_monotonic_s >= 0 && proof.expires_monotonic_s > proof.accepted_monotonic_s && proof.expires_monotonic_s <= proof.accepted_monotonic_s + 120
+    && proof.accepted_monotonic_s >= 0 && proof.expires_monotonic_s > proof.accepted_monotonic_s && proof.expires_monotonic_s <= proof.accepted_monotonic_s + INITIALIZATION_TTL_S
     && proof.bundle_generation === ctx.generation && proof.observation_session_id === ctx.session_id && proof.calibration_sha256 === ctx.calibration_sha256
     && samePin(proof.localization_3d, ctx.localization_3d) && samePin(proof.navigation_2d, ctx.navigation_2d)
     && prior?.frame === 'map' && prior.pose_reference === 'base_link' && prior.units === 'metres_radians' && prior.source === 'OPERATOR_CURRENT_MAP_DRAFT'
@@ -454,7 +455,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
       && handoff.observation_session_id === proof?.observation_session_id && selected?.seed_geometry?.source === 'proposal_confirmed'
       && handoff.proposal_id === proof?.proposal_id && handoff.bundle_generation === proof?.bundle_generation
       && proof?.calibration_sha256 && proof.calibration_sha256 === state?.pair?.calibration_sha256
-      && ((handoff.policy?.id === 'robot-scope.proposal-handoff.local-v1' && !conditionalProof) || (handoff.policy?.id === CONDITIONAL_POLICY && proof?.policy_id === CONDITIONAL_POLICY && validConditionalResolution(conditionalProof, conditionalContext) && validPriorCurrentMembers(conditionalProof, proof.operator_prior_current_members, true) && conditionalProof.source_contract_sha256 === proof.source_contract_sha256 && conditionalProof.candidate_vs_prior.within_existing_handoff_reference === true)) && handoff.policy?.ttl_s === 120
+      && ((handoff.policy?.id === 'robot-scope.proposal-handoff.local-v1' && !conditionalProof) || (handoff.policy?.id === CONDITIONAL_POLICY && proof?.policy_id === CONDITIONAL_POLICY && validConditionalResolution(conditionalProof, conditionalContext) && validPriorCurrentMembers(conditionalProof, proof.operator_prior_current_members, true) && conditionalProof.source_contract_sha256 === proof.source_contract_sha256 && conditionalProof.candidate_vs_prior.within_existing_handoff_reference === true)) && handoff.policy?.ttl_s === INITIALIZATION_TTL_S
       && handoff.policy?.max_xy_m === 0.25 && handoff.policy?.max_yaw_rad === 0.20
       && samePin(selected?.localization_3d, draft3d) && samePin(selected?.navigation_2d, draft2d) && handoffRuntimeCompatible(handoff, selected, navigation));
     const remaining = finite(handoff?.expires_in_s) ? Math.max(0, handoff.expires_in_s - Math.max(0, performance.now() - handoffReadAt) / 1000) : null;
@@ -481,7 +482,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     return value?.schema === 'robot-scope.proposal-geometry-handoff.v1' && /^[a-f0-9]{32}$/.test(value.handoff_id || '') && /^[a-f0-9]{24}$/.test(value.proposal_id || '')
       && value.source === 'proposal_confirmed' && value.frame === 'map' && /^[a-f0-9]{32}$/.test(value.bundle_generation || '')
       && /^[a-f0-9]{32}$/.test(value.observation_session_id || '') && finite(value.expires_in_s) && value.expires_in_s >= 0
-      && value.expires_in_s <= 120
+      && value.expires_in_s <= INITIALIZATION_TTL_S
       && ['CONFIRMED_OBSERVATION_ACTIVE', 'STOP_PENDING', 'OBSERVATION_STOPPED', 'SNAPSHOTTED', 'INITIAL_POSE_ACCEPTED', 'MATCH_ARMED', 'INVALID', 'EXPIRED', 'OUTCOME_UNKNOWN'].includes(value.state);
   }
   function setHandoff(value, requestedAt) {
@@ -778,6 +779,7 @@ export function initializeNavigationPreparation({ host, map3dSelect, map2dSelect
     el('supervision').disabled = handoffBusy || handoffInfo.active;
     el('confirm-handoff').disabled = (conditional && (!el('conditional-ack').checked || !withinHandoff)) || handoffBusy || handoffAwaitingStatus || !el('supervision').checked || !validPoses || !proposalReadyToRequest || !cleanupSettled() || handoffInfo.active;
     const proposalNodes = [node('p', '정보성 제안은 저장 3D 지도 기준이며 운영 보정 위치·Nav2 준비·TF 적용 결과가 아닙니다. 자동 입력·전송하지 않습니다.')];
+    proposalNodes.push(node('p', `초안 확인 유효 시간: 계산 시작부터 최대 ${INITIALIZATION_TTL_S / 60}분. 계산·확인·초기화에 같은 시간을 사용하며 재조회로 연장되지 않습니다. 적용 시 현재 센서·정지·위치 범위를 다시 검사합니다.`));
     if (conditional) { const status = withinHandoff ? '사용자 초안과 서버 검증 한도에 조건부로 한 후보가 선택되었습니다.' : proposal.operator_prior_resolution.grouping_policy && !proposal.current_vs_prior?.all_members_within_prior_bounds ? '현재 시점에 그룹의 모든 후보가 초안 기준 검증 한도 안에 있지 않아 확인할 수 없습니다.' : '조건부 후보가 기존 초기 위치 허용 범위(0.25m / 0.20rad)를 벗어나 확인할 수 없습니다. 사용자 초안과 관측을 다시 확인하세요.'; proposalNodes.push(node('p', `${status} ${originalAmbiguityLabel(proposal.operator_prior_resolution.original_ambiguity_unresolved)} 보존된 후보 집합과 사용자 초안에 조건부이며 전역 유일성·실제 위치 정확도는 확인되지 않았습니다.`)); }
     if (conditional) proposalNodes.push(node('p', priorBoundsText(proposal.operator_prior_resolution)));
     if (conditional && proposal.operator_prior_resolution.grouping_policy) { const proof = proposal.operator_prior_resolution; proposalNodes.push(node('p', `서버가 검증한 원본 후보 ${proof.matching_retained_candidate_count}개가 초안 기준 검증 한도 안의 한 그룹을 이룹니다. 대표 후보 ${proof.candidate_index} 기준 높이·기울기 차이: ${proof.matching_member_geometry.map(member => `#${member.candidate_index} Δz ${member.z_delta_m.toFixed(3)}m · Δroll ${member.roll_delta_rad.toFixed(3)}rad · Δpitch ${member.pitch_delta_rad.toFixed(3)}rad`).join(' / ')}. 지도·정지·실제 정확도의 검증 결과가 아닙니다.`)); }

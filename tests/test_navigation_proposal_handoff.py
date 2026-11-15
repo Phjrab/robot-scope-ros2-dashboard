@@ -693,7 +693,7 @@ class ProposalHandoffTests(unittest.TestCase):
         agent._navigation_runtime_health_snapshot = lambda _: copy.deepcopy(stale)
         view = preparation_inputs(self.manager, self.session, agent)
         self.assertEqual(view['operational_state']['initialization_handoff']['reason'], 'HANDOFF_MATCH_CURRENT_UNCONFIRMED')
-        with patch('robot_dashboard.relocalization.handoff_policy.time.monotonic', return_value=time.monotonic()+121.):
+        with patch('robot_dashboard.relocalization.handoff_policy.time.monotonic', return_value=time.monotonic()+301.):
             self.assertTrue(engine.match_armed)
             refreshed = capture_runtime_health(SimpleNamespace(_navigation_runtime_health_snapshot=lambda _: health))
             self.assertEqual(self.manager.handoff_status(result['handoff_id'], health=refreshed)['state'], 'MATCH_ARMED')

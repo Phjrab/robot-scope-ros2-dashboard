@@ -21,7 +21,7 @@ from .operational_navigation import _navigation_map_body_pose
 from .planar_prior_selection import select_candidates, validate_prior, PriorRejected
 from ..observation_service import inputs_ready
 from ..relocalization.experimental_se3 import _rpy, from_translation_rpy, validate_transform, inverse
-from ..relocalization.handoff_policy import MAX_XY_M, MAX_YAW_RAD, resolution_bounds
+from ..relocalization.handoff_policy import TTL_S, MAX_XY_M, MAX_YAW_RAD, resolution_bounds
 from ..relocalization.external_global_observation import ExternalGlobalObservationError
 from ..relocalization.operational import display_pose
 from ..relocalization.v031_observation_compat import supports_pin
@@ -279,7 +279,7 @@ class NavigationInitializationProposals:
                 if anchor_contract != contract or anchor_identity != identity or any(a < b for a, b in zip(anchor_stamps, stamps)):
                     raise ProposalConflict('SOURCE_OR_CONTEXT_CHANGED')
                 prior_anchor['accepted_monotonic_s'] = time.monotonic()
-                prior_anchor['expires_monotonic_s'] = prior_anchor['accepted_monotonic_s'] + 120.
+                prior_anchor['expires_monotonic_s'] = prior_anchor['accepted_monotonic_s'] + TTL_S
                 prior_anchor['prior_id'] = secrets.token_hex(16)
             self._ownership()
             owner = self.runtime.global_observation
@@ -428,7 +428,7 @@ class NavigationInitializationProposals:
                 resolution = None
                 if record.get('operator_prior') is not None:
                     anchor = record['prior_anchor']
-                    if not 0 < anchor['expires_monotonic_s'] - time.monotonic() <= 120.:
+                    if not 0 < anchor['expires_monotonic_s'] - time.monotonic() <= TTL_S:
                         raise ProposalConflict('OPERATOR_PRIOR_EXPIRED')
                     if (job['result']['captured_context'] != context or job['result']['historical_only'] is not True
                             or int(context['source_stamp_ns']) < int(anchor['stamp_ns'])
@@ -512,7 +512,7 @@ class NavigationInitializationProposals:
                 pose_age = proposal['pose_age_s'] + time.monotonic() - proposal_read_at
                 if not math.isfinite(pose_age) or not 0 <= pose_age <= 1.:
                     raise ProposalConflict('OBSERVATION_INPUTS_UNAVAILABLE')
-                if resolution is not None and not 0 < resolution['expires_monotonic_s'] - time.monotonic() <= 120.:
+                if resolution is not None and not 0 < resolution['expires_monotonic_s'] - time.monotonic() <= TTL_S:
                     raise ProposalConflict('OPERATOR_PRIOR_EXPIRED')
                 with record['gate_lock']:
                     invalidated = record.get('invalidated_reason')
@@ -580,7 +580,7 @@ class NavigationInitializationProposals:
                             or latest['selected']['calibration']['T_imu_base'] != record['T_imu_base']
                             or latest['selected']['calibration']['T_nav_map_from_localization_map'] != record['T_nav_map_from_localization_map']):
                         raise ProposalConflict('SOURCE_OR_CONTEXT_CHANGED')
-                    if not 0 < resolution['expires_monotonic_s'] - time.monotonic() <= 120.:
+                    if not 0 < resolution['expires_monotonic_s'] - time.monotonic() <= TTL_S:
                         raise ProposalConflict('OPERATOR_PRIOR_EXPIRED')
                     if (self._session_binding(self._session(record['session']['session_id'])) != record['session']
                             or self._source(session, record['source_identity'])[0] != record['source_contract']):

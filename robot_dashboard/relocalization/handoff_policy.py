@@ -6,7 +6,8 @@ import time
 POLICY_ID = 'robot-scope.proposal-handoff.local-v1'
 CONDITIONAL_POLICY_ID = 'robot-scope.proposal-handoff.operator-prior-v1'
 GROUPING_POLICY = 'PINNED_V031_SE3_FIRST_REPRESENTATIVE_V1'
-TTL_S, MAX_XY_M, MAX_YAW_RAD = 120., .25, .20
+# Operator review/start window; live sensor and continuity gates remain separate.
+TTL_S, MAX_XY_M, MAX_YAW_RAD = 300., .25, .20
 
 
 def prior_bounds_policy(prior):

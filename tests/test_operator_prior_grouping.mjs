@@ -91,15 +91,15 @@ function nextRepresentablePositive(value) {
 }
 
 test('proof TTL accepts the generated absolute deadline and rejects the next representable value', () => {
-  const accepted = 8.000000000000016, deadline = accepted + 120;
-  assert.ok(deadline - accepted > 120, 'the generator and subtraction differ at this deterministic boundary');
+  const accepted = 255.99999999999994, deadline = accepted + 300;
+  assert.ok(deadline - accepted > 300, 'the generator and subtraction differ at this deterministic boundary');
   for (const make of [fixture, groupedFixture]) {
     const {ctx,proof} = make(); proof.accepted_monotonic_s = accepted; proof.expires_monotonic_s = deadline;
     assert.equal(valid(proof,ctx),true,'exact generated deadline is allowed');
     proof.expires_monotonic_s = nextRepresentablePositive(deadline);
-    assert.ok(proof.expires_monotonic_s > accepted + 120);
+    assert.ok(proof.expires_monotonic_s > accepted + 300);
     assert.equal(valid(proof,ctx),false,'the immediately larger float is rejected');
-    proof.expires_monotonic_s = accepted + 119;
+    proof.expires_monotonic_s = accepted + 299;
     assert.equal(valid(proof,ctx),true,'shorter positive duration is allowed');
     for (const value of [accepted, 0, -1, NaN, Infinity, -Infinity, null, '128']) {
       proof.expires_monotonic_s = value; assert.equal(valid(proof,ctx),false,`invalid expiry ${value}`);
@@ -108,9 +108,9 @@ test('proof TTL accepts the generated absolute deadline and rejects the next rep
       proof.accepted_monotonic_s = value; proof.expires_monotonic_s = deadline;
       assert.equal(valid(proof,ctx),false,`invalid accepted time ${value}`);
     }
-    proof.accepted_monotonic_s = 0; proof.expires_monotonic_s = 120;
+    proof.accepted_monotonic_s = 0; proof.expires_monotonic_s = 300;
     assert.equal(valid(proof,ctx),true,'zero accepted time is valid with a generated deadline');
-    proof.expires_monotonic_s = nextRepresentablePositive(120);
+    proof.expires_monotonic_s = nextRepresentablePositive(300);
     assert.equal(valid(proof,ctx),false,'a deadline beyond the generated bound remains invalid at zero');
     proof.accepted_monotonic_s = Number.MAX_VALUE; proof.expires_monotonic_s = Number.MAX_VALUE;
     assert.equal(valid(proof,ctx),false,'equal times remain invalid even if addition rounds');

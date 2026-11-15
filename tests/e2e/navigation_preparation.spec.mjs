@@ -66,7 +66,7 @@ async function fixture(page) {
       handoff = { schema: 'robot-scope.proposal-geometry-handoff.v1', handoff_id: id, proposal_id: 'f'.repeat(24),
         state: 'CONFIRMED_OBSERVATION_ACTIVE', reason: null, source: 'proposal_confirmed', frame: 'map',
         bundle_generation: state.selected.generation, observation_session_id: session, job_id: null, expires_in_s: 119,
-        policy: { id: currentPrior ? 'robot-scope.proposal-handoff.operator-prior-v1' : 'robot-scope.proposal-handoff.local-v1', ttl_s: 120, max_xy_m: .25, max_yaw_rad: .20 },
+        policy: { id: currentPrior ? 'robot-scope.proposal-handoff.operator-prior-v1' : 'robot-scope.proposal-handoff.local-v1', ttl_s: 300, max_xy_m: .25, max_yaw_rad: .20 },
         continuity: 'SUPERVISED_GAP_UNMEASURED', stop_receipt: { state: 'NOT_REQUESTED' },
         geometry: { ...confirmedGeometry }, initial_pose_reference: { x: 1, y: 2, yaw: .3 }, operational_application: 'NOT_RUN' };
       state.selected.seed_geometry = { ...handoff.geometry, source: 'proposal_confirmed', handoff: { handoff_id: id, proposal_id: 'f'.repeat(24), bundle_generation: state.selected.generation, calibration_sha256: inputs.pair.calibration_sha256, observation_session_id: session, ...(resolution ? { policy_id: 'robot-scope.proposal-handoff.operator-prior-v1', source_contract_sha256: '8'.repeat(64), operator_prior_resolution: resolution, ...(resolution.grouping_policy ? { operator_prior_current_members: {pose_stamp_ns:'1234',member_checks:currentMembers().member_checks} } : {}) } : {}) } };
@@ -89,8 +89,8 @@ async function fixture(page) {
       if (!Object.hasOwn(prior, 'bounds')) Object.assign(proof, { bounds_source:'server_policy', effective_bounds:{xy_m:.25,yaw_rad:.20} });
       if (proofMode.startsWith('group-')) Object.assign(proof, {grouping_policy:'PINNED_V031_SE3_FIRST_REPRESENTATIVE_V1',matching_candidate_count:2,matching_hypothesis_count:proofMode === 'group-two' ? 2 : 1,matching_retained_candidate_count:2,matching_member_indices:[0,1],verified_duplicate_count:1,matching_member_geometry:[{candidate_index:0,z_m:.84,roll_rad:.11,pitch_rad:.12,z_delta_m:0,roll_delta_rad:0,pitch_delta_rad:0},{candidate_index:1,z_m:.85,roll_rad:.12,pitch_rad:.11,z_delta_m:.01,roll_delta_rad:.01,pitch_delta_rad:-.01}]});
       if (proofMode === 'group-ttl-exact' || proofMode === 'group-ttl-next') {
-        proof.accepted_monotonic_s = 8.000000000000016;
-        proof.expires_monotonic_s = proof.accepted_monotonic_s + 120;
+        proof.accepted_monotonic_s = 255.99999999999994;
+        proof.expires_monotonic_s = proof.accepted_monotonic_s + 300;
         if (proofMode === 'group-ttl-next') {
           const view = new DataView(new ArrayBuffer(8)); view.setFloat64(0, proof.expires_monotonic_s, false);
           view.setBigUint64(0, view.getBigUint64(0, false) + 1n, false); proof.expires_monotonic_s = view.getFloat64(0, false);
@@ -1737,6 +1737,6 @@ for (const provenance of ['explicit','legacy']) {
   else {delete proof.bounds_source;delete proof.effective_bounds;}
   await f.reload();
   await expect(page.locator('[data-prep="handoff-result"]')).toContainText('후보 선택에 적용된 범위 (사용자 입력 범위): 위치 0.1 m · 방향 ±0.15 rad');
-  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('별도 handoff 로컬 후보 사용 범위: 120초 · XY 0.25 m · yaw 0.2 rad');
+  await expect(page.locator('[data-prep="handoff-result"]')).toContainText('별도 handoff 로컬 후보 사용 범위: 300초 · XY 0.25 m · yaw 0.2 rad');
  });
 }
