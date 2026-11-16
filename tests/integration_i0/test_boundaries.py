@@ -22,7 +22,11 @@ class ProductBoundaries(unittest.TestCase):
         import re
         source = (Path(__file__).parents[2] / "robot_dashboard/static/index.html").read_text()
         html = response.body.decode()
-        stripped, count = re.subn(r'<a [^>]*href="/extensions"[^>]*>.*?</a>', '', html)
+        # Strip only the two host-injected links. The source dashboard also has
+        # its own sidebar link, which must survive the exact source comparison.
+        stripped, count = re.subn(
+            r'<a (?:class="ghost-button expansion-entry-top" href="/extensions"|'
+            r'class="nav-item" href="/extensions" aria-label="확장 기능")>.*?</a>', '', html)
         self.assertEqual(count, 2)
         stripped = stripped.replace('<link rel="stylesheet" href="/static/features/expansion/entry.css">', '')
         self.assertEqual(stripped, source)
