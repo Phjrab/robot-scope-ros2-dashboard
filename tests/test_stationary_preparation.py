@@ -1,6 +1,7 @@
 """Replay preparation failures with fake time/APIs; never contacts a robot."""
 import copy
 import importlib.util
+import io
 import json
 from pathlib import Path
 import sys
@@ -78,6 +79,7 @@ class FakeAPI:
                     self.n['pipeline'] = {'state': 'running', 'job_id': 'job'}
                     # Startup RUNNING lasts 2 polls without initial-pose readiness.
                     self.n['safety']['can_set_initial_pose'] = self.start_reads >= 4
+                    self.n['operational_localization']['stopped_seconds'] = max(0., (self.start_reads - 3) * .885)
                 return copy.deepcopy(self.n)
             if '/initialization-proposals/' in path:
                 return {'state': 'rejected' if self.fail_proposal else 'ready',
@@ -105,12 +107,23 @@ class FakeAPI:
             self.start_reads = 1
             self.n['map'] = {'id': self.pair['navigation_2d']['map_id'],
                              'revision': self.pair['navigation_2d']['revision']}
+            self.n['operational_localization'] = {
+                'fresh': True, 'stopped_seconds': 0., 'ready': False, 'job_id': 'job',
+                'runtime_instance_generation': 'runtime-1',
+                'bundle_generation': self.pair['generation'],
+                'map_id': self.pair['navigation_2d']['map_id'],
+                'map_revision': self.pair['navigation_2d']['revision'],
+                'localization_map_id': self.pair['localization_3d']['map_id'],
+                'localization_map_revision': self.pair['localization_3d']['revision']}
             return {'accepted': True, 'pending': True}
         elif path == 'navigation/initial-pose':
             if not self.n['safety']['can_set_initial_pose']:
                 raise RuntimeError('early initial pose')
-            self.n['operational_localization'] = {'accepted_initial_pose': {'stamp_ns': '1'},
-                'bundle_generation': self.pair['generation'], 'localization_generation': 3}
+            from robot_dashboard.ros.initial_pose_receipt import operational_initial_pose_context
+            op = self.n['operational_localization']
+            operational_initial_pose_context({'fresh': op['fresh'], 'operational_3d': op,
+                'runtime_instance_generation': op['runtime_instance_generation']})
+            op.update(accepted_initial_pose={'stamp_ns': '1'}, localization_generation=3)
             return {'accepted': True}
         elif path == prep.BASE + '/match':
             self.n['safety']['can_send_goal'] = True
@@ -123,6 +136,126 @@ class FakeAPI:
 
 
 class PreparationTests(unittest.TestCase):
+    def test_initial_pose_waits_for_measured_stop_after_coarse_ready_flag(self):
+        api = FakeAPI()
+        result = api.runner().run(api.draft)
+        observed = api.saved['nav-before-initial']['operational_localization']
+        self.assertTrue(result['safety']['can_send_goal'])
+        self.assertFalse(observed['ready'])  # A map match cannot exist before the seed.
+        self.assertGreaterEqual(observed['stopped_seconds'], 2.)
+        self.assertGreaterEqual(api.t, 2.)
+        posts = [p for p, b in api.calls if b is not None]
+        self.assertEqual(posts.count('navigation/initial-pose'), 1)
+
+    def test_missing_or_stale_stop_never_submits_initial_pose(self):
+        for missing in ('source', 'fresh', 'runtime', 'stopped', None, True, '2', float('nan'), float('inf'), 1.999):
+            with self.subTest(missing=missing):
+                api = FakeAPI()
+                def unavailable(path, body=None):
+                    value = api(path, body)
+                    if path == 'navigation' and body is None and api.start_reads:
+                        op = value['operational_localization']
+                        if missing == 'source':
+                            value.pop('operational_localization')
+                        elif missing == 'fresh':
+                            op['fresh'] = False
+                        elif missing == 'runtime':
+                            op.pop('runtime_instance_generation')
+                        elif missing == 'stopped':
+                            op.pop('stopped_seconds')
+                        else:
+                            op['stopped_seconds'] = missing
+                    return value
+                runner = prep.Preparation(unavailable, lambda *_: None,
+                                          clock=lambda: api.t, sleep=api.sleep)
+                with self.assertRaisesRegex(prep.PreparationError, 'bounded wait expired'):
+                    runner.run(api.draft)
+                posts = [p for p, b in api.calls if b is not None]
+                self.assertNotIn('navigation/initial-pose', posts)
+                self.assertEqual(posts.count('navigation/start'), 1)
+                self.assertEqual(posts.count('navigation/stop'), 1)
+                self.assertFalse(any('/goal' in p for p in posts))
+                self.assertLessEqual(api.t, 45.5)
+
+    def test_stop_observation_context_changes_fail_before_initial_pose(self):
+        for field in ('job_id', 'bundle_generation', 'map_id', 'map_revision',
+                      'localization_map_id', 'localization_map_revision', 'runtime_instance_generation'):
+            with self.subTest(field=field):
+                api = FakeAPI()
+                def changed(path, body=None):
+                    value = api(path, body)
+                    # First coarse-ready sample pins runtime but has <2s dwell.
+                    if path == 'navigation' and body is None and api.start_reads >= 5:
+                        value['operational_localization'][field] = 'changed'
+                    return value
+                runner = prep.Preparation(changed, lambda *_: None,
+                                          clock=lambda: api.t, sleep=api.sleep)
+                with self.assertRaisesRegex(prep.PreparationError, 'changed'):
+                    runner.run(api.draft)
+                posts = [p for p, b in api.calls if b is not None]
+                self.assertNotIn('navigation/initial-pose', posts)
+                self.assertEqual(posts.count('navigation/stop'), 1)
+
+    def test_slow_start_acknowledgement_completes_once_through_http_transport(self):
+        api = FakeAPI()
+        requests = []
+        def urlopen(request, *, timeout):
+            path = request.full_url.split('/api/v1/', 1)[1]
+            body = None if request.data is None else json.loads(request.data)
+            requests.append((path, body, timeout))
+            if path == 'navigation/start':
+                # A valid admission can outlast the old shared 10-second timeout.
+                admission_s = 25
+                if timeout < admission_s:
+                    raise TimeoutError('start acknowledgement timed out')
+                api.sleep(admission_s)
+            return io.BytesIO(json.dumps(api(path, body)).encode())
+        runner = prep.Preparation(prep.call, lambda *_: None,
+                                  clock=lambda: api.t, sleep=api.sleep)
+        with patch.object(prep.urllib.request, 'urlopen', side_effect=urlopen):
+            result = runner.run(api.draft)
+        self.assertTrue(result['safety']['can_send_goal'])
+        starts = [r for r in requests if r[0] == 'navigation/start']
+        self.assertEqual(len(starts), 1)
+        self.assertEqual(starts[0][2], 90)
+        self.assertGreaterEqual(api.t, 25)
+        self.assertFalse(any('/goal' in p or p == 'navigation/stop' for p, _, _ in requests))
+
+    def test_uncertain_start_timeout_is_not_retried_and_stops_before_initial_pose(self):
+        api = FakeAPI()
+        def urlopen(request, *, timeout):
+            path = request.full_url.split('/api/v1/', 1)[1]
+            body = None if request.data is None else json.loads(request.data)
+            response = api(path, body)
+            if path == 'navigation/start':
+                # The server accepted START but its response was lost. Never
+                # resend this mutation or infer that no job was created.
+                raise TimeoutError('start outcome unknown')
+            return io.BytesIO(json.dumps(response).encode())
+        runner = prep.Preparation(prep.call, lambda *_: None,
+                                  clock=lambda: api.t, sleep=api.sleep)
+        with patch.object(prep.urllib.request, 'urlopen', side_effect=urlopen):
+            with self.assertRaisesRegex(TimeoutError, 'outcome unknown'):
+                runner.run(api.draft)
+        posts = [p for p, b in api.calls if b is not None]
+        self.assertEqual(posts.count('navigation/start'), 1)
+        self.assertEqual(posts.count('navigation/stop'), 1)
+        self.assertIn('observations/fastlio/stop', posts)
+        self.assertNotIn('navigation/initial-pose', posts)
+        self.assertFalse(any('/goal' in p for p in posts))
+        self.assertEqual([p for p, _ in api.calls[-3:]],
+                         ['navigation', 'observations/fastlio', 'control'])
+        self.assertIsNone(api.n['pipeline']['job_id'])
+
+    def test_start_transport_budget_does_not_change_other_requests(self):
+        for path, body in [('navigation', None), ('navigation/start', None),
+                           ('navigation/initial-pose', {}), ('navigation/stop', {})]:
+            with self.subTest(path=path, body=body):
+                with patch.object(prep.urllib.request, 'urlopen',
+                                  return_value=io.BytesIO(b'{}')) as opened:
+                    prep.call(path, body)
+                self.assertEqual(opened.call_args.kwargs['timeout'], 10)
+
     def test_retry_then_delayed_startup_completes_with_new_draft_and_no_goal(self):
         api = FakeAPI()
         result = api.runner().run(api.draft)

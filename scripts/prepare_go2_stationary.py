@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import math
 from pathlib import Path
 import sys
 import time
@@ -20,6 +21,11 @@ import uuid
 from field_trial_evidence import initial_pose_payload, write_json
 
 BASE = 'navigation/operational-3d'
+HTTP_TIMEOUT_S = 10
+# START validates map files and may wait for the startup snapshot before its
+# acknowledgement. Do not mistake that admission work for a 10-second failure.
+# This bounds only the client request; server readiness/safety gates stay intact.
+NAVIGATION_START_HTTP_TIMEOUT_S = 90
 # Only lifecycle failures may be reset automatically. Map/calibration/source
 # changes require a newly reviewed context, not a broader recovery allow-list.
 RETRY_CODES = frozenset({
@@ -57,8 +63,9 @@ def call(path, body=None):
     request = urllib.request.Request(origin + '/api/v1/' + path,
         data=None if body is None else json.dumps(body, allow_nan=False).encode(),
         headers={'Origin': origin, 'Content-Type': 'application/json'})
+    timeout = NAVIGATION_START_HTTP_TIMEOUT_S if path == 'navigation/start' and body is not None else HTTP_TIMEOUT_S
     try:
-        with urllib.request.urlopen(request, timeout=10) as response:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
             return json.load(response)
     except urllib.error.HTTPError as exc:
         # Preserve the conflict reason, rather than only "HTTP 409".
@@ -146,7 +153,9 @@ class Preparation:
         return renewed
 
     def wait_initial_pose(self, pair):
+        runtime = None
         def ready(n):
+            nonlocal runtime
             require(n['pipeline']['state'] in {'starting', 'running'}, 'navigation startup ended')
             job = n['pipeline']['job_id']
             if job is not None:
@@ -159,7 +168,25 @@ class Preparation:
             require((n['map']['id'], n['map']['revision']) ==
                     (pair['navigation_2d']['map_id'], pair['navigation_2d']['revision']),
                     'navigation map changed')
-            return True
+            # The coarse UI flag can precede the server's measured-stop gate.
+            # Wait for its actual fresh dwell, never infer stop from elapsed time.
+            op = n.get('operational_localization') or {}
+            if op.get('fresh') is not True:
+                return False
+            require(op.get('job_id') == self.job
+                    and op.get('bundle_generation') == pair['generation']
+                    and (op.get('map_id'), op.get('map_revision')) ==
+                    (pair['navigation_2d']['map_id'], pair['navigation_2d']['revision'])
+                    and (op.get('localization_map_id'), op.get('localization_map_revision')) ==
+                    (pair['localization_3d']['map_id'], pair['localization_3d']['revision']),
+                    'initial pose observation context changed')
+            instance = op.get('runtime_instance_generation')
+            if not isinstance(instance, str) or not instance:
+                return False
+            require(runtime is None or runtime == instance, 'initial pose runtime changed')
+            runtime = instance
+            stopped = op.get('stopped_seconds')
+            return type(stopped) in (float, int) and math.isfinite(stopped) and stopped >= 2.
         return self.wait('navigation', ready, 45, 'nav-before-initial')
 
     def run(self, draft):

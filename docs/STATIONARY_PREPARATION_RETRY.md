@@ -15,6 +15,21 @@ changes parameters, edits maps, or bypasses proposal/footprint/match admission.
 - Wait up to the existing helper's 45-second startup budget for
   `can_set_initial_pose`, not merely `pipeline=running`. Retain the job identity;
   terminal startup, changed job or changed navigation map fails closed.
+- Within that same 45-second budget, also wait for fresh
+  `operational_localization.stopped_seconds >= 2` before submitting INITIAL POSE.
+  The coarse input-ready flag can be true before this measured-stop dwell is
+  complete. Pin the observation's job, bundle, both map revisions, and runtime
+  instance. Missing/stale evidence waits; changed context fails closed. Do not
+  require the post-match `ready` flag or replace measured dwell with a sleep.
+  The server still rechecks stop and all pose admission rules on submission.
+- Allow 90 seconds for the single `POST navigation/start` HTTP acknowledgement.
+  Map admission and the initial status snapshot can outlast the former shared
+  10-second request timeout, which caused cleanup to stop an accepted startup.
+  Other requests retain 10 seconds; the 45-second readiness wait begins after
+  acknowledgement. This does not extend any server safety or freshness limit.
+  An uncertain request outcome is never retried: cleanup still attempts STOP
+  and reads back ownership. A missing acknowledgement is not proof of failure
+  to start, and an unconfirmed cleanup requires status review before retrying.
 - Before starting observation, require an inactive job/goal, zero command, no
   lease, and confirmed inactive observation with released bridge guard. A stopped
   startup may retain `failed` history with no job; that alone is not an active job.
@@ -66,6 +81,9 @@ sent. Negative cases cover occupied control, active jobs/goals, held observation
 guard, changed map/calibration/generation, source errors, proposal rejection,
 startup timeout/termination, changed job/map, and cleanup failures. A real synthetic
 map-catalogue test renews used geometry and verifies map bytes and policy unchanged.
+Transport replay also covers a 25-second valid START acknowledgement and a lost
+acknowledgement after acceptance, verifying one START only, independent cleanup
+and no initial pose or goal after an uncertain outcome.
 
 The 31–45 cm draft/candidate discrepancy is a separate unresolved sensor/map
 registration issue. This helper does not make every position pass. It also does
