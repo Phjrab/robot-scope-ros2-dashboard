@@ -472,7 +472,9 @@ class PcdEditingStoreTests(unittest.TestCase):
         lock_target.write_bytes(b"untouched lock target")
         self.store.root.mkdir()
         (self.store.root / ".store.lock").symlink_to(lock_target)
-        with self.assertRaises(OSError):
+        # The cross-platform path check rejects the link before os.open now.
+        # Still require the explicit refusal and untouched target/registry below.
+        with self.assertRaisesRegex(PcdEditError, "symlinks are not allowed"):
             self.store.save(request)
         self.assertEqual(lock_target.read_bytes(), b"untouched lock target")
         self.assertEqual(self.source_path.read_bytes(), self.original)

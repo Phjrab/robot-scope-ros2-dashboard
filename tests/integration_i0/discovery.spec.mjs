@@ -17,7 +17,10 @@ for (const width of [390, 1440]) test(`default OFF dashboard menu and public lan
   if (!await more.evaluate(element => element.open)) await more.locator('summary').click();
   await more.getByRole('link', {name: '확장 기능', exact: true}).click();
   await expect(page).toHaveURL(/\/extensions#multimap$/);
-  await expect(page.locator('#expansion-nav button')).toHaveCount(5);
+  await expect(page.locator('#expansion-nav button')).toHaveText([
+    '주행 기록 보정', '여러 지도 병합', '장애물 3D 관측',
+    '콘 표시', '주행 기록 재생', '성능 진단 안내',
+  ]);
   await expect(page.locator('#expansion-status')).toContainText('FEATURE_DISABLED');
   await page.getByRole('button', {name: '주행 기록 재생', exact: true}).click();
   await expect(page.locator('#expansion-status')).toContainText('로컬 기록 재생');
