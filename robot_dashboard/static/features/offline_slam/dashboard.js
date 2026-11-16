@@ -26,7 +26,7 @@ if (typeof document !== 'undefined') {
     NO_LOOP:'검증된 루프 없음 — 결과 지도는 저장하지 않았습니다', FAILED:'계산 실패',
     CANCELLED:'작업 취소', TIMED_OUT:'계산 시간 초과', INTERRUPTED:'서버 종료로 중단됨'};
   async function api(path, options = {}) {
-    const response = await fetch('/api/' + path, options);
+    const response = await fetch('./api/' + path, options);
     const body = await response.json();
     if (!response.ok) throw new Error(typeof body.detail === 'string' ? body.detail : '입력 값을 확인하세요.');
     return body;
@@ -36,7 +36,7 @@ if (typeof document !== 'undefined') {
     const enabled = actions(job);
     for (const key of ['run','cancel','save']) $(key).disabled = pending || !enabled[key];
     $('download').hidden = !enabled.download;
-    if (enabled.download) $('download').href = `/api/sessions/${job.id}/export?revision=${job.revision}`;
+    if (enabled.download) $('download').href = `./api/sessions/${job.id}/export?revision=${job.revision}`;
   }
   function show() {
     buttons();

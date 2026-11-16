@@ -10,7 +10,7 @@ import copy
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
-import fcntl
+from robot_dashboard import file_lock as fcntl
 import hashlib
 import json
 import os
@@ -130,16 +130,18 @@ def validate_request(value: Any) -> dict[str, Any]:
 def _safe_path(path: Path) -> Path:
     path = Path(path).absolute()
     for component in (path, *path.parents):
-        if component.is_symlink():
+        if component.is_symlink() or (hasattr(component, "is_junction") and component.is_junction()):
             raise PcdEditError("symlinks are not allowed for PCD editing assets")
     return path
 
 
 def _open_regular(path: Path, limit: int):
     path = _safe_path(path)
-    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_BINARY", 0))
     try:
         current = os.fstat(fd)
+        if os.name == "nt" and not os.path.samestat(current, _safe_path(path).stat()):
+            raise PcdEditConflict("asset changed while opening")
         if not stat.S_ISREG(current.st_mode) or not 0 < current.st_size <= limit:
             raise PcdEditError("PCD editing asset is not a bounded regular file")
         return os.fdopen(fd, "rb")
@@ -150,7 +152,7 @@ def _open_regular(path: Path, limit: int):
 
 def _signature(current: os.stat_result) -> tuple[int, ...]:
     return (current.st_dev, current.st_ino, current.st_size,
-            current.st_mtime_ns, current.st_ctime_ns)
+            current.st_mtime_ns, current.st_ctime_ns if os.name != "nt" else 0)
 
 
 def _digest(path: Path, limit: int = DEFAULT_MAX_BYTES, *,
@@ -235,11 +237,14 @@ def _validate_manifest(value: Any) -> dict[str, Any]:
 
 @contextmanager
 def _registry_lock(root: Path, mode: int, *, create: bool = False):
-    flags = os.O_RDWR | os.O_NOFOLLOW | os.O_NONBLOCK
+    flags = os.O_RDWR | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
     if create:
         flags |= os.O_CREAT
-    fd = os.open(root / ".store.lock", flags, 0o600)
+    lock_path = _safe_path(root / ".store.lock")
+    fd = os.open(lock_path, flags, 0o600)
     try:
+        if os.name == "nt" and not os.path.samestat(os.fstat(fd), _safe_path(lock_path).stat()):
+            raise PcdEditConflict("registry lock changed while opening")
         if not stat.S_ISREG(os.fstat(fd).st_mode):
             raise PcdEditError("registry lock must be a regular file")
         with os.fdopen(fd, "r+b", closefd=False) as lock:
@@ -275,6 +280,8 @@ def read_manifest(directory: Path, *, verify_pcd: bool = True) -> dict[str, Any]
 
 
 def _sync_directory(path: Path) -> None:
+    if os.name == "nt":
+        return  # Windows cannot fsync a directory; files are flushed before rename.
     fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
         os.fsync(fd)
@@ -413,7 +420,7 @@ class PcdEditStore:
                 manifest.write(_canonical(metadata))
                 manifest.flush()
                 os.fsync(manifest.fileno())
-            with (stage / "map.pcd").open("rb") as pcd:
+            with (stage / "map.pcd").open("r+b" if os.name == "nt" else "rb") as pcd:
                 os.fsync(pcd.fileno())
             _sync_directory(stage)
             # Resolver may read a parent from this registry. Call it before the

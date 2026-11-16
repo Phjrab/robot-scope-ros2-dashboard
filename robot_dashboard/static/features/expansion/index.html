@@ -10,11 +10,12 @@
 <script id="expansion-config" type="application/json">__I0_CONFIG__</script>
 <script type="module" src="/static/features/expansion/index.js"></script></head>
 <body class="expansion-page"><header class="expansion-header"><a href="/">← Robot Scope</a>
-<h1>확장 기능</h1><p>저장 지도 합치기, 장애물 관측, 기록 재생을 한곳에서 확인합니다.</p>
+<h1>확장 기능</h1><p>주행 기록 보정, 여러 지도 병합, 장애물 관측, 기록 재생을 한곳에서 확인합니다.</p>
 <button id="expansion-theme" type="button">테마 전환 / Theme</button><p id="expansion-status" role="status"></p>
 <nav id="expansion-nav" aria-label="확장 기능"></nav></header>
 <main>
 <section id="expansion-help" class="expansion-help" aria-label="사용 안내">
+  <div data-help="trajectory" hidden><h2>주행 기록 보정</h2><p>주행 기록의 키프레임 자세를 보정하고 지도를 다시 구성합니다. 여러 완성 지도를 정렬하려면 여러 지도 병합을 선택하세요. 운영 적용 없음.</p></div>
   <div data-help="multimap" hidden>
     <h2>여러 지도 합치기</h2>
     <p>3D 지도 2개 이상 선택 → 기준 지도 지정 → XY·3D 비교 → 자동 정합 → 겹침률·RMSE·경고 검토 → 후보 수락 → 새 PCD 저장.</p>

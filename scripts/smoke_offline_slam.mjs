@@ -5,26 +5,33 @@ import {spawn, spawnSync} from 'node:child_process';
 import {mkdtemp, mkdir} from 'node:fs/promises';
 import path from 'node:path';
 const python = process.env.OFFLINE_SLAM_PYTHON || 'python3';
+const workbench = process.argv.includes('--workbench');
 const root = path.resolve('runtime/offline-validation');
 await mkdir(root,{recursive:true});
 const run = await mkdtemp(path.join(root,'browser-'));
 const fixture = path.join(run,'synthetic.json');
 const generated=spawnSync(python,['-m','robot_dashboard.offline_slam.demo','--output',fixture],{encoding:'utf8',windowsHide:true});
 assert.equal(generated.status,0,generated.stderr);
-const server=spawn(python,['-m','robot_dashboard.offline_slam.server','--root',path.join(run,'store'),'--port','18091'],{stdio:'ignore',windowsHide:true});
+const server=spawn(python,['-m',`robot_dashboard.offline_slam.${workbench?'workbench':'server'}`,'--root',path.join(run,'store'),'--port','18091',...(workbench?['--synthetic-demo']:[])],{stdio:'ignore',windowsHide:true});
 let browser;
 try {
   let ready=false;
   for(let i=0;i<100;i++) {
     if(server.exitCode !== null)throw new Error('offline server exited');
-    try{if((await fetch('http://127.0.0.1:18091/api/sessions')).ok){ready=true;break;}}catch{}
+    try{if((await fetch(`http://127.0.0.1:18091/${workbench?'analysis/':''}api/sessions`)).ok){ready=true;break;}}catch{}
     await new Promise(resolve=>setTimeout(resolve,100));
   }
   assert.ok(ready,'server ready');
   browser=await chromium.launch({headless:true});
-  const page=await browser.newPage({viewport:{width:1440,height:1100}});
-  const errors=[];page.on('pageerror',error=>errors.push(error.message));
-  await page.goto('http://127.0.0.1:18091/');
+  const shell=await browser.newPage({viewport:{width:1440,height:1100}});
+  const errors=[];shell.on('pageerror',error=>errors.push(error.message));
+  await shell.goto('http://127.0.0.1:18091/');
+  let page=shell;
+  if(workbench){
+    await shell.locator('iframe[title="주행 기록 보정"]').waitFor();
+    const frame=await shell.locator('iframe[title="주행 기록 보정"]').elementHandle();
+    page=await frame.contentFrame();
+  }
   assert.equal(await page.locator('#save').isEnabled(),false);
   await page.locator('#file').setInputFiles(fixture);
   await page.waitForFunction(()=>!document.querySelector('#run').disabled);
@@ -34,21 +41,42 @@ try {
   await page.waitForFunction(()=>!document.querySelector('#save').disabled,null,{timeout:60000});
   assert.match(await page.locator('#status').innerText(),/합성 시험 데이터/);
   assert.equal(await page.locator('#error').innerText(),'');
-  await page.screenshot({path:path.join(root,'comparison.png'),fullPage:true});
+  await shell.screenshot({path:path.join(root,workbench?'integrated-comparison.png':'comparison.png'),fullPage:true});
   await page.locator('#save').click();
   await page.waitForFunction(()=>!document.querySelector('#download').hidden);
   assert.equal(await page.locator('#run').isEnabled(),false);
   const href=await page.locator('#download').getAttribute('href');
-  const archive=await page.request.get(new URL(href,page.url()).href);
+  const archive=await shell.request.get(new URL(href,page.url()).href);
   assert.equal(archive.status(),200);
   assert.ok((await archive.body()).length>10000);
-  await page.reload();
+  await page.goto(page.url());
   await page.waitForFunction(()=>document.querySelector('#sessions').options.length>1);
   await page.locator('#sessions').selectOption({index:1});
   await page.waitForFunction(()=>!document.querySelector('#download').hidden);
-  await page.setViewportSize({width:390,height:844});
-  await page.screenshot({path:path.join(root,'mobile.png'),fullPage:true});
+  await shell.setViewportSize({width:390,height:844});
+  await shell.screenshot({path:path.join(root,workbench?'integrated-mobile.png':'mobile.png'),fullPage:true});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  if(workbench){
+    await shell.setViewportSize({width:1440,height:1100});
+    await shell.locator('[data-feature="multimap"]').click();
+    await shell.locator('input[data-source]').first().waitFor();
+    assert.equal(await shell.locator('input[data-source]').count(),2);
+    await shell.locator('input[data-source]').nth(0).check();
+    await shell.locator('input[data-source]').nth(1).check();
+    await shell.locator('[data-action="start"]').click();
+    await shell.waitForFunction(()=>document.querySelector('[data-slot="status"]')?.dataset.state==='SOLVED_CANDIDATE',null,{timeout:60000});
+    await shell.locator('[data-field="ack"]').check();
+    await shell.locator('[data-action="accept"]').click();
+    await shell.locator('[data-field="name"]').fill('synthetic_browser_merge');
+    await shell.locator('[data-action="save"]').click();
+    await shell.waitForFunction(()=>document.querySelector('[data-slot="saved"]')?.textContent.includes('새 identity 확인'),null,{timeout:30000});
+    const exports=await shell.request.get('http://127.0.0.1:18091/api/v1/extensions/multimap/exports');
+    assert.equal((await exports.json()).exports.length,1);
+    await shell.screenshot({path:path.join(root,'integrated-merge.png'),fullPage:true});
+    await shell.locator('[data-feature="trajectory"]').click();
+    await shell.frameLocator('iframe').locator('#sessions option').nth(1).waitFor({state:'attached'});
+    console.log('PASS: integrated modes → real merge → review → immutable export → return to saved trajectory');
+  }
   assert.deepEqual(errors,[]);
   console.log('PASS: import → real optimization → compare → save → export → reload; desktop/mobile; synthetic only');
 } finally {

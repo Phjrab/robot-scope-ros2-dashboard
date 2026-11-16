@@ -6,7 +6,8 @@ const nav = document.querySelector('#expansion-nav');
 const status = document.querySelector('#expansion-status');
 const buttons = new Map();
 const features = [
-  ['multimap', '여러 지도 합치기'],
+  ['trajectory', '주행 기록 보정'],
+  ['multimap', '여러 지도 병합'],
   ['scene', '장애물 3D 관측'],
   ['cones', '콘 표시'],
   ['replay', '주행 기록 재생'],
@@ -14,7 +15,7 @@ const features = [
 ];
 let current = null, currentName = null, generation = 0, closed = false;
 function unavailable(name) {
-  if (name === 'diagnostics') return null;
+  if (name === 'diagnostics' || name === 'trajectory') return null;
   const flag = name === 'cones' ? 'scene' : name;
   if (!config.flags[flag]) return `FEATURE_DISABLED · 기능이 꺼져 있습니다. 관리자에게 ${flag === 'replay' ? '로컬 기록 재생' : '해당 기능'} 활성화를 요청하세요.`;
   if (name === 'replay') return null;
@@ -62,7 +63,30 @@ async function open(name) {
   current = {destroy() { abort.abort(); for (const item of handles.reverse()) item.destroy(); }};
   const request = createTransport({signal: abort.signal});
   try {
-    if (name === 'multimap') {
+    if (name === 'trajectory') {
+      if (config.analysis_local) {
+        const frame = document.createElement('iframe');
+        frame.title = '주행 기록 보정'; frame.src = '/analysis/';
+        frame.style.cssText = 'width:100%;height:1100px;border:0';
+        let observer;
+        frame.addEventListener('load', () => {
+          observer?.disconnect();
+          if (mine !== generation || closed) return;
+          const body = frame.contentDocument.body;
+          observer = new ResizeObserver(() => {
+            frame.style.height = `${Math.max(800, body.scrollHeight + 32)}px`;
+          });
+          observer.observe(body);
+        }, {signal: abort.signal});
+        handles.push({destroy() { observer?.disconnect(); }});
+        host.append(frame);
+      } else {
+        const link = document.createElement('a'); link.href = 'http://127.0.0.1:8091/extensions#trajectory';
+        link.target = '_blank'; link.rel = 'noopener noreferrer';
+        link.textContent = '분석 PC의 통합 확장 화면 열기'; host.append(link);
+        status.textContent = '분석 PC에서 python -m robot_dashboard.offline_slam.workbench --root runtime/workbench 를 실행하세요.';
+      }
+    } else if (name === 'multimap') {
       const [{mount, createRobotSceneRenderer}, {createC1Ports}] = await Promise.all([import('../multimap_fusion/index.js'), import('../multimap_fusion/c1_ports.js')]);
       if (mine !== generation || closed) return;
       const ports = createC1Ports(request);

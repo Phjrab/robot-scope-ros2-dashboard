@@ -16,6 +16,7 @@ from scipy.optimize import least_squares
 from scipy.sparse import lil_matrix
 from scipy.spatial import cKDTree
 from scipy.spatial.transform import Rotation
+from robot_dashboard.relocalization.experimental_se3 import _rigid_fit, inverse
 
 SCHEMA = "robot-scope.offline-keyframes/v1"
 MAX_BYTES = 64 * 1024 * 1024
@@ -49,13 +50,6 @@ def transform(value):
     ):
         raise ValueError("INVALID_SE3")
     return t
-
-
-def inverse(t):
-    out = np.eye(4)
-    out[:3, :3] = t[:3, :3].T
-    out[:3, 3] = -out[:3, :3] @ t[:3, 3]
-    return out
 
 
 def project(points, t):
@@ -188,16 +182,14 @@ def fit_registration(source, target, seed, settings):
         ]
         a, b = moved[selected], target[indices[selected]]
         ac, bc = a.mean(0), b.mean(0)
-        u, singular, vt = np.linalg.svd((a - ac).T @ (b - bc))
+        singular = np.linalg.svd((a - ac).T @ (b - bc), compute_uv=False)
         # Refuse line-like/point-like geometry. A plane can constrain point-to-point ICP.
         if singular[1] < 1e-4 or singular[1] / max(singular[0], 1e-12) < 0.01:
             return None, {
                 "reason": "DEGENERATE_GEOMETRY",
                 "failures": ["DEGENERATE_GEOMETRY"],
             }
-        rotation = vt.T @ np.diag([1, 1, np.linalg.det(vt.T @ u.T)]) @ u.T
-        step = np.eye(4)
-        step[:3, :3], step[:3, 3] = rotation, bc - rotation @ ac
+        step = _rigid_fit(a, b)
         current = step @ current
         if np.linalg.norm(vector(step)) < 1e-6:
             break

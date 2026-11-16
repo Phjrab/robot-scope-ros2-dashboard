@@ -6,7 +6,7 @@ Does not register with the product catalogue or invent a mapping session.
 
 import copy
 from contextlib import nullcontext
-import fcntl
+from robot_dashboard import file_lock as fcntl
 import hashlib
 import json
 import os
@@ -369,7 +369,7 @@ class BundleStore:
             manifest["revision"] = digest(manifest)
             (stage / "manifest.json").write_bytes(canonical(manifest))
             for file in stage.iterdir():
-                with file.open("rb") as stream:
+                with file.open("r+b" if os.name == "nt" else "rb") as stream:
                     os.fsync(stream.fileno())
                 os.chmod(file, 0o400)
             _sync_directory(stage)
