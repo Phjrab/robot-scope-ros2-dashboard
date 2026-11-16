@@ -13,7 +13,7 @@ async function save(page,name){
 }
 test('product C2 SavedMapCatalog → actual D1/C1, two / three / incremental and ancestry refusal',async({page})=>{
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto('/extensions');await expect(state(page)).toContainText('Catalogue ready');
+  await page.goto('/extensions#multimap');await expect(state(page)).toContainText('Catalogue ready');
   await select(page,['map0','map1']);const ab=await save(page,'i0_browser_AB');expect(ab.point_count).toBe(800);
   await page.reload();await expect(state(page)).toContainText('Catalogue ready');await select(page,['map0','map1','map2']);
   const abc=await save(page,'i0_browser_ABC');expect(abc.point_count).toBe(1200);
@@ -25,7 +25,7 @@ test('product C2 SavedMapCatalog → actual D1/C1, two / three / incremental and
   await expect(page.locator('[data-action=accept]')).toBeDisabled();expect(errors).toEqual([]);
 });
 for(const width of [390,768,1440])for(const theme of ['dark','light'])test(`product scoped UI ${width}px ${theme}`,async({page},info)=>{
-  await page.setViewportSize({width,height:1000});await page.goto('/extensions');
+  await page.setViewportSize({width,height:1000});await page.goto('/extensions#multimap');
   await page.evaluate(t=>document.documentElement.dataset.theme=t,theme);
   await expect(state(page)).toContainText('Catalogue ready');
   await expect(page.locator('.mmf')).toHaveAttribute('data-operator-usability','multimap');
@@ -57,7 +57,7 @@ for(const width of [390,768,1440])for(const theme of ['dark','light'])test(`prod
 });
 test('actual C4/D2/D3 → C1 HTTP → mounted C3 expires while paused, no control writes',async({page,request})=>{
   const mutations=[];page.on('request',r=>{if(r.method()!=='GET')mutations.push(r.url());});
-  await page.goto('/extensions');await page.locator('[data-feature=scene]').click();
+  await page.goto('/extensions#scene');
   await expect(page.locator('.obstacle-scene')).toBeVisible();
   const seed=await request.post('/__i0_test__/frame',{headers:{Origin:'http://127.0.0.1:4191'}});expect(seed.status()).toBe(200);
   await expect(page.locator('.obstacle-scene')).toHaveAttribute('data-ready','true');
@@ -81,7 +81,7 @@ test('installed parser → local picker → C3 replay / seek / compare; no uploa
   const errors=[],mutations=[],external=[];
   page.on('pageerror',e=>errors.push(e.message));
   page.on('request',r=>{if(r.method()!=='GET')mutations.push(r.url());if(!r.url().startsWith('http://127.0.0.1:4191/'))external.push(r.url());});
-  await page.goto('/extensions');await page.locator('[data-feature=replay]').click();
+  await page.goto('/extensions#replay');
   await page.locator('input[data-run="0"]').setInputFiles(`${root}/review-0.json`);
   await expect(page.locator('.rr-precision')).toContainText('1793244679103000000');
   await expect(page.locator('.rr-precision')).toContainText('UNOBSERVED');
