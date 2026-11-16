@@ -85,10 +85,9 @@ test('pending pair mutation invalidates drafts until a fresh preparation read su
   if (failRead) return json({detail:'synthetic read failure'},503);
   return json({schema:'robot-scope.navigation-preparation-inputs.v1',pair,observation:{state:'STOPPED',active:false,can_start:false,can_stop:false},evidence:{valid:false,reason:'OBSERVATION_INACTIVE'},start_blockers:{items:['CONTROL_BRIDGE_NOT_INACTIVE']},candidates:{},operational_state:status,operational_state_error:null});
  });
- await expect(page.locator('[data-prep="pair"]')).toBeDisabled();
- await page.locator('[data-prep="pair-confirmation"]').check();
- await page.locator('[data-prep="pair"]').click();await expect.poll(()=>pairEntered).toBe(true);
- await expect(page.locator('[data-prep="pair-confirmation"]')).not.toBeChecked();
+ await expect(page.locator('[data-prep="pair"]')).toBeEnabled();
+  await page.locator('[data-prep="pair"]').click();await expect.poll(()=>pairEntered).toBe(true);
+ await expect(page.locator('#navigationPreparation input[type=checkbox]')).toHaveCount(0);
  await expect(page.locator('#navigationPoseMode')).toHaveText('NO TOOL');await expect(page.locator('#navigationInitialPoseTool')).toBeDisabled();
  await page.locator('#navigationInitialPoseTool').dispatchEvent('click');await page.locator('#navigationPoseSend').dispatchEvent('click');
  releasePair();await expect.poll(()=>readEntered).toBe(true);await expect(page.locator('#navigationInitialPoseTool')).toBeDisabled();
@@ -116,10 +115,9 @@ test(`old preparation ${oldResult} cannot roll back state or revalidate a draft 
  });
  b.on('/api/v1/navigation/operational-3d/pair',({json})=>{pairEntered=true;selected.generation=pair.generation='b'.repeat(32);return json(status);});
  await page.locator('[data-prep="refresh"]').click();await expect.poll(()=>oldEntered).toBe(true);
- await expect(page.locator('[data-prep="pair"]')).toBeDisabled();
- await page.locator('[data-prep="pair-confirmation"]').check();
- await page.locator('[data-prep="pair"]').click();await expect.poll(()=>pairEntered).toBe(true);
- await expect(page.locator('[data-prep="pair-confirmation"]')).not.toBeChecked();
+ await expect(page.locator('[data-prep="pair"]')).toBeEnabled();
+  await page.locator('[data-prep="pair"]').click();await expect.poll(()=>pairEntered).toBe(true);
+ await expect(page.locator('#navigationPreparation input[type=checkbox]')).toHaveCount(0);
  await expect(page.locator('#navigationPoseMode')).toHaveText('NO TOOL');await expect(page.locator('#navigationInitialPoseTool')).toBeDisabled();
  releaseOld();await expect.poll(()=>newEntered).toBe(true);await expect(page.locator('#navigationInitialPoseTool')).toBeDisabled();
  await expect.poll(async () => JSON.parse(await page.locator('[data-prep="details"]').textContent()).selected?.generation).toBe('b'.repeat(32));
@@ -194,21 +192,21 @@ test('stage one displays the draft and expected observation startup does not dis
   Object.assign(evidence,{valid:true,reason:null,cloud:{observer_id:'1'.repeat(32),publisher_epoch:'2'.repeat(32),source_stamp_ns:'123'},pose:{observer_id:'1'.repeat(32),publisher_epoch:'3'.repeat(32),source_stamp_ns:'123'}});return json(session);});
  await page.locator('[data-prep="refresh"]').click();await expect(page.getByRole('button',{name:'센서 관측 시작'})).toBeEnabled();
  await stage(page);await expect(page.locator('[data-prep="prior-status"]')).toContainText('미전송 사용자 초안');
- await page.getByLabel(/이 초안이 현재 지도에서 정지/).check();
+
  await page.getByRole('button',{name:'센서 관측 시작'}).click();await expect.poll(()=>entered).toBe(true);
  await page.evaluate(()=>new Promise(resolve=>setTimeout(resolve,1500)));
  await expect(page.locator('#navigationPoseMode')).toContainText('미전송 로컬 초안');release();
- await expect(page.getByRole('button',{name:'초기 위치 제안 계산'})).toBeEnabled();
+ await expect(page.getByRole('button',{name:'현재 초안 확인·제안 계산'})).toBeEnabled();
  await expect(page.locator('[data-prep="steps"] > li').first()).toHaveAttribute('data-state','완료');
  b.on('/api/v1/observations/fastlio/stop',({json})=>{Object.assign(session,{state:'STOPPED',active:false,can_start:true,can_stop:false,session_id:null});Object.assign(evidence,{valid:false,reason:'OBSERVATION_INACTIVE'});return json(session);});
  await page.getByRole('button',{name:'센서 관측 종료'}).click();await expect(page.locator('#navigationPoseMode')).toContainText('미확인');
  await expect(page.getByRole('button',{name:'센서 관측 시작'})).toBeEnabled();await page.getByRole('button',{name:'센서 관측 시작'}).click();
- await expect(page.getByRole('button',{name:'센서 관측 종료'})).toBeEnabled();await expect(page.getByRole('button',{name:'초기 위치 제안 계산'})).toBeDisabled();
+ await expect(page.getByRole('button',{name:'센서 관측 종료'})).toBeEnabled();await expect(page.getByRole('button',{name:'현재 초안 확인·제안 계산'})).toBeDisabled();
  await expect(page.locator('#navigationPoseMode')).toContainText('미확인');
  expect(b.state.requests.filter(r=>/\/navigation\/(initial-pose|goal|start)$/.test(r.path))).toEqual([]);
 });
 
-test('completed draft survives blur while stationary consent must be explicitly renewed', async ({page})=>{
+test('completed draft survives blur and calculation acknowledges only a deliberate new click', async ({page})=>{
  const {b,pair,status}=await fixture(page,0,'c'.repeat(64));
  b.on('/api/v1/navigation/operational-3d/preparation-inputs',({json})=>json({schema:'robot-scope.navigation-preparation-inputs.v1',pair,
   observation:{state:'READY',active:true,can_start:false,can_stop:true,session_id:'a'.repeat(32)},
@@ -216,15 +214,13 @@ test('completed draft survives blur while stationary consent must be explicitly 
   start_blockers:{items:[]},candidates:{},operational_state:status,operational_state_error:null}));
  await page.locator('[data-prep="refresh"]').click();await stage(page);
  const before=(await page.locator('#navigationPoseCoordinates').textContent()).split(' · ').slice(0,3).join(' · ');
- const ack=page.getByLabel(/이 초안이 현재 지도에서 정지/),calculate=page.getByRole('button',{name:'초기 위치 제안 계산',exact:true});
- await ack.check();await expect(calculate).toBeEnabled();
+ const calculate=page.locator('[data-prep="proposal"]');await expect(calculate).toBeEnabled();
  await page.evaluate(()=>window.dispatchEvent(new Event('blur')));
  await expect(page.locator('#navigationPoseMode')).toHaveText('INITIAL · 미전송 로컬 초안');
- await expect(page.locator('#navigationPoseCoordinates')).toContainText(before);await expect(ack).not.toBeChecked();await expect(calculate).toBeDisabled();
- await calculate.dispatchEvent('click');await page.locator('#navigationPoseSend').dispatchEvent('click');
- await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await expect(ack).not.toBeChecked();await expect(calculate).toBeDisabled();
- await ack.scrollIntoViewIfNeeded();await page.screenshot({path:'test-results/draft-focus-preserved.png'});
- await ack.check();await expect(calculate).toBeEnabled();await expect(page.locator('#navigationPoseSend')).toBeDisabled();
+ await expect(page.locator('#navigationPoseCoordinates')).toContainText(before);
+ await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
+ await expect(calculate).toBeEnabled();await expect(page.locator('#navigationPoseSend')).toBeDisabled();
+ await expect(page.locator('#navigationPreparation input[type=checkbox]')).toHaveCount(0);
  expect(b.state.requests.filter(r=>/\/(initialization-proposals|initial-pose|goal|start)$/.test(r.path))).toEqual([]);
 });
 
@@ -240,11 +236,11 @@ test('blur during an unfinished drag never makes it a completed draft', async ({
 
 test('hidden page preserves completed coordinates without retaining stationary consent', async ({page})=>{
  const {b}=await fixture(page);await stage(page);const before=(await page.locator('#navigationPoseCoordinates').textContent()).split(' · ').slice(0,3).join(' · ');
- const ack=page.getByLabel(/이 초안이 현재 지도에서 정지/);await ack.check();
+ await expect(page.locator('#navigationPreparation input[type=checkbox]')).toHaveCount(0);
  await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,get:()=>true});document.dispatchEvent(new Event('visibilitychange'));});
- await expect(page.locator('#navigationPoseMode')).toHaveText('INITIAL · 미전송 로컬 초안');await expect(page.locator('#navigationPoseCoordinates')).toContainText(before);await expect(ack).not.toBeChecked();
+ await expect(page.locator('#navigationPoseMode')).toHaveText('INITIAL · 미전송 로컬 초안');await expect(page.locator('#navigationPoseCoordinates')).toContainText(before);await expect(page.locator('[data-prep="confirm-handoff"]')).toBeDisabled();
  await expect(page.locator('#navigationPoseSend')).toBeDisabled();await page.locator('#navigationPoseSend').dispatchEvent('click');
- await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,get:()=>false});document.dispatchEvent(new Event('visibilitychange'));});await expect(ack).not.toBeChecked();
+ await page.evaluate(()=>{Object.defineProperty(document,'hidden',{configurable:true,get:()=>false});document.dispatchEvent(new Event('visibilitychange'));});await expect(page.locator('[data-prep="confirm-handoff"]')).toBeDisabled();
  expect(b.state.requests.filter(r=>/\/navigation\/(initial-pose|goal|start)$/.test(r.path))).toEqual([]);
 });
 
@@ -266,5 +262,20 @@ test('confirmed handoff pending stop preserves a stale draft for explicit runnin
  expect(b.state.requests.filter(r=>/\/navigation\/(initial-pose|goal|start)$/.test(r.path))).toEqual([]);
  page.once('dialog',dialog=>dialog.accept());await page.locator('#navigationInitialPoseTool').click();
  await expect(page.locator('#navigationPoseMode')).toContainText('이전 초안 재확인 · 미전송');await expect(page.locator('#navigationPoseSend')).toBeEnabled();
+ expect(b.state.requests.filter(r=>/\/navigation\/(initial-pose|goal|start)$/.test(r.path))).toEqual([]);
+});
+
+
+test('preparation card pose actions reuse the live map tool and leave send guards intact', async ({page})=>{
+ const {b}=await fixture(page);
+ await expect(page.locator('[data-prep-action="draft"]')).toBeEnabled();
+ await page.locator('[data-prep-action="draft"]').click();
+ await expect(page.locator('#navigationInitialPoseTool')).toHaveClass(/is-active/);
+ await expect(page.locator('[data-prep-action="start"]')).toBeDisabled();
+ await expect(page.locator('[data-prep-action="send-initial"]')).toBeDisabled();
+ await expect(page.locator('[data-prep-action="goal"]')).toBeDisabled();
+ await expect(page.locator('[data-prep-action="send-goal"]')).toBeDisabled();
+ await page.locator('[data-prep-action="send-initial"]').dispatchEvent('click');
+ await page.locator('[data-prep-action="send-goal"]').dispatchEvent('click');
  expect(b.state.requests.filter(r=>/\/navigation\/(initial-pose|goal|start)$/.test(r.path))).toEqual([]);
 });
