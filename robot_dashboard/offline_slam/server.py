@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
-from ..http_security import is_same_origin
+from .access import AccessPolicy
 from .core import MAX_BYTES, Settings
 from .store import Store
 
@@ -29,7 +29,8 @@ class SaveRequest(BaseModel):
     revision: str = Field(pattern=r"^[a-f0-9]{64}$")
 
 
-def create_app(root):
+def create_app(root, *, access=None):
+    access = access or AccessPolicy()
     store = Store(root)
 
     @asynccontextmanager
@@ -52,14 +53,14 @@ def create_app(root):
 
     @app.middleware("http")
     async def boundary(request: Request, call_next):
-        # Loopback service, no CORS; hostile origins cannot mutate or import.
-        host = request.headers.get("host", "").split(":")[0]
-        if host not in {"127.0.0.1", "localhost", "testserver"}:
-            return JSONResponse({"detail": "LOOPBACK_HOST_REQUIRED"}, status_code=403)
-        if request.method not in {"GET", "HEAD"} and not is_same_origin(
-            request.headers.get("origin", ""), request.headers.get("host", "")
-        ):
-            return JSONResponse({"detail": "SAME_ORIGIN_REQUIRED"}, status_code=403)
+        try:
+            access.authorize(request)
+            if request.method not in {"GET", "HEAD"}:
+                access.mutation(request)
+        except HTTPException as exc:
+            return JSONResponse(
+                {"detail": exc.detail}, status_code=exc.status_code, headers=exc.headers
+            )
         response = await call_next(request)
         response.headers["Cache-Control"] = "no-store"
         response.headers["X-Content-Type-Options"] = "nosniff"

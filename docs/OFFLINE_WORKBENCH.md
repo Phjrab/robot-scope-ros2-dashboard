@@ -24,6 +24,25 @@ python -m robot_dashboard.offline_slam.demo --output runtime/synthetic-drive.jso
 
 `--synthetic-demo`를 생략하면 합성 지도는 생성되지 않습니다. 기존 단독 실행기 `python -m robot_dashboard.offline_slam.server`도 계속 지원합니다.
 
+## 다른 PC에서 접속
+
+분석 서버 PC에서 네트워크 모드를 명시적으로 실행합니다. 다른 PC는 각자 서버를 설치하지 않고 분석 PC의 주소를 브라우저로 엽니다. 계산과 지도 저장은 분석 서버의 동일한 작업 저장소에서 수행됩니다. 기본 실행은 계속 로컬 전용입니다.
+
+아래 주소는 예시이며 분석 PC의 실제 LAN IP와 서브넷으로 바꿉니다. 비밀번호 파일은 Git에 추가하지 않습니다.
+
+```sh
+python -c "from pathlib import Path; import secrets; p=Path('runtime/network-access'); p.mkdir(parents=True,exist_ok=True); (p/'password.txt').open('x').write(secrets.token_urlsafe(32))"
+python -m robot_dashboard.offline_slam.workbench --root runtime/workbench --port 8092 --host 0.0.0.0 --allow-host 192.168.50.10:8092 --allow-host 127.0.0.1:8092 --allow-host localhost:8092 --allow-network 192.168.50.0/24 --password-file runtime/network-access/password.txt
+```
+
+다른 PC에서 `http://192.168.50.10:8092/`를 열고 브라우저 인증창에 사용자 이름 `review`와 파일의 비밀번호를 입력합니다. 메인 → 확장 기능 → 작업 선택 흐름은 동일합니다. 로컬의 `127.0.0.1` 주소도 네트워크 모드에서는 인증이 필요합니다. 비밀번호 변경 후 서버를 재시작하면 이전 비밀번호는 더 이상 사용할 수 없습니다.
+
+이 모드의 HTTP Basic 인증은 HTTP 자체를 암호화하지 않습니다. HTTP 실행은 신뢰하는 사설 LAN용입니다. 공유·비신뢰 네트워크에서는 브라우저가 신뢰하는 인증서와 `--ssl-certfile server.pem --ssl-keyfile server.key`를 함께 지정하여 HTTPS로 접속합니다. 프록시 전달 헤더는 신뢰하지 않습니다. 포트 포워딩으로 인터넷에 공개하지 않습니다.
+
+방화벽에는 해당 Python 실행 파일의 TCP 8092 인바운드만 허용하고, 원격 주소를 같은 LAN 서브넷으로 제한합니다. Windows에서는 이 규칙 추가에 관리자 권한이 필요합니다. 방화벽 전체를 끄거나 네트워크 프로필 전체를 변경할 필요는 없습니다. 공유기의 게스트 Wi-Fi/AP 격리가 켜진 경우 PC 사이 접속이 차단될 수 있습니다.
+
+허용 Host, 클라이언트 네트워크, 비밀번호는 메인·정적 파일·두 API·다운로드에 동일하게 적용됩니다. 변경 요청은 같은 출처와 프로토콜이어야 합니다. 인증된 사용자들은 같은 분석 작업 공간을 공유하므로 개인별 자료 격리 서비스는 아닙니다. 기존 로봇 대시보드 서버의 연결 주소나 배포 설정은 이 실행으로 변경되지 않습니다.
+
 ## 실제 로컬 지도 사본 등록
 
 워크벤치 루트 아래에 원본의 **사본**을 두고 `sources.json`에 다음 구조의 배열을 작성합니다. `descriptor`는 기존 `MapSourceDescriptor` 계약 전체입니다. 데이터 파일은 Git에 추가하지 않습니다.
@@ -45,7 +64,7 @@ python -m robot_dashboard.offline_slam.demo --output runtime/synthetic-drive.jso
 - 기존 확장 페이지와 다중 지도 UI·API 계약·작업 관리자·BundleStore를 재사용합니다. 주행 기록 UI는 같은 페이지의 `/analysis/`에 마운트하며 단독/통합 모드가 동일한 코드와 상대 API 경로를 사용합니다.
 - 강체 적합과 SE(3) 역변환은 기존 `relocalization.experimental_se3` 구현을 공유합니다. 키프레임 그래프와 지도별 그래프는 의미와 품질 판정이 달라 각각 유지합니다.
 - 파일 잠금은 공통 `file_lock`을 사용합니다. POSIX에서는 기존 flock, Windows에서는 실제 바이트 잠금을 사용합니다. Windows 저장은 파일 flush 후 rename하며 디렉터리 fsync는 지원하지 않습니다.
-- 워크벤치는 127.0.0.1에만 바인딩하며 원본 변경 검사와 동일 출처 검사를 유지합니다. ROS, 로봇 애플리케이션, 센서 연결, 지도 선택·배포 경로를 시작하지 않습니다. 계산량은 분석 PC에서 사용합니다.
+- 워크벤치는 기본적으로 127.0.0.1에만 바인딩합니다. 네트워크 모드에는 명시적 허용 주소·사설 네트워크·비밀번호가 필요하며 원본 변경 검사와 동일 출처 검사를 유지합니다. ROS, 로봇 애플리케이션, 센서 연결, 지도 선택·배포 경로를 시작하지 않습니다. 계산량은 분석 PC에서 사용합니다.
 - 기존 운영 대시보드의 확장 메뉴에는 같은 두 탭이 표시됩니다. 운영 서버의 주행 기록 탭은 분석 PC의 통합 워크벤치 실행 안내를 제공합니다. 로봇 서버에 계산기를 자동 탑재하지 않습니다.
 - 저장 위치는 `--root` 아래의 `trajectory/`, `merged/`입니다. 결과는 새 리뷰용 사본이며 운영 지도에 자동 적용되지 않습니다.
 
@@ -56,6 +75,8 @@ python -m unittest tests.test_offline_slam tests.test_offline_workbench -v
 python -m unittest discover -s tests/expansion_d1 -v
 node --test tests/*.mjs
 node scripts/smoke_offline_slam.mjs --workbench
+python -m unittest tests.test_offline_network -v
+node scripts/smoke_offline_slam.mjs --workbench --network
 ```
 
 브라우저 검사는 `OFFLINE_SLAM_PYTHON`에 Python 경로를 지정할 수 있습니다. 합성 데이터로 두 모드의 실제 계산, 검토·저장·재조회, 화면 전환, 모바일 주행 비교 화면을 검사합니다. 실장비 검증은 별도입니다.

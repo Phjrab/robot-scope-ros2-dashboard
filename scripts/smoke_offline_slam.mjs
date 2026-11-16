@@ -2,33 +2,41 @@
 import {chromium} from '@playwright/test';
 import assert from 'node:assert/strict';
 import {spawn, spawnSync} from 'node:child_process';
-import {mkdtemp, mkdir} from 'node:fs/promises';
+import {mkdtemp, mkdir, writeFile} from 'node:fs/promises';
 import path from 'node:path';
 const python = process.env.OFFLINE_SLAM_PYTHON || 'python3';
 const workbench = process.argv.includes('--workbench');
+const network = process.argv.includes('--network');
+assert.ok(!network || workbench,'network smoke requires --workbench');
+const testPassword='synthetic-browser-test-password-1234567890';
+const authHeaders=network?{Authorization:'Basic '+Buffer.from('review:'+testPassword).toString('base64')}:{};
 const root = path.resolve('runtime/offline-validation');
 await mkdir(root,{recursive:true});
 const run = await mkdtemp(path.join(root,'browser-'));
 const fixture = path.join(run,'synthetic.json');
+const passwordFile=path.join(run,'test-password.txt');
+if(network)await writeFile(passwordFile,testPassword);
 const generated=spawnSync(python,['-m','robot_dashboard.offline_slam.demo','--output',fixture],{encoding:'utf8',windowsHide:true});
 assert.equal(generated.status,0,generated.stderr);
-const server=spawn(python,['-m',`robot_dashboard.offline_slam.${workbench?'workbench':'server'}`,'--root',path.join(run,'store'),'--port','18091',...(workbench?['--synthetic-demo']:[])],{stdio:'ignore',windowsHide:true});
+const server=spawn(python,['-m',`robot_dashboard.offline_slam.${workbench?'workbench':'server'}`,'--root',path.join(run,'store'),'--port','18091',...(workbench?['--synthetic-demo']:[]),...(network?['--allow-host','127.0.0.1:18091','--allow-network','192.168.50.0/24','--password-file',passwordFile]:[])],{stdio:'ignore',windowsHide:true});
 let browser;
 try {
   let ready=false;
   for(let i=0;i<100;i++) {
     if(server.exitCode !== null)throw new Error('offline server exited');
-    try{if((await fetch(`http://127.0.0.1:18091/${workbench?'analysis/':''}api/sessions`)).ok){ready=true;break;}}catch{}
+    try{if((await fetch(`http://127.0.0.1:18091/${workbench?'analysis/':''}api/sessions`,{headers:authHeaders})).ok){ready=true;break;}}catch{}
     await new Promise(resolve=>setTimeout(resolve,100));
   }
   assert.ok(ready,'server ready');
+  if(network)assert.equal((await fetch('http://127.0.0.1:18091/analysis/api/sessions')).status,401);
   browser=await chromium.launch({headless:true});
-  const shell=await browser.newPage({viewport:{width:1440,height:1100}});
+  const shell=await browser.newPage({viewport:{width:1440,height:1100},...(network?{httpCredentials:{username:'review',password:testPassword}}:{})});
   const errors=[];shell.on('pageerror',error=>errors.push(error.message));
   await shell.goto('http://127.0.0.1:18091/');
   let page=shell;
   if(workbench){
     await shell.locator('.nav-item[href="/extensions"]').click();
+    await shell.locator('#expansion-choices').waitFor();
     assert.equal(await shell.locator('#expansion-choices').isVisible(),true);
     assert.equal(await shell.locator('iframe').count(),0);
     await shell.locator('[data-open-feature="trajectory"]').click();
@@ -83,6 +91,7 @@ try {
     await shell.locator('#appNavigation').waitFor();
     assert.equal(new URL(shell.url()).pathname,'/');
     await shell.locator('.nav-item[href="/extensions"]').click();
+    await shell.locator('#expansion-choices').waitFor();
     assert.equal(await shell.locator('#expansion-choices').isVisible(),true);
     await shell.locator('[data-open-feature="multimap"]').click();
     await shell.locator('input[data-source]').first().waitFor();

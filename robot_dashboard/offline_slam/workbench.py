@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 import numpy as np
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -22,14 +22,15 @@ from robot_dashboard.expansion_services.router import create_router
 from robot_dashboard.multimap_core.contract_adapter import solve_contract
 from robot_dashboard.pcd_editing.store import SourceAsset, _digest, _open_regular
 from robot_dashboard.pcd_editing.pcd import _read_header
-from robot_dashboard.http_security import is_same_origin
+from .access import AccessPolicy
 from .server import create_app as trajectory_app
 from .maps import pcd_bytes
 
 STATIC = Path(__file__).resolve().parents[1] / "static"
 
 
-def create_app(root, *, synthetic_demo=False):
+def create_app(root, *, synthetic_demo=False, access=None):
+    access = access or AccessPolicy()
     root = Path(root).resolve()
     root.mkdir(parents=True, exist_ok=True)
     sources = {}
@@ -123,7 +124,7 @@ def create_app(root, *, synthetic_demo=False):
             progress=lambda e: progress(min(0.95, e["completed_pairs"] / 28)),
         )
 
-    trajectory = trajectory_app(root / "trajectory")
+    trajectory = trajectory_app(root / "trajectory", access=access)
     manager = FusionJobManager(catalogue, solve, bundle)
 
     @asynccontextmanager
@@ -138,53 +139,48 @@ def create_app(root, *, synthetic_demo=False):
     app.state.trajectory = trajectory
     app.state.manager = manager
 
-    def local(request: Request):
-        if request.headers.get("host", "").split(":")[0] not in {
-            "127.0.0.1",
-            "localhost",
-            "testserver",
-        }:
-            raise HTTPException(403, "LOOPBACK_ONLY")
-
-    def mutation(request):
-        local(request)
-        if not is_same_origin(
-            request.headers.get("origin", ""), request.headers.get("host", "")
-        ):
-            raise HTTPException(403, "SAME_ORIGIN_REQUIRED")
-
     @app.middleware("http")
     async def boundary(request, call_next):
         try:
-            local(request)
+            access.authorize(request)
             if request.method not in {"GET", "HEAD"}:
-                mutation(request)
+                access.mutation(request)
             if request.url.path.startswith("/api/v1/extensions/scene/"):
                 raise HTTPException(404, "FEATURE_DISABLED")
         except HTTPException as exc:
             from fastapi.responses import JSONResponse
 
-            return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
+            return JSONResponse(
+                {"detail": exc.detail}, status_code=exc.status_code, headers=exc.headers
+            )
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Cache-Control"] = "no-store"
         return response
 
     app.include_router(
         create_router(
-            manager, catalogue, None, bundle, authorize=local, require_origin=mutation
+            manager,
+            catalogue,
+            None,
+            bundle,
+            authorize=access.authorize,
+            require_origin=access.mutation,
         )
     )
 
     @app.get("/")
     def entry():
         # Serve only the dashboard shell; operational APIs remain absent locally.
-        return FileResponse(STATIC / "index.html", headers={"Cache-Control": "no-store"})
+        return FileResponse(
+            STATIC / "index.html", headers={"Cache-Control": "no-store"}
+        )
 
     @app.get("/extensions", response_class=HTMLResponse)
     def extensions():
         config = dict(
             flags=dict(multimap=True, replay=True, usability=True),
-            auth="LOCAL_ONLY",
+            auth="AUTHENTICATED_LAN" if access.authorities else "LOCAL_ONLY",
             analysis_local=True,
         )
         html = (STATIC / "features/expansion/index.html").read_text(encoding="utf-8")
@@ -204,14 +200,53 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", required=True)
     parser.add_argument("--port", type=int, default=8091)
+    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument(
+        "--allow-host",
+        action="append",
+        default=[],
+        help="Exact allowed Host, including port; repeat for each address",
+    )
+    parser.add_argument(
+        "--allow-network",
+        action="append",
+        default=[],
+        help="Allowed private client CIDR, e.g. 192.168.0.0/24",
+    )
+    parser.add_argument(
+        "--password-file",
+        type=Path,
+        help="Private file with a random 32+ character password; username is review",
+    )
+    parser.add_argument("--ssl-certfile", type=Path)
+    parser.add_argument("--ssl-keyfile", type=Path)
     parser.add_argument("--synthetic-demo", action="store_true")
     args = parser.parse_args()
+    if args.host not in {"127.0.0.1", "localhost", "::1"} and not args.allow_host:
+        parser.error(
+            "Network binding requires --allow-host, --allow-network and --password-file"
+        )
+    if bool(args.ssl_certfile) != bool(args.ssl_keyfile):
+        parser.error("Both TLS certificate and key are required")
+    try:
+        access = AccessPolicy(
+            authorities=args.allow_host,
+            password=args.password_file.read_text(encoding="ascii").strip()
+            if args.password_file
+            else None,
+            networks=args.allow_network,
+        )
+    except (ValueError, OSError):
+        parser.error("Invalid network access configuration or password file")
     import uvicorn
 
     uvicorn.run(
-        create_app(args.root, synthetic_demo=args.synthetic_demo),
-        host="127.0.0.1",
+        create_app(args.root, synthetic_demo=args.synthetic_demo, access=access),
+        host=args.host,
         port=args.port,
+        proxy_headers=False,
+        ssl_certfile=str(args.ssl_certfile) if args.ssl_certfile else None,
+        ssl_keyfile=str(args.ssl_keyfile) if args.ssl_keyfile else None,
     )
 
 
