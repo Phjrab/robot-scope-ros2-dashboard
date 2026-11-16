@@ -165,8 +165,12 @@ class Settings:
         return self
 
 
-def register(source, target, seed, settings):
-    """Trimmed point-to-point ICP; bidirectional overlap and geometry gates."""
+def fit_registration(source, target, seed, settings):
+    """Fit a local hypothesis, including rejected candidates for offline diagnosis.
+
+    Call register() when an accepted graph measurement is required. A returned
+    matrix here is only an optimizer candidate; all gate failures remain explicit.
+    """
     tree = cKDTree(target)
     current = seed.copy()
     for _ in range(40):
@@ -174,7 +178,10 @@ def register(source, target, seed, settings):
         distances, indices = tree.query(moved)
         mask = distances < settings.correspondence
         if mask.sum() < 30:
-            return None, {"reason": "TOO_FEW_CORRESPONDENCES"}
+            return None, {
+                "reason": "TOO_FEW_CORRESPONDENCES",
+                "failures": ["TOO_FEW_CORRESPONDENCES"],
+            }
         selected = np.flatnonzero(mask)
         selected = selected[
             np.argsort(distances[selected])[: max(30, int(len(selected) * 0.85))]
@@ -184,7 +191,10 @@ def register(source, target, seed, settings):
         u, singular, vt = np.linalg.svd((a - ac).T @ (b - bc))
         # Refuse line-like/point-like geometry. A plane can constrain point-to-point ICP.
         if singular[1] < 1e-4 or singular[1] / max(singular[0], 1e-12) < 0.01:
-            return None, {"reason": "DEGENERATE_GEOMETRY"}
+            return None, {
+                "reason": "DEGENERATE_GEOMETRY",
+                "failures": ["DEGENERATE_GEOMETRY"],
+            }
         rotation = vt.T @ np.diag([1, 1, np.linalg.det(vt.T @ u.T)]) @ u.T
         step = np.eye(4)
         step[:3, :3], step[:3, 3] = rotation, bc - rotation @ ac
@@ -195,23 +205,45 @@ def register(source, target, seed, settings):
     distances, indices = tree.query(moved)
     mask = distances < settings.correspondence
     reverse = cKDTree(moved).query(target)[0]
-    overlap = min(float(mask.mean()), float((reverse < settings.correspondence).mean()))
+    forward_overlap = float(mask.mean())
+    reverse_overlap = float((reverse < settings.correspondence).mean())
+    overlap = min(forward_overlap, reverse_overlap)
     rmse = float(np.sqrt(np.mean(distances[mask] ** 2))) if mask.any() else 1e9
-    unique = len(np.unique(indices[mask])) / max(1, int(mask.sum()))
+    counts = np.unique(indices[mask], return_counts=True)[1]
+    unique = len(counts) / max(1, int(mask.sum()))
     shift = vector(inverse(seed) @ current)
-    reason = "ACCEPTED"
-    if overlap < settings.min_overlap or unique < 0.35:
-        reason = "LOW_OVERLAP"
-    elif rmse > settings.max_rmse:
-        reason = "HIGH_RESIDUAL"
-    elif (
+    failures = []
+    if overlap < settings.min_overlap:
+        failures.append("LOW_OVERLAP")
+    if unique < 0.35:
+        failures.append("MANY_TO_ONE_CORRESPONDENCES")
+    if rmse > settings.max_rmse:
+        failures.append("HIGH_RESIDUAL")
+    if (
         np.linalg.norm(shift[:3]) > settings.search_radius
         or np.linalg.norm(shift[3:]) > 0.8
     ):
-        reason = "EXCESSIVE_CORRECTION"
-    return (current if reason == "ACCEPTED" else None), dict(
-        reason=reason, overlap=overlap, rmse_m=rmse, unique_ratio=unique
+        failures.append("EXCESSIVE_CORRECTION")
+    return current, dict(
+        reason=failures[0] if failures else "ACCEPTED",
+        failures=failures,
+        overlap=overlap,
+        forward_overlap=forward_overlap,
+        reverse_overlap=reverse_overlap,
+        rmse_m=rmse,
+        unique_ratio=unique,
+        inlier_count=int(mask.sum()),
+        unique_target_count=len(counts),
+        max_target_multiplicity=int(counts.max()) if len(counts) else 0,
+        correction_translation_m=float(np.linalg.norm(shift[:3])),
+        correction_rotation_rad=float(np.linalg.norm(shift[3:])),
     )
+
+
+def register(source, target, seed, settings):
+    """Return only a candidate that passed the unchanged graph-edge gates."""
+    candidate, metrics = fit_registration(source, target, seed, settings)
+    return (candidate if metrics["reason"] == "ACCEPTED" else None), metrics
 
 
 def optimize(data, settings):

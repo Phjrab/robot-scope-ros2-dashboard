@@ -146,3 +146,74 @@ node scripts/smoke_offline_slam.mjs
 
 참고: [SciPy least_squares](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.least_squares.html),
 [FAST-LIO 입력/출력 개념](https://github.com/hku-mars/FAST_LIO).
+
+## 저장 지도 정합 거부 진단 — 2026-11-16
+
+공개 `docs/replay-fixtures/stage3-20261019`의 실제 스캔 3개와 저장 지도에 대한
+**로컬 수치 진단**입니다. 연속 주행 기록이나 적격 루프가 아니므로 포즈 그래프,
+새 지도 저장, 운영 위치 적용은 수행하지 않습니다. 원본과 기존 모호성 판정을 보존합니다.
+
+### 확인한 원인과 수정
+
+- 이전 시험은 원래 voxel 처리된 키프레임에 쓰는 ICP를 전체 원시 스캔에 직접 적용했습니다.
+  유효 XYZ 약 15,600개 중 서로 다른 좌표는 약 8,280개이며, 표면별 점 밀도도 다릅니다.
+  첫 두 결과의 중첩률은 약 83%였지만, `고유 대응 지도점 / 대응 스캔점` 비율이
+  약 13%로 35% 기준보다 낮았습니다. 이를 모두 `LOW_OVERLAP`로 표시하던 진단을
+  `MANY_TO_ONE_CORRESPONDENCES`와 분리하고, 높은 잔차 등 **모든 동시 실패 사유**를 남깁니다.
+  기존 그래프 엣지의 승인 기준과 ICP 계산은 바꾸지 않았습니다.
+- 새 `registration_diagnostics`는 명시적인 저장 지도 진단 경로에서만 중복 좌표 제거 후
+  8 cm voxel 중심점을 사용합니다. 기존 기록기의 공간 해상도와 같은 크기이며, 거리·잔차·
+  중첩·고유 대응 비율 기준을 완화하지 않습니다. raw 무효 원점 행은 fitting에서 제외하되
+  원본 16,000점 전체 및 원점 제외 모집단의 전후 점수를 각각 저장합니다. 표본화만으로
+  점수가 개선된 것처럼 보이지 않도록 지도 전체 25,666점에 대해 다시 평가합니다.
+- 세 번째 기록의 선택 후보는 첫 번째와 병진 약 1.635 m 차이가 납니다. 원래 후보 32개
+  전체를 같은 기준으로 시험하면 첫 두 스캔은 각각 2개 후보가 통과하지만 세 번째의
+  후보 8개는 모두 실패합니다. 별도 상대 스캔 정합으로 첫 스캔의 **미검증 가설**을
+  세 번째에 전달하면 상대 잔차 약 1.38 cm, 지도 fitting 잔차 약 11.11 cm로 수치 기준을
+  통과합니다. 이 가설 전달은 새로운 전역 재위치추정이나 위치 정답이 아닙니다.
+
+동일한 원본 16,000점에 대한 거리 상한 0.75 m의 capped nearest-neighbor RMSE입니다.
+인라이어 수가 달라져도 분모와 입력을 유지하며, 원점 무효행도 이 표에서는 그대로 포함합니다.
+
+| 스캔 | 기존 ICP 결과 | 밀도 보정만 적용 | 첫 스캔 가설을 상대 정합으로 전달 |
+|---|---:|---:|---:|
+| 1 | 15.79 cm / 거부 | 15.64 cm / 수치 기준 통과 | 기준 가설 |
+| 2 | 15.87 cm / 거부 | 15.76 cm / 수치 기준 통과 | 15.74 cm / 수치 기준 통과 |
+| 3 | 30.28 cm / 거부 | 30.18 cm / 높은 잔차로 거부 | 15.81 cm / 수치 기준 통과 |
+
+첫 스캔의 원래 seed 점수는 15.50 cm였으므로 밀도 보정이 모든 시작점보다 잔차를 낮추는
+것도 아닙니다. 핵심 개선은 밀도에 민감한 거부의 해석과 초기 가설 일관성 진단입니다.
+`AMBIGUOUS_ALTERNATIVES`, clock/body extrinsic 미검증을 계속 보존하며, 모든 결과는
+`DIAGNOSTIC_ONLY`, `global_location_verified=false`, `operational_application=NOT_APPLIED`입니다.
+실제 절대 위치 정확도, 지도 복원 성공 또는 주행 정확도를 입증하지 않습니다.
+
+### 재현
+
+```bash
+python scripts/diagnose_saved_map_registration.py \
+  --packet docs/replay-fixtures/stage3-20261019 \
+  --output runtime/saved-map-diagnosis-new \
+  --all-recorded-candidates --cross-scan-seed-check
+python -m unittest discover -s tests -p test_saved_map_registration_diagnostics.py -v
+```
+
+`--output`은 새 디렉터리여야 하며 입력 패킷 내부 경로는 거부합니다. 공개 manifest와
+지도/스캔/기존 점수 해시를 검증한 뒤 실행하고 종료 시 다시 검사합니다. Windows checkout의
+CRLF 변환 때문에 manifest 검증이 실패하면 원본 Git blob과 동일한 패킷 사본을 지정해야
+하며, 검증 기준을 완화하거나 원본 파일을 덮어쓰지 않습니다. 결과 JSON에는 코드/입력 해시,
+표본 수, 모든 후보와 거부 사유, 양방향 중첩, 대응점 중복도, 원본 전체 점수가 포함됩니다.
+실장비, ROS, 네트워크, 저장 지도 채택 코드에 연결되지 않습니다.
+
+검증 결과: 신규 진단 회귀 9개, 기존 오프라인 SLAM 13개, 관련 JavaScript 2개 및
+Ruff 검사 통과. 신규 회귀는 중복 배율 불변성, 알려진 합성 6DoF 복원, 다중 거부 사유,
+틀린 seed/퇴화 형상 거부, 원본 보존, 상대 변환 방향, 모호성 유지 등을 검사합니다.
+전체 Python은 1,836개 중 실패 24·오류 425·건너뜀 22로 **전체 통과가 아닙니다**.
+수정 전 `a81ef92` 소스 사본의 동일 환경 검사도 1,827개 중 실패 25·오류 424·건너뜀 22였고,
+Unix `resource`, ROS 도구, Windows 파일 권한 전제의 실패가 남습니다. 변동한 기존
+파일 이관 테스트는 코드가 동일하며 양쪽 단독 재시험에서도 해시 검사·권한 계열의 오류가
+각각 7개 발생했습니다. 실패한 개별 테스트는 실행 간 변동하므로 전체 회귀 통과로 판정하지 않습니다.
+Windows 샌드박스의 asyncio 내부 socketpair 대기로 중단된 최초 시도와, 로컬 socket이
+허용된 환경에서 완료한 검사 결과를 구분해 로그에 보관했습니다.
+
+공간 표본화의 참고 자료: [Open3D ICP의 voxel 해상도 설명](https://www.open3d.org/docs/release/tutorial/t_pipelines/t_icp_registration.html#voxel-sizes).
+이 구현은 기존 NumPy/SciPy ICP를 사용하며 Open3D 의존성을 추가하지 않습니다.
