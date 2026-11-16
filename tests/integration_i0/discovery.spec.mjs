@@ -12,7 +12,9 @@ for (const width of [390, 1440]) test(`default OFF dashboard menu and public lan
   page.on('request', request => { if (request.url().includes('/api/v1/extensions/')) extensionRequests.push(request.url()); });
   await page.goto(`${off}/#navigation`);
   await expect(page.locator('#navigationStopButton')).toBeVisible();
-  await page.locator('.nav-item[href="/extensions"]').click();
+  const sidebarEntry = page.locator('#appNavigation > .nav-item[href="/extensions"]');
+  if (!await sidebarEntry.isVisible()) await page.locator('#navigationToggle').click();
+  await sidebarEntry.click();
   await expect(page).toHaveURL(/\/extensions$/);
   await expect(page.locator('#expansion-choices')).toBeVisible();
   await expect(page.locator('#expansion-nav button')).toHaveText([
