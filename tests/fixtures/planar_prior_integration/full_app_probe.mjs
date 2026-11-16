@@ -38,12 +38,12 @@ try{
  await step('actual_canvas_draft_stage1_post_zero',async()=>{
   await page.locator('#navigationInitialPoseTool').click();const canvas=page.locator('#navigationMapCanvas');await canvas.scrollIntoViewIfNeeded();const box=await canvas.boundingBox();
   await page.mouse.move(box.x+box.width*.5,box.y+box.height*.5);await page.mouse.down();await page.mouse.move(box.x+box.width*.65,box.y+box.height*.5-Math.tan(p.yaw)*box.width*.15,{steps:5});await page.mouse.up();
-  await expect(page.locator('#navigationPoseMode')).toContainText('미전송 로컬 초안');await expect(page.locator('#navigationPoseSend')).toBeDisabled();await expect(page.locator('[data-prep="proposal"]')).toBeDisabled();
+  await expect(page.locator('#navigationPoseMode')).toContainText('미전송 로컬 초안');await expect(page.locator('#navigationPoseSend')).toBeDisabled();await expect(page.locator('[data-prep="proposal"]')).toBeEnabled();
   assert.equal(posts(await local('/__fixture/result'),'/initialization-proposals').length,0);assert.deepEqual(backend.state.requests,[]);
  });
  let original,proposal;
  await step('actual_draft_to_real_asgi_conditional_proof',async()=>{
-  await expect(page.locator('[data-prep="prior-xy"]')).toHaveCount(0);await expect(page.locator('[data-prep="prior-yaw"]')).toHaveCount(0);await page.locator('[data-prep="prior-stationary"]').check();
+  await expect(page.locator('[data-prep="prior-xy"]')).toHaveCount(0);await expect(page.locator('[data-prep="prior-yaw"]')).toHaveCount(0);await expect(page.locator('#navigationPreparation input[type=checkbox]')).toHaveCount(0);
   await page.locator('[data-prep="proposal"]').click();await expect(page.locator('[data-prep="geometry-preview"]')).toContainText('미적용');
   const r=await local('/__fixture/result');original=posts(r,'/initialization-proposals')[0].body;
   for(const key of ['bounds','bounds_source','effective_bounds'])assert.equal(Object.hasOwn(original.operator_prior,key),false);
@@ -56,15 +56,14 @@ try{
   try{
    domObserver=await page.evaluateHandle(()=>{
     const samples=[],intervalMs=100,maxSamples=200,maxPreviewChars=512;
-    let timer,capped=false,readError=null,action='supervision_check';
+    let timer,capped=false,readError=null,action='review_proposal';
     const sample=(phase,final=false)=>{
      if(samples.length>=maxSamples-(final?0:1)){capped=true;clearInterval(timer);return;}
      try{
       const find=name=>document.querySelector(`[data-prep="${name}"]`),button=find('confirm-handoff');
       const rect=button?.getBoundingClientRect(),visibility=button?getComputedStyle(button).visibility:null;
       const preview=find('geometry-preview')?.textContent??null;
-      samples.push({phase,action,browser_performance_ms:performance.now(),supervision_checked:find('supervision')?.checked??null,
-       conditional_ack_checked:find('conditional-ack')?.checked??null,conditional_label_hidden:find('conditional-label')?.hidden??null,
+      samples.push({phase,action,browser_performance_ms:performance.now(),checkbox_count:document.querySelectorAll('#navigationPreparation input[type=checkbox]').length,conditional_label_hidden:find('conditional-label')?.hidden??null,
        confirm_button_disabled:button?.disabled??null,confirm_button_visible:button?Boolean(rect.width>0&&rect.height>0&&visibility!=='hidden'&&visibility!=='collapse'):null,
        preview_text:preview?.slice(0,maxPreviewChars)??null,preview_text_truncated:preview!==null&&preview.length>maxPreviewChars});
      }catch(error){readError=String(error).slice(0,512);clearInterval(timer);}
@@ -75,10 +74,9 @@ try{
    });
   }catch(error){confirmationDomObservation={status:'START_ERROR',error:String(error).slice(0,512)};}
   const markAction=async action=>{if(domObserver)try{await domObserver.evaluate((observer,value)=>observer.mark(value),action);}catch(error){if(markerErrors.length<3)markerErrors.push(String(error).slice(0,512));}};
-  let observedAction='supervision_check',actionOutcome='CHECK_FAILED';
+  let observedAction='review_proposal',actionOutcome='CLICK_FAILED';
   try{
-   await page.locator('[data-prep="supervision"]').check();
-   observedAction='conditional_ack_check';await markAction(observedAction);await page.locator('[data-prep="conditional-ack"]').check();
+   await expect(page.locator('[data-prep="confirm-handoff"]')).toBeEnabled();
    observedAction='confirm_click';actionOutcome='CLICK_FAILED';await markAction(observedAction);await page.locator('[data-prep="confirm-handoff"]').click();actionOutcome='CLICK_RESOLVED';
   }finally{
    if(domObserver){

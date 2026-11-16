@@ -63,6 +63,8 @@ HEADING_OVERLAY="${ROBOT_SCOPE_NAV2_HEADING_OVERLAY:-}"
 if [[ -n "$HEADING_OVERLAY" ]]; then
   /usr/bin/python3 "$PROJECT_DIR/scripts/check_nav2_heading_overlay.py" --overlay "$HEADING_OVERLAY"
   source "$HEADING_OVERLAY/share/nav2_rotation_shim_controller/local_setup.bash"
+  # Validate the sourced ament/loader environment before starting any ROS node.
+  /usr/bin/python3 "$PROJECT_DIR/scripts/check_nav2_heading_overlay.py" --overlay "$HEADING_OVERLAY" --check-load
 fi
 
 PYTHON_BIN="$PROJECT_DIR/.venv/bin/python"

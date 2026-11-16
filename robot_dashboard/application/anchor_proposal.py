@@ -148,6 +148,7 @@ def proposal_from_job(job, catalog, agent, *, allow_ambiguous=False):
                 source_contract=context["anchor_capture"]["contract"],
                 capture_stamp_ns=context["source_stamp_ns"], proposal_stamp_ns=pose["observation"]["source_stamp_ns"],
                 pose_age_s=now - pose["observation"]["received_monotonic_s"],
+                pose_received_monotonic_s=pose["observation"]["received_monotonic_s"],
                 ambiguity_unresolved=(observation.get("ambiguity_override") or {}).get("applied") is True,
                 rmse_m=candidate["rmse_m"], overlap=candidate["overlap"],
                 absolute_accuracy_m=None, body_extrinsic_verified=False, operational_application="NOT_RUN")
@@ -190,6 +191,7 @@ def local_proposal_from_job(job, catalog, agent):
                 seed_stamp_ns=context['seed_binding']['source_stamp_ns'],
                 proposal_stamp_ns=pose['observation']['source_stamp_ns'],
                 pose_age_s=now-pose['observation']['received_monotonic_s'], admissible=value['admissible'],
+                pose_received_monotonic_s=pose['observation']['received_monotonic_s'],
                 reason=value['reason'], delta=value['delta'], bounds=value['bounds'],
                 ambiguity_unresolved=value['ambiguity_unresolved'], runtime_ms=value['runtime_ms'],
                 rmse_m=value['numerical']['metrics']['rmse_m'], overlap=value['numerical']['metrics']['overlap_ratio'],

@@ -197,12 +197,21 @@ def fit_registration(source, target, seed, settings):
     distances, indices = tree.query(moved)
     mask = distances < settings.correspondence
     reverse = cKDTree(moved).query(target)[0]
+    reverse_mask = reverse < settings.correspondence
     forward_overlap = float(mask.mean())
-    reverse_overlap = float((reverse < settings.correspondence).mean())
+    reverse_overlap = float(reverse_mask.mean())
     overlap = min(forward_overlap, reverse_overlap)
-    rmse = float(np.sqrt(np.mean(distances[mask] ** 2))) if mask.any() else 1e9
     counts = np.unique(indices[mask], return_counts=True)[1]
     unique = len(counts) / max(1, int(mask.sum()))
+    forward_rmse = float(np.sqrt(np.mean(distances[mask] ** 2))) if mask.any() else 1e9
+    reverse_rmse = (
+        float(np.sqrt(np.mean(reverse[reverse_mask] ** 2)))
+        if reverse_mask.any()
+        else 1e9
+    )
+    # A small source can fit one layer of a deformed/doubled target exactly.
+    # Overlap alone then passes both ways; require residual quality both ways too.
+    rmse = max(forward_rmse, reverse_rmse)
     shift = vector(inverse(seed) @ current)
     failures = []
     if overlap < settings.min_overlap:
@@ -223,6 +232,8 @@ def fit_registration(source, target, seed, settings):
         forward_overlap=forward_overlap,
         reverse_overlap=reverse_overlap,
         rmse_m=rmse,
+        forward_rmse_m=forward_rmse,
+        reverse_rmse_m=reverse_rmse,
         unique_ratio=unique,
         inlier_count=int(mask.sum()),
         unique_target_count=len(counts),

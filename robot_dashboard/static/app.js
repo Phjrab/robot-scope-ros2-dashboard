@@ -23,7 +23,7 @@ import { initializeControlBridgeServiceFeature } from './features/control/bridge
 import { connectionButtonLabel, connectionOutcomeNote, createReleaseAckTracker, overviewUnavailableReason, renderHeaderConnections, robotTargetLabel } from './features/control/session_contract.js';
 import { initializeNavigationLogFeature } from './features/navigation/log_controller.js';
 import { createNavigationPresetCatalog, initializeNavigationPresetFeature } from './features/navigation/presets.js';
-import { initializeNavigationPreparation } from './features/navigation/preparation.js';
+import { initializeNavigationPreparation, createNavigationPreparationActions } from './features/navigation/preparation.js';
 import { createPreNavigationDraftController, navigationMapCandidatesFrom, navigationCanvasPointFrom, navigationActiveMapMatches, operatorDraftSnapshot, renderDraftControls } from './features/navigation/pose_draft.js';
 import { createDatasetFeature } from './features/datasets/capture.js';
 import { renderSavedMapDownloadState } from './features/maps/download.js';
@@ -3602,7 +3602,7 @@ function pausePreNavigationPlacement() {
   // A partial drag must never become a completed pose when pointerup arrives late.
   if (navigationPointer?.preBinding) preNavigationDraft.suspend();
   else { navigationMapTool = ''; navigationPreDraftToolBinding = null; }
-  navigationPreparation?.draftChanged('화면을 벗어나 정지 가정 확인이 해제됐습니다. 현재 위치·방향을 확인한 뒤 다시 체크하세요.');
+  navigationPreparation?.draftChanged('현재 위치·방향을 확인한 뒤 제안을 다시 계산하세요.');
   renderNavigationPoseSelection(); scheduleNavigationMapDraw();
 }
 function navigationPosePlacementAllowed(mode) {
@@ -4125,7 +4125,7 @@ async function sendNavigationPose() {
   const response = await runNavigationMutation(endpoint, {
     ...body,
   }, staged.mode === 'goal' ? 'Nav2 목표를 전송했습니다.' : navigationPreparation?.state()?.selected?.workflow === 'staged_navigation_pair'
-    ? '초기 위치를 접수했습니다. 단계별 준비 ⑤에서 정합 시작을 누르세요.' : '초기 위치를 접수했습니다. 정합 완료 후 Goal Pose가 활성화됩니다.');
+    ? '초기 위치를 접수했습니다. 단계별 준비 ④에서 정합 시작을 누르세요.' : '초기 위치를 접수했습니다. 정합 완료 후 Goal Pose가 활성화됩니다.');
   if (response) {
     navigationMapTool = '';
     discardNavigationPose();
@@ -6687,7 +6687,7 @@ navigationPreparation = initializeNavigationPreparation({
   host: $('#navigationPreparation'), map3dSelect: $('#navigationLocalizationMapSelect'), map2dSelect: ui.navigationMapSelect,
   api, getOperatorDraft, context: () => ({ maps: savedMapCatalog, map: navigationSelectedMapMeta, navigation: navigationSnapshot, busy: navigationOperationBusy }),
   onChange: renderNavigationStatus,
-  actions: { refresh: refreshNavigation },
+  actions: createNavigationPreparationActions({ ui, refresh: refreshNavigation, staged: () => navigationStagedPose }),
 });
 void navigationPreparation.refresh(true);
 ui.navigationMapSelect.addEventListener('change', () => {
