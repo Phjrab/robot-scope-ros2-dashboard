@@ -6,7 +6,7 @@ test('historical native D3 parser output renders in the actual REPLAY product ho
   if(!file)throw new Error('I0_NATIVE_REVIEW required: use documented SHA256-verified archive preparation');
   const run=JSON.parse(readFileSync(file));expect(run.mode).toBe('REPLAY');
   const errors=[],writes=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.method()!=='GET')writes.push(r.url());});
-  await page.goto('/extensions');await page.locator('[data-feature=replay]').click();
+  await page.goto('/extensions#replay');
   await page.locator('input[data-run="0"]').setInputFiles(file);
   await expect(page.locator('.rr-overview')).toContainText('SIMULATION');
   const seek=page.getByRole('slider',{name:'재생 위치'});await seek.fill('4000');await seek.dispatchEvent('input');
