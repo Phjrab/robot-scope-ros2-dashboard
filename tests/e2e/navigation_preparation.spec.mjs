@@ -1640,14 +1640,14 @@ test('step cards delegate start and pose actions only when existing controls all
   expect(f.writes.filter(v=>/\/navigation\/(start|goal|initial-pose)$/.test(v.path))).toHaveLength(0);
 });
 
-test('preparation cards stay readable at desktop and mobile widths', async ({page}) => {
+test('preparation cards stay readable at desktop and mobile widths', async ({page}, testInfo) => {
   const f=await proposalFixture(page);await page.locator('[data-prep-action="proposal"]').click();
   await expect(page.locator('[data-prep-action="confirm-handoff"]')).toBeEnabled();
   expect(f.writes.filter(v=>v.path.endsWith('/confirm-geometry'))).toHaveLength(0);
   await page.setViewportSize({width:1440,height:1000});
-  await page.locator('[data-prep="steps"]').screenshot({path:'/private/tmp/robot-navigation-ui-desktop.png'});
+  await page.locator('[data-prep="steps"]').screenshot({path:testInfo.outputPath('robot-navigation-ui-desktop.png')});
   await expect(page.locator('.preparation-supporting-details[open]')).toHaveCount(0);
   await page.setViewportSize({width:390,height:844});
   await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
-  await page.locator('[data-prep="steps"]').screenshot({path:'/private/tmp/robot-navigation-ui-mobile.png'});
+  await page.locator('[data-prep="steps"]').screenshot({path:testInfo.outputPath('robot-navigation-ui-mobile.png')});
 });
