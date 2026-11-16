@@ -12,15 +12,14 @@ for (const width of [390, 1440]) test(`default OFF dashboard menu and public lan
   page.on('request', request => { if (request.url().includes('/api/v1/extensions/')) extensionRequests.push(request.url()); });
   await page.goto(`${off}/#navigation`);
   await expect(page.locator('#navigationStopButton')).toBeVisible();
-  if (width > 800) await expect(page.locator('.top-actions a[href="/extensions"]')).toBeVisible();
-  const more = page.locator('.advanced-tools');
-  if (!await more.evaluate(element => element.open)) await more.locator('summary').click();
-  await more.getByRole('link', {name: '확장 기능', exact: true}).click();
-  await expect(page).toHaveURL(/\/extensions#multimap$/);
+  await page.locator('.nav-item[href="/extensions"]').click();
+  await expect(page).toHaveURL(/\/extensions$/);
+  await expect(page.locator('#expansion-choices')).toBeVisible();
   await expect(page.locator('#expansion-nav button')).toHaveText([
     '주행 기록 보정', '여러 지도 병합', '장애물 3D 관측',
     '콘 표시', '주행 기록 재생', '성능 진단 안내',
   ]);
+  await page.locator('[data-open-feature="multimap"]').click();
   await expect(page.locator('#expansion-status')).toContainText('FEATURE_DISABLED');
   await page.getByRole('button', {name: '주행 기록 재생', exact: true}).click();
   await expect(page.locator('#expansion-status')).toContainText('로컬 기록 재생');
@@ -32,7 +31,7 @@ for (const width of [390, 1440]) test(`default OFF dashboard menu and public lan
   expect(extensionRequests).toEqual([]);
   expect(backend.mutations('/api/v1/navigation/goal')).toHaveLength(0);
   expect(backend.mutations('/api/v1/control/stop')).toHaveLength(0);
-  await page.getByRole('link', {name: '← Robot Scope'}).click();
+  await page.getByRole('link', {name: '← 메인 대시보드로 돌아가기'}).click();
   await expect(page.locator('#navigationStopButton')).toBeAttached();
   await page.locator('[data-nav=experiments]').click();
   await expect(page).toHaveURL(/#experiments$/);
@@ -52,6 +51,7 @@ test.describe('actual configured HTTPS owner', () => {
     page.on('request', r => { if (r.method() !== 'GET') writes.push(new URL(r.url()).pathname); });
     page.on('pageerror', e => errors.push(e.message));
     await page.goto('/extensions');
+    await page.locator('[data-open-feature="multimap"]').click();
     await expect(page.locator('#expansion-login, #expansion-code, #expansion-logout')).toHaveCount(0);
     await expect(state(page)).toContainText('Catalogue ready');
     expect(writes).toEqual([]);

@@ -18,7 +18,9 @@ python -m robot_dashboard.offline_slam.workbench --root runtime/workbench --port
 python -m robot_dashboard.offline_slam.demo --output runtime/synthetic-drive.json
 ```
 
-브라우저에서 `http://127.0.0.1:8092/extensions#trajectory`를 엽니다. `synthetic-drive.json`을 불러오고 검색 반경 1.2 m, 최소 키프레임 간격 10으로 보정합니다. 저장 후 ZIP을 내려받을 수 있습니다. 여러 지도 병합 탭에서는 생성된 합성 지도 두 개를 선택해 정합·후보 수락·새 PCD 저장을 진행합니다. 저장된 병합 지도는 같은 로컬 목록에 다시 나타나며 출처 계보 중복 검사는 그대로 적용됩니다.
+브라우저에서 `http://127.0.0.1:8092/`의 메인 대시보드를 열고, 왼쪽 **확장 기능** 메뉴에서 **주행 기록 보정** 또는 **여러 지도 병합**을 선택합니다. 확장 화면 상단의 **메인 대시보드로 돌아가기**로 복귀할 수 있습니다. 로컬 메인 화면에는 로봇 운영 API가 없으므로 연결·센서 상태는 미연결로 표시됩니다.
+
+주행 기록 보정에서 `synthetic-drive.json`을 불러오고 검색 반경 1.2 m, 최소 키프레임 간격 10으로 보정합니다. 저장 후 ZIP을 내려받을 수 있습니다. 여러 지도 병합 탭에서는 생성된 합성 지도 두 개를 선택해 정합·후보 수락·새 PCD 저장을 진행합니다. 저장된 병합 지도는 같은 로컬 목록에 다시 나타나며 출처 계보 중복 검사는 그대로 적용됩니다. 기존 `/extensions#trajectory`, `/extensions#multimap` 직접 링크도 지원합니다.
 
 `--synthetic-demo`를 생략하면 합성 지도는 생성되지 않습니다. 기존 단독 실행기 `python -m robot_dashboard.offline_slam.server`도 계속 지원합니다.
 

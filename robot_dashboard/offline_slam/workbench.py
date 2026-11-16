@@ -8,7 +8,7 @@ from pathlib import Path
 
 import numpy as np
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from robot_dashboard.expansion_contracts import FusionProposal, MapSourceDescriptor
@@ -177,7 +177,8 @@ def create_app(root, *, synthetic_demo=False):
 
     @app.get("/")
     def entry():
-        return RedirectResponse("/extensions#trajectory")
+        # Serve only the dashboard shell; operational APIs remain absent locally.
+        return FileResponse(STATIC / "index.html", headers={"Cache-Control": "no-store"})
 
     @app.get("/extensions", response_class=HTMLResponse)
     def extensions():

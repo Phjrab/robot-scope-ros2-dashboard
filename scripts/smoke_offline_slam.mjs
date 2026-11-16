@@ -28,6 +28,10 @@ try {
   await shell.goto('http://127.0.0.1:18091/');
   let page=shell;
   if(workbench){
+    await shell.locator('.nav-item[href="/extensions"]').click();
+    assert.equal(await shell.locator('#expansion-choices').isVisible(),true);
+    assert.equal(await shell.locator('iframe').count(),0);
+    await shell.locator('[data-open-feature="trajectory"]').click();
     await shell.locator('iframe[title="주행 기록 보정"]').waitFor();
     const frame=await shell.locator('iframe[title="주행 기록 보정"]').elementHandle();
     page=await frame.contentFrame();
@@ -75,6 +79,13 @@ try {
     await shell.screenshot({path:path.join(root,'integrated-merge.png'),fullPage:true});
     await shell.locator('[data-feature="trajectory"]').click();
     await shell.frameLocator('iframe').locator('#sessions option').nth(1).waitFor({state:'attached'});
+    await shell.locator('#expansion-home').click();
+    await shell.locator('#appNavigation').waitFor();
+    assert.equal(new URL(shell.url()).pathname,'/');
+    await shell.locator('.nav-item[href="/extensions"]').click();
+    assert.equal(await shell.locator('#expansion-choices').isVisible(),true);
+    await shell.locator('[data-open-feature="multimap"]').click();
+    await shell.locator('input[data-source]').first().waitFor();
     console.log('PASS: integrated modes → real merge → review → immutable export → return to saved trajectory');
   }
   assert.deepEqual(errors,[]);

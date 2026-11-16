@@ -31,7 +31,7 @@ function dispose() {
 function initialFeature() {
   const fragment = location.hash.slice(1);
   if (buttons.has(fragment)) return fragment;
-  return ['multimap', 'scene', 'replay'].find(name => config.flags[name]) || 'multimap';
+  return null;
 }
 function stylesheet(name) {
   const href = `/static/features/${name}`;
@@ -48,14 +48,20 @@ function showError(error) {
   status.textContent = `${explanation} ${message}`;
 }
 async function open(name) {
-  if (closed || !buttons.has(name)) return;
+  if (closed || (name !== null && !buttons.has(name))) return;
   const mine = ++generation;
   dispose();
   currentName = name;
-  history.replaceState(null, '', `#${name}`);
+  history.replaceState(null, '', location.pathname + location.search + (name ? `#${name}` : ''));
+  document.querySelector('#expansion-choices').hidden = name !== null;
+  document.querySelector('#expansion-help').hidden = name === null;
   for (const [key, button] of buttons) button.setAttribute('aria-pressed', String(key === name));
   for (const help of document.querySelectorAll('[data-help]')) help.hidden = help.dataset.help !== name;
   document.querySelector('#expansion-demo-help').hidden = name !== 'scene' && name !== 'cones';
+  if (name === null) {
+    status.textContent = '주행 기록 보정 또는 여러 지도 병합을 선택하세요.';
+    return;
+  }
   const blocked = unavailable(name);
   status.textContent = blocked || '';
   if (blocked || name === 'diagnostics') return;
@@ -116,6 +122,9 @@ for (const [name, label] of features) {
   button.title = unavailable(name) || '열기';
   button.addEventListener('click', () => open(name));
   buttons.set(name, button); nav.append(button);
+}
+for (const choice of document.querySelectorAll('[data-open-feature]')) {
+  choice.addEventListener('click', () => open(choice.dataset.openFeature));
 }
 document.querySelector('#expansion-theme').addEventListener('click', () => {
   document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
