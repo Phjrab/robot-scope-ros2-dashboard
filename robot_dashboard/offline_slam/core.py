@@ -195,8 +195,17 @@ def register(source, target, seed, settings):
     distances, indices = tree.query(moved)
     mask = distances < settings.correspondence
     reverse = cKDTree(moved).query(target)[0]
-    overlap = min(float(mask.mean()), float((reverse < settings.correspondence).mean()))
-    rmse = float(np.sqrt(np.mean(distances[mask] ** 2))) if mask.any() else 1e9
+    reverse_mask = reverse < settings.correspondence
+    overlap = min(float(mask.mean()), float(reverse_mask.mean()))
+    forward_rmse = float(np.sqrt(np.mean(distances[mask] ** 2))) if mask.any() else 1e9
+    reverse_rmse = (
+        float(np.sqrt(np.mean(reverse[reverse_mask] ** 2)))
+        if reverse_mask.any()
+        else 1e9
+    )
+    # A small source can fit one layer of a deformed/doubled target exactly.
+    # Overlap alone then passes both ways; require residual quality both ways too.
+    rmse = max(forward_rmse, reverse_rmse)
     unique = len(np.unique(indices[mask])) / max(1, int(mask.sum()))
     shift = vector(inverse(seed) @ current)
     reason = "ACCEPTED"
@@ -210,7 +219,12 @@ def register(source, target, seed, settings):
     ):
         reason = "EXCESSIVE_CORRECTION"
     return (current if reason == "ACCEPTED" else None), dict(
-        reason=reason, overlap=overlap, rmse_m=rmse, unique_ratio=unique
+        reason=reason,
+        overlap=overlap,
+        rmse_m=rmse,
+        forward_rmse_m=forward_rmse,
+        reverse_rmse_m=reverse_rmse,
+        unique_ratio=unique,
     )
 
 

@@ -351,6 +351,30 @@ class ProposalTests(unittest.TestCase):
         self.assertIsNone(result['navigation_geometry_candidate'])
         self.assertIsNone(result['body_candidate'])
 
+    def test_anchor_return_delay_cannot_refresh_the_original_pose(self):
+        started = self.coordinator.start('anchor-return-delay', self.generation, self.session_id)
+        self.complete(started)
+        original = self.global_owner.anchor_proposal
+
+        def delayed(identifier):
+            proposal = original(identifier)
+            time.sleep(1.1)
+            # New messages keep source/session fences healthy, but do not
+            # renew the pose already used to compute this proposal.
+            now = time.monotonic()
+            for sample in (self.runtime.agent.cloud, self.runtime.agent.pose):
+                sample['observation']['received_monotonic_s'] = now
+                evidence = sample['observation']['subscription_evidence']
+                evidence['observed_monotonic_s'] = now
+            return proposal
+
+        with patch.object(self.global_owner, 'anchor_proposal', side_effect=delayed):
+            result = self.coordinator.get(started['proposal_id'])
+        self.assertEqual((result['state'], result['reason']),
+                         ('stale', 'OBSERVATION_INPUTS_UNAVAILABLE'))
+        self.assertIsNone(result['body_candidate'])
+        self.assertIsNone(result['navigation_geometry_candidate'])
+
     def test_map_transform_changed_during_preview_conversion_discards_candidate(self):
         from robot_dashboard.application import navigation_initialization_proposal as proposals
         started = self.coordinator.start('preview-transform-change', self.generation, self.session_id)

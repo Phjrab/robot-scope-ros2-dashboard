@@ -460,8 +460,8 @@ class NavigationInitializationProposals:
                         'capture_stamp_ns': context['source_stamp_ns'],
                         'proposal_stamp_ns': current_pose['observation']['source_stamp_ns'],
                         'pose_age_s': now-current_pose['observation']['received_monotonic_s'],
+                        'pose_received_monotonic_s': current_pose['observation']['received_monotonic_s'],
                         'ambiguity_unresolved': ambiguous, 'overlap': selected['overlap'], 'rmse_m': selected['rmse_m']}
-                    proposal_read_at = time.monotonic()
                     resolution.update(schema='robot-scope.operator-prior-resolution.v1', prior_id=anchor['prior_id'],
                         operator_prior=copy.deepcopy(record['operator_prior']),
                         accepted_monotonic_s=anchor['accepted_monotonic_s'], expires_monotonic_s=anchor['expires_monotonic_s'],
@@ -479,7 +479,6 @@ class NavigationInitializationProposals:
                         return self._empty(record, 'rejected', 'GLOBAL_CANDIDATE_REJECTED')
                     pose_read_started_at = time.monotonic()
                     proposal = owner.anchor_proposal(proposal_id)
-                    proposal_read_at = time.monotonic()
                     if proposal.get('ambiguity_unresolved') is not False:
                         return self._empty(record, 'rejected', 'GLOBAL_AMBIGUOUS')
                 imu = proposal['pose']
@@ -509,7 +508,10 @@ class NavigationInitializationProposals:
                 self.runtime.operational_navigation.verify_preparation_calibration(
                     record['pair']['generation'], record['pair']['calibration_sha256'], record['T_imu_base'])
                 self._ownership(own_job=proposal_id)
-                pose_age = proposal['pose_age_s'] + time.monotonic() - proposal_read_at
+                # Charge all work after the actual pose receipt, including
+                # computation inside anchor_proposal/current_imu. A return
+                # boundary cannot renew the pose used for this candidate.
+                pose_age = time.monotonic() - proposal['pose_received_monotonic_s']
                 if not math.isfinite(pose_age) or not 0 <= pose_age <= 1.:
                     raise ProposalConflict('OBSERVATION_INPUTS_UNAVAILABLE')
                 if resolution is not None and not 0 < resolution['expires_monotonic_s'] - time.monotonic() <= TTL_S:
@@ -589,7 +591,7 @@ class NavigationInitializationProposals:
                         invalidated = record.get('invalidated_reason')
                     if invalidated:
                         return self._empty(record, 'stale', invalidated)
-                    age_after_members = proposal['pose_age_s'] + time.monotonic() - proposal_read_at
+                    age_after_members = time.monotonic() - proposal['pose_received_monotonic_s']
                     if not math.isfinite(age_after_members) or not 0 <= age_after_members <= 1.:
                         raise ProposalConflict('OBSERVATION_INPUTS_UNAVAILABLE')
                     result['provenance']['pose_age_s'] = age_after_members

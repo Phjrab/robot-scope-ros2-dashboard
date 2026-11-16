@@ -66,6 +66,29 @@ class ConditionalProposalTests(unittest.TestCase):
         self.assertFalse(proof['global_uniqueness_verified'])
         self.assertEqual(self.case.state,before)
         self.assertEqual(self.case.coordinator.validate_conditional_confirmation(started['proposal_id'],proof)['state'],'ready')
+
+    def test_conditional_pose_computation_delay_does_not_renew_freshness(self):
+        from robot_dashboard.application import navigation_initialization_proposal as proposals
+        started = self.start()
+        self.case.complete(started)
+        original = proposals.current_imu
+
+        def delayed(*args):
+            current = original(*args)
+            time.sleep(1.1)
+            now = time.monotonic()
+            for sample in (self.case.runtime.agent.cloud, self.case.runtime.agent.pose):
+                sample['observation']['received_monotonic_s'] = now
+                sample['observation']['subscription_evidence']['observed_monotonic_s'] = now
+            return current
+
+        with patch.object(proposals, 'current_imu', side_effect=delayed):
+            result = self.case.coordinator.get(started['proposal_id'])
+        self.assertEqual((result['state'], result['reason']),
+                         ('stale', 'OBSERVATION_INPUTS_UNAVAILABLE'))
+        self.assertIsNone(result['body_candidate'])
+        self.assertIsNone(result['navigation_geometry_candidate'])
+
     def test_unambiguous_global_still_enforces_prior_and_conditional_proof(self):
         self.ambiguous=False
         started=self.start();self.case.complete(started)

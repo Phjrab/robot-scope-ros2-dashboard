@@ -50,7 +50,23 @@ def rebuild(data, result):
             for t in result["poses_after"]
         ]
     )
-    xy = np.concatenate([points[:, :2], origins[:, :2]])
+    # The PCD preserves every return. Grid bounds must use only the height/range
+    # band used by the 2D ray caster, otherwise discarded upper floors or distant
+    # returns can exhaust the grid limit despite a small valid occupancy map.
+    selected_clouds = []
+    for cloud, origin in zip(clouds, origins):
+        distances = np.linalg.norm(cloud[:, :2] - origin[:2], axis=1)
+        selected_clouds.append(
+            cloud[
+                (cloud[:, 2] >= settings.min_height)
+                & (cloud[:, 2] <= settings.max_height)
+                & (distances >= 0.1)
+                & (distances <= 30)
+            ]
+        )
+    if not any(len(cloud) for cloud in selected_clouds):
+        raise ValueError("NO_POINTS_IN_HEIGHT_BAND")
+    xy = np.concatenate([*[cloud[:, :2] for cloud in selected_clouds], origins[:, :2]])
     lower = (
         np.floor(xy.min(0) / settings.resolution) * settings.resolution
         - settings.resolution
@@ -61,10 +77,7 @@ def rebuild(data, result):
     odds = np.zeros((size[1], size[0]), dtype=float)
     seen = np.zeros_like(odds, dtype=bool)
     hit_count = 0
-    for cloud, origin in zip(clouds, origins):
-        selected = cloud[
-            (cloud[:, 2] >= settings.min_height) & (cloud[:, 2] <= settings.max_height)
-        ]
+    for selected, origin in zip(selected_clouds, origins):
         start = np.floor((origin[:2] - lower) / settings.resolution).astype(int)
         # One nearest endpoint per angular bin avoids clearing behind nearer returns.
         rays = {}

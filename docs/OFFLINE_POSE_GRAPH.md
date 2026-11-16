@@ -98,7 +98,8 @@ ZIP에는 `session.json`, `result.json`, `optimized.pcd`, `map.pgm`, `map.yaml`,
 
 후보는 odometry 공간 근접성과 프레임 간격으로 찾고 프레임마다 가까운 후보 세 개까지만
 검사합니다. ICP는 3D trimmed point-to-point 정합이며 양방향 중첩, 최근접점 중복 비율,
-잔차, 선형 퇴화와 과도한 보정을 검사합니다. 완전한 장소 인식, Scan Context,
+양방향 잔차의 최댓값, 선형 퇴화와 과도한 보정을 검사합니다. 후보의 `rmse_m`은
+`forward_rmse_m`, `reverse_rmse_m` 중 큰 값입니다. 완전한 장소 인식, Scan Context,
 큰 초기 방향 오차에 대한 전역 정합, 반복 선반에서의 오인식 완전 방지는 아닙니다.
 soft-L1은 오인식 검증을 대신하지 않습니다. 끝점이 출발점이라는 정답 제약은 넣지 않습니다.
 
@@ -107,11 +108,14 @@ soft-L1은 오인식 검증을 대신하지 않습니다. 끝점이 출발점이
 log-odds로 생성합니다. PGM은 위쪽 행부터 기록하고 YAML origin은 아래쪽 원점입니다.
 다층·경사로용 traversability 지도가 아니며 ground-plane 자동 추정도 없습니다.
 맵 크기는 최대 400만 셀, 축당 4,000셀입니다. 2D 생성 실패 시 전체 결과를 채택하지 않습니다.
+2D 경계는 실제 높이 구간과 0.1–30 m XY 거리 조건을 통과한 반사점 및 센서 원점으로
+계산합니다. 제외된 상층·원거리 점은 3D PCD에는 남지만 2D 크기를 늘리지 않습니다.
 
 ## 하드웨어 없는 검증
 
 ```bash
 python -m unittest discover -s tests -p test_offline_slam.py -v
+python -m unittest discover -s tests -p test_offline_slam_validation.py -v
 node --test tests/test_offline_slam.mjs
 python -m robot_dashboard.offline_slam.demo --output runtime/synthetic-run.json
 # Playwright 브라우저가 설치된 분석 환경에서:
@@ -143,6 +147,37 @@ node scripts/smoke_offline_slam.mjs
 상세 실행 로그와 합성 화면 캡처는 Git에서 제외되는 `runtime/offline-validation/`에
 보관합니다. 별도 작업에서 변경 중인 navigation 코드와 해당 테스트는 이번 변경에
 포함하지 않습니다.
+
+### 2026-11-16 수치 스트레스 검증 (합성 전용)
+
+기존 전체 랜드마크 가시성 예제 외에 XY 가시 거리 3.4 m, 프레임별 18% 무작위 누락,
+XYZ 15 mm Gaussian 잡음을 추가했습니다. 같은 생성식의 정답 자세는 평가에만 사용하며
+루프 측정·optimizer 입력에는 넣지 않았습니다. 시작 자세를 고정한 절대 병진 RMSE를
+전체 21개 자세에서 계산합니다. 설정은 후보 반경 1.2 m, 프레임 간격 10,
+correspondence 0.35 m이며 나머지는 기본값입니다.
+
+| 난수 seed | 채택 루프 | 같은 그래프 비용 전 → 후 | 끝점 거리 전 → 후 (m) | 정답 병진 RMSE 전 → 후 (m) |
+|---|---:|---:|---:|---:|
+| 21 | 2 | 79.360351 → 0.543285 | 0.498899 → 0.022637 | 0.252511 → 0.084891 |
+| 182 | 2 | 79.580086 → 0.545959 | 0.498899 → 0.019270 | 0.252511 → 0.086965 |
+| 909 | 1 | 38.275813 → 0.526518 | 0.498899 → 0.030081 | 0.252511 → 0.081630 |
+
+- 기본 correspondence 0.6 m로 seed 182를 실행하면 모든 후보가 `HIGH_RESIDUAL`로
+  기각되어 `NO_LOOP`입니다. 합성 입력에 맞춘 0.35 m 결과를 기본 설정의 보장으로
+  일반화하지 않습니다. 끝점 거리 감소만으로 정확도를 판정하지 않습니다.
+- 변형 오인식: 원본 200점에 Z축 0.35 m 이동 복제층을 더한 400점 target은 양방향
+  중첩 1.0, forward RMSE 약 0 m여서 이전 검사에서 채택됐습니다. reverse RMSE
+  0.212683 m도 검사하도록 수정하여 `HIGH_RESIDUAL`로 기각합니다. 반대 정합 방향도
+  0.182686 m로 기각합니다. 이 후보만 있는 그래프는 `NO_LOOP`이며 수정 자세가 없습니다.
+- 공간적으로 겹치는 독립 난수 점군도 잔차로 기각합니다. 동일한 반복 구조의 장소를
+  구별하는 정답 기반 검사는 아니며, 실제 반복 선반 오인식 방지를 입증하지 않습니다.
+- 2D 지도 경계에 사용하지 않는 `[500,0,100]` 상층점 또는 `[500,0,1]` 원거리점이
+  이전에는 작은 지도도 `GRID_TOO_LARGE`로 만들 수 있었습니다. 수정 후 이 점들을
+  추가해도 PGM/YAML 바이트는 같고, PCD에는 원래대로 추가 점이 보존됩니다.
+- Python 기존 13개 + 신규 10개 = **23개 통과**, JavaScript **2개 통과**.
+  새 검사는 비대칭 변형/거짓 루프·잡음과 부분 가시성·알려진 3D 정합·회전 전용
+  키프레임·PCD 수정 자세·교정 센서 원점·PGM 상하 방향·빈 높이 구간도 포함합니다.
+- 실제 bag 제공/검증, ROS live, 실장비 정확도, 운영 지도 적용: **NOT_RUN**.
 
 참고: [SciPy least_squares](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.least_squares.html),
 [FAST-LIO 입력/출력 개념](https://github.com/hku-mars/FAST_LIO).
