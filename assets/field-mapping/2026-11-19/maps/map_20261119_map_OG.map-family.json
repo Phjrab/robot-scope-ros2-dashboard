@@ -1,0 +1,50 @@
+{
+  "conversion": {
+    "background": "unknown",
+    "min_neighbors": 10,
+    "noise_radius": 0.1,
+    "parameters_hash": "199419f60916ec1414b17f102209f3d1a42ef2b496e41d4fc189b1be4ba625c8",
+    "resolution": 0.05,
+    "z_max": 0.8,
+    "z_min": -0.2
+  },
+  "created_at": "2026-11-19T03:27:45.320158+00:00",
+  "derived_from_family_revision": "3e7b3c542c4d7ed08c65e7351e18a23e6af5e83ca7f45448c727b7fd5f2a7464",
+  "family_id": "8627712e15f846bacb300cd3",
+  "family_revision": "50e335bc6a905262d2e5c6f148d17d8a7e5a724b42e553d97682694411c5b9a4",
+  "frame_projection": {
+    "method": "planar_xy_identity",
+    "occupancy_frame_id": "map",
+    "rotation_rpy": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "source_frame_id": "camera_init",
+    "translation": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "occupancy": {
+    "frame_id": "map",
+    "height": 653,
+    "map_id": "e962a5d91ccaa2e5d49e708e",
+    "map_revision": "ca13f1b6d15d483ac55316ea471cc01e1db393022bf5a93b7b33bfbe1815cc15",
+    "origin": [
+      -19.34145164489746,
+      -15.096790313720703,
+      0.0
+    ],
+    "resolution": 0.05,
+    "width": 609
+  },
+  "schema": "robot-scope.map-family.v1",
+  "source": {
+    "frame_id": "camera_init",
+    "mapping_session_id": "33b0bce90c21b9a979412666",
+    "pcd_map_id": "1935cab3cc02fa5497fd6887",
+    "pcd_revision": "a2284aaacda30c8c2ba03e57d1490843771dd0cc8fa92b7ab4c14d5bf7576d90"
+  }
+}

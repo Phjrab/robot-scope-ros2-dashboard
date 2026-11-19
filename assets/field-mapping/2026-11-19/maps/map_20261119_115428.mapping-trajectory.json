@@ -1,0 +1,35 @@
+{
+  "schema": "robot-scope.recorded-mapping-trajectory.v1",
+  "map_name": "map_20261119_115428",
+  "mapping_job_id": "51b5456b4d394b25a44c35f8b6081ec1",
+  "save_job_id": "421b25ac1c884f0c9a1ff59a26422d22",
+  "saved_at": "2026-11-19T02:57:46.865799+00:00",
+  "map_assets": [
+    {
+      "id": "4bdad31af2a7dc7c446d8a9d",
+      "revision": "fd36c38076450c443e1970fd625e207166205cd818fd84ef56f1ed516d0b6493",
+      "file": "map_20261119_115428.yaml"
+    },
+    {
+      "id": "1935cab3cc02fa5497fd6887",
+      "revision": "a2284aaacda30c8c2ba03e57d1490843771dd0cc8fa92b7ab4c14d5bf7576d90",
+      "file": "map_20261119_115428.pcd"
+    }
+  ],
+  "topic": "/Odometry",
+  "source_frame": "camera_init",
+  "session_start_ns": 1795056919996744000,
+  "save_requested_at": "2026-11-19T02:57:44.480539+00:00",
+  "cutoff_basis": "server_save_request",
+  "snapshot_end_ns": 1795057064480539000,
+  "session_archive": "/home/unitree/robot-scope-data/mapping-logs/20261119-trajectories/capture.sqlite3",
+  "first_received_ns": 1795056924308274479,
+  "last_received_ns": 1795057064432576483,
+  "samples": 1402,
+  "gaps_over_250ms": 0,
+  "nonincreasing_stamps": 0,
+  "max_stamp_gap_s": 0.101598739,
+  "trajectory_file": "map_20261119_115428.mapping-trajectory.csv",
+  "sha256": "3c21cdf26dce3ddf9a68c49ccd426a794b11179e008608de9e8afe01e17e345c",
+  "scope": "observed FAST-LIO poses from start of mapping run through server save request, inclusive"
+}

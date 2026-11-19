@@ -1,0 +1,75 @@
+{
+  "schema": "robot-scope.registered-mapping-trajectory.v1",
+  "map_name": "map_20261119_left",
+  "map_id": "0ba465d96d12a60cf277ca7a",
+  "map_revision": "f824d727f0326e9a89888394956525f7219088bf56c644f10a17b00e1c7c48a4",
+  "frame_id": "map",
+  "samples": 771,
+  "trajectory_file": "map_20261119_left.mapping-trajectory.csv",
+  "sha256": "df1a01a6fa23820957296054e0da8e7360dd1633324986b41b92345a14584e0b",
+  "display_route_file": "map_20261119_left.route.json",
+  "registration": {
+    "name": "left",
+    "source_name": "map_20261119_2",
+    "source_id": "c20f70b1323154231a928166",
+    "source_revision": "d13770f078f6e33a8c17ba35c2763d1a9c471f9c87513cd8631344604d88ea91",
+    "target_revision": "98fcbbdf3b53f3f69a61278648cf3dc1428ab21c0ba61f26b2127e783449303e",
+    "target_id": "21ba63e22cc65a63f72ab7d7",
+    "source_csv_sha256": "cb32d08811bac3d060c088d4013fdad16e235a4fc176b0cabd2f12cd1ad44128",
+    "source_recording": "map_20261119_115133",
+    "yaw_deg": -3.1899999999999338,
+    "dx": 0.2536980903419296,
+    "dy": 0.057505553645141205,
+    "holdout_near_n": 676,
+    "method": "rigid arena-rectangle fit using two long sides and the observed right short side, with width from four-wall target rectangle",
+    "target_arena_corners_xy": [
+      [
+        -2.8415057347428556,
+        6.66072108295921
+      ],
+      [
+        6.10348894186343,
+        5.40923622994042
+      ],
+      [
+        5.130314108585722,
+        -1.546536092895368
+      ],
+      [
+        -3.814680568020563,
+        -0.29505123987657944
+      ]
+    ],
+    "source_arena_corners_xy": [
+      [
+        -3.4574995182010397,
+        6.425042444892636
+      ],
+      [
+        5.543276496773644,
+        5.673261073677106
+      ],
+      [
+        4.957961152682537,
+        -1.334484145885546
+      ],
+      [
+        -4.042814862292147,
+        -0.5827027746700157
+      ]
+    ],
+    "target_long_axis_deg": -7.964494084658652,
+    "source_long_axis_deg": -4.774494084658718,
+    "max_corner_residual_m": 0.004313180258731008,
+    "split_fit_max_disagreement_m": 0.007358930225063187,
+    "holdout_near_median_m": 0.01790161058306694,
+    "holdout_near_p90_m": 0.3180004358291626,
+    "holdout_near_in_10cm": 0.7440828402366864,
+    "near_fit_delta_m": 0.031896364197449734,
+    "sampled_cells": {
+      "0": 771
+    },
+    "score": 0.7797977328300476,
+    "alternative_score": 0.373052716255188
+  }
+}

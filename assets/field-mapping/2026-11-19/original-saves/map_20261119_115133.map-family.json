@@ -1,0 +1,50 @@
+{
+  "conversion": {
+    "background": "unknown",
+    "min_neighbors": 10,
+    "noise_radius": 0.1,
+    "parameters_hash": "199419f60916ec1414b17f102209f3d1a42ef2b496e41d4fc189b1be4ba625c8",
+    "resolution": 0.05,
+    "z_max": 0.8,
+    "z_min": -0.2
+  },
+  "created_at": "2026-11-19T02:54:27.004094+00:00",
+  "derived_from_family_revision": null,
+  "family_id": "cb3440a2ece753c76dedcbd9",
+  "family_revision": "20f665f3e250c78aff38900edea4ddf51d6acbd5ebbca805b31556d14ae813c7",
+  "frame_projection": {
+    "method": "planar_xy_identity",
+    "occupancy_frame_id": "map",
+    "rotation_rpy": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "source_frame_id": "camera_init",
+    "translation": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "occupancy": {
+    "frame_id": "map",
+    "height": 735,
+    "map_id": "2c836aa869d75ea9a67f1fd3",
+    "map_revision": "f275616380456ecb309bdcd60adef1232a66c12ac590a88bf7f2d9a1d2394693",
+    "origin": [
+      -21.769147872924805,
+      -21.521038055419922,
+      0.0
+    ],
+    "resolution": 0.05,
+    "width": 683
+  },
+  "schema": "robot-scope.map-family.v1",
+  "source": {
+    "frame_id": "camera_init",
+    "mapping_session_id": "f315367d6df0468f2d9fb68c",
+    "pcd_map_id": "7e2a97f89a01ea0c00a00795",
+    "pcd_revision": "d5102b5c42a58e2b05e3fe1363b4176663f162d7c08a6fc9ec6b0667b7ef8e7c"
+  }
+}
